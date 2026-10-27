@@ -40,6 +40,12 @@ public sealed record TableInfo
     /// <summary>La tabla es el puente de una relación N:M (solo dos FK que forman la PK).</summary>
     public bool IsBridge { get; init; }
 
+    /// <summary>
+    /// FK de la tabla hacia sí misma (P-016), p. ej. empleado.jefe_id → empleado.id: habilita la vista de árbol
+    /// y la validación de ciclos. Solo de una columna hacia una PK de una columna.
+    /// </summary>
+    public ForeignKeyInfo? SelfReference { get; init; }
+
     /// <summary>Columna que se muestra cuando otra tabla referencia a esta (combos de FK).</summary>
     public string? DisplayColumn { get; init; }
 

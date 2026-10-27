@@ -107,6 +107,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
     onSuccess: saved => {
       qc.invalidateQueries({ queryKey: ['rows', conn, meta.schema, meta.name] })
       qc.invalidateQueries({ queryKey: ['lookup', conn, meta.schema, meta.name] })
+      qc.invalidateQueries({ queryKey: ['tree', conn, meta.schema, meta.name] })
       // Un alta con hijas sigue en el registro creado, para cargar sus hijas sin salir (P-014).
       if (!isEdit && !returnTo && children.length > 0 && meta.hasPrimaryKey && saved)
         navigate(`${list}/edit?${keyQuery(meta, saved)}`, { replace: true })

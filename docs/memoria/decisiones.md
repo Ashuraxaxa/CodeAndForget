@@ -476,6 +476,16 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - ClosedXML (arma todo el libro en memoria).
   - Guardar el archivo en el servidor entre la vista previa y la confirmación (exige almacenamiento compartido).
 
+### D-058 · Árboles por autorreferencia, cargados por nivel, sin ciclos
+- **Estado:** Vigente · 2026-10-27 (P-016)
+- **Qué:**
+  - `TableInfo.SelfReference` es la primera FK de una columna de la tabla hacia su propia PK de una columna, declarada o virtual.
+  - `GET /tree?parent=` devuelve un nivel por llamada: `{ value, label, hasChildren }`, este último con `EXISTS`. Sin `parent` devuelve las raíces: sin padre o con un padre que ya no existe, así ningún registro queda inaccesible.
+  - Al editar se sube desde el nuevo padre hacia la raíz con consultas simples; si se llega al propio registro, el cambio se rechaza en el campo. No se usa CTE recursivo porque su sintaxis cambia entre motores (D-031).
+  - UI: cambio Grilla/Árbol (`?vista=arbol` en la URL, para volver a la misma vista) y "＋ hijo", que usa el valor fijo de P-014.
+- **Por qué:** cargar por nivel escala con jerarquías grandes, y la validación vive en el servidor, que es donde se cumple.
+- **Alternativa descartada:** cargar el árbol completo de una vez, que sería lento con miles de registros.
+
 ---
 
 ## Propuestas (aún no decididas)

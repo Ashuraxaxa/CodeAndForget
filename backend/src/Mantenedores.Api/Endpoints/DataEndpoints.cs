@@ -51,6 +51,10 @@ public static class DataEndpoints
             List<System.Text.Json.JsonElement> values, CrudService crud, CancellationToken ct) =>
             crud.SetLinksAsync(conn, schema, table, Key(http.Query), link, values, ct));
 
+        // Árbol de una tabla con autorreferencia (P-016): un nivel por llamada. Sin ?parent, las raíces.
+        group.MapGet("/tree", (string conn, string schema, string table, string? parent, int? take, CrudService crud, CancellationToken ct) =>
+            crud.TreeAsync(conn, schema, table, parent, take ?? 500, ct));
+
         // ---------- Exportar e importar (P-017) ----------
 
         // ?format=csv|xlsx|json|xml con los mismos filtros, búsqueda y orden del listado (sin paginar).

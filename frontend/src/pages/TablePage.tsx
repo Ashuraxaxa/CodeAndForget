@@ -6,6 +6,7 @@ import { LABEL_SUFFIX, labelOf, type Column, type Row, type TableMeta, type Tran
 import { FIXED_PREFIX, RETURN_PARAM, displayValue, keyQuery } from '../lib/format'
 import { useDebounce } from '../lib/useDebounce'
 import { useCan } from '../lib/useMe'
+import { TreeView } from '../components/TreeView'
 
 const PAGE_SIZES = [10, 25, 50, 100]
 
@@ -34,7 +35,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const canConfigure = useCan('ConfigureTables')
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
   const [sort, setSort] = useState<{ col: string; desc: boolean } | null>(null)
@@ -81,6 +82,15 @@ export function Grid({ conn, meta, fixed, returnTo }: {
   })
 
   const [exporting, setExporting] = useState(false)
+  // Vista de árbol para tablas con autorreferencia (P-016).
+  // Queda en la URL (?vista=arbol) para volver a ella después de editar.
+  const view = params.get('vista') === 'arbol' ? 'tree' : 'grid'
+  const setView = (v: 'grid' | 'tree') => setParams(p => {
+    const n = new URLSearchParams(p)
+    if (v === 'tree') n.set('vista', 'arbol'); else n.delete('vista')
+    return n
+  }, { replace: true })
+  const showTree = !embedded && meta.selfReference != null && view === 'tree'
   async function exportAs(format: TransferFormat) {
     setExporting(true)
     try {
@@ -138,6 +148,16 @@ export function Grid({ conn, meta, fixed, returnTo }: {
       </div>
       )}
 
+      {!embedded && meta.selfReference && (
+        <div className="tabs">
+          <button className={view === 'grid' ? 'tab active' : 'tab'} onClick={() => setView('grid')}>Grilla</button>
+          <button className={view === 'tree' ? 'tab active' : 'tab'} onClick={() => setView('tree')}>
+            Árbol <span className="muted small">· {meta.selfReference.columns[0]}</span>
+          </button>
+        </div>
+      )}
+
+      {showTree ? <TreeView conn={conn} meta={meta} /> : <>
       {!embedded && meta.referencedBy.length > 0 && (
         <div className="related muted small">
           Referenciada por:{' '}
@@ -225,6 +245,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
           {PAGE_SIZES.map(s => <option key={s} value={s}>{s} por página</option>)}
         </select>
       </div>
+      </>}
     </div>
   )
 }

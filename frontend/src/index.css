@@ -203,3 +203,11 @@ button.link.danger { color: var(--danger); }
 
 /* ---------- Exportar e importar (P-017) ---------- */
 select.export { width: auto; }
+
+/* ---------- Árbol (P-016) ---------- */
+.tree { list-style: none; margin: 0; padding-left: 0; }
+.tree .tree { padding-left: 22px; border-left: 1px dashed var(--border); margin-left: 10px; }
+.tree-node { display: flex; align-items: center; gap: 8px; padding: 3px 0; flex-wrap: wrap; }
+.tree-toggle { border: none; background: none; width: 22px; padding: 0; font-size: 0.95rem; }
+.tree-toggle:disabled { opacity: 0.5; }
+.tree-indent { margin-left: 32px; }

@@ -202,6 +202,48 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         return new SqlQuery(sql, p.Snapshot());
     }
 
+    /// <summary>
+    /// Un nivel del árbol de una tabla con autorreferencia (P-016): los hijos de <paramref name="parent"/>, o las raíces
+    /// si es null (sin padre, o con un padre que ya no existe). Cada nodo dice si tiene hijos, para expandirlo bajo demanda.
+    /// </summary>
+    public SqlQuery BuildTreeLevel(TableInfo table, object? parent, int take)
+    {
+        var fk = table.SelfReference ?? throw new OperationNotAllowedException($"{table.FullName} no tiene una relación consigo misma.");
+        var p = new ParamBag(dialect.ParameterPrefix);
+        var pkCol = table.FindColumn(table.PrimaryKey[0])!;
+        var parentCol = table.FindColumn(fk.Columns[0])!;
+        var displayCol = (table.DisplayColumn is { } d ? table.FindColumn(d) : null) is { IsSelectable: true } dc ? dc : pkCol;
+        var t = dialect.Table(table.Schema, table.Name);
+        string Col(string alias, ColumnInfo c) => $"{alias}.{dialect.Quote(c.Name)}";
+
+        var where = parent is null
+            ? $"{Col(Base, parentCol)} IS NULL OR NOT EXISTS (SELECT 1 FROM {t} p WHERE {Col("p", pkCol)} = {Col(Base, parentCol)})"
+            : $"{Col(Base, parentCol)} = {dialect.ParameterFor(parentCol, p.Add(parent))}";
+        var hasChildren = $"CASE WHEN EXISTS (SELECT 1 FROM {t} c WHERE {Col("c", parentCol)} = {Col(Base, pkCol)}) THEN 1 ELSE 0 END";
+        var orderBy = displayCol.IsSortable ? Col(Base, displayCol) : Col(Base, pkCol);
+        var offset = p.Add(0L);
+        var limit = p.Add((long)Math.Clamp(take, 1, 1000));
+
+        var sql = $"SELECT {dialect.SelectExpression(pkCol, Col(Base, pkCol))} AS {dialect.Quote("value")}, " +
+                  $"{dialect.SelectExpression(displayCol, Col(Base, displayCol))} AS {dialect.Quote("label")}, " +
+                  $"{hasChildren} AS {dialect.Quote("children")} " +
+                  $"FROM {t} {Base} WHERE {where} ORDER BY {orderBy} {dialect.Paging(offset, limit)}";
+        return new SqlQuery(sql, p.Snapshot());
+    }
+
+    /// <summary>El padre de un registro (un paso hacia la raíz), para detectar ciclos.</summary>
+    public SqlQuery BuildParentOf(TableInfo table, object? key)
+    {
+        var fk = table.SelfReference!;
+        var p = new ParamBag(dialect.ParameterPrefix);
+        var pkCol = table.FindColumn(table.PrimaryKey[0])!;
+        var parentCol = table.FindColumn(fk.Columns[0])!;
+        return new SqlQuery(
+            $"SELECT {dialect.SelectExpression(parentCol, $"{Base}.{dialect.Quote(parentCol.Name)}")} " +
+            $"FROM {dialect.Table(table.Schema, table.Name)} {Base} WHERE {Base}.{dialect.Quote(pkCol.Name)} = {dialect.ParameterFor(pkCol, p.Add(key))}",
+            p.Snapshot());
+    }
+
     /// <summary>Patrón "contiene" con los comodines del usuario escapados con <see cref="LikeEscape"/>.</summary>
     public static string LikePattern(string search)
     {

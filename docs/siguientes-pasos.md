@@ -244,7 +244,7 @@ Guía de uso: [ajustes.md](ajustes.md). Decisiones: D-049 a D-051.
 - **API:** `PUT /api/data/{conn}/{schema}/{tabla}/row/links/{puente}` recibe la lista completa y sincroniza en una transacción: inserta las nuevas y borra las quitadas.
 - **Listo cuando:** se asignan etiquetas a un producto desde su propio formulario.
 
-### 1.7 Árboles por autorreferencia (3 días)
+### 1.7 Árboles por autorreferencia (3 días) · ✅ PR #18
 - Para tablas con FK a sí mismas (p. ej. `empleado.jefe_id`), ofrecer una vista de árbol además de la grilla.
 - Validar ciclos al guardar: un registro no puede ser su propio ancestro.
 - **Listo cuando:** se ve la jerarquía de empleados y no se puede crear un ciclo.

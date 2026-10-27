@@ -436,6 +436,17 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Un modelo propio evita que un cambio en `TableInfo` (p. ej. un campo nuevo) parezca un cambio de la base.
 - **Alternativa descartada:** comparar solo el hash, que dice que algo cambió pero no qué.
 
+### D-055 · Maestro-detalle en el formulario de edición, con filtro exacto
+- **Estado:** Vigente · 2026-10-27 (P-014)
+- **Qué:**
+  - Al editar un registro, una pestaña por tabla hija (`TableInfo.Children`) con su grilla filtrada por la FK. Funciona con FK compuestas y virtuales.
+  - Nuevo parámetro de listado `e.<columna>` (`ListRequest.Exact`): igualdad exacta, también en textos. `f.` sigue siendo "contiene" en textos. Una columna oculta solo se acepta en `e.` si es parte de una FK o la PK.
+  - "Nuevo" y "Editar" desde una pestaña llevan `_fk.<col>` (valor fijo y bloqueado) y `_return` (a dónde volver); esos parámetros no son parte de la clave.
+  - Un alta de un registro con hijas queda en su edición, para cargar las hijas sin salir.
+  - Ajuste `children`: cuáles hijas y en qué orden, por nombre de FK. Se resuelve después de recalcular las FK entrantes, así incluye las virtuales; un nombre que ya no existe es aviso.
+- **Por qué:** reusar la misma grilla evita una segunda implementación. El filtro "contiene" traería hijas de otro padre con un código parecido.
+- **Alternativa descartada:** un endpoint propio de hijas (`/children`), que duplicaría paginación, orden y filtros.
+
 ---
 
 ## Propuestas (aún no decididas)

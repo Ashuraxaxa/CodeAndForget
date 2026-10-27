@@ -230,7 +230,7 @@ Guía de uso: [ajustes.md](ajustes.md). Decisiones: D-049 a D-051.
 - Marcar los overrides huérfanos, que apuntan a columnas que ya no existen.
 - **Listo cuando:** borrar una columna en la BD muestra el aviso y no rompe el mantenedor.
 
-### 1.5 Maestro-detalle (1 semana)
+### 1.5 Maestro-detalle (1 semana) · ✅ PR #15 (etiquetas de FK compuestas: P-030)
 - La API ya expone `referencedBy`. En la pantalla de edición, agregar pestañas con la grilla de cada tabla hija filtrada por la FK.
   - Ejemplo: Pedido → PedidoDetalle.
 - "Nuevo" desde una pestaña hija abre el formulario con la FK ya completada y bloqueada.

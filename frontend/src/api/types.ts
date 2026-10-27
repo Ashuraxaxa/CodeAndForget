@@ -103,6 +103,8 @@ export interface TableMeta {
   primaryKey: string[]
   foreignKeys: ForeignKey[]
   referencedBy: ForeignKey[]
+  /** Hijas que se muestran en pestañas al editar (ajuste `children`); null = todas las de referencedBy. */
+  children: ForeignKey[] | null
   displayColumn: string | null
   isEditable: boolean
   hasPrimaryKey: boolean
@@ -169,6 +171,8 @@ export interface TableOverride {
   group?: string
   virtualPrimaryKey?: string[]
   virtualForeignKeys?: VirtualForeignKey[]
+  /** Hijas en pestañas, por nombre de FK y en orden. Sin definir = todas; [] = ninguna. */
+  children?: string[]
   columns?: Record<string, ColumnOverride>
 }
 

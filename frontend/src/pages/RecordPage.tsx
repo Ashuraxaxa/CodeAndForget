@@ -4,12 +4,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
 import { LABEL_SUFFIX, labelOf, type Column, type Row, type TableMeta } from '../api/types'
 import { FieldControl } from '../components/FieldControl'
-import { fromInputValue, toInputValue } from '../lib/format'
+import { fromInputValue, keyQuery, parseRecordSearch, toInputValue } from '../lib/format'
+import { ChildTabs } from '../components/ChildTabs'
 
 /** Formulario de alta y edición generado desde la metadata de la tabla. */
 export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
   const { conn = '', schema = '', table = '' } = useParams()
-  const key = useLocation().search.replace(/^\?/, '')
+  const location = useLocation()
+  // La query string trae la clave del registro y, desde una pestaña hija, valores fijos y a dónde volver (P-014).
+  const { key, fixed, returnTo } = parseRecordSearch(location.search)
 
   const meta = useQuery({ queryKey: ['meta', conn, schema, table], queryFn: () => api.table(conn, schema, table) })
   const row = useQuery({
@@ -23,23 +26,36 @@ export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
   const error = meta.error ?? row.error
   if (error) return <div className="alert">{(error as Error).message}</div>
 
-  return <RecordForm conn={conn} meta={meta.data!} row={mode === 'edit' ? row.data! : null} recordKey={key} />
+  return (
+    <RecordForm key={location.search} conn={conn} meta={meta.data!} row={mode === 'edit' ? row.data! : null}
+      recordKey={key} fixed={fixed} returnTo={returnTo} />
+  )
 }
 
-function RecordForm({ conn, meta, row, recordKey }: { conn: string; meta: TableMeta; row: Row | null; recordKey: string }) {
+function RecordForm({ conn, meta, row, recordKey, fixed, returnTo }: {
+  conn: string
+  meta: TableMeta
+  row: Row | null
+  recordKey: string
+  /** Columnas que vienen completadas y bloqueadas (la FK al padre, en un alta desde una pestaña hija). */
+  fixed: Record<string, string>
+  returnTo: string | null
+}) {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const isEdit = row !== null
-  const back = `/c/${conn}/t/${encodeURIComponent(meta.schema)}/${encodeURIComponent(meta.name)}`
+  const list = `/c/${conn}/t/${encodeURIComponent(meta.schema)}/${encodeURIComponent(meta.name)}`
+  const back = returnTo ?? list
+  const children = meta.children ?? meta.referencedBy
   const fkByColumn = new Map(meta.foreignKeys.filter(f => f.columns.length === 1).map(f => [f.columns[0], f]))
 
   // En alta se ocultan las columnas que genera la BD; en edición se muestran deshabilitadas.
   // Las ocultas por ajuste no se muestran (la PK oculta viaja igual en la clave de la URL).
   const fields = meta.columns.filter(c => c.isSelectable && !c.hidden && (isEdit || !(c.isIdentity || c.isComputed || c.isRowVersion)))
-  const isLocked = (c: Column) => c.isReadOnly || (isEdit && c.isPrimaryKey)
+  const isLocked = (c: Column) => c.isReadOnly || (isEdit && c.isPrimaryKey) || c.name in fixed
 
   const [values, setValues] = useState<Record<string, string | boolean>>(() =>
-    Object.fromEntries(fields.map(c => [c.name, toInputValue(c, row?.[c.name])])))
+    Object.fromEntries(fields.map(c => [c.name, c.name in fixed && !isEdit ? fixed[c.name] : toInputValue(c, row?.[c.name])])))
   const [labels, setLabels] = useState<Record<string, string | null>>(() =>
     Object.fromEntries(fields.map(c => [c.name, (row?.[c.name + LABEL_SUFFIX] as string | null) ?? null])))
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -48,6 +64,8 @@ function RecordForm({ conn, meta, row, recordKey }: { conn: string; meta: TableM
     mutationFn: () => {
       const body: Row = {}
       for (const c of fields) {
+        // Los valores fijos se envían aunque estén bloqueados: son la FK al registro padre.
+        if (!isEdit && c.name in fixed) { body[c.name] = fromInputValue(c, fixed[c.name]); continue }
         if (isLocked(c)) continue
         const v = fromInputValue(c, values[c.name])
         // En alta, un vacío en columna con default se omite para que la BD ponga su valor.
@@ -58,10 +76,13 @@ function RecordForm({ conn, meta, row, recordKey }: { conn: string; meta: TableM
         ? api.update(conn, meta.schema, meta.name, recordKey, body)
         : api.create(conn, meta.schema, meta.name, body)
     },
-    onSuccess: () => {
+    onSuccess: saved => {
       qc.invalidateQueries({ queryKey: ['rows', conn, meta.schema, meta.name] })
       qc.invalidateQueries({ queryKey: ['lookup', conn, meta.schema, meta.name] })
-      navigate(back)
+      // Un alta con hijas sigue en el registro creado, para cargar sus hijas sin salir (P-014).
+      if (!isEdit && !returnTo && children.length > 0 && meta.hasPrimaryKey && saved)
+        navigate(`${list}/edit?${keyQuery(meta, saved)}`, { replace: true })
+      else navigate(back)
     },
     onError: err => setErrors(err instanceof ApiError ? err.fieldErrors : {}),
   })
@@ -78,7 +99,7 @@ function RecordForm({ conn, meta, row, recordKey }: { conn: string; meta: TableM
     <div className="page">
       <div className="page-header">
         <h1>{isEdit ? `Editar registro · ${labelOf(meta)}` : `Nuevo registro · ${labelOf(meta)}`}</h1>
-        <Link to={back}>‹ Volver a la lista</Link>
+        <Link to={back}>{returnTo ? '‹ Volver' : '‹ Volver a la lista'}</Link>
       </div>
 
       <form className="card form" onSubmit={submit}>
@@ -120,6 +141,8 @@ function RecordForm({ conn, meta, row, recordKey }: { conn: string; meta: TableM
           <Link to={back} className="button">Cancelar</Link>
         </div>
       </form>
+
+      {isEdit && children.length > 0 && <ChildTabs conn={conn} row={row} relations={children} />}
     </div>
   )
 }

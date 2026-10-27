@@ -12,6 +12,9 @@ public static class DataEndpoints
 {
     private const string FilterPrefix = "f.";
 
+    /// <summary>Igualdad exacta: <c>?e.pedido_id=5</c> (P-014).</summary>
+    private const string ExactPrefix = "e.";
+
     public static void MapData(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/data/{conn}/{schema}/{table}").RequireAuthorization();
@@ -55,6 +58,8 @@ public static class DataEndpoints
             PageSize = Int("pageSize", 25),
             Sort = sort,
             Filters = filters,
+            Exact = q.Where(kv => kv.Key.StartsWith(ExactPrefix, StringComparison.Ordinal))
+                .ToDictionary(kv => kv.Key[ExactPrefix.Length..], kv => kv.Value.ToString()),
             Search = q["q"].ToString()
         };
     }

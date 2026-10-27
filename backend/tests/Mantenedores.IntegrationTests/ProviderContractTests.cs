@@ -514,4 +514,29 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
             await Db.Snapshots.DeleteAsync(Conn, default);
         }
     }
+    // ---------- Maestro-detalle (P-014) ----------
+
+    [Fact]
+    public async Task Filtro_exacto_trae_las_hijas_de_un_registro_y_no_las_parecidas()
+    {
+        var detalle = await Db.Crud.ListAsync(Conn, Schema, N("pedido_detalle"), new ListRequest
+        {
+            PageSize = 200,
+            Exact = new Dictionary<string, string> { [N("pedido_id")] = "1" }
+        }, default);
+        Assert.NotEmpty(detalle.Rows);
+        Assert.All(detalle.Rows, r => Assert.Equal(1L, Convert.ToInt64(r[N("pedido_id")])));
+
+        // En un texto, "contiene" trae BEB-001 y BEB-002; el exacto, solo uno.
+        var contiene = await Db.Crud.ListAsync(Conn, Schema, N("producto"),
+            new ListRequest { Filters = new Dictionary<string, string> { [N("codigo")] = "BEB-00" } }, default);
+        var exacto = await Db.Crud.ListAsync(Conn, Schema, N("producto"),
+            new ListRequest { Exact = new Dictionary<string, string> { [N("codigo")] = "BEB-001" } }, default);
+        Assert.True(contiene.Total >= 2);
+        Assert.Equal(1, exacto.Total);
+
+        // La tabla padre conoce sus hijas.
+        var pedido = await TableAsync("pedido");
+        Assert.Contains(pedido.Children!, f => string.Equals(f.Table, N("pedido_detalle"), StringComparison.OrdinalIgnoreCase));
+    }
 }

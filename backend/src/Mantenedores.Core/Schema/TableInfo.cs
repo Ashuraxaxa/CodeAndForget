@@ -28,6 +28,12 @@ public sealed record TableInfo
     /// <summary>FK entrantes: tablas hijas que apuntan a esta (base del maestro-detalle).</summary>
     public IReadOnlyList<ForeignKeyInfo> ReferencedBy { get; init; } = [];
 
+    /// <summary>
+    /// Hijas que la UI muestra en pestañas al editar (P-014): por defecto, todas las de <see cref="ReferencedBy"/>;
+    /// con el ajuste <c>children</c>, las elegidas y en ese orden.
+    /// </summary>
+    public IReadOnlyList<ForeignKeyInfo>? Children { get; init; }
+
     /// <summary>Columna que se muestra cuando otra tabla referencia a esta (combos de FK).</summary>
     public string? DisplayColumn { get; init; }
 

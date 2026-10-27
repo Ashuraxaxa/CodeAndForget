@@ -30,6 +30,12 @@ public sealed record TableOverride
     /// <summary>Relaciones que existen en la práctica pero no están declaradas en la BD.</summary>
     public IReadOnlyList<VirtualForeignKey>? VirtualForeignKeys { get; init; }
 
+    /// <summary>
+    /// Tablas hijas que se muestran en pestañas al editar un registro (P-014), por nombre de la FK que las une,
+    /// en el orden en que se muestran. Null = todas; lista vacía = ninguna.
+    /// </summary>
+    public IReadOnlyList<string>? Children { get; init; }
+
     /// <summary>Ajustes por columna, por nombre de columna.</summary>
     public IReadOnlyDictionary<string, ColumnOverride>? Columns { get; init; }
 }

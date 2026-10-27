@@ -4,6 +4,13 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Fase 2: maestro-detalle
+- Al editar un registro, una pestaña por tabla hija con su grilla filtrada por la FK; "Nuevo" con la FK fija y vuelta al padre; un alta con hijas queda en su edición (D-055).
+- Filtro exacto `e.<col>` en la API (la grilla de hijas lo usa; sirve para FK compuestas y textos). Ajuste `children` y su selector en el editor.
+- Docker del entorno remoto se detuvo a mitad de la batería; reiniciado, todo en verde.
+- 133 unitarias y 163 de integración en verde. Probado en navegador (pedido → líneas, categoría → productos).
+- **Siguiente:** P-015, relaciones N:M.
+
 ## 2026-10-27 · Fase 2: cambios de esquema
 - Foto de referencia por conexión (`mnt_schema_snapshot`, migración `003`) y comparación al refrescar: tablas, columnas, tipos, nulos, PK y FK (D-054).
 - `GET /diff` y `POST /diff/accept` (permiso `ConfigureTables`). Aviso en la UI con detalle; en el editor se quitan los ajustes de columnas que ya no existen.

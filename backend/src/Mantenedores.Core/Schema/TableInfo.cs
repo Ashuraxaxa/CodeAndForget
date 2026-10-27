@@ -6,6 +6,9 @@ public enum TableKind
     View
 }
 
+/// <summary>Restricción UNIQUE: su nombre permite traducir los errores del motor a columnas (P-003).</summary>
+public sealed record UniqueKeyInfo(string Name, IReadOnlyList<string> Columns);
+
 public sealed record TableInfo
 {
     public required string Schema { get; init; }
@@ -13,7 +16,11 @@ public sealed record TableInfo
     public TableKind Kind { get; init; }
     public required IReadOnlyList<ColumnInfo> Columns { get; init; }
     public IReadOnlyList<string> PrimaryKey { get; init; } = [];
-    public IReadOnlyList<IReadOnlyList<string>> UniqueKeys { get; init; } = [];
+
+    /// <summary>Nombre de la restricción de PK (para traducir errores de duplicado).</summary>
+    public string? PrimaryKeyName { get; init; }
+
+    public IReadOnlyList<UniqueKeyInfo> UniqueKeys { get; init; } = [];
 
     /// <summary>FK salientes: columnas de esta tabla que apuntan a otra.</summary>
     public IReadOnlyList<ForeignKeyInfo> ForeignKeys { get; init; } = [];

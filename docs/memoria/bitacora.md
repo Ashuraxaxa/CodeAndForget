@@ -4,6 +4,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Cierre Fase 1: errores amigables y despliegue
+- Errores de restricciones traducidos por código del motor y nombre de la restricción, sin depender del idioma del servidor (D-038). Probado igual en PG 12/16 y SQL Server 2017/2022.
+- `UseWindowsService` y `UseSystemd`. Bug corregido: la carpeta de datos relativa se resolvía contra el directorio de trabajo (D-039).
+- Nueva `docs/despliegue.md`: Docker, Compose, Kubernetes, nginx, IIS, servicio de Windows, systemd, respaldo y `GRANT` mínimos.
+- **Fase 1 cerrada.** Siguiente: bloque M (P-020 a P-029), empezando por las abstracciones del dialecto.
+
 ## 2026-10-27 · Cierre Fase 1: subruta, proxy y health checks
 - `Hosting:PathBase` y `Hosting:ForwardedHeaders`. El `index.html` se sirve con `<base href>` ajustada y el frontend usa rutas relativas (D-037).
 - Bug detectado por las pruebas: sin `UseRouting()` después de `UsePathBase`, todo caía en el `index.html`, incluso la API sin token.

@@ -46,7 +46,7 @@ Bajo una subruta van precedidos por ella: `/mantenedores/api/health/ready`.
 
 | Clave | Por defecto | Qué hace |
 |---|---|---|
-| `Storage:DataDirectory` | `data` (en la imagen: `/app/data`) | Carpeta de las conexiones (`connections.json`, con secretos cifrados) y de las llaves de cifrado (`keys/`). **Debe persistir y respaldarse**: sin las llaves no se pueden leer las conexiones. |
+| `Storage:DataDirectory` | `data` (en la imagen: `/app/data`) | Carpeta de las conexiones (`connections.json`, con secretos cifrados) y de las llaves de cifrado (`keys/`). Una ruta relativa se resuelve contra la carpeta de la app. **Debe persistir y respaldarse**: sin las llaves no se pueden leer las conexiones. |
 
 ## Consultas (`Crud`)
 

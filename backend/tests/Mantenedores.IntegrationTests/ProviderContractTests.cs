@@ -1,4 +1,3 @@
-using System.Data.Common;
 using System.Text.Json;
 using Mantenedores.Core.Errors;
 using Mantenedores.Core.Query;
@@ -63,7 +62,7 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
     {
         var producto = await TableAsync("producto");
         Assert.Equal([N("id")], producto.PrimaryKey, StringComparer.OrdinalIgnoreCase);
-        Assert.Contains(producto.UniqueKeys, u => u.SequenceEqual([N("codigo")], StringComparer.OrdinalIgnoreCase));
+        Assert.Contains(producto.UniqueKeys, u => u.Columns.SequenceEqual([N("codigo")], StringComparer.OrdinalIgnoreCase));
 
         var fk = Assert.Single(producto.ForeignKeys);
         Assert.Equal(N("categoria"), fk.RefTable, ignoreCase: true);
@@ -278,24 +277,42 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         Assert.Contains("no_existe", ex.Errors.Keys);
     }
 
-    [Fact]
-    public async Task Violacion_de_unico_la_rechaza_la_bd() =>
-        await Assert.ThrowsAnyAsync<DbException>(() => Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
-            (N("codigo"), "BEB-001"), (N("nombre"), "Duplicado"), (N("categoria_id"), 1), (N("precio"), 1)), default));
+    // Los errores del motor llegan traducidos y con el mismo formato en todos los motores (P-003).
 
     [Fact]
-    public async Task Violacion_de_fk_la_rechaza_la_bd()
+    public async Task Violacion_de_unico_indica_la_columna()
     {
-        await Assert.ThrowsAnyAsync<DbException>(() => Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
-            (N("codigo"), UniqueCode()), (N("nombre"), "Sin categoría"), (N("categoria_id"), 99_999), (N("precio"), 1)), default));
-        await Assert.ThrowsAnyAsync<DbException>(() =>
-            Db.Crud.DeleteAsync(Conn, Schema, N("categoria"), Key((N("id"), 1)), default));
+        var ex = await Assert.ThrowsAsync<ConstraintViolationException>(() => Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
+            (N("codigo"), "BEB-001"), (N("nombre"), "Duplicado"), (N("categoria_id"), 1), (N("precio"), 1)), default));
+        Assert.Equal(DbErrorKind.Unique, ex.Kind);
+        Assert.Contains(N("codigo"), ex.Errors.Keys, StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public async Task Violacion_de_check_la_rechaza_la_bd() =>
-        await Assert.ThrowsAnyAsync<DbException>(() => Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
+    public async Task Violacion_de_fk_al_insertar_indica_la_columna()
+    {
+        var ex = await Assert.ThrowsAsync<ConstraintViolationException>(() => Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
+            (N("codigo"), UniqueCode()), (N("nombre"), "Sin categoría"), (N("categoria_id"), 99_999), (N("precio"), 1)), default));
+        Assert.Equal(DbErrorKind.ForeignKey, ex.Kind);
+        Assert.Contains(N("categoria_id"), ex.Errors.Keys, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Violacion_de_fk_al_borrar_indica_quien_lo_usa()
+    {
+        var ex = await Assert.ThrowsAsync<ConstraintViolationException>(() =>
+            Db.Crud.DeleteAsync(Conn, Schema, N("categoria"), Key((N("id"), 1)), default));
+        Assert.Equal(DbErrorKind.ForeignKey, ex.Kind);
+        Assert.StartsWith("No se puede eliminar: lo usan registros de ", ex.Message);
+    }
+
+    [Fact]
+    public async Task Violacion_de_check_se_informa_como_regla()
+    {
+        var ex = await Assert.ThrowsAsync<ConstraintViolationException>(() => Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
             (N("codigo"), UniqueCode()), (N("nombre"), "Precio negativo"), (N("categoria_id"), 1), (N("precio"), -5)), default));
+        Assert.Equal(DbErrorKind.Check, ex.Kind);
+    }
 
     [Fact]
     public async Task Vistas_y_tablas_sin_pk_no_aceptan_escritura()

@@ -11,8 +11,6 @@ El detalle de cada bloque y su criterio de "listo" está en [../siguientes-pasos
 
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
-| P-003 | Mensajes amigables para errores del motor (único, FK, CHECK, nulo) en ambos motores | 🟡 | ⏳ |
-| P-004 | Guía de despliegue `docs/despliegue.md` con recetas (Docker, Kubernetes, IIS, servicio de Windows, systemd) | 🟡 | ⏳ (`docs/configuracion.md` ya existe, PR #5) |
 | P-005 | Borrar la rama `feature/fase1-mantenedores` (ya fusionada) | ⚪ | ⏳ dueño, desde GitHub |
 
 ## M. Multi-motor: MySQL/MariaDB (D-034, antes de la Fase 2)
@@ -89,8 +87,9 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-033 | Las fechas se muestran con el formato del navegador (en inglés si el navegador está en inglés); fijar `es` | ⚪ | ⏳ |
 | P-034 | La búsqueda usa `CAST(... AS nvarchar(max))` / `CAST(... AS text)`, que no aprovecha índices; revisar en tablas grandes | ⚪ | ⏳ (con P-052) |
 | P-035 | `COUNT(*)` en cada página puede ser lento en tablas enormes | ⚪ | ⏳ (con P-052) |
-| P-036 | Credenciales de demo (`admin`/`admin`, hash y JwtKey) en `appsettings.Development.json` y `docker-compose.yml`: documentar que se cambian en producción | 🟡 | ⏳ (con P-004) |
 | P-039 | `Program.cs` falla al arrancar sin `Auth:JwtKey` aunque en el futuro el modo `Jwt` no la necesite | 🟡 | ⏳ (con P-041) |
+| P-073 | Traducir también errores de permisos (PG `42501`, SQL Server `229`/`230`) a "el usuario de la base no tiene permiso para …" | ⚪ | ⏳ |
+| P-074 | Health check del contenedor sin `curl`/`wget` en la imagen (p. ej. subcomando `healthcheck` de la propia app) | ⚪ | ⏳ |
 | P-037 | El `DisplayColumn` automático elige mal en algunos casos (p. ej. `ventas.Pedido` usa `Estado` en SQL Server) | ⚪ | ⏳ se resuelve con P-011 |
 
 ---
@@ -108,3 +107,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-007 | Publicar bajo subruta (`Hosting:PathBase`) y detrás de proxy (`Hosting:ForwardedHeaders`) (D-037) | ✅ 2026-10-27 · PR #5 |
 | P-008 | Health checks `/api/health/live` y `/api/health/ready` | ✅ 2026-10-27 · PR #5 |
 | P-038 | Frontend con rutas relativas a `<base href>` (funciona bajo subruta) | ✅ 2026-10-27 · PR #5 |
+| P-003 | Errores de restricciones traducidos por código + metadata, iguales en ambos motores (D-038) | ✅ 2026-10-27 · PR #6 |
+| P-004 | `docs/despliegue.md`: Docker, Compose, Kubernetes, nginx, IIS, servicio de Windows, systemd, respaldo y permisos mínimos (D-039) | ✅ 2026-10-27 · PR #6 |
+| P-036 | Credenciales de demo documentadas como solo demo (`configuracion.md`, `despliegue.md`) | ✅ 2026-10-27 · PR #6 |
+| P-072 | `Storage:DataDirectory` relativa se resolvía contra el directorio de trabajo (`System32` como servicio de Windows) | ✅ 2026-10-27 · PR #6 |

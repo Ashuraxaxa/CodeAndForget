@@ -96,7 +96,7 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Imagen:** `Dockerfile` multi-etapa (node → dotnet publish → aspnet).
 
 ### D-016 · Errores del motor como 409 con el mensaje original
-- **Estado:** Temporal · 2026-10-27 → se mejora con P-003
+- **Estado:** Vigente solo para errores no reconocidos · 2026-10-27 (los de restricciones los traduce D-038)
 - **Qué:** las violaciones de FK, únicos o CHECK y los errores de triggers se devuelven como ProblemDetails 409 para que el usuario sepa qué pasó. La validación propia devuelve 400 con los errores por campo.
 
 ### D-017 · Reglas de conversión de valores
@@ -262,6 +262,24 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Por qué:** **un mismo build** sirve en la raíz o en cualquier subruta, sin recompilar por entorno (D-022).
 - **Detalle técnico:** `app.UseRouting()` debe ir **después** de `UsePathBase`; si no, el enrutamiento implícito compara la ruta completa y todo cae en el `index.html`. Lo detectó `HostingTests`.
 - **Alternativa descartada:** fijar la base al compilar (`vite build --base=/mantenedores/`), que obliga a un build por instalación.
+
+### D-038 · Errores de restricciones: códigos del motor + metadata
+- **Estado:** Vigente · 2026-10-27 (P-003)
+- **Qué:**
+  - Cada proveedor clasifica el error **por código**: SQLSTATE en Postgres; número de error en SQL Server (2627, 2601, 547, 515). Para el nombre de la restricción, SQL Server solo da el texto entre comillas.
+  - `DbErrorTranslator` (Core) busca ese nombre en la PK, los UNIQUE y las FK de la tabla, y arma un mensaje con el campo afectado.
+  - La API responde 409 con `detail` (mensaje) y `errors` (por campo).
+  - Si no se reconoce, queda el mensaje original (D-016).
+- **Casos:** duplicado → columna; FK al insertar → columna y tabla referenciada; FK al borrar → tabla hija que lo usa; CHECK → nombre de la regla; nulo → columna.
+- **Por qué:** el texto de los errores cambia con el idioma del servidor; los códigos y los nombres de las restricciones no.
+- **Detalle:** el 547 de SQL Server cubre FK y CHECK. Se clasifica como `ForeignKeyOrCheck` y se resuelve según si el nombre es una FK conocida.
+- **Alternativa descartada:** buscar palabras en el mensaje ("FOREIGN KEY", "duplicate"), que falla con servidores en otro idioma.
+
+### D-039 · La app se ejecuta bajo cualquier administrador de servicios
+- **Estado:** Vigente · 2026-10-27 (P-004)
+- **Qué:** `UseWindowsService()` y `UseSystemd()`, que no hacen nada si no aplican. Una `Storage:DataDirectory` relativa se resuelve contra la carpeta de la app.
+- **Por qué:** D-022. Como servicio de Windows, el directorio de trabajo es `C:\Windows\System32` y los datos terminaban ahí.
+- **Recetas:** `docs/despliegue.md` (Docker, Compose, Kubernetes, nginx, IIS, servicio de Windows, systemd, respaldo y permisos mínimos por motor).
 
 ---
 

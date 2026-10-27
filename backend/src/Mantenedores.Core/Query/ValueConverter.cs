@@ -6,8 +6,11 @@ using Mantenedores.Core.Schema;
 namespace Mantenedores.Core.Query;
 
 /// <summary>Convierte valores de la API (JSON o texto de la URL) al tipo CLR que espera cada columna.</summary>
-public static class ValueConverter
+public static partial class ValueConverter
 {
+    [System.Text.RegularExpressions.GeneratedRegex(@"^[+-]?\d+(\.\d+)?$")]
+    private static partial System.Text.RegularExpressions.Regex LargeNumber();
+
     public static object? FromJson(ColumnInfo column, JsonElement value) => value.ValueKind switch
     {
         JsonValueKind.Null or JsonValueKind.Undefined => CheckNull(column),
@@ -44,6 +47,12 @@ public static class ValueConverter
                 return long.TryParse(raw, NumberStyles.Integer, inv, out var l)
                     ? NarrowInteger(column, l)
                     : throw Invalid(column, "debe ser un número entero");
+
+            case LogicalType.Decimal when column.IsLargeNumber:
+                // No cabe en decimal de .NET: se valida el formato y viaja como texto (P-023).
+                return LargeNumber().IsMatch(raw.Trim())
+                    ? raw.Trim()
+                    : throw Invalid(column, "debe ser un número (use punto como separador decimal)");
 
             case LogicalType.Decimal:
                 return decimal.TryParse(raw, NumberStyles.Number | NumberStyles.AllowExponent, inv, out var d)

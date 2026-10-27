@@ -1,4 +1,5 @@
 using Mantenedores.Core.Providers;
+using Mantenedores.Core.Query;
 using Mantenedores.Core.Schema;
 
 namespace Mantenedores.Providers.SqlServer;
@@ -11,13 +12,17 @@ public sealed class SqlServerDialect : ISqlDialect
         $"OFFSET {offsetParam} ROWS FETCH NEXT {limitParam} ROWS ONLY";
 
     public string Contains(string columnExpr, string param) =>
-        $"CAST({columnExpr} AS nvarchar(max)) LIKE {param} ESCAPE '\\'";
+        $"CAST({columnExpr} AS nvarchar(max)) LIKE {param} ESCAPE '{QueryBuilder.LikeEscape}'";
+
+    /// <summary>decimal(29..38) puede no caber en decimal de .NET: se lee como texto (P-023).</summary>
+    public string SelectExpression(ColumnInfo column, string columnExpr) =>
+        column.IsLargeNumber ? $"CAST({columnExpr} AS varchar(50))" : columnExpr;
 
     /// <summary>
     /// Usa OUTPUT ... INTO una variable de tabla: un OUTPUT directo falla si la tabla tiene triggers,
     /// algo muy común en bases SQL Server existentes.
     /// </summary>
-    public string InsertReturningKeys(string table, IReadOnlyList<string> columns, IReadOnlyList<string> values, IReadOnlyList<ColumnInfo> keyColumns)
+    public string? InsertReturningKeys(string table, IReadOnlyList<string> columns, IReadOnlyList<string> values, IReadOnlyList<ColumnInfo> keyColumns)
     {
         var declare = string.Join(", ", keyColumns.Select(k => $"{Quote(k.Name)} {DeclareType(k)}"));
         var output = string.Join(", ", keyColumns.Select(k => $"INSERTED.{Quote(k.Name)}"));

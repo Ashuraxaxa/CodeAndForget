@@ -50,7 +50,9 @@ CREATE TABLE ventas.Pedido (
     Fecha       datetime2 NOT NULL DEFAULT SYSDATETIME(),
     Estado      varchar(15) NOT NULL DEFAULT 'borrador'
                 CHECK (Estado IN ('borrador', 'confirmado', 'despachado', 'anulado')),
-    Observacion nvarchar(max) NULL
+    Observacion nvarchar(max) NULL,
+    -- 38 dígitos: no cabe en decimal de .NET, se lee como texto (P-023).
+    MontoTotal  decimal(38,4) NULL
 );
 
 CREATE TABLE ventas.PedidoDetalle (
@@ -92,7 +94,8 @@ INSERT INTO ventas.ProductoEtiqueta VALUES (1, 1), (3, 2);
 INSERT INTO ventas.Cliente (Rut, RazonSocial, Email) VALUES
     ('76.123.456-7', N'Comercial Los Andes SpA', 'compras@losandes.cl'),
     ('77.987.654-3', N'Minimarket El Sol', NULL);
-INSERT INTO ventas.Pedido (ClienteId, Estado) SELECT Id, 'confirmado' FROM ventas.Cliente WHERE Rut = '76.123.456-7';
+INSERT INTO ventas.Pedido (ClienteId, Estado, MontoTotal)
+    SELECT Id, 'confirmado', 1234567890123456789012345678901234.5678 FROM ventas.Cliente WHERE Rut = '76.123.456-7';
 INSERT INTO ventas.PedidoDetalle VALUES (1, 1, 1, 10, 690), (1, 2, 3, 5, 1490);
 INSERT INTO ventas.Empleado (Nombre) VALUES (N'Ana Gerente');
 INSERT INTO ventas.Empleado (Nombre, JefeId, HoraEntrada) VALUES (N'Luis Vendedor', 1, '09:00');

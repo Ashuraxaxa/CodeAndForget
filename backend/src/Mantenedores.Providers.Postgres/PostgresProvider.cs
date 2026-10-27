@@ -14,6 +14,25 @@ public sealed class PostgresProvider : IDatabaseProvider
     // Npgsql mantiene un pool por cadena de conexión.
     public DbConnection CreateConnection(string connectionString) => new NpgsqlConnection(connectionString);
 
+    public static readonly Version MinimumVersion = new(12, 0);
+
+    public async Task<ServerInfo> GetServerInfoAsync(DbConnection connection, CancellationToken ct)
+    {
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT current_setting('server_version_num')::int, current_setting('server_version'), " +
+                          "current_setting('server_encoding'), current_setting('TimeZone')";
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        await r.ReadAsync(ct);
+        var num = r.GetInt32(0); // p. ej. 120022 = 12.22, 160004 = 16.4
+        return new ServerInfo("PostgreSQL", new Version(num / 10000, num % 10000), MinimumVersion,
+            new Dictionary<string, string>
+            {
+                ["server_version"] = r.GetString(1),
+                ["server_encoding"] = r.GetString(2),
+                ["TimeZone"] = r.GetString(3)
+            });
+    }
+
     /// <summary>SQLSTATE de la clase 23 (violación de integridad); Postgres informa el nombre de la restricción.</summary>
     public DbErrorInfo ClassifyError(DbException exception) => exception is not PostgresException pg
         ? DbErrorInfo.Unknown

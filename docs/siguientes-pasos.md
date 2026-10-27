@@ -95,7 +95,7 @@ Con los tres motores probados desde el inicio, cada función nueva nace compatib
 Oracle quedó fuera de alcance (D-034); sus notas están en [motores.md](motores.md#oracle-fuera-de-alcance-d-034).
 Diferencias técnicas detalladas: [motores.md](motores.md).
 
-### M.1 Abstracciones del dialecto (1 semana) · D-031
+### M.1 Abstracciones del dialecto (1 semana) · D-031 · ✅ PR #7
 Cambios en Core que hoy asumen cosas que no se cumplen en todos los motores:
 - **Estrategia de inserción declarada por el dialecto**, en vez de un texto SQL único (P-020):
   - filas de resultado (Postgres, MariaDB, SQL Server);

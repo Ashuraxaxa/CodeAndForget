@@ -17,3 +17,6 @@ public sealed class ValidationException : MantenedorException
     public ValidationException(string field, string error)
         : this(new Dictionary<string, string> { [field] = error }) { }
 }
+
+/// <summary>El servidor está por debajo de la versión mínima soportada (D-035).</summary>
+public sealed class UnsupportedServerException(string message) : MantenedorException(message);

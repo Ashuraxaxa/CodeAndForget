@@ -26,7 +26,8 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
         var rows = await db.QueryAsync(Command(data, ct));
 
         var pageSize = Math.Clamp(request.PageSize, 1, ListRequest.MaxPageSize);
-        return new PagedResult(rows.Cast<object>().Select(r => Normalize(info, ToRow(r))).ToList(), total, Math.Max(request.Page, 1), pageSize);
+        return new PagedResult(rows.Cast<object>().Select(r => Normalize(info, Rename(ToRow(r), data.Renames))).ToList(),
+            total, Math.Max(request.Page, 1), pageSize);
     }
 
     public async Task<IDictionary<string, object?>> GetAsync(
@@ -40,15 +41,24 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
         string conn, string schema, string table, IReadOnlyDictionary<string, JsonElement> body, CancellationToken ct)
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
-        var query = new QueryBuilder(ctx.Provider.Dialect).BuildInsert(info, ParseValues(info, body));
+        var insert = new QueryBuilder(ctx.Provider.Dialect).BuildInsert(info, ParseValues(info, body));
 
-        IDictionary<string, object?> keys;
+        IReadOnlyDictionary<string, object?> keys;
         await using (var db = await OpenAsync(ctx, ct))
         {
-            var row = await Translated(ctx, info, DbOperation.Insert, () => db.QuerySingleAsync(Command(query, ct)));
-            keys = ToRow(row);
+            if (insert.ProvidedKeys is { } provided)
+            {
+                // El motor no devuelve la clave: es la que vino en el alta (P-020).
+                await Translated(ctx, info, DbOperation.Insert, () => db.ExecuteAsync(Command(insert.Query, ct)));
+                keys = provided;
+            }
+            else
+            {
+                var row = await Translated(ctx, info, DbOperation.Insert, () => db.QuerySingleAsync(Command(insert.Query, ct)));
+                keys = new Dictionary<string, object?>(ToRow(row));
+            }
         }
-        return await GetByKeyAsync(ctx, info, new Dictionary<string, object?>(keys), ct);
+        return await GetByKeyAsync(ctx, info, keys, ct);
     }
 
     public async Task<IDictionary<string, object?>> UpdateAsync(
@@ -114,7 +124,9 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildGetByKey(ctx.Schema, info, key);
         await using var db = await OpenAsync(ctx, ct);
         var row = await db.QuerySingleOrDefaultAsync(Command(query, ct));
-        return row is null ? throw new NotFoundException("El registro no existe.") : Normalize(info, ToRow(row));
+        return row is null
+            ? throw new NotFoundException("El registro no existe.")
+            : Normalize(info, Rename(ToRow(row), query.Renames));
     }
 
     /// <summary>Convierte los valores de la clave (vienen como texto en la URL) a su tipo.</summary>
@@ -155,11 +167,24 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
         return values;
     }
 
-    private static async Task<System.Data.Common.DbConnection> OpenAsync(ConnectionContext ctx, CancellationToken ct)
+    private static async Task<DbConnection> OpenAsync(ConnectionContext ctx, CancellationToken ct)
     {
         var db = ctx.Provider.CreateConnection(ctx.Definition.ConnectionString);
         await db.OpenAsync(ct);
+        await ctx.Provider.InitializeSessionAsync(db, ct);
         return db;
+    }
+
+    /// <summary>Devuelve con su nombre final las columnas que el SELECT trae con alias corto (P-021).</summary>
+    private static IDictionary<string, object?> Rename(IDictionary<string, object?> row, IReadOnlyDictionary<string, string>? renames)
+    {
+        if (renames is null) return row;
+        foreach (var (alias, name) in renames)
+        {
+            if (!row.Remove(alias, out var value)) continue;
+            row[name] = value;
+        }
+        return row;
     }
 
     private CommandDefinition Command(SqlQuery q, CancellationToken ct) =>

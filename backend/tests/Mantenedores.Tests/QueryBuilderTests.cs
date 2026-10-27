@@ -23,12 +23,13 @@ public class QueryBuilderTests
         });
 
         Assert.Equal(
-            "SELECT t0.\"id\", t0.\"codigo\", t0.\"categoria_id\", t0.\"precio\", t0.\"notas\", j0.\"nombre\" AS \"categoria_id__label\" " +
+            "SELECT t0.\"id\", t0.\"codigo\", t0.\"categoria_id\", t0.\"precio\", t0.\"notas\", j0.\"nombre\" AS \"__lbl0\" " +
             "FROM \"ventas\".\"producto\" t0 LEFT JOIN \"ventas\".\"categoria\" j0 ON j0.\"id\" = t0.\"categoria_id\" " +
-            "WHERE CAST(t0.\"codigo\" AS text) ILIKE @p0 ESCAPE '\\' AND t0.\"categoria_id\" = @p1 " +
+            "WHERE CAST(t0.\"codigo\" AS text) ILIKE @p0 ESCAPE '!' AND t0.\"categoria_id\" = @p1 " +
             "ORDER BY t0.\"precio\" DESC, t0.\"id\" ASC LIMIT @p3 OFFSET @p2",
             data.Sql);
-        Assert.Equal("%be\\_%", data.Parameters["p0"]);
+        Assert.Equal("%be!_%", data.Parameters["p0"]);
+        Assert.Equal("categoria_id__label", data.Renames!["__lbl0"]); // alias corto → nombre final (P-021)
         Assert.Equal(2, data.Parameters["p1"]); // int4 → int
         Assert.Equal(20L, data.Parameters["p2"]);
         Assert.Equal(10L, data.Parameters["p3"]);
@@ -54,8 +55,8 @@ public class QueryBuilderTests
     public void Busqueda_general_sobre_columnas_de_texto()
     {
         var (data, _) = new QueryBuilder(new PostgresDialect()).BuildList(_schema, Producto, new ListRequest { Search = "50%" });
-        Assert.Contains("(CAST(t0.\"codigo\" AS text) ILIKE @p0 ESCAPE '\\' OR CAST(t0.\"notas\" AS text) ILIKE @p0 ESCAPE '\\')", data.Sql);
-        Assert.Equal("%50\\%%", data.Parameters["p0"]);
+        Assert.Contains("(CAST(t0.\"codigo\" AS text) ILIKE @p0 ESCAPE '!' OR CAST(t0.\"notas\" AS text) ILIKE @p0 ESCAPE '!')", data.Sql);
+        Assert.Equal("%50!%%", data.Parameters["p0"]);
     }
 
     [Theory]
@@ -93,7 +94,8 @@ public class QueryBuilderTests
         });
         Assert.Equal(
             "INSERT INTO \"ventas\".\"producto\" (\"codigo\", \"categoria_id\", \"precio\") VALUES (@p0, @p1, @p2) RETURNING \"id\"",
-            q.Sql);
+            q.Query.Sql);
+        Assert.Null(q.ProvidedKeys); // la clave la devuelve el motor
     }
 
     [Fact]
@@ -103,9 +105,9 @@ public class QueryBuilderTests
         {
             ["codigo"] = "A", ["categoria_id"] = 1, ["precio"] = 10m
         });
-        Assert.StartsWith("DECLARE @__keys TABLE ([id] int4);", q.Sql);
-        Assert.Contains("OUTPUT INSERTED.[id] INTO @__keys VALUES", q.Sql);
-        Assert.EndsWith("SELECT * FROM @__keys;", q.Sql);
+        Assert.StartsWith("DECLARE @__keys TABLE ([id] int4);", q.Query.Sql);
+        Assert.Contains("OUTPUT INSERTED.[id] INTO @__keys VALUES", q.Query.Sql);
+        Assert.EndsWith("SELECT * FROM @__keys;", q.Query.Sql);
     }
 
     [Fact]
@@ -134,7 +136,7 @@ public class QueryBuilderTests
         var q = new QueryBuilder(new PostgresDialect()).BuildLookup(categoria, "beb", 20);
         Assert.Equal(
             "SELECT t0.\"id\" AS \"value\", t0.\"nombre\" AS \"label\" FROM \"ventas\".\"categoria\" t0 " +
-            "WHERE CAST(t0.\"nombre\" AS text) ILIKE @p0 ESCAPE '\\' ORDER BY t0.\"nombre\" LIMIT @p2 OFFSET @p1",
+            "WHERE CAST(t0.\"nombre\" AS text) ILIKE @p0 ESCAPE '!' ORDER BY t0.\"nombre\" LIMIT @p2 OFFSET @p1",
             q.Sql);
     }
 

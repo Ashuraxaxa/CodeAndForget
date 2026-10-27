@@ -68,8 +68,10 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
       )
 
     default: {
+      // Los números de más de 28 dígitos van en un campo de texto: el control numérico del navegador los redondea.
       const type =
-        c.type === 'Integer' || c.type === 'Decimal' ? 'number'
+        c.isLargeNumber ? 'text'
+        : c.type === 'Integer' || c.type === 'Decimal' ? 'number'
           : c.type === 'Date' ? 'date'
             : c.type === 'DateTime' ? 'datetime-local'
               : c.type === 'Time' ? 'time'
@@ -79,6 +81,7 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
           id={id}
           type={type}
           step={c.type === 'Decimal' ? 'any' : c.type === 'Time' ? 1 : undefined}
+          inputMode={c.isLargeNumber ? 'decimal' : undefined}
           value={str}
           disabled={disabled}
           required={required}

@@ -19,6 +19,7 @@ public sealed class ErrorHandler(ILogger<ErrorHandler> logger) : IExceptionHandl
                 c.Errors.ToDictionary(e => e.Key, e => new[] { e.Value }),
                 detail: c.Message, statusCode: 409, title: "La base de datos rechazó la operación"),
             OperationNotAllowedException o => Results.Problem(o.Message, statusCode: 400, title: "Operación no permitida"),
+            UnsupportedServerException u => Results.Problem(u.Message, statusCode: 400, title: "Versión de base de datos no soportada"),
             NotSupportedException s => Results.Problem(s.Message, statusCode: 400, title: "No soportado"),
             // Errores del motor (FK, únicos, CHECK, triggers): se muestran porque el usuario necesita saber qué pasó.
             DbException db => LogAndReturn(db, Results.Problem(db.Message, statusCode: 409, title: "La base de datos rechazó la operación")),

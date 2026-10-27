@@ -15,6 +15,29 @@ public sealed partial class SqlServerProvider : IDatabaseProvider
     // SqlClient mantiene un pool por cadena de conexión.
     public DbConnection CreateConnection(string connectionString) => new SqlConnection(connectionString);
 
+    /// <summary>13 = SQL Server 2016.</summary>
+    public static readonly Version MinimumVersion = new(13, 0);
+
+    public async Task<ServerInfo> GetServerInfoAsync(DbConnection connection, CancellationToken ct)
+    {
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT CAST(SERVERPROPERTY('ProductVersion') AS nvarchar(128)), " +
+                          "CAST(SERVERPROPERTY('Edition') AS nvarchar(128)), " +
+                          "CAST(SERVERPROPERTY('Collation') AS nvarchar(128)), " +
+                          "CAST(DATABASEPROPERTYEX(DB_NAME(), 'Collation') AS nvarchar(128))";
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        await r.ReadAsync(ct);
+        var version = Version.Parse(r.GetString(0)); // p. ej. 14.0.3456.2 = SQL Server 2017
+        return new ServerInfo("SQL Server", new Version(version.Major, version.Minor), MinimumVersion,
+            new Dictionary<string, string>
+            {
+                ["ProductVersion"] = r.GetString(0),
+                ["Edition"] = r.GetString(1),
+                ["ServerCollation"] = r.GetString(2),
+                ["DatabaseCollation"] = r.IsDBNull(3) ? "" : r.GetString(3)
+            });
+    }
+
     /// <summary>
     /// SQL Server no expone el nombre de la restricción como dato: va entre comillas dentro del mensaje.
     /// Se clasifica por número de error y se extrae lo que está entre comillas, que no depende del idioma.

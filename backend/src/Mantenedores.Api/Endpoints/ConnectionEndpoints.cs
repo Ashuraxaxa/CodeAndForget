@@ -14,7 +14,9 @@ public static partial class ConnectionEndpoints
     /// <summary>Nunca se devuelve la cadena de conexión; solo servidor y base para identificarla.</summary>
     public sealed record ConnectionResponse(string Id, string Name, DatabaseEngine Engine, IReadOnlyList<string> Schemas, string? Server, string? Database);
 
-    public sealed record TestResult(bool Ok, int Tables, string? Error);
+    /// <summary>Resultado de la prueba: tablas vistas, servidor y versión, y ajustes útiles para diagnosticar (P-028).</summary>
+    public sealed record TestResult(bool Ok, int Tables, string? Error, string? Server = null,
+        bool? Supported = null, IReadOnlyDictionary<string, string>? Settings = null);
 
     [GeneratedRegex("^[a-z0-9][a-z0-9_-]{0,49}$")]
     private static partial Regex IdPattern();
@@ -50,7 +52,11 @@ public static partial class ConnectionEndpoints
             var def = await BuildDefinitionAsync(req.Id, req, store, ct);
             try
             {
-                return Results.Ok(new TestResult(true, await schemas.TestAsync(def, ct), null));
+                var r = await schemas.TestAsync(def, ct);
+                return Results.Ok(new TestResult(
+                    r.Server.IsSupported, r.Tables,
+                    r.Server.IsSupported ? null : SchemaService.UnsupportedMessage(r.Server),
+                    r.Server.Description, r.Server.IsSupported, r.Server.Settings));
             }
             catch (Exception ex) when (ex is DbException or InvalidOperationException or ArgumentException or TimeoutException)
             {

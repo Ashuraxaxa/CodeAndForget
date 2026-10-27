@@ -50,7 +50,9 @@ CREATE TABLE ventas.pedido (
     cliente_id uuid NOT NULL REFERENCES ventas.cliente(id),
     fecha      timestamp NOT NULL DEFAULT now(),
     estado     ventas.estado_pedido NOT NULL DEFAULT 'borrador',
-    observacion text
+    observacion text,
+    -- 38 dígitos: no cabe en decimal de .NET, se lee como texto (P-023).
+    monto_total numeric(38,4)
 );
 
 -- PK compuesta.
@@ -103,7 +105,8 @@ INSERT INTO ventas.producto_etiqueta VALUES (1, 1), (3, 2);
 INSERT INTO ventas.cliente (rut, razon_social, email) VALUES
     ('76.123.456-7', 'Comercial Los Andes SpA', 'compras@losandes.cl'),
     ('77.987.654-3', 'Minimarket El Sol', NULL);
-INSERT INTO ventas.pedido (cliente_id, estado) SELECT id, 'confirmado' FROM ventas.cliente WHERE rut = '76.123.456-7';
+INSERT INTO ventas.pedido (cliente_id, estado, monto_total)
+    SELECT id, 'confirmado', 1234567890123456789012345678901234.5678 FROM ventas.cliente WHERE rut = '76.123.456-7';
 INSERT INTO ventas.pedido_detalle VALUES (1, 1, 1, 10, 690), (1, 2, 3, 5, 1490);
 INSERT INTO ventas.empleado (nombre) VALUES ('Ana Gerente');
 INSERT INTO ventas.empleado (nombre, jefe_id, hora_entrada) VALUES ('Luis Vendedor', 1, '09:00');

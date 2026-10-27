@@ -101,7 +101,12 @@ public sealed class SqlServerSchemaProvider : ISchemaProvider
             HasDefault = c.HasDefault || c.IsIdentity || isRowVersion,
             MaxLength = isChar ? length : null,
             Precision = isDecimal ? c.NumericPrecision : null,
-            Scale = isDecimal ? c.NumericScale : null
+            Scale = isDecimal ? c.NumericScale : null,
+            // decimal/numeric de 29 a 38 dígitos no cabe en decimal de .NET (P-023).
+            IsLargeNumber = isDecimal && c.NumericPrecision > 28,
+            // text, ntext, image y xml no se pueden ordenar ni comparar por igualdad en SQL Server.
+            Sortable = c.TypeName is not ("text" or "ntext" or "image" or "xml"),
+            Filterable = c.TypeName is not ("text" or "ntext" or "image" or "xml")
         };
     }
 

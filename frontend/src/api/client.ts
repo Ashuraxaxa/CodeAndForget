@@ -75,7 +75,14 @@ export const api = {
   saveConnection: (c: ConnectionInput) => request<Connection>('PUT', `api/connections/${enc(c.id)}`, c),
   deleteConnection: (id: string) => request<void>('DELETE', `api/connections/${enc(id)}`),
   testConnection: (c: ConnectionInput) =>
-    request<{ ok: boolean; tables: number; error: string | null }>('POST', 'api/connections/test', c),
+    request<{
+      ok: boolean
+      tables: number
+      error: string | null
+      server: string | null
+      supported: boolean | null
+      settings: Record<string, string> | null
+    }>('POST', 'api/connections/test', c),
 
   tables: (conn: string) => request<SchemaSummary>('GET', `api/meta/${enc(conn)}/tables`),
   refresh: (conn: string) => request<SchemaSummary>('POST', `api/meta/${enc(conn)}/refresh`),

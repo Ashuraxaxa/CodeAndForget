@@ -56,6 +56,12 @@ export interface Column {
   maxLength: number | null
   enumValues: string[] | null
   isSelectable: boolean
+  /** El motor puede ordenar por ella (p. ej. no: xml, json). */
+  isSortable: boolean
+  /** Se ofrece filtrar por ella. */
+  isFilterable: boolean
+  /** Número de más de 28 dígitos: viaja como texto. */
+  isLargeNumber: boolean
   isReadOnly: boolean
   isRequiredOnInsert: boolean
 }

@@ -17,6 +17,11 @@ public sealed class PostgresTests(PostgresFixture db) : ProviderContractTests<Po
 
         await Assert.ThrowsAsync<ValidationException>(() => Db.Crud.CreateAsync(DatabaseFixture.ConnectionId, Schema, "pedido",
             Body(("cliente_id", Guid.Empty), ("estado", "zzz")), default));
+
+        // El enum se creó después de la primera conexión de Npgsql (al cargar la base): igual se lee.
+        var row = await Db.Crud.GetAsync(DatabaseFixture.ConnectionId, Schema, "pedido",
+            new Dictionary<string, string> { ["id"] = "1" }, default);
+        Assert.Equal("confirmado", row["estado"]);
     }
 
     [Fact]

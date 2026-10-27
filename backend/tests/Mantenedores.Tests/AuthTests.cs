@@ -178,8 +178,9 @@ public sealed class AuthTests : IDisposable
         var c = JwtClient(("Auth:Jwt:RoleClaim", "realm_access.roles"));
         async Task<HttpStatusCode> Send(HttpMethod method, string token)
         {
-            var req = new HttpRequestMessage(method, "/api/meta/no-existe/overrides/ventas/producto");
-            if (method == HttpMethod.Put) req.Content = JsonContent.Create(new { label = "Productos" });
+            var path = "/api/meta/no-existe/overrides/ventas/producto" + (method == HttpMethod.Post ? "/preview" : "");
+            var req = new HttpRequestMessage(method, path);
+            if (method != HttpMethod.Get && method != HttpMethod.Delete) req.Content = JsonContent.Create(new { label = "Productos" });
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             return (await c.SendAsync(req)).StatusCode;
         }
@@ -188,6 +189,8 @@ public sealed class AuthTests : IDisposable
         var admin = Token(KeycloakLike("admin"));
         Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Put, user));
         Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Delete, user));
+        Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Post, user)); // vista previa del editor
+        Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Post, admin));
         // El administrador pasa la autorización y llega a la conexión, que no existe.
         Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Put, admin));
         Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Delete, admin));

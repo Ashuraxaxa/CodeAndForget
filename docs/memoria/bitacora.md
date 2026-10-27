@@ -4,6 +4,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Fase 2: editor de ajustes
+- PR #11 fusionado. Nuevo botón **⚙ Configurar** (solo admin) con pestañas Tabla y Columnas, vista previa en vivo y "Restablecer a lo automático".
+- Endpoint `.../overrides/{schema}/{table}/preview`: aplica sin guardar y devuelve tabla y errores (D-052).
+- Probado en navegador (escritorio y teléfono): guardar, reabrir, error en vivo y restablecer.
+- **Siguiente:** P-013, diferencias de esquema. **Nuevo pendiente:** P-085 (FK virtuales compuestas y arrastrar columnas).
+
 ## 2026-10-27 · Fase 2: ajustes por tabla y columna
 - `OverrideApplier` en Core aplica un JSON por tabla sobre el esquema leído; dos cachés (leído y combinado) para aplicar sin volver a leer la base (D-049).
 - Migración `002_overrides`, `SqlOverrideStore` y `FileOverrideStore`; endpoints `/api/meta/{conn}/overrides`, que solo cambia un administrador (D-050, provisional hasta Q-006).

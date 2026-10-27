@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · MySQL/MariaDB y Oracle en el plan
+- El dueño pidió incluir MySQL y Oracle desde ya para no generar deuda técnica.
+- Se registraron D-029 a D-033: cuatro familias de motores con versiones mínimas, drivers, el dialecto absorbe las diferencias, qué es un "esquema" en cada motor y la batería común de pruebas.
+- Nuevo bloque **M** (4 semanas) antes de la Fase 2, con P-020 a P-029. Total: 19–20 semanas.
+- Se creó `docs/motores.md` con las diferencias técnicas y la guía para agregar un motor.
+- Se detectaron 4 supuestos del código actual que fallan en otros motores (prefijo `@`, alias largos, escape `\`, clave como filas) y uno que ya puede fallar en PG (`numeric` grande, P-023).
+- **Abierto:** Q-008 (versiones de cada motor en el equipo).
+
 ## 2026-10-27 · Decisiones de entorno
 - El dueño respondió Q-001 a Q-003:
   - Despliegue en cualquier entorno (servidor propio o nube).

@@ -12,6 +12,8 @@
 
 **Regla de oro:** ninguna pantalla ni endpoint conoce tablas concretas. Todo sale de la metadata.
 
+**Regla multi-motor (D-031):** en Core no hay `if (motor == X)`. Toda diferencia entre motores es una capacidad del dialecto o del proveedor, y se documenta en `docs/motores.md`. Todo cambio en Core o en un proveedor debe pasar la batería común en todos los motores (D-033).
+
 ## Seguridad (ver D-004)
 
 - Nombres de tablas y columnas **solo** desde `TableInfo` / `ColumnInfo`, y **siempre** con `dialect.Quote(...)`.

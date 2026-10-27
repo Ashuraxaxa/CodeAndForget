@@ -185,6 +185,52 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Qué:** las reglas de permisos (RBAC) guardadas en la metadata apuntan a nombres de rol. Esos roles salen del claim configurado (modo `Jwt`) o de los usuarios locales (modo `Local`).
 - **Por qué:** funciona igual con cualquier proveedor de identidad (consecuencia de D-024).
 
+## Motores soportados (pedido del dueño, 2026-10-27)
+
+### D-029 · Cuatro familias de motores desde la v1
+- **Estado:** Vigente · 2026-10-27
+- **Qué:** SQL Server 2016+, PostgreSQL 12+, MySQL 8.0+ / MariaDB 10.6+ y Oracle 19c+.
+- **Cuándo:** se implementan en el bloque **M**, antes de la Fase 2.
+- **Por qué:** overrides, maestro-detalle, import/export y permisos tocan el SQL generado. Diseñarlos con dos motores y sumar otros después obligaría a rehacerlos (deuda técnica).
+- **Versiones viejas:** fuera de soporte del fabricante, no se soportan; se rechazan con un mensaje claro (P-028).
+- **Alternativa descartada:** dejar MySQL y Oracle para la Fase 5 (plan anterior).
+- **Detalle técnico:** `docs/motores.md`.
+
+### D-030 · Drivers
+- **Estado:** Vigente · 2026-10-27
+- **Qué:**
+  - `MySqlConnector` (MIT, async real) para MySQL y MariaDB, con un solo proveedor.
+  - `Oracle.ManagedDataAccess.Core` para Oracle (sin cliente instalado, `BindByName = true`).
+- **Alternativa descartada:** `MySql.Data`, el driver oficial de Oracle para MySQL: licencia GPL y async limitado.
+
+### D-031 · El dialecto absorbe las diferencias, no Core
+- **Estado:** Vigente · 2026-10-27 (se implementa en P-020 a P-024)
+- **Qué:** `ISqlDialect` declara:
+  - Prefijo de parámetros.
+  - Estrategia de inserción: filas, parámetros de salida, último id o valores provistos.
+  - Carácter de escape de LIKE (`!`).
+  - Si `''` equivale a NULL.
+  - Capacidades por columna: ordenable, filtrable, buscable.
+  - Ajustes de sesión al abrir la conexión.
+- **Además:** las etiquetas de FK usan alias cortos (`l0`…) para no chocar con el límite de 63 bytes de Postgres ni con el de Oracle.
+- **Regla:** en Core no puede haber `if (motor == X)`. Si un motor necesita algo distinto, se expresa como capacidad del dialecto.
+- **Alternativa descartada:** ramas por motor dentro de `QueryBuilder`.
+
+### D-032 · Qué es un "esquema" en cada motor
+- **Estado:** Vigente · 2026-10-27
+- **Qué:**
+  - En MySQL/MariaDB, el "esquema" es la base de datos. Por defecto se expone solo la de la cadena de conexión.
+  - En Oracle, el "esquema" es el owner. Por defecto se expone solo el del usuario conectado, porque recorrer `ALL_*` completo es lento.
+  - En ambos se pueden listar más esquemas en la configuración de la conexión.
+
+### D-033 · Un motor está soportado si pasa la batería común
+- **Estado:** Vigente · 2026-10-27
+- **Qué:**
+  - Las pruebas de integración se escriben una vez como clase base y cada proveedor la hereda con su contenedor y su base de ejemplo.
+  - La CI corre una matriz con un job por motor.
+  - Un cambio en Core o en un proveedor no se fusiona si algún motor falla.
+- **Por qué:** es lo que evita que un motor quede "soportado en el papel".
+
 ---
 
 ## Propuestas (aún no decididas)
@@ -192,6 +238,6 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 Se convierten en `D-xxx` al aprobarse.
 
 - **PR-01 · Migraciones del metadata store con DbUp** (scripts SQL versionados por motor: SQLite, Postgres, SQL Server). Encaja con Dapper; la alternativa es EF Core Migrations. Ver P-010.
-- **PR-02 · Pruebas de integración con Testcontainers** contra Postgres 16 y SQL Server 2022 en la CI, organizadas como batería común que todo proveedor debe pasar. Ver P-002 y P-063.
+- **PR-02 · Pruebas de integración con Testcontainers** (la organización como batería común ya quedó decidida en D-033). Ver P-002 y P-027.
 - **PR-04 · Login en la SPA con `oidc-client-ts`** (Authorization Code + PKCE), librería estándar y sin dependencia de un proveedor. Ver P-041.
 - **PR-03 · Overrides guardados como JSON** por tabla y por columna (flexibles, sin migrar el esquema por cada ajuste nuevo). Ver P-011.

@@ -12,12 +12,29 @@ El detalle de cada bloque y su criterio de "listo" está en [../siguientes-pasos
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
 | P-001 | Job de CI que ejecute `docker build` y valide la imagen | 🔴 | ⏳ |
-| P-002 | Pruebas de integración con Testcontainers (PG 16 + MSSQL 2022) usando `samples/` | 🔴 | ⏳ |
+| P-002 | Pruebas de integración con Testcontainers como **batería común por proveedor** (clase base heredable, D-033); primero PG 16 + MSSQL 2022 con `samples/` | 🔴 | ⏳ |
 | P-003 | Mensajes amigables para errores del motor (único, FK, CHECK, nulo) en ambos motores | 🟡 | ⏳ |
 | P-004 | Guía de despliegue `docs/despliegue.md` con recetas (Docker, Kubernetes, IIS, servicio de Windows, systemd) + referencia `docs/configuracion.md` | 🟡 | ⏳ |
 | P-007 | Publicar bajo subruta y detrás de proxy: `PathBase`, `ForwardedHeaders`, frontend con base relativa | 🔴 | ⏳ |
 | P-008 | Health checks separados `/api/health/live` y `/api/health/ready` | 🟡 | ⏳ |
 | P-005 | Borrar la rama `feature/fase1-mantenedores` (ya fusionada) | ⚪ | ⏳ dueño, desde GitHub |
+
+## M. Multi-motor: MySQL/MariaDB y Oracle (D-029, antes de la Fase 2)
+
+Detalle técnico en [../motores.md](../motores.md).
+
+| ID | Pendiente | Prio | Estado |
+|---|---|---|---|
+| P-020 | Dialecto: prefijo de parámetros (`@`/`:`) + estrategia de inserción (filas, parámetros de salida, último id, valores provistos) (D-031) | 🔴 | ⏳ |
+| P-021 | Alias cortos (`l0`…) para etiquetas de FK, mapeados a `<columna>__label` (evita el corte de 63 bytes de PG) | 🔴 | ⏳ |
+| P-022 | Capacidades por columna (ordenable / filtrable / buscable) en metadata, `QueryBuilder` y UI | 🟡 | ⏳ |
+| P-023 | Números fuera del rango de `decimal` (.NET) como texto (PG `numeric`, Oracle `NUMBER`, MySQL `DECIMAL(65)`) | 🟡 | ⏳ hoy ya puede fallar en PG |
+| P-024 | Escape neutro de LIKE (`!`), `EmptyStringIsNull` (Oracle) y ajustes de sesión (zona UTC en MySQL) | 🔴 | ⏳ |
+| P-025 | Proveedor MySQL/MariaDB (`MySqlConnector`) + `samples/mysql` | 🔴 | ⏳ depende de P-020 a P-024 |
+| P-026 | Proveedor Oracle (`Oracle.ManagedDataAccess.Core`) + `samples/oracle` + prueba manual en 19c | 🔴 | ⏳ depende de P-020 a P-024 |
+| P-027 | Matriz de CI: un job por motor (SQL Server, PG, MySQL, MariaDB, Oracle) con la batería común | 🔴 | ⏳ depende de P-002 |
+| P-028 | Verificar versión mínima al probar la conexión y mostrar ajustes relevantes (`sql_mode`, intercalación) | 🟡 | ⏳ |
+| P-029 | UI: nuevos motores en el selector, ejemplos de cadena y controles según capacidades | 🟡 | ⏳ |
 
 ## 1. Fase 2: configuración y personalización
 
@@ -60,8 +77,8 @@ El detalle de cada bloque y su criterio de "listo" está en [../siguientes-pasos
 |---|---|---|---|
 | P-060 | Hooks de negocio antes y después de guardar | ⚪ | ⏳ depende de Q-005 |
 | P-061 | Procedimientos almacenados como acciones | ⚪ | ⏳ |
-| P-062 | Proveedores MySQL/MariaDB y Oracle | 🟡 | ⏳ |
-| P-063 | Batería común de pruebas que todo proveedor debe pasar + guía "cómo agregar un motor" | 🟡 | ⏳ (base en P-002) |
+| P-062 | Otros motores (SQLite, Db2, Firebird…) solo si un equipo los pide | ⚪ | ⏳ |
+| P-063 | Guía "cómo agregar un motor" | ✅ 2026-10-27 · en `docs/motores.md` (la batería común pasó a P-002) |
 | P-064 | Cargar proveedores como plugins desde una carpeta, sin recompilar | ⚪ | ⏳ |
 
 ---

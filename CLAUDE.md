@@ -1,7 +1,8 @@
 # CLAUDE.md
 
-Servicio de **mantenedores dinámicos**: se conecta a SQL Server o PostgreSQL, lee su esquema
-y genera el CRUD de cada tabla. Backend .NET 8 + Dapper, frontend React + Vite.
+Servicio de **mantenedores dinámicos**: se conecta a SQL Server, PostgreSQL o MySQL/MariaDB
+(este último en el bloque M; Oracle fuera de alcance, D-034), lee su esquema y genera el CRUD de cada tabla.
+Backend .NET 8 + Dapper, frontend React + Vite. Diferencias entre motores: `docs/motores.md`.
 
 ## Antes de cualquier tarea: leer la memoria del proyecto
 
@@ -37,6 +38,8 @@ docker compose up --build                            # app + bases de ejemplo en
 
 ## Reglas que no se negocian
 
+- **Todo se adapta al entorno por configuración** (D-022): nada de dependencias obligatorias de una nube o de un proveedor de identidad; cada pieza nueva tiene un valor por defecto que funciona sin servicios externos y se documenta en `docs/configuracion.md`.
+- **Diferencias entre motores solo en el dialecto o el proveedor**, nunca con `if (motor == X)` en Core; y todo motor debe pasar la batería común de pruebas (D-031, D-033).
 - Nombres de tablas y columnas **solo** desde la metadata leída del catálogo; **siempre** delimitados con `ISqlDialect.Quote`. Valores **siempre** como parámetros (ver D-004).
 - Nada de credenciales reales en el repo. Las de `appsettings.Development.json` y `docker-compose.yml` son solo de demo.
 - Trabajar en una rama y abrir PR hacia `main`; no reescribir historia ya publicada (ver `convenciones.md`).

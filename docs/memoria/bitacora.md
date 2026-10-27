@@ -4,6 +4,29 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Oracle fuera de alcance
+- El dueño decidió dejar Oracle fuera y mantener MySQL/MariaDB (D-034 reemplaza a D-029).
+- P-026 queda ⛔. Se quitó `EmptyStringIsNull` de P-024. El prefijo de parámetros en el dialecto se mantiene, porque es barato y deja la puerta abierta.
+- El análisis de Oracle se conservó al final de `docs/motores.md`.
+- Bloque M: 2,5 semanas. Total: 17–18 semanas.
+
+## 2026-10-27 · MySQL/MariaDB y Oracle en el plan
+- El dueño pidió incluir MySQL y Oracle desde ya para no generar deuda técnica.
+- Se registraron D-029 a D-033: cuatro familias de motores con versiones mínimas, drivers, el dialecto absorbe las diferencias, qué es un "esquema" en cada motor y la batería común de pruebas.
+- Nuevo bloque **M** (4 semanas) antes de la Fase 2, con P-020 a P-029. Total: 19–20 semanas.
+- Se creó `docs/motores.md` con las diferencias técnicas y la guía para agregar un motor.
+- Se detectaron 4 supuestos del código actual que fallan en otros motores (prefijo `@`, alias largos, escape `\`, clave como filas) y uno que ya puede fallar en PG (`numeric` grande, P-023).
+- **Abierto:** Q-008 (versiones de cada motor en el equipo).
+
+## 2026-10-27 · Decisiones de entorno
+- El dueño respondió Q-001 a Q-003:
+  - Despliegue en cualquier entorno (servidor propio o nube).
+  - Uso por un solo equipo interno.
+  - Autenticación libre con cualquier JWT, como Duende IdentityServer.
+- Se registraron D-022 a D-028. Principio rector: **todo por configuración y sin dependencias externas por defecto**. La metadata puede estar en SQLite, Postgres o SQL Server; Redis y los vaults son opcionales.
+- La autenticación configurable (P-041) se adelantó a la Fase 2. Se agregaron P-007, P-008, P-038, P-039, P-063 y P-064.
+- Se ajustaron `docs/siguientes-pasos.md` y `docs/plan.md`. Fase 2: 5–6 semanas; total: 15–16 semanas.
+
 ## 2026-10-27 · Memoria del proyecto y hoja de ruta
 - Se creó `CLAUDE.md` y la carpeta `docs/memoria/` (estado, decisiones, pendientes, preguntas, convenciones, bitácora) (D-021).
 - Se escribió `docs/siguientes-pasos.md` con el cierre de la Fase 1 y el detalle de las Fases 2 a 5.

@@ -4,15 +4,15 @@
 
 ## En una línea
 
-Fase 1 (MVP) terminada y fusionada en `main`. Próximo bloque: **cierre de la Fase 1** (P-001 a P-004),
-y luego **Fase 2** a partir de **P-010** (metadata store).
+Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
+Próximo bloque: **cierre de la Fase 1** (P-001, P-002, P-007, P-003, P-004, P-008); luego el bloque **M** con MySQL/MariaDB (P-020 a P-029, D-034; Oracle fuera de alcance), y después la **Fase 2**.
 
 ## Ramas y PR
 
 | Rama | Estado |
 |---|---|
-| `main` | Rama por defecto. Contiene la Fase 1 (PR #1 fusionado). CI en verde. |
-| `docs/siguientes-pasos` | Hoja de ruta + memoria del proyecto. PR #2 abierto, pendiente de fusionar. |
+| `main` | Rama por defecto. Fase 1 (PR #1) + hoja de ruta y memoria (PR #2). CI en verde. |
+| `docs/decisiones-entorno` | PR #3 abierto: D-022 a D-034 (entorno configurable + MySQL/MariaDB, sin Oracle) y `docs/motores.md`. |
 | `feature/fase1-mantenedores` | Ya fusionada en `main`; se puede borrar (P-005). |
 
 ## Qué funciona hoy
@@ -47,6 +47,8 @@ y luego **Fase 2** a partir de **P-010** (metadata store).
 ## Limitaciones conocidas
 
 Ver detalle en `pendientes.md`:
+- Solo SQL Server y PostgreSQL implementados; MySQL/MariaDB en el bloque M (P-025). Oracle fuera de alcance (D-034).
+- Supuestos del código que no sirven para todos los motores: prefijo `@`, alias largos de etiquetas, escape `\`, clave devuelta como filas (P-020, P-021, P-024).
 - Etiquetas y combos solo para FK de una columna (P-030).
 - No se detectan índices únicos que no son restricciones (P-031).
 - Los errores del motor se muestran crudos (P-003).

@@ -16,7 +16,7 @@ El detalle de cada bloque y su criterio de "listo" está en [../siguientes-pasos
 | P-003 | Mensajes amigables para errores del motor (único, FK, CHECK, nulo) en ambos motores | 🟡 | ⏳ |
 | P-004 | Guía de despliegue `docs/despliegue.md` (variables, volumen `data/`, HTTPS, usuario de BD mínimo) | 🟡 | ⏳ |
 | P-005 | Borrar la rama `feature/fase1-mantenedores` (ya fusionada) | ⚪ | ⏳ dueño, desde GitHub |
-| P-006 | Fusionar el PR de `docs/siguientes-pasos` (hoja de ruta + memoria) | 🔴 | 🚧 |
+| P-006 | Fusionar el PR #2 (`docs/siguientes-pasos`: hoja de ruta + memoria) | 🔴 | 🚧 |
 
 ## 1. Fase 2: personalización
 

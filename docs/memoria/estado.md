@@ -12,7 +12,7 @@ y luego **Fase 2** a partir de **P-010** (metadata store).
 | Rama | Estado |
 |---|---|
 | `main` | Rama por defecto. Contiene la Fase 1 (PR #1 fusionado). CI en verde. |
-| `docs/siguientes-pasos` | Hoja de ruta + memoria del proyecto. PR pendiente de abrir/fusionar. |
+| `docs/siguientes-pasos` | Hoja de ruta + memoria del proyecto. PR #2 abierto, pendiente de fusionar. |
 | `feature/fase1-mantenedores` | Ya fusionada en `main`; se puede borrar (P-005). |
 
 ## Qué funciona hoy

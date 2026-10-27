@@ -42,7 +42,7 @@ public sealed class MetadataStoreTests : IDisposable
         var first = await new MetadataMigrator(db).MigrateAsync();
         var second = await new MetadataMigrator(db).MigrateAsync();
 
-        Assert.Equal(["001_conexiones", "002_overrides"], first);
+        Assert.Equal(["001_conexiones", "002_overrides", "003_schema_snapshot"], first);
         Assert.Empty(second);
         Assert.True(File.Exists(Path.Combine(_root, "mantenedores.db")));
     }
@@ -171,6 +171,29 @@ public sealed class MetadataStoreTests : IDisposable
         await store.DeleteAllAsync("ventas", default);
         Assert.Empty(await store.ListAsync("ventas", default));
         Assert.Single(await store.ListAsync("otra", default)); // las otras conexiones no se tocan
+    }
+
+    [Theory]
+    [InlineData("Sqlite")]
+    [InlineData("File")]
+    public async Task La_foto_del_esquema_se_guarda_y_reemplaza(string provider)
+    {
+        await using var sp = Services(_root, ("Metadata:Provider", provider));
+        await sp.InitializeMetadataAsync(_root);
+        var store = sp.GetRequiredService<Mantenedores.Core.Schema.ISchemaSnapshotStore>();
+        var snapshot = Mantenedores.Core.Schema.SchemaSnapshot.From(TestSchema.Build());
+
+        Assert.Null(await store.GetAsync("ventas", default));
+        await store.SaveAsync("Ventas", snapshot, null, default);
+        await store.SaveAsync("ventas", snapshot with { Tables = snapshot.Tables.Take(1).ToList() }, "ana", default);
+
+        var got = await store.GetAsync("VENTAS", default);
+        Assert.Single(got!.Snapshot.Tables);
+        Assert.Equal("ana", got.TakenBy);
+        Assert.True(DateTimeOffset.UtcNow - got.TakenAt < TimeSpan.FromMinutes(1));
+
+        await store.DeleteAsync("ventas", default);
+        Assert.Null(await store.GetAsync("ventas", default));
     }
 
     [Theory]

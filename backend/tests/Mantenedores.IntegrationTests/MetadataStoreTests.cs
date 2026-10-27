@@ -87,6 +87,30 @@ public abstract class MetadataStoreContractTests<TFixture>(TFixture db) : IClass
         await store.DeleteAllAsync(id, default);
         Assert.Empty(await store.ListAsync(id, default));
     }
+
+    [Fact]
+    public async Task Guarda_y_lee_la_foto_del_esquema()
+    {
+        var database = Database();
+        await new MetadataMigrator(database).MigrateAsync();
+        var store = new SqlSnapshotStore(database);
+        var id = "c" + Guid.NewGuid().ToString("N")[..8];
+        var snapshot = new Mantenedores.Core.Schema.SchemaSnapshot(
+        [
+            new("ventas", "Producto", Mantenedores.Core.Schema.TableKind.Table,
+                [new("Id", "int", false), new("Nombre", "nvarchar(120)", false)], ["Id"], [])
+        ]);
+
+        await store.SaveAsync(id, snapshot, null, default);
+        await store.SaveAsync(id, snapshot, "ana", default); // reemplaza
+        var got = await store.GetAsync(id, default);
+        Assert.Equal("ana", got!.TakenBy);
+        Assert.True(DateTimeOffset.UtcNow - got.TakenAt < TimeSpan.FromMinutes(5));
+        Assert.Empty(Mantenedores.Core.Schema.SchemaDiff.Compare(snapshot, got.Snapshot));
+
+        await store.DeleteAsync(id, default);
+        Assert.Null(await store.GetAsync(id, default));
+    }
 }
 
 public sealed class PostgresMetadataStoreTests(PostgresFixture db) : MetadataStoreContractTests<PostgresFixture>(db)

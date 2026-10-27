@@ -423,6 +423,19 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Seguir con "solo admin" (D-050): no permite delegar.
   - Nombres de rol fijos en el código: no se adaptan a los roles que ya existen en cada empresa (D-022).
 
+### D-054 · Cambios de esquema contra una foto de referencia que se acepta
+- **Estado:** Vigente · 2026-10-27 (P-013)
+- **Qué:**
+  - `SchemaSnapshot` es un modelo propio y estable (tablas, columnas con tipo y nulos, PK declarada y FK), guardado como JSON en `mnt_schema_snapshot` (migración `003`), una fila por conexión.
+  - La primera lectura de una conexión crea la foto. Después, `GET /diff` compara la foto con el esquema leído, que es el de la caché; tras ↻ se lee de nuevo.
+  - El aviso se mantiene hasta que alguien con `ConfigureTables` lo acepta (`POST /diff/accept`), y queda registrado quién lo hizo.
+  - Los ajustes sin efecto se informan junto con los cambios; el editor permite quitar los de columnas que ya no existen.
+  - Al borrar una conexión se borra su foto.
+- **Por qué:**
+  - Comparar contra "la última lectura" haría desaparecer el aviso al refrescar, sin que nadie lo revisara.
+  - Un modelo propio evita que un cambio en `TableInfo` (p. ej. un campo nuevo) parezca un cambio de la base.
+- **Alternativa descartada:** comparar solo el hash, que dice que algo cambió pero no qué.
+
 ---
 
 ## Propuestas (aún no decididas)

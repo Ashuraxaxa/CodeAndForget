@@ -3,6 +3,7 @@ import { NavLink, Outlet, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { labelOf } from '../api/types'
+import { SchemaChangesBanner } from '../components/SchemaChangesBanner'
 
 /** Barra lateral con las tablas descubiertas de la conexión + área de trabajo. */
 export function ConnectionLayout() {
@@ -17,6 +18,7 @@ export function ConnectionLayout() {
     onSuccess: s => {
       qc.setQueryData(['tables', conn], s)
       qc.invalidateQueries({ queryKey: ['meta', conn] })
+      qc.invalidateQueries({ queryKey: ['diff', conn] })
     },
   })
 
@@ -46,11 +48,6 @@ export function ConnectionLayout() {
         {isLoading && <p className="muted pad">Leyendo esquema…</p>}
         {error && <div className="alert pad">{(error as Error).message}</div>}
         {data && <p className="muted small pad">{data.tables.filter(t => !t.hidden).length} tablas y vistas</p>}
-        {data && data.warnings.length > 0 && (
-          <p className="alert small pad" title={data.warnings.join('\n')}>
-            {data.warnings.length === 1 ? '1 ajuste no se pudo aplicar' : `${data.warnings.length} ajustes no se pudieron aplicar`}
-          </p>
-        )}
         <nav>
           {groups.map(([group, tables]) => (
             <div key={group} className="nav-group">
@@ -74,6 +71,7 @@ export function ConnectionLayout() {
       </aside>
       <section className="content">
         <button className="menu-toggle" onClick={() => setMenuOpen(o => !o)}>☰ Tablas</button>
+        <SchemaChangesBanner conn={conn} />
         <Outlet />
       </section>
     </div>

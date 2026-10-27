@@ -28,10 +28,10 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-078 | Prueba en vivo con Duende IdentityServer (requiere un host .NET de prueba con Duende; la config está documentada) | 🟡 | ⏳ |
 | P-079 | Renovación silenciosa sin refresh token (iframe `silent_redirect_uri`); hoy, sin refresh token, al vencer se vuelve a iniciar sesión | ⚪ | ⏳ |
 | P-082 | Ajustes con varias instancias: un ajuste guardado en una instancia solo se ve en las otras al refrescar o reiniciar (caché en memoria). Opciones: TTL corto del esquema combinado o caché compartida (P-050) | 🟡 | ⏳ |
+| P-086 | Detectar cambios de esquema sin que nadie pulse ↻ (p. ej. relectura periódica configurable o al fallar una consulta por columna inexistente) | ⚪ | ⏳ |
 | P-085 | Editor: FK virtuales compuestas desde la UI (hoy solo por la API) y arrastrar para ordenar columnas (hoy, botones ↑ ↓) | ⚪ | ⏳ |
 | P-084 | UI: usar la etiqueta de la tabla referenciada (no su nombre) en "→ categoria" y en "Referenciada por" | ⚪ | ⏳ |
 | P-081 | Migraciones con varias instancias arrancando a la vez: bloqueo (p. ej. `pg_advisory_lock`, `sp_getapplock`) para que no corran dos veces en paralelo | 🟡 | ⏳ |
-| P-013 | Diferencias de esquema (snapshot + `/diff` + aviso de overrides huérfanos) | 🟡 | ⏳ depende de P-010 |
 | P-014 | Maestro-detalle con pestañas de tablas hijas y FK precompletada | 🟡 | ⏳ |
 | P-015 | N:M: detección de tablas puente + selector múltiple + sincronización en transacción | 🟡 | ⏳ |
 | P-016 | Árboles para autorreferencias + validación de ciclos | ⚪ | ⏳ |
@@ -113,6 +113,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-029 | UI: MySQL/MariaDB en el selector, ejemplo de cadena y ayuda de esquemas según el motor | ✅ 2026-10-27 · PR #8 |
 | P-010 | Metadata en `Sqlite` (por defecto), `Postgres` o `SqlServer`, con migraciones, `SqlConnectionStore` e importación de `connections.json` (D-047, D-048) | ✅ 2026-10-27 · PR #10 |
 | P-080 | Llaves de Data Protection en la base (`DataProtection:KeyStore=Database`) y certificado opcional: varias instancias comparten conexiones | ✅ 2026-10-27 · PR #10 |
+| P-013 | Diferencias de esquema: foto de referencia, `/diff`, aviso en la UI, aceptar cambios y quitar ajustes huérfanos en el editor (D-054) | ✅ 2026-10-27 · PR #14 |
 | P-083 | Permisos por acción: `ConfigureTables` y `ManageConnections`, otorgados a roles por `Auth:Permissions` (D-053) | ✅ 2026-10-27 · PR #13 |
 | P-012 | Editor de ajustes en la UI: pestañas Tabla y Columnas, orden, validaciones, PK y FK virtuales, vista previa en vivo y restablecer (D-052) | ✅ 2026-10-27 · PR #12 |
 | P-011 | Ajustes por tabla y columna: modelo, `OverrideApplier`, almacén (`002_overrides`), endpoints solo admin, reglas en el servidor, render en la UI (D-049 a D-051) | ✅ 2026-10-27 · PR #11 |

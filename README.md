@@ -168,6 +168,8 @@ Todas las rutas (salvo `auth/config`, `auth/login` y health) requieren `Authoriz
 | GET | `/api/meta/{conn}/tables` | Tablas y vistas descubiertas |
 | GET | `/api/meta/{conn}/tables/{schema}/{table}` | Definición completa (columnas, PK, FK) |
 | POST | `/api/meta/{conn}/refresh` | Vuelve a leer el esquema |
+| GET | `/api/meta/{conn}/diff` | Cambios del esquema desde la referencia y ajustes sin efecto |
+| POST | `/api/meta/{conn}/diff/accept` | Toma el esquema actual como referencia. Permiso `ConfigureTables` |
 | GET | `/api/meta/{conn}/overrides[/{schema}/{table}]` | Ajustes de los mantenedores ([docs/ajustes.md](docs/ajustes.md)) |
 | PUT / DELETE | `/api/meta/{conn}/overrides/{schema}/{table}` | Guarda o quita el ajuste de una tabla. Permiso `ConfigureTables` |
 | POST | `/api/meta/{conn}/overrides/{schema}/{table}/preview` | Vista previa de un ajuste sin guardarlo. Permiso `ConfigureTables` |

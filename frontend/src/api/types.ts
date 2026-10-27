@@ -178,3 +178,25 @@ export interface OverridePreview {
 }
 
 export const WIDGETS = ['textarea', 'email', 'url', 'color', 'money', 'password'] as const
+
+// ----- Diferencias de esquema (P-013) -----
+
+export type SchemaChangeKind =
+  | 'TableAdded' | 'TableRemoved' | 'TableKindChanged'
+  | 'ColumnAdded' | 'ColumnRemoved' | 'ColumnTypeChanged' | 'ColumnNullabilityChanged'
+  | 'PrimaryKeyChanged' | 'ForeignKeyAdded' | 'ForeignKeyRemoved'
+
+export interface SchemaChange {
+  kind: SchemaChangeKind
+  schema: string
+  table: string
+  column: string | null
+  description: string
+}
+
+export interface SchemaDiff {
+  since: string
+  acceptedBy: string | null
+  changes: SchemaChange[]
+  overrideWarnings: string[]
+}

@@ -224,7 +224,7 @@ Guía de uso: [ajustes.md](ajustes.md). Decisiones: D-049 a D-051.
 - Botón "Restablecer a lo automático".
 - **Listo cuando:** se puede dejar un mantenedor "presentable" sin editar JSON.
 
-### 1.4 Diferencias de esquema (3 días)
+### 1.4 Diferencias de esquema (3 días) · ✅ PR #14
 - Al refrescar, comparar con el último `schema_snapshot`: tablas o columnas nuevas o eliminadas, cambios de tipo y de nulos.
 - Endpoint `GET /api/meta/{conn}/diff` y aviso en la UI: "Hay 3 cambios en el esquema".
 - Marcar los overrides huérfanos, que apuntan a columnas que ya no existen.

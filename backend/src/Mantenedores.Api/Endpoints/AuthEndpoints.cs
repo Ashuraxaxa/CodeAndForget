@@ -13,7 +13,8 @@ public static class AuthEndpoints
     public sealed record AuthConfigResponse(
         AuthMode Mode, string? Authority, string? ClientId, string? Scopes, string? ProviderName);
 
-    public sealed record MeResponse(string? Name, IReadOnlyList<string> Roles, bool IsAdmin);
+    /// <summary><c>Permissions</c>: lo que puede hacer el usuario (D-053), para que la UI muestre u oculte acciones.</summary>
+    public sealed record MeResponse(string? Name, IReadOnlyList<string> Roles, bool IsAdmin, IReadOnlyList<string> Permissions);
 
     public static void MapAuth(this IEndpointRouteBuilder app)
     {
@@ -46,7 +47,8 @@ public static class AuthEndpoints
         app.MapGet("/api/auth/me", (ClaimsPrincipal user, IOptions<AuthOptions> options) =>
         {
             var roles = user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
-            return new MeResponse(user.Identity?.Name, roles, ClaimsMapper.IsAdmin(roles, options.Value.AdminRoles));
+            return new MeResponse(user.Identity?.Name, roles, ClaimsMapper.IsAdmin(roles, options.Value.AdminRoles),
+                Permissions.Granted(options.Value, roles));
         }).RequireAuthorization();
     }
 }

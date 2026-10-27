@@ -19,6 +19,12 @@ public sealed class AuthOptions
     /// <summary>Roles que pueden administrar (p. ej. configurar mantenedores). Se comparan sin distinguir mayúsculas.</summary>
     public List<string> AdminRoles { get; set; } = ["admin"];
 
+    /// <summary>
+    /// Roles que reciben cada permiso (D-053), p. ej. <c>"ConfigureTables": ["analista-datos"]</c>.
+    /// Sin configurar: ConfigureTables → mnt-configurador, ManageConnections → mnt-conexiones. Los AdminRoles tienen todos.
+    /// </summary>
+    public Dictionary<string, List<string>> Permissions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     // ----- Modo Local -----
 
     /// <summary>Clave para firmar los tokens del modo Local. Mínimo 32 caracteres. No se usa en modo Jwt.</summary>

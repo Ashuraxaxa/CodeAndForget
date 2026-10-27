@@ -4,6 +4,13 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Fase 2: permisos por acción
+- El dueño respondió Q-006 y P-083: configurar mantenedores y gestionar conexiones deben tener **cada uno su rol**, asignable a un perfil o usuario. El apartado de seguridad propio se conversará después.
+- Permisos `ConfigureTables` y `ManageConnections`, otorgados a roles en `Auth:Permissions` (por defecto `mnt-configurador` y `mnt-conexiones`); los administradores tienen todos (D-053, reemplaza a D-050).
+- `/api/auth/me` devuelve `permissions`; la UI oculta Configurar y Nueva/Editar/Eliminar conexión a quien no los tiene.
+- 125 unitarias en verde.
+- **Siguiente:** P-013, diferencias de esquema. **Pendiente de conversar:** el apartado de seguridad (P-040/P-042).
+
 ## 2026-10-27 · Fase 2: editor de ajustes
 - PR #11 fusionado. Nuevo botón **⚙ Configurar** (solo admin) con pestañas Tabla y Columnas, vista previa en vivo y "Restablecer a lo automático".
 - Endpoint `.../overrides/{schema}/{table}/preview`: aplica sin guardar y devuelve tabla y errores (D-052).

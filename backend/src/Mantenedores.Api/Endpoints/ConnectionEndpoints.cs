@@ -21,6 +21,9 @@ public static partial class ConnectionEndpoints
     [GeneratedRegex("^[a-z0-9][a-z0-9_-]{0,49}$")]
     private static partial Regex IdPattern();
 
+    /// <summary>Crear, editar, probar y borrar exige el permiso ManageConnections (D-053); listar, cualquier usuario.</summary>
+    private static readonly string ManageConnectionsPolicy = Auth.Permissions.Policy(Auth.Permissions.ManageConnections);
+
     public static void MapConnections(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/connections").RequireAuthorization();
@@ -38,7 +41,7 @@ public static partial class ConnectionEndpoints
             await store.SaveAsync(def, ct);
             schemas.Invalidate(def.Id);
             return Results.Ok(ToResponse(def));
-        });
+        }).RequireAuthorization(ManageConnectionsPolicy);
 
         group.MapDelete("/{id}", async (string id, IConnectionStore store, SchemaService schemas, CancellationToken ct) =>
         {
@@ -47,7 +50,7 @@ public static partial class ConnectionEndpoints
             // Sus ajustes se van con ella: una conexión nueva con el mismo id no los hereda.
             await schemas.Overrides.DeleteAllAsync(id, ct);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(ManageConnectionsPolicy);
 
         // Prueba sin guardar. Un error de conexión es un resultado esperado, no una falla de la API.
         group.MapPost("/test", async (ConnectionRequest req, IConnectionStore store, SchemaService schemas, CancellationToken ct) =>
@@ -65,7 +68,7 @@ public static partial class ConnectionEndpoints
             {
                 return Results.Ok(new TestResult(false, 0, ex.Message));
             }
-        });
+        }).RequireAuthorization(ManageConnectionsPolicy);
     }
 
     private static async Task<ConnectionDefinition> BuildDefinitionAsync(string id, ConnectionRequest req, IConnectionStore store, CancellationToken ct)

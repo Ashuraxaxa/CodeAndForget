@@ -35,7 +35,7 @@ public static class MetaEndpoints
         group.MapPost("/refresh", async (string conn, SchemaService schemas, CancellationToken ct) =>
             Summarize(await schemas.RefreshAsync(conn, ct)));
 
-        // --- Ajustes por tabla (P-011). Leer: cualquier usuario; cambiar: solo administradores (D-050). ---
+        // --- Ajustes por tabla (P-011). Leer: cualquier usuario; cambiar: permiso ConfigureTables (D-053). ---
 
         group.MapGet("/overrides", async (string conn, SchemaService schemas, CancellationToken ct) =>
         {
@@ -63,7 +63,7 @@ public static class MetaEndpoints
             await schemas.Overrides.SaveAsync(conn, info.Schema, info.Name, body, user.Identity?.Name, ct);
             schemas.InvalidateOverrides(conn);
             return (await schemas.GetTableAsync(conn, info.Schema, info.Name, ct)).Table;
-        }).RequireAuthorization(AuthSetup.AdminPolicy);
+        }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
 
         // Vista previa para el editor (P-012): aplica el ajuste sin guardarlo. Los errores no cortan la vista previa:
         // se devuelven junto con la tabla combinada con lo que sí se pudo aplicar.
@@ -82,7 +82,7 @@ public static class MetaEndpoints
             catch (Core.Errors.ValidationException ex) { foreach (var (k, v) in ex.Errors) errors[k] = [v]; }
 
             return new OverridePreview(OverrideApplier.Apply(raw, others).FindTable(info.Schema, info.Name)!, errors);
-        }).RequireAuthorization(AuthSetup.AdminPolicy);
+        }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
 
         group.MapDelete("/overrides/{schema}/{table}", async (string conn, string schema, string table, SchemaService schemas, CancellationToken ct) =>
         {
@@ -90,7 +90,7 @@ public static class MetaEndpoints
             var removed = await RemoveVariantsAsync(schemas, conn, info, ct);
             schemas.InvalidateOverrides(conn);
             return removed ? Results.NoContent() : Results.NotFound();
-        }).RequireAuthorization(AuthSetup.AdminPolicy);
+        }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
     }
 
     private static async Task<TableInfo> RawTableAsync(SchemaService schemas, string conn, string schema, string table, CancellationToken ct) =>

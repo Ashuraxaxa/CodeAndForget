@@ -4,6 +4,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Oracle fuera de alcance
+- El dueño decidió dejar Oracle fuera y mantener MySQL/MariaDB (D-034 reemplaza a D-029).
+- P-026 queda ⛔. Se quitó `EmptyStringIsNull` de P-024. El prefijo de parámetros en el dialecto se mantiene, porque es barato y deja la puerta abierta.
+- El análisis de Oracle se conservó al final de `docs/motores.md`.
+- Bloque M: 2,5 semanas. Total: 17–18 semanas.
+
 ## 2026-10-27 · MySQL/MariaDB y Oracle en el plan
 - El dueño pidió incluir MySQL y Oracle desde ya para no generar deuda técnica.
 - Se registraron D-029 a D-033: cuatro familias de motores con versiones mínimas, drivers, el dialecto absorbe las diferencias, qué es un "esquema" en cada motor y la batería común de pruebas.

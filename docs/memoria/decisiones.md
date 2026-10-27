@@ -188,7 +188,7 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 ## Motores soportados (pedido del dueño, 2026-10-27)
 
 ### D-029 · Cuatro familias de motores desde la v1
-- **Estado:** Vigente · 2026-10-27
+- **Estado:** Reemplazada por D-034 · 2026-10-27 (Oracle quedó fuera)
 - **Qué:** SQL Server 2016+, PostgreSQL 12+, MySQL 8.0+ / MariaDB 10.6+ y Oracle 19c+.
 - **Cuándo:** se implementan en el bloque **M**, antes de la Fase 2.
 - **Por qué:** overrides, maestro-detalle, import/export y permisos tocan el SQL generado. Diseñarlos con dos motores y sumar otros después obligaría a rehacerlos (deuda técnica).
@@ -200,19 +200,19 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Estado:** Vigente · 2026-10-27
 - **Qué:**
   - `MySqlConnector` (MIT, async real) para MySQL y MariaDB, con un solo proveedor.
-  - `Oracle.ManagedDataAccess.Core` para Oracle (sin cliente instalado, `BindByName = true`).
+  - ~~`Oracle.ManagedDataAccess.Core` para Oracle~~: no aplica mientras Oracle esté fuera de alcance (D-034).
 - **Alternativa descartada:** `MySql.Data`, el driver oficial de Oracle para MySQL: licencia GPL y async limitado.
 
 ### D-031 · El dialecto absorbe las diferencias, no Core
 - **Estado:** Vigente · 2026-10-27 (se implementa en P-020 a P-024)
 - **Qué:** `ISqlDialect` declara:
   - Prefijo de parámetros.
-  - Estrategia de inserción: filas, parámetros de salida, último id o valores provistos.
+  - Estrategia de inserción: filas, último id o valores provistos.
   - Carácter de escape de LIKE (`!`).
-  - Si `''` equivale a NULL.
   - Capacidades por columna: ordenable, filtrable, buscable.
   - Ajustes de sesión al abrir la conexión.
-- **Además:** las etiquetas de FK usan alias cortos (`l0`…) para no chocar con el límite de 63 bytes de Postgres ni con el de Oracle.
+- **Además:** las etiquetas de FK usan alias cortos (`l0`…) para no chocar con el límite de 63 bytes de Postgres.
+- **Actualizado con D-034:** se quitaron "parámetros de salida" y "`''` = NULL", que solo hacían falta para Oracle.
 - **Regla:** en Core no puede haber `if (motor == X)`. Si un motor necesita algo distinto, se expresa como capacidad del dialecto.
 - **Alternativa descartada:** ramas por motor dentro de `QueryBuilder`.
 
@@ -220,8 +220,15 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Estado:** Vigente · 2026-10-27
 - **Qué:**
   - En MySQL/MariaDB, el "esquema" es la base de datos. Por defecto se expone solo la de la cadena de conexión.
-  - En Oracle, el "esquema" es el owner. Por defecto se expone solo el del usuario conectado, porque recorrer `ALL_*` completo es lento.
-  - En ambos se pueden listar más esquemas en la configuración de la conexión.
+  - En MySQL/MariaDB se pueden listar más bases en la configuración de la conexión.
+  - (Oracle, si se retoma: el "esquema" sería el owner; ver `docs/motores.md`.)
+
+### D-034 · Tres familias de motores: Oracle queda fuera
+- **Estado:** Vigente · 2026-10-27 · reemplaza a D-029
+- **Qué:** la v1 soporta SQL Server 2016+, PostgreSQL 12+ y MySQL 8.0+ / MariaDB 10.6+. **Oracle queda fuera de alcance** por decisión del dueño.
+- **Se mantiene de D-029:** MySQL/MariaDB se implementan en el bloque **M**, antes de la Fase 2, y las versiones fuera de soporte se rechazan (P-028).
+- **Para no cerrar la puerta:** el prefijo de parámetros igual pasa al dialecto (P-020) y el análisis técnico de Oracle queda en `docs/motores.md`. Retomarlo sería agregar un proveedor y una estrategia de inserción, sin rehacer nada (estimado: 1,5 a 2 semanas).
+- **Efecto en el plan:** el bloque M baja de 4 a 2,5 semanas; el total, a 17–18 semanas.
 
 ### D-033 · Un motor está soportado si pasa la batería común
 - **Estado:** Vigente · 2026-10-27

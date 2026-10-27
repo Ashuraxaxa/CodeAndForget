@@ -13,7 +13,7 @@ la app arranca con valores por defecto **sin dependencias externas** (un contene
 
 | Pieza | Opciones (clave de configuración) | Por defecto |
 |---|---|---|
-| Bases a administrar | SQL Server, PostgreSQL, MySQL/MariaDB y Oracle (D-029); más motores como proveedores nuevos | Todos habilitados |
+| Bases a administrar | SQL Server, PostgreSQL y MySQL/MariaDB (D-034); más motores como proveedores nuevos | Todos habilitados |
 | Metadata del servicio | `Metadata:Provider` = `Sqlite` · `Postgres` · `SqlServer` | `Sqlite` (archivo en `data/`) |
 | Autenticación | `Auth:Mode` = `Local` · `Jwt` (Duende IdentityServer, Keycloak, Entra ID, Auth0… vía OIDC) | `Local` |
 | Llaves de cifrado | `DataProtection:KeyStore` = `FileSystem` · `Database`, con certificado opcional | `FileSystem` |
@@ -27,13 +27,13 @@ Es para **un solo equipo interno** (D-027): no hay multi-tenant; si otro equipo 
 | # | Bloque | Duración estimada | Resultado |
 |---|---|---|---|
 | 0 | Cierre de la Fase 1 | 1 semana | Base sólida: imagen Docker probada, pruebas de integración, errores claros |
-| M | Multi-motor: MySQL/MariaDB y Oracle | 4 semanas | Abstracciones listas para cualquier motor + 2 proveedores nuevos probados en la CI |
+| M | Multi-motor: MySQL/MariaDB | 2,5 semanas | Abstracciones listas para cualquier motor + proveedor MySQL/MariaDB probado en la CI |
 | 1 | Fase 2: configuración y personalización | 5–6 semanas | Auth y metadata configurables, mantenedores ajustables sin código, maestro-detalle, N:M, import/export |
 | 2 | Fase 3: seguridad | 3 semanas | Permisos por rol (desde claims del JWT), auditoría, concurrencia |
 | 3 | Fase 4: escala y operación | 3 semanas | Caché compartida opcional, límites, observabilidad, pruebas de carga |
 | 4 | Fase 5: extensiones | continuo | Hooks de negocio, más motores, acciones |
 
-Total hasta una v1 productiva: **unas 19–20 semanas** con 1 backend, 1 frontend y QA/DevOps parcial.
+Total hasta una v1 productiva: **unas 17–18 semanas** con 1 backend, 1 frontend y QA/DevOps parcial.
 
 ---
 
@@ -87,27 +87,26 @@ Pendientes detectados al construir la Fase 1, que conviene cerrar antes de crece
 
 ---
 
-## M. Multi-motor: MySQL/MariaDB y Oracle (4 semanas) · D-029
+## M. Multi-motor: MySQL/MariaDB (2,5 semanas) · D-034
 
 Se hace **antes de la Fase 2** a propósito. Overrides, maestro-detalle, N:M, import/export y permisos
 tocan el SQL generado; si se diseñan con solo dos motores, después habrá que rehacerlos.
-Con cuatro motores probados desde el inicio, cada función nueva nace compatible.
+Con los tres motores probados desde el inicio, cada función nueva nace compatible.
+Oracle quedó fuera de alcance (D-034); sus notas están en [motores.md](motores.md#oracle-fuera-de-alcance-d-034).
 Diferencias técnicas detalladas: [motores.md](motores.md).
 
 ### M.1 Abstracciones del dialecto (1 semana) · D-031
 Cambios en Core que hoy asumen cosas que no se cumplen en todos los motores:
-- **Prefijo de parámetros en el dialecto** (`@p0` o `:p0`). Hoy está fijo en `QueryBuilder` (P-020).
 - **Estrategia de inserción declarada por el dialecto**, en vez de un texto SQL único (P-020):
   - filas de resultado (Postgres, MariaDB, SQL Server);
-  - parámetros de salida (Oracle `RETURNING … INTO`);
   - último id (MySQL `LAST_INSERT_ID()`);
   - valores ya provistos.
+- **Prefijo de parámetros en el dialecto.** Hoy está fijo en `QueryBuilder`. Los tres motores usan `@`, pero moverlo cuesta minutos y deja lista la puerta para otros motores (P-020).
 - **Alias cortos** para las etiquetas de FK (`l0`, `l1`…), mapeados de vuelta a `<columna>__label` en la respuesta. Evita el corte de 63 bytes de Postgres (P-021).
-- **Capacidades por columna:** ordenable, filtrable y buscable. Los LOB no se ordenan en Oracle (P-022).
+- **Capacidades por columna:** ordenable, filtrable y buscable, para textos y binarios largos (P-022).
 - **Números fuera del rango de `decimal`:** se leen y escriben como texto (P-023).
 - **Semántica por dialecto** (P-024):
   - Carácter de escape de LIKE neutro (`!`).
-  - `EmptyStringIsNull` (Oracle).
   - Ajustes de sesión al abrir la conexión (zona UTC en MySQL).
 - **Versión mínima** verificada al probar una conexión, con un mensaje claro si no se cumple (P-028).
 - **Listo cuando:** los 44 tests actuales y las pruebas de integración de PG y SQL Server pasan sin cambios de comportamiento.
@@ -131,22 +130,8 @@ Cambios en Core que hoy asumen cosas que no se cumplen en todos los motores:
 - Base de ejemplo `samples/mysql/01_demo.sql`.
 - **Listo cuando:** pasa la batería común en MySQL 8.4 y en MariaDB 11.4.
 
-### M.4 Proveedor Oracle (1,5 semanas) · P-026
-- `Mantenedores.Providers.Oracle` con `Oracle.ManagedDataAccess.Core`, sin cliente Oracle instalado y con `BindByName = true`.
-- El esquema es el dueño (owner). Por defecto se expone solo el del usuario conectado (D-032).
-- **Catálogo:** `ALL_*` filtrado siempre por `OWNER`, columnas identity desde `ALL_TAB_IDENTITY_COLS`.
-- **Inserción:** `RETURNING … INTO` con parámetros de salida. Si la tabla usa secuencia + trigger, se configura la secuencia por override.
-- **Reglas de tipos:**
-  - `''` = NULL.
-  - `DATE` → DateTime.
-  - `NUMBER` sin precisión → texto.
-  - `NUMBER(1)` → Boolean configurable.
-  - `CLOB` → Text no ordenable.
-- Base de ejemplo `samples/oracle/01_demo.sql`.
-- **Listo cuando:** pasa la batería común en Oracle 23ai Free. Antes de la v1, se prueba a mano en un 19c del equipo.
-
-### M.5 UI multi-motor (2 días)
-- El selector de motor y los ejemplos de cadena de conexión pasan a incluir MySQL/MariaDB y Oracle.
+### M.4 UI multi-motor (2 días)
+- El selector de motor y los ejemplos de cadena de conexión pasan a incluir MySQL/MariaDB.
 - Los controles respetan las capacidades por columna: no ofrecen ordenar ni filtrar donde el motor no puede.
 
 ---
@@ -315,21 +300,20 @@ Reemplaza el archivo `connections.json` por una base propia del servicio, **del 
 ```
 Semana  1      0. Cierre Fase 1 (Docker, integración base, errores, despliegue en cualquier entorno)
 Semana  2      M.1 Abstracciones del dialecto + M.2 batería común por proveedor
-Semana  3      M.3 MySQL / MariaDB
-Semana  4–5    M.4 Oracle + M.5 UI multi-motor
-Semana  6      1.0 Autenticación configurable
-Semana  7      1.1 Metadata store configurable
-Semana  8      1.2 Overrides (backend)
-Semana  9      1.3 Editor de overrides + 1.4 Diff de esquema
-Semana 10      1.5 Maestro-detalle
-Semana 11      1.6 N:M + 1.7 Árboles + 1.8 Import/Export + 1.9 Tipos
-Semana 12–14   Fase 3: seguridad
-Semana 15–17   Fase 4: escala y operación
-Semana 18–20   Estabilización, documentación y piloto con usuarios reales
+Semana  3      M.3 MySQL / MariaDB + M.4 UI multi-motor (termina a mitad de la semana 4)
+Semana  4      1.0 Autenticación configurable
+Semana  5      1.1 Metadata store configurable
+Semana  6      1.2 Overrides (backend)
+Semana  7      1.3 Editor de overrides + 1.4 Diff de esquema
+Semana  8      1.5 Maestro-detalle
+Semana  9      1.6 N:M + 1.7 Árboles + 1.8 Import/Export + 1.9 Tipos
+Semana 10–12   Fase 3: seguridad
+Semana 13–15   Fase 4: escala y operación
+Semana 16–18   Estabilización, documentación y piloto con usuarios reales
 ```
 
 Lo más urgente es **0.1, 0.2 y M.1**: todo lo demás depende de tener pruebas contra bases reales
-y de que las abstracciones del dialecto ya sirvan para cuatro motores.
+y de que las abstracciones del dialecto ya sirvan para los tres motores.
 
 > Si hace falta mostrar valor antes, 1.0 (auth) se puede adelantar a la semana 2: no depende de M.
 > Lo que **no** conviene es empezar 1.2 (overrides) antes de terminar M.1.
@@ -340,8 +324,7 @@ y de que las abstracciones del dialecto ya sirvan para cuatro motores.
 - **Despliegue:** en cualquier entorno, sin depender de una nube. Todo se elige por configuración (D-022).
 - **Usuarios:** un solo equipo interno, sin multi-tenant (D-027).
 - **Identidad:** libre; cualquier emisor de JWT u OIDC, como Duende IdentityServer, según se configure (D-024).
-
-- **Motores:** SQL Server, PostgreSQL, MySQL/MariaDB y Oracle desde la v1 (D-029).
+- **Motores:** SQL Server, PostgreSQL y MySQL/MariaDB desde la v1; Oracle fuera de alcance (D-034).
 
 **Abiertas** (ver [memoria/preguntas-abiertas.md](memoria/preguntas-abiertas.md)):
 - Versiones de cada motor que usa el equipo (Q-008).
@@ -361,20 +344,18 @@ y de que las abstracciones del dialecto ya sirvan para cuatro motores.
 | Pérdida de las llaves de cifrado | Llaves en la metadata (1.1), certificado opcional y respaldo documentado (0.4) |
 | Entornos muy distintos entre sí | Valores por defecto sin dependencias, cada pieza intercambiable por configuración y receta de despliegue por plataforma (0.4) |
 | Un proveedor de identidad con claims no estándar | Mapeo de claims configurable y prueba con al menos dos proveedores (1.0) |
-| Diferencias sutiles entre motores (`''` = NULL, números grandes, LOB) | Abstracciones en M.1, batería común por motor (M.2) y la guía [motores.md](motores.md) |
-| CI lenta por cuatro motores (Oracle tarda en arrancar) | Un job por motor en paralelo; Oracle con imagen `slim` y la base de ejemplo precargada |
-| Versiones viejas en producción (Oracle 11g, MySQL 5.7) | Versión mínima verificada al conectar (P-028) y Q-008 para saberlo antes |
+| Diferencias sutiles entre motores (números grandes, textos largos, `sql_mode` de MySQL) | Abstracciones en M.1, batería común por motor (M.2) y la guía [motores.md](motores.md) |
+| CI más lenta con más motores | Un job por motor en paralelo, con la base de ejemplo precargada |
+| Versiones viejas en producción (p. ej. MySQL 5.7) | Versión mínima verificada al conectar (P-028) y Q-008 para saberlo antes |
 
 ## Recomendaciones técnicas
 
-1. **Hacer M.1 antes que cualquier función nueva.** Las cuatro suposiciones de hoy (prefijo `@`, alias largos, escape `\`, clave devuelta como filas) son baratas de cambiar ahora con 44 pruebas y caras después de los overrides.
+1. **Hacer M.1 antes que cualquier función nueva.** Las suposiciones de hoy (alias largos, escape `\`, clave devuelta como filas, prefijo `@` fijo) son baratas de cambiar ahora con 44 pruebas y caras después de los overrides.
 2. **Una sola batería de pruebas para todos los motores.** Es la mejor protección contra la deuda técnica: un motor "soportado" es uno que pasa la batería, no uno que tiene código.
-3. **No soportar versiones fuera de soporte del fabricante.** Cada versión vieja agrega ramas en el dialecto (p. ej. `ROWNUM` en Oracle 11g) que nadie prueba. Mejor rechazarlas con un mensaje claro.
-4. **Oracle es el motor más caro:** reservarle tiempo extra y probarlo contra una base real del equipo, no solo contra el contenedor.
-   - Las mayores sorpresas: `''` = NULL, `NUMBER` sin precisión, mayúsculas en los nombres y lentitud del diccionario.
-   - Limitar los esquemas expuestos por defecto.
+3. **No soportar versiones fuera de soporte del fabricante.** Cada versión vieja agrega ramas en el dialecto (p. ej. MySQL 5.7 sin `CHECK` real) que nadie prueba. Mejor rechazarlas con un mensaje claro.
+4. **Si Oracle vuelve a ser necesario**, no costará rehacer nada: con el prefijo de parámetros en el dialecto y la batería común, es agregar un proveedor y una estrategia de inserción (parámetros de salida). Calcular 1,5 a 2 semanas; el análisis está en [motores.md](motores.md#oracle-fuera-de-alcance-d-034).
 5. **MySQL depende de la configuración del servidor** (`sql_mode`, intercalación, `lower_case_table_names`).
    - Leer esos valores al conectar y mostrarlos en la prueba de conexión, para diagnosticar rápido.
    - Usar `MySqlConnector`, no `MySql.Data` (licencia GPL).
-6. **El metadata store se queda en SQLite, Postgres y SQL Server** (D-023). Agregar MySQL u Oracle como almacén interno no aporta: es configuración del servicio, no datos del equipo. Se puede sumar después si un entorno lo exige.
+6. **El metadata store se queda en SQLite, Postgres y SQL Server** (D-023). Agregar MySQL como almacén interno no aporta: es configuración del servicio, no datos del equipo. Se puede sumar después si un entorno lo exige.
 7. **Usuarios de base de datos de solo los permisos necesarios por motor.** La guía de despliegue (0.4) debe incluir el `GRANT` mínimo de cada uno: lectura del catálogo más el CRUD de los esquemas expuestos.

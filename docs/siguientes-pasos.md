@@ -111,12 +111,12 @@ Cambios en Core que hoy asumen cosas que no se cumplen en todos los motores:
 - **Versión mínima** verificada al probar una conexión, con un mensaje claro si no se cumple (P-028).
 - **Listo cuando:** los 44 tests actuales y las pruebas de integración de PG y SQL Server pasan sin cambios de comportamiento.
 
-### M.2 Batería común de pruebas por proveedor (con 0.2)
+### M.2 Batería común de pruebas por proveedor (con 0.2) · ✅ PR #4 y #8
 - Las pruebas de integración de 0.2 se escriben **una vez** como clase base abstracta y cada motor la hereda con su contenedor y su base de ejemplo (P-002).
 - La CI corre una matriz con un job por motor en paralelo (P-027).
 - **Listo cuando:** agregar un motor es heredar la clase base y que todo pase.
 
-### M.3 Proveedor MySQL / MariaDB (1 semana) · P-025
+### M.3 Proveedor MySQL / MariaDB (1 semana) · P-025 · ✅ PR #8
 - `Mantenedores.Providers.MySql` con `MySqlConnector`. Un solo proveedor para ambos; las diferencias se activan según la versión detectada:
   - MariaDB 10.5+ tiene `RETURNING`.
   - MySQL usa `LAST_INSERT_ID()`.
@@ -130,7 +130,7 @@ Cambios en Core que hoy asumen cosas que no se cumplen en todos los motores:
 - Base de ejemplo `samples/mysql/01_demo.sql`.
 - **Listo cuando:** pasa la batería común en MySQL 8.4 y en MariaDB 11.4.
 
-### M.4 UI multi-motor (2 días)
+### M.4 UI multi-motor (2 días) · ✅ PR #7 y #8
 - El selector de motor y los ejemplos de cadena de conexión pasan a incluir MySQL/MariaDB.
 - Los controles respetan las capacidades por columna: no ofrecen ordenar ni filtrar donde el motor no puede.
 

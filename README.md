@@ -1,6 +1,6 @@
 # Mantenedores dinámicos
 
-Servicio que se conecta a una base **SQL Server** o **PostgreSQL**, lee su catálogo
+Servicio que se conecta a una base **SQL Server**, **PostgreSQL**, **MySQL** o **MariaDB**, lee su catálogo
 (tablas, columnas, PK, FK, únicos) y genera en tiempo real el **mantenedor** de cada
 tabla: listado con filtros, alta, edición y borrado, con combos para las claves foráneas.
 
@@ -37,6 +37,7 @@ backend/
   src/Mantenedores.Core                  Modelo de esquema, QueryBuilder, servicios CRUD (sin dependencia de motor)
   src/Mantenedores.Providers.SqlServer   Lectura de catálogo + dialecto SQL Server
   src/Mantenedores.Providers.Postgres    Lectura de catálogo + dialecto PostgreSQL
+  src/Mantenedores.Providers.MySql       Lectura de catálogo + dialecto MySQL / MariaDB
   src/Mantenedores.Api                   API minimal, JWT, almacén de conexiones
   tests/Mantenedores.Tests               Pruebas unitarias (xUnit)
   tests/Mantenedores.IntegrationTests    Batería común por motor contra bases reales (Testcontainers)
@@ -57,8 +58,8 @@ docs/plan.md                             Viabilidad, escalabilidad y plan por fa
 |---|---|---|---|
 | SQL Server | **2016** (13.x) | ✅ Soportado | `SELECT SERVERPROPERTY('ProductVersion');` |
 | PostgreSQL | **12** | ✅ Soportado | `SHOW server_version;` |
-| MySQL | **8.0** | 🚧 En desarrollo (bloque M) | `SELECT VERSION();` |
-| MariaDB | **10.6** | 🚧 En desarrollo (bloque M) | `SELECT VERSION();` (el texto incluye `MariaDB`) |
+| MySQL | **8.0** | ✅ Soportado | `SELECT VERSION();` |
+| MariaDB | **10.6** | ✅ Soportado | `SELECT VERSION();` (el texto incluye `MariaDB`) |
 
 Oracle no está soportado (D-034).
 
@@ -68,6 +69,9 @@ fuera de soporte del fabricante, porque cada una agrega casos especiales que nad
 Las pruebas automáticas corren contra la **versión mínima** y contra una **actual** de cada motor:
 - PostgreSQL 12 y 16.
 - SQL Server 2017 y 2022. SQL Server 2016 no tiene imagen para contenedores: su compatibilidad se cuida no usando T-SQL posterior a 2016.
+- MySQL 8.0 y 8.4; MariaDB 10.6 y 11.4.
+
+La **prueba de conexión** muestra el producto y la versión del servidor, y avisa si está por debajo del mínimo.
 
 Detalle técnico por motor: [docs/motores.md](docs/motores.md).
 
@@ -97,6 +101,7 @@ Abre http://localhost:8080, entra con `admin` / `admin` y crea las conexiones:
 |---|---|
 | PostgreSQL | `Host=pg-demo;Port=5432;Database=demo;Username=postgres;Password=postgres` |
 | SQL Server | `Server=mssql-demo,1433;Database=Demo;User Id=sa;Password=Demo_Pass_123!;TrustServerCertificate=True` |
+| MySQL | `Server=mysql-demo;Port=3306;Database=ventas;User ID=root;Password=demo` |
 
 ### Opción B: desarrollo local
 
@@ -119,6 +124,7 @@ dotnet test tests/Mantenedores.IntegrationTests   # contra bases reales en conte
 
 # Por defecto usan las versiones mínimas; para probar otra:
 MANTENEDORES_PG_IMAGE=postgres:16 MANTENEDORES_MSSQL_IMAGE=mcr.microsoft.com/mssql/server:2022-latest \
+MANTENEDORES_MYSQL_IMAGE=mysql:8.4 MANTENEDORES_MARIADB_IMAGE=mariadb:11.4 \
   dotnet test tests/Mantenedores.IntegrationTests
 ```
 

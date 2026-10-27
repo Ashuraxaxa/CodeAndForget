@@ -13,16 +13,13 @@ El detalle de cada bloque y su criterio de "listo" está en [../siguientes-pasos
 |---|---|---|---|
 | P-005 | Borrar la rama `feature/fase1-mantenedores` (ya fusionada) | ⚪ | ⏳ dueño, desde GitHub |
 
-## M. Multi-motor: MySQL/MariaDB (D-034, antes de la Fase 2)
+## M. Multi-motor: MySQL/MariaDB (D-034, antes de la Fase 2) · ✅ completo (PR #7 y #8)
 
 Detalle técnico en [../motores.md](../motores.md).
 
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
-| P-025 | Proveedor MySQL/MariaDB (`MySqlConnector`) + `samples/mysql` | 🔴 | ⏳ (M.1 listo: puede empezar) |
 | P-026 | Proveedor Oracle | — | ⛔ fuera de alcance (D-034); análisis en `docs/motores.md` |
-| P-027 | Agregar MySQL 8.0/8.4 y MariaDB 10.6/11.4 a la matriz de CI (la matriz con SQL Server y PG ya existe) | 🔴 | ⏳ depende de P-002 |
-| P-029 | UI: MySQL/MariaDB en el selector de motor y ejemplo de cadena de conexión (los controles según capacidades ya están, PR #7) | 🟡 | ⏳ (con P-025) |
 
 ## 1. Fase 2: configuración y personalización
 
@@ -111,5 +108,9 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-023 | Números de más de 28 dígitos como texto en PG y SQL Server (D-041) | ✅ 2026-10-27 · PR #7 |
 | P-024 | Escape de LIKE neutro `!` + `InitializeSessionAsync` para ajustes de sesión | ✅ 2026-10-27 · PR #7 |
 | P-028 | Versión mínima verificada al probar y al leer el esquema, con ajustes del servidor (D-043) | ✅ 2026-10-27 · PR #7 |
+| P-025 | Proveedor MySQL/MariaDB (`MySqlConnector`) + `samples/mysql`; batería común en verde en MySQL 8.0/8.4 y MariaDB 10.6/11.4 (D-045) | ✅ 2026-10-27 · PR #8 |
+| P-027 | MySQL y MariaDB en la matriz de CI (versión mínima y actual) | ✅ 2026-10-27 · PR #8 |
+| P-029 | UI: MySQL/MariaDB en el selector, ejemplo de cadena y ayuda de esquemas según el motor | ✅ 2026-10-27 · PR #8 |
+| P-077 | PK UUID con default en motores sin `RETURNING`: la genera la app (D-044) | ✅ 2026-10-27 · PR #8 |
 | P-076 | Enums de PG ilegibles si se crean después de la primera conexión (caché de Npgsql) (D-041) | ✅ 2026-10-27 · PR #7 |
 | P-072 | `Storage:DataDirectory` relativa se resolvía contra el directorio de trabajo (`System32` como servicio de Windows) | ✅ 2026-10-27 · PR #6 |

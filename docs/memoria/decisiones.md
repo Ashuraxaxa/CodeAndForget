@@ -317,6 +317,25 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Al leer el esquema, un servidor no soportado da `UnsupportedServerException` (400) con el mínimo y un enlace a los requisitos.
 - **Además:** `InitializeSessionAsync` permite ajustes de sesión al abrir cada conexión (en MySQL: zona UTC).
 
+### D-044 · UUID de la PK generado por la app cuando el motor no puede devolverlo
+- **Estado:** Vigente · 2026-10-27 (complementa D-040)
+- **Qué:** si el motor no devuelve la clave (sin `RETURNING`) y la PK es un UUID con default (p. ej. MySQL `CHAR(36) DEFAULT (UUID())`), Core genera un `Guid` y lo envía en el INSERT. Para otros tipos de PK con default, se pide el valor.
+- **Por qué:** es la única forma de conocer la clave nueva en MySQL sin consultas adicionales frágiles. El resultado es equivalente al default de la BD.
+- **Alternativa descartada:** consultar la fila recién creada buscándola por sus otros valores (ambiguo si hay duplicados).
+
+### D-045 · Particularidades de MySQL/MariaDB resueltas en su proveedor
+- **Estado:** Vigente · 2026-10-27 (P-025)
+- **Qué:**
+  - Un solo `MySqlProvider` para ambos; la prueba de conexión distingue "MySQL" de "MariaDB" y aplica su mínimo (8.0 o 10.6).
+  - Sesión en UTC (`SET time_zone = '+00:00'`); `TIMESTAMP` se marca con zona y se devuelve como UTC.
+  - `ConvertZeroDateTime` forzado.
+  - `CHAR(36)` → Uuid; `TINYINT(1)`/`BIT(1)` → Boolean; `BIGINT UNSIGNED` → Decimal.
+  - Tipo nativo `tinyint signed` / `… unsigned`, para no aplicar rangos de SQL Server.
+  - JSON de MariaDB detectado por su CHECK `json_valid`.
+  - Números grandes con `CAST(@p AS DECIMAL(65,30))` en la escritura, porque MySQL compararía texto contra DECIMAL como DOUBLE.
+  - Errores por número: 1062, 1451, 1452, 3819, 4025, 1048, 1364.
+- **Por qué:** D-031: todo lo propio del motor vive en su proveedor; Core no cambió salvo D-044 y la normalización a UTC.
+
 ---
 
 ## Propuestas (aún no decididas)

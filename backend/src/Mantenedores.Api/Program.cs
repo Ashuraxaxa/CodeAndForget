@@ -5,6 +5,7 @@ using Mantenedores.Api.Infrastructure;
 using Mantenedores.Core.Connections;
 using Mantenedores.Core.Providers;
 using Mantenedores.Core.Services;
+using Mantenedores.Providers.MySql;
 using Mantenedores.Providers.Postgres;
 using Mantenedores.Providers.SqlServer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -60,6 +61,7 @@ builder.Services.AddSingleton<IConnectionStore>(sp =>
 // --- Motores soportados: agregar uno nuevo = registrar su IDatabaseProvider ---
 builder.Services.AddSingleton<IDatabaseProvider, SqlServerProvider>();
 builder.Services.AddSingleton<IDatabaseProvider, PostgresProvider>();
+builder.Services.AddSingleton<IDatabaseProvider, MySqlProvider>();
 builder.Services.AddSingleton<ProviderRegistry>();
 
 builder.Services.AddSingleton(builder.Configuration.GetSection("Crud").Get<CrudOptions>() ?? new CrudOptions());

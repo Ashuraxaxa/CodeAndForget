@@ -139,7 +139,7 @@ public static partial class ValueConverter
     }
 
     private static bool IsFloat(ColumnInfo column) =>
-        column.NativeType.ToLowerInvariant() is "float" or "real" or "float4" or "float8" or "double precision";
+        column.NativeType.ToLowerInvariant() is "float" or "real" or "float4" or "float8" or "double precision" or "double";
 
     private static ValidationException Invalid(ColumnInfo column, string message) =>
         new(column.Name, message);

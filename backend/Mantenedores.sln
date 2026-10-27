@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mantenedores.Tests", "tests
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mantenedores.IntegrationTests", "tests\Mantenedores.IntegrationTests\Mantenedores.IntegrationTests.csproj", "{F7F591FE-C372-4149-AE4C-B56F1CC81163}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mantenedores.Providers.MySql", "src\Mantenedores.Providers.MySql\Mantenedores.Providers.MySql.csproj", "{05B816C6-0FE1-41FF-86DB-28679F1EE068}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,6 +54,10 @@ Global
 		{F7F591FE-C372-4149-AE4C-B56F1CC81163}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F7F591FE-C372-4149-AE4C-B56F1CC81163}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F7F591FE-C372-4149-AE4C-B56F1CC81163}.Release|Any CPU.Build.0 = Release|Any CPU
+		{05B816C6-0FE1-41FF-86DB-28679F1EE068}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05B816C6-0FE1-41FF-86DB-28679F1EE068}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05B816C6-0FE1-41FF-86DB-28679F1EE068}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05B816C6-0FE1-41FF-86DB-28679F1EE068}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{16D5FC3D-CA94-4F39-8722-CE12A99EBB47} = {FA22BECC-4929-42CD-8692-2B961FCA2954}
@@ -60,5 +66,6 @@ Global
 		{52BC7F4F-9767-41CA-B613-6765518B0ED5} = {FA22BECC-4929-42CD-8692-2B961FCA2954}
 		{6BC80D76-CCCE-45EB-92AF-7A97F2D9D896} = {E5815AA4-53D5-496D-8BD4-73A40E8C1A2E}
 		{F7F591FE-C372-4149-AE4C-B56F1CC81163} = {E5815AA4-53D5-496D-8BD4-73A40E8C1A2E}
+		{05B816C6-0FE1-41FF-86DB-28679F1EE068} = {FA22BECC-4929-42CD-8692-2B961FCA2954}
 	EndGlobalSection
 EndGlobal

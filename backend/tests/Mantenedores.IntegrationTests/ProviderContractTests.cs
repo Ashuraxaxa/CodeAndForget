@@ -40,6 +40,20 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         Assert.True(Db.MajorVersion >= Db.MinimumMajorVersion,
             $"Versión {Db.MajorVersion} menor que la mínima {Db.MinimumMajorVersion} ({Db.Image}).");
 
+    [Fact]
+    public async Task Informa_el_servidor_y_lo_acepta_si_cumple_el_minimo()
+    {
+        var def = new Core.Connections.ConnectionDefinition
+        {
+            Id = "prueba", Name = "Prueba", Engine = Db.Engine, ConnectionString = Db.ConnectionString, Schemas = [Schema]
+        };
+        var result = await Db.Schemas.TestAsync(def, default);
+        Assert.True(result.Server.IsSupported);
+        Assert.Equal(Db.MajorVersion, result.Server.Version.Major);
+        Assert.NotEmpty(result.Server.Settings);
+        Assert.Equal(10, result.Tables);
+    }
+
     // ---------- Lectura del esquema ----------
 
     [Fact]
@@ -264,6 +278,37 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         var categoria = await Db.Crud.CreateAsync(Conn, Schema, N("categoria"), Body(
             (N("nombre"), UniqueCode()), (N("activo"), false)), default);
         Assert.Equal(false, categoria[N("activo")]);
+    }
+
+    [Fact]
+    public async Task Numeros_que_no_caben_en_decimal_viajan_como_texto()
+    {
+        var pedido = await TableAsync("pedido");
+        Assert.True(pedido.FindColumn(N("monto_total"))!.IsLargeNumber);
+
+        const string huge = "1234567890123456789012345678901234.5678";
+        var row = await Db.Crud.GetAsync(Conn, Schema, N("pedido"), Key((N("id"), 1)), default);
+        Assert.Equal(huge, row[N("monto_total")]);
+
+        var updated = await Db.Crud.UpdateAsync(Conn, Schema, N("pedido"), Key((N("id"), 1)),
+            Body((N("monto_total"), "-9876543210987654321098765432109876.1234")), default);
+        Assert.Equal("-9876543210987654321098765432109876.1234", updated[N("monto_total")]);
+
+        var filtered = await Db.Crud.ListAsync(Conn, Schema, N("pedido"), new ListRequest
+        {
+            Filters = new Dictionary<string, string> { [N("monto_total")] = "-9876543210987654321098765432109876.1234" }
+        }, default);
+        Assert.Equal(1, filtered.Total);
+
+        await Db.Crud.UpdateAsync(Conn, Schema, N("pedido"), Key((N("id"), 1)), Body((N("monto_total"), huge)), default);
+    }
+
+    [Fact]
+    public async Task Etiquetas_de_fk_vuelven_con_su_nombre_final()
+    {
+        var row = await Db.Crud.GetAsync(Conn, Schema, N("pedido_detalle"), Key((N("pedido_id"), 1), (N("linea"), 2)), default);
+        Assert.Contains(N("producto_id") + QueryBuilder.LabelSuffix, row.Keys, StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain(row.Keys, k => k.StartsWith("__lbl", StringComparison.Ordinal));
     }
 
     // ---------- Errores ----------

@@ -281,6 +281,42 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Por qué:** D-022. Como servicio de Windows, el directorio de trabajo es `C:\Windows\System32` y los datos terminaban ahí.
 - **Recetas:** `docs/despliegue.md` (Docker, Compose, Kubernetes, nginx, IIS, servicio de Windows, systemd, respaldo y permisos mínimos por motor).
 
+## Bloque M
+
+### D-040 · Cómo se obtiene la clave de una fila recién creada
+- **Estado:** Vigente · 2026-10-27 (P-020)
+- **Qué:** `QueryBuilder.BuildInsert` devuelve un `InsertQuery` y prueba en este orden:
+  1. El dialecto la devuelve como filas (`InsertReturningKeys`: SQL Server, PostgreSQL).
+  2. PK de una sola columna autonumérica + `LastInsertIdExpression` (MySQL/MariaDB).
+  3. La PK vino completa en el alta (`ProvidedKeys`).
+  4. Si no se cumple ninguna, se pide el valor de la clave al usuario.
+- **Además:** el prefijo de parámetros (`@`, `:`) vive en el dialecto.
+- **Por qué:** MySQL no tiene `RETURNING`; MariaDB sí, pero usar `LAST_INSERT_ID()` en ambos evita depender de la versión.
+- **Alternativa descartada:** detectar la versión de MariaDB para usar `RETURNING` (más ramas, sin beneficio práctico).
+
+### D-041 · Valores que se leen como texto
+- **Estado:** Vigente · 2026-10-27 (P-023)
+- **Qué:** `ISqlDialect.SelectExpression` permite transformar la lectura de una columna. Se leen como texto:
+  - **Números exactos de más de 28 dígitos o sin precisión** (`IsLargeNumber`, lo marca el proveedor). No caben en `decimal` de .NET. Se escriben como texto validado; en PG con `CAST(@p AS numeric)`.
+  - **Enums de PostgreSQL.** Npgsql guarda los tipos en caché al conectarse por primera vez, y un enum creado después no se puede leer. Lo detectó la batería común.
+- **Los alias de las etiquetas de FK son cortos** (`__lbl0`) y la respuesta los renombra a `<columna>__label` (P-021). Evita el corte de 63 bytes de PostgreSQL.
+- **Alternativa descartada:** recargar los tipos de Npgsql (`ReloadTypes`) en cada lectura del esquema, que es más frágil y no cubre los tipos creados entre recargas.
+
+### D-042 · Capacidades por columna
+- **Estado:** Vigente · 2026-10-27 (P-022)
+- **Qué:** el proveedor marca `Sortable` y `Filterable` en cada columna. `ColumnInfo` expone `IsSortable` e `IsFilterable`; los textos siempre admiten "contiene".
+  - El `QueryBuilder` rechaza ordenar o filtrar por una columna no apta; los combos se ordenan por la PK si la columna a mostrar no es ordenable.
+  - La UI no ofrece esas opciones.
+- **Casos de hoy:** SQL Server `text`, `ntext`, `image`, `xml`; PostgreSQL `json`, `xml`.
+
+### D-043 · La versión mínima se verifica al conectar
+- **Estado:** Vigente · 2026-10-27 (P-028)
+- **Qué:**
+  - `IDatabaseProvider.GetServerInfoAsync` devuelve el producto, la versión y ajustes útiles (intercalación, codificación, zona).
+  - La prueba de conexión los muestra y avisa si la versión es menor que la mínima (D-035).
+  - Al leer el esquema, un servidor no soportado da `UnsupportedServerException` (400) con el mínimo y un enlace a los requisitos.
+- **Además:** `InitializeSessionAsync` permite ajustes de sesión al abrir cada conexión (en MySQL: zona UTC).
+
 ---
 
 ## Propuestas (aún no decididas)

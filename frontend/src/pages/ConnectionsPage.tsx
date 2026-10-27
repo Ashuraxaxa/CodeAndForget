@@ -98,8 +98,9 @@ function ConnectionForm({ initial, onClose }: { initial: Connection | null; onCl
     mutationFn: () => api.testConnection(input()),
     onSuccess: r => {
       setFieldErrors({})
+      const server = r.server ? ` Servidor: ${r.server}.` : ''
       setResult(r.ok
-        ? { ok: true, text: `Conexión correcta: ${r.tables} tablas/vistas encontradas.` }
+        ? { ok: true, text: `Conexión correcta: ${r.tables} tablas/vistas encontradas.${server}` }
         : { ok: false, text: r.error ?? 'No se pudo conectar.' })
     },
     onError: handleError,

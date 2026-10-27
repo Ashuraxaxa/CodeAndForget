@@ -9,21 +9,29 @@ namespace Mantenedores.Core.Query;
 /// 1) tablas y columnas solo se aceptan si existen en la metadata leída del catálogo;
 /// 2) todo identificador pasa por <see cref="ISqlDialect.Quote"/>;
 /// 3) todo valor va como parámetro.
+/// Las diferencias entre motores se piden al dialecto; aquí no hay ramas por motor (D-031).
 /// </summary>
 public sealed class QueryBuilder(ISqlDialect dialect)
 {
     public const string LabelSuffix = "__label";
+
+    /// <summary>
+    /// Carácter de escape de LIKE, igual en todos los motores (P-024). No se usa "\" porque en MySQL
+    /// su significado depende de <c>NO_BACKSLASH_ESCAPES</c>.
+    /// </summary>
+    public const char LikeEscape = '!';
+
     private const string Base = "t0";
 
     public (SqlQuery Data, SqlQuery Count) BuildList(DatabaseSchema schema, TableInfo table, ListRequest request)
     {
-        var p = new ParamBag();
+        var p = new ParamBag(dialect.ParameterPrefix);
         var where = BuildWhere(table, request, p);
         var from = dialect.Table(table.Schema, table.Name) + " " + Base;
 
         var count = new SqlQuery($"SELECT COUNT(*) FROM {from}{where}", p.Snapshot());
 
-        var (select, joins) = BuildSelectWithLabels(schema, table);
+        var (select, joins, renames) = BuildSelectWithLabels(schema, table);
         var orderBy = BuildOrderBy(table, request.Sort);
 
         var pageSize = Math.Clamp(request.PageSize, 1, ListRequest.MaxPageSize);
@@ -32,24 +40,31 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         var limit = p.Add((long)pageSize);
 
         var sql = $"SELECT {select} FROM {from}{joins}{where} ORDER BY {orderBy} {dialect.Paging(offset, limit)}";
-        return (new SqlQuery(sql, p.Snapshot()), count);
+        return (new SqlQuery(sql, p.Snapshot(), renames), count);
     }
 
     public SqlQuery BuildGetByKey(DatabaseSchema schema, TableInfo table, IReadOnlyDictionary<string, object?> key)
     {
         RequireKey(table);
-        var p = new ParamBag();
-        var (select, joins) = BuildSelectWithLabels(schema, table);
+        var p = new ParamBag(dialect.ParameterPrefix);
+        var (select, joins, renames) = BuildSelectWithLabels(schema, table);
         var where = KeyPredicate(table, key, p, $"{Base}.");
         return new SqlQuery(
             $"SELECT {select} FROM {dialect.Table(table.Schema, table.Name)} {Base}{joins} WHERE {where}",
-            p.Snapshot());
+            p.Snapshot(), renames);
     }
 
-    public SqlQuery BuildInsert(TableInfo table, IReadOnlyDictionary<string, object?> values)
+    /// <summary>
+    /// Arma el INSERT y decide cómo se obtiene la clave de la fila creada (P-020), en este orden:
+    /// 1) el motor la devuelve (RETURNING / OUTPUT);
+    /// 2) PK autonumérica de una columna y el motor da el último id (MySQL: LAST_INSERT_ID());
+    /// 3) la PK vino completa en el alta.
+    /// Si no se cumple ninguna, se pide el valor de la clave al usuario.
+    /// </summary>
+    public InsertQuery BuildInsert(TableInfo table, IReadOnlyDictionary<string, object?> values)
     {
         RequireEditable(table);
-        var p = new ParamBag();
+        var p = new ParamBag(dialect.ParameterPrefix);
         var cols = new List<string>();
         var exprs = new List<string>();
 
@@ -68,15 +83,36 @@ public sealed class QueryBuilder(ISqlDialect dialect)
             .ToDictionary(c => c.Name, _ => "es obligatorio");
         if (missing.Count > 0) throw new ValidationException(missing);
 
+        var tableSql = dialect.Table(table.Schema, table.Name);
         var keyCols = table.PrimaryKey.Select(k => table.FindColumn(k)!).ToList();
-        var sql = dialect.InsertReturningKeys(dialect.Table(table.Schema, table.Name), cols, exprs, keyCols);
-        return new SqlQuery(sql, p.Snapshot());
+
+        if (dialect.InsertReturningKeys(tableSql, cols, exprs, keyCols) is { } returning)
+            return new InsertQuery(new SqlQuery(returning, p.Snapshot()), null);
+
+        var insert = dialect.Insert(tableSql, cols, exprs);
+
+        if (keyCols is [{ IsIdentity: true } identity] && dialect.LastInsertIdExpression is { } lastId)
+            return new InsertQuery(
+                new SqlQuery($"{insert}; SELECT {lastId} AS {dialect.Quote(identity.Name)}", p.Snapshot()), null);
+
+        var provided = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var k in keyCols)
+        {
+            var entry = values.FirstOrDefault(v => string.Equals(v.Key, k.Name, StringComparison.OrdinalIgnoreCase));
+            if (entry.Key is not null && entry.Value is not null) provided[k.Name] = entry.Value;
+        }
+        var missingKey = keyCols.Where(k => !provided.ContainsKey(k.Name)).ToList();
+        if (missingKey.Count > 0)
+            throw new ValidationException(missingKey.ToDictionary(k => k.Name,
+                _ => "este motor no puede devolver la clave que genera: ingrese el valor"));
+
+        return new InsertQuery(new SqlQuery(insert, p.Snapshot()), provided);
     }
 
     public SqlQuery BuildUpdate(TableInfo table, IReadOnlyDictionary<string, object?> key, IReadOnlyDictionary<string, object?> values)
     {
         RequireEditable(table);
-        var p = new ParamBag();
+        var p = new ParamBag(dialect.ParameterPrefix);
         var sets = new List<string>();
 
         foreach (var (name, value) in values)
@@ -99,7 +135,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
     public SqlQuery BuildDelete(TableInfo table, IReadOnlyDictionary<string, object?> key)
     {
         RequireEditable(table);
-        var p = new ParamBag();
+        var p = new ParamBag(dialect.ParameterPrefix);
         var where = KeyPredicate(table, key, p, "");
         return new SqlQuery($"DELETE FROM {dialect.Table(table.Schema, table.Name)} WHERE {where}", p.Snapshot());
     }
@@ -110,39 +146,52 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         if (table.PrimaryKey.Count != 1)
             throw new OperationNotAllowedException($"{table.FullName} necesita una PK de una sola columna para usarse como lista.");
 
-        var p = new ParamBag();
-        var pk = dialect.Quote(table.PrimaryKey[0]);
-        var display = dialect.Quote(table.DisplayColumn ?? table.PrimaryKey[0]);
+        var p = new ParamBag(dialect.ParameterPrefix);
+        var pkCol = table.FindColumn(table.PrimaryKey[0])!;
+        var displayCol = (table.DisplayColumn is { } d ? table.FindColumn(d) : null) ?? pkCol;
+        var pk = $"{Base}.{dialect.Quote(pkCol.Name)}";
+        var display = $"{Base}.{dialect.Quote(displayCol.Name)}";
+
         var where = "";
         if (!string.IsNullOrWhiteSpace(search))
-            where = $" WHERE {dialect.Contains($"{Base}.{display}", p.Add(LikePattern(search)))}";
+            where = $" WHERE {dialect.Contains(display, p.Add(LikePattern(search)))}";
 
+        // Se ordena por la columna a mostrar solo si el motor puede ordenarla.
+        var orderBy = displayCol.IsSortable ? display : pk;
         var offset = p.Add(0L);
         var limit = p.Add((long)Math.Clamp(take, 1, 100));
-        var sql = $"SELECT {Base}.{pk} AS {dialect.Quote("value")}, {Base}.{display} AS {dialect.Quote("label")} " +
+        var sql = $"SELECT {dialect.SelectExpression(pkCol, pk)} AS {dialect.Quote("value")}, " +
+                  $"{dialect.SelectExpression(displayCol, display)} AS {dialect.Quote("label")} " +
                   $"FROM {dialect.Table(table.Schema, table.Name)} {Base}{where} " +
-                  $"ORDER BY {Base}.{display} {dialect.Paging(offset, limit)}";
+                  $"ORDER BY {orderBy} {dialect.Paging(offset, limit)}";
         return new SqlQuery(sql, p.Snapshot());
     }
 
+    /// <summary>Patrón "contiene" con los comodines del usuario escapados con <see cref="LikeEscape"/>.</summary>
     public static string LikePattern(string search)
     {
+        var e = LikeEscape.ToString();
         var escaped = search.Trim()
-            .Replace("\\", "\\\\")
-            .Replace("%", "\\%")
-            .Replace("_", "\\_")
-            .Replace("[", "\\[");
+            .Replace(e, e + e)
+            .Replace("%", e + "%")
+            .Replace("_", e + "_")
+            .Replace("[", e + "[");
         return $"%{escaped}%";
     }
 
-    private (string Select, string Joins) BuildSelectWithLabels(DatabaseSchema schema, TableInfo table)
+    /// <summary>Alias del SELECT para la etiqueta de la FK número <paramref name="i"/> (corto para no exceder límites de nombre).</summary>
+    public static string LabelAlias(int i) => $"__lbl{i}";
+
+    private (string Select, string Joins, IReadOnlyDictionary<string, string> Renames) BuildSelectWithLabels(
+        DatabaseSchema schema, TableInfo table)
     {
         var selectable = table.Columns.Where(c => c.IsSelectable).ToList();
         if (selectable.Count == 0)
             throw new OperationNotAllowedException($"{table.FullName} no tiene columnas de tipos soportados.");
 
-        var parts = selectable.Select(c => $"{Base}.{dialect.Quote(c.Name)}").ToList();
+        var parts = selectable.Select(c => SelectColumn(c, Base, c.Name)).ToList();
         var joins = new List<string>();
+        var renames = new Dictionary<string, string>();
         var i = 0;
 
         foreach (var fk in table.ForeignKeys.Where(f => f.IsSingleColumn))
@@ -154,13 +203,23 @@ public sealed class QueryBuilder(ISqlDialect dialect)
                 string.Equals(display.Name, fk.RefColumns[0], StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            var alias = $"j{i++}";
-            joins.Add($" LEFT JOIN {dialect.Table(target.Schema, target.Name)} {alias} " +
-                      $"ON {alias}.{dialect.Quote(fk.RefColumns[0])} = {Base}.{dialect.Quote(fk.Columns[0])}");
-            parts.Add($"{alias}.{dialect.Quote(display.Name)} AS {dialect.Quote(fk.Columns[0] + LabelSuffix)}");
+            var join = $"j{i}";
+            var alias = LabelAlias(i++);
+            joins.Add($" LEFT JOIN {dialect.Table(target.Schema, target.Name)} {join} " +
+                      $"ON {join}.{dialect.Quote(fk.RefColumns[0])} = {Base}.{dialect.Quote(fk.Columns[0])}");
+            parts.Add(SelectColumn(display, join, alias, forceAlias: true));
+            renames[alias] = fk.Columns[0] + LabelSuffix;
         }
 
-        return (string.Join(", ", parts), string.Concat(joins));
+        return (string.Join(", ", parts), string.Concat(joins), renames);
+    }
+
+    /// <summary>Columna del SELECT; si el dialecto la transforma (p. ej. CAST), se le pone alias para conservar el nombre.</summary>
+    private string SelectColumn(ColumnInfo column, string tableAlias, string alias, bool forceAlias = false)
+    {
+        var raw = $"{tableAlias}.{dialect.Quote(column.Name)}";
+        var expr = dialect.SelectExpression(column, raw);
+        return forceAlias || expr != raw ? $"{expr} AS {dialect.Quote(alias)}" : raw;
     }
 
     private string BuildWhere(TableInfo table, ListRequest request, ParamBag p)
@@ -171,7 +230,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         {
             if (string.IsNullOrEmpty(raw)) continue;
             var col = RequireColumn(table, name);
-            if (!col.IsSelectable) throw new ValidationException(col.Name, "no se puede filtrar por esta columna");
+            if (!col.IsFilterable) throw new ValidationException(col.Name, "no se puede filtrar por esta columna");
 
             var colExpr = $"{Base}.{dialect.Quote(col.Name)}";
             predicates.Add(col.Type is LogicalType.String or LogicalType.Text
@@ -201,18 +260,20 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         foreach (var s in sort)
         {
             var col = RequireColumn(table, s.Column);
-            if (!col.IsSelectable || !used.Add(col.Name)) continue;
+            if (!col.IsSortable) throw new ValidationException(col.Name, "no se puede ordenar por esta columna");
+            if (!used.Add(col.Name)) continue;
             parts.Add($"{Base}.{dialect.Quote(col.Name)} {(s.Descending ? "DESC" : "ASC")}");
         }
 
         // La PK al final garantiza un orden estable entre páginas.
         var tieBreak = table.HasPrimaryKey
             ? table.PrimaryKey
-            : [table.Columns.First(c => c.IsSelectable).Name];
+            : table.Columns.Where(c => c.IsSortable).Select(c => c.Name).Take(1).ToList();
         foreach (var k in tieBreak.Where(used.Add))
             parts.Add($"{Base}.{dialect.Quote(k)} ASC");
 
-        return string.Join(", ", parts);
+        // Sin ninguna columna ordenable: orden constante (SQL Server exige ORDER BY para paginar).
+        return parts.Count > 0 ? string.Join(", ", parts) : "(SELECT NULL)";
     }
 
     private string KeyPredicate(TableInfo table, IReadOnlyDictionary<string, object?> key, ParamBag p, string prefix)
@@ -247,15 +308,16 @@ public sealed class QueryBuilder(ISqlDialect dialect)
                 : $"{table.FullName} no tiene clave primaria; solo se puede listar.");
     }
 
-    private sealed class ParamBag
+    /// <summary>Parámetros numerados (p0, p1…). En el SQL llevan el prefijo del dialecto; en el diccionario, no.</summary>
+    private sealed class ParamBag(string prefix)
     {
         private readonly Dictionary<string, object?> _values = new();
 
         public string Add(object? value)
         {
-            var name = $"@p{_values.Count}";
-            _values[name[1..]] = value;
-            return name;
+            var name = $"p{_values.Count}";
+            _values[name] = value;
+            return prefix + name;
         }
 
         public IReadOnlyDictionary<string, object?> Snapshot() => new Dictionary<string, object?>(_values);

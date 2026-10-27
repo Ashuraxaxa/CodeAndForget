@@ -52,7 +52,7 @@ Las imágenes se cambian con `MANTENEDORES_PG_IMAGE` y `MANTENEDORES_MSSQL_IMAGE
 
 ### Parámetros
 
-Los tres usan `@p0` (Npgsql lo traduce en Postgres). Aun así, el prefijo pasa al dialecto (P-020): cuesta muy poco y deja la puerta abierta a motores que usan `:p0`.
+Los tres usan `@p0` (Npgsql lo traduce en Postgres). El prefijo vive en el dialecto (`ISqlDialect.ParameterPrefix`, ✅ P-020), así que un motor con `:p0` no requiere cambios en Core.
 
 ### Paginación y búsqueda
 
@@ -63,7 +63,7 @@ Los tres usan `@p0` (Npgsql lo traduce en Postgres). Aun así, el prefijo pasa a
 | Carácter de escape de LIKE | `\` funciona | `\` funciona | **`\` depende de `NO_BACKSLASH_ESCAPES`** |
 | Conteo rápido estimado | `sys.partitions` | `pg_class.reltuples` | `information_schema.TABLES.TABLE_ROWS` |
 
-**Consecuencia:** usar un carácter de escape neutro (`!`) en todos los dialectos (P-024).
+**Consecuencia:** todos los dialectos usan `!` como escape (`QueryBuilder.LikeEscape`, ✅ P-024).
 
 ### Devolver la clave después de insertar
 
@@ -76,21 +76,27 @@ Los tres usan `@p0` (Npgsql lo traduce en Postgres). Aun así, el prefijo pasa a
 
 Caso especial: si la PK de MySQL tiene un default por expresión (p. ej. `UUID()`), no hay forma de recuperarla. El formulario exige el valor o se generan UUIDs en la app (override).
 
-**Consecuencia:** el dialecto deja de devolver solo un texto SQL y declara una **estrategia de inserción**: filas de resultado, último id o valores provistos (P-020).
+**Cómo lo resuelve Core (✅ P-020, D-040):** `QueryBuilder.BuildInsert` prueba en orden:
+1. `ISqlDialect.InsertReturningKeys` (SQL Server, PostgreSQL).
+2. Si la PK es una sola columna autonumérica: `ISqlDialect.LastInsertIdExpression` (MySQL/MariaDB: `LAST_INSERT_ID()`).
+3. Si la PK vino completa en el alta: se usa esa.
+
+Si no se cumple ninguna, pide el valor de la clave al usuario.
 
 ### Tipos con trampa
 
 | Caso | Dónde | Qué hacer |
 |---|---|---|
+| **Npgsql guarda los tipos en caché al primer uso** | PostgreSQL: un enum creado después de esa conexión no se puede leer ("-.-") | Los enums se leen como texto (`CAST(... AS text)`) (D-041) |
 | **Cada driver devuelve fechas y horas con tipos distintos** | Npgsql 10: `DateOnly`/`TimeOnly`; SqlClient: `DateTime`/`TimeSpan` | `CrudService` normaliza: Date → `DateOnly` (`AAAA-MM-DD`), Time → `TimeOnly` (`HH:MM:SS`) (D-036) |
-| **Números más grandes que `decimal` de .NET (28–29 dígitos)** | PG `numeric` sin límite, MySQL `DECIMAL(65)` | Leer como texto cuando la precisión supera 28 o no está declarada (P-023). **Hoy ya puede fallar en Postgres** |
+| **Números más grandes que `decimal` de .NET (28–29 dígitos)** | PG `numeric` sin límite, SQL Server y MySQL `DECIMAL(29..65)` | El proveedor marca `IsLargeNumber`; se leen como texto (`SelectExpression`) y se escriben como texto validado (✅ P-023, D-041) |
 | Booleanos simulados | MySQL `TINYINT(1)` / `BIT(1)` | Boolean por defecto, corregible por override |
 | Enteros sin signo | MySQL `INT UNSIGNED`, `BIGINT UNSIGNED` | `BIGINT UNSIGNED` no cabe en `long`: tratar como Decimal |
 | Enum por columna | MySQL `ENUM('a','b')` | Leer valores desde `COLUMN_TYPE` y tratar como `Enum` |
 | `SET('a','b')` | MySQL | Selección múltiple (Fase 2) o texto |
 | Fechas "cero" `0000-00-00` | MySQL con modos SQL laxos | `ConvertZeroDateTime=true` en el driver; mostrar vacío |
 | `TIMESTAMP` convierte a la zona de la sesión | MySQL | Fijar la zona de la sesión a UTC al abrir la conexión |
-| Textos y binarios largos (`TEXT`, `BLOB`, `nvarchar(max)`) | Todos | Lentos de filtrar y, en algunos casos, no ordenables. El dialecto marca qué se puede ordenar, filtrar y buscar (P-022) |
+| Tipos no comparables | SQL Server `text`, `ntext`, `image`, `xml`; PostgreSQL `json`, `xml` | El proveedor los marca `Sortable = false` y `Filterable = false`; la API los rechaza y la UI no ofrece ordenar ni filtrar (los textos igual admiten "contiene") (✅ P-022, D-042) |
 | JSON | PG `json/jsonb`, MySQL `JSON`, MariaDB (alias de `LONGTEXT` + CHECK), SQL Server (texto) | Detectar por tipo o por el CHECK `json_valid` (MariaDB) |
 | Espaciales y XML | Todos | Solo lectura como texto (P-018) |
 

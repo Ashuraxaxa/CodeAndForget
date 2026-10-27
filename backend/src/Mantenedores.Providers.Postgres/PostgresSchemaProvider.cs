@@ -110,7 +110,12 @@ public sealed class PostgresSchemaProvider : ISchemaProvider
             MaxLength = c.MaxLength,
             Precision = c.NumericPrecision,
             Scale = c.NumericScale,
-            EnumValues = type == LogicalType.Enum ? enums.GetValueOrDefault((c.TypeSchema, c.TypeName)) : null
+            EnumValues = type == LogicalType.Enum ? enums.GetValueOrDefault((c.TypeSchema, c.TypeName)) : null,
+            // numeric sin precisión o con más de 28 dígitos no cabe en decimal de .NET (P-023).
+            IsLargeNumber = c.TypeName == "numeric" && (c.NumericPrecision is null || c.NumericPrecision > 28),
+            // json y xml no tienen operador de igualdad ni de orden en Postgres (jsonb sí).
+            Sortable = c.TypeName is not ("json" or "xml"),
+            Filterable = c.TypeName is not ("json" or "xml")
         };
     }
 

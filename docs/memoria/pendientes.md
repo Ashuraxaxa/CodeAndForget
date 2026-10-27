@@ -19,16 +19,10 @@ Detalle técnico en [../motores.md](../motores.md).
 
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
-| P-020 | Dialecto: estrategia de inserción (filas, último id, valores provistos) + prefijo de parámetros fuera de `QueryBuilder` (D-031) | 🔴 | ⏳ |
-| P-021 | Alias cortos (`l0`…) para etiquetas de FK, mapeados a `<columna>__label` (evita el corte de 63 bytes de PG) | 🔴 | ⏳ |
-| P-022 | Capacidades por columna (ordenable / filtrable / buscable) en metadata, `QueryBuilder` y UI | 🟡 | ⏳ |
-| P-023 | Números fuera del rango de `decimal` (.NET) como texto (PG `numeric`, MySQL `DECIMAL(65)`) | 🟡 | ⏳ hoy ya puede fallar en PG |
-| P-024 | Escape neutro de LIKE (`!`) y ajustes de sesión (zona UTC en MySQL) | 🔴 | ⏳ |
-| P-025 | Proveedor MySQL/MariaDB (`MySqlConnector`) + `samples/mysql` | 🔴 | ⏳ depende de P-020 a P-024 |
+| P-025 | Proveedor MySQL/MariaDB (`MySqlConnector`) + `samples/mysql` | 🔴 | ⏳ (M.1 listo: puede empezar) |
 | P-026 | Proveedor Oracle | — | ⛔ fuera de alcance (D-034); análisis en `docs/motores.md` |
 | P-027 | Agregar MySQL 8.0/8.4 y MariaDB 10.6/11.4 a la matriz de CI (la matriz con SQL Server y PG ya existe) | 🔴 | ⏳ depende de P-002 |
-| P-028 | Verificar la versión mínima (D-035) al probar y al abrir una conexión, y mostrar ajustes relevantes (`sql_mode`, intercalación) | 🔴 | ⏳ (las pruebas ya la verifican; falta en el producto) |
-| P-029 | UI: nuevos motores en el selector, ejemplos de cadena y controles según capacidades | 🟡 | ⏳ |
+| P-029 | UI: MySQL/MariaDB en el selector de motor y ejemplo de cadena de conexión (los controles según capacidades ya están, PR #7) | 🟡 | ⏳ (con P-025) |
 
 ## 1. Fase 2: configuración y personalización
 
@@ -90,6 +84,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-039 | `Program.cs` falla al arrancar sin `Auth:JwtKey` aunque en el futuro el modo `Jwt` no la necesite | 🟡 | ⏳ (con P-041) |
 | P-073 | Traducir también errores de permisos (PG `42501`, SQL Server `229`/`230`) a "el usuario de la base no tiene permiso para …" | ⚪ | ⏳ |
 | P-074 | Health check del contenedor sin `curl`/`wget` en la imagen (p. ej. subcomando `healthcheck` de la propia app) | ⚪ | ⏳ |
+| P-075 | Revisar otros tipos definidos por el usuario en PG (compuestos, rangos) frente a la caché de tipos de Npgsql (D-041); hoy se marcan `Unsupported` | ⚪ | ⏳ |
 | P-037 | El `DisplayColumn` automático elige mal en algunos casos (p. ej. `ventas.Pedido` usa `Estado` en SQL Server) | ⚪ | ⏳ se resuelve con P-011 |
 
 ---
@@ -110,4 +105,11 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-003 | Errores de restricciones traducidos por código + metadata, iguales en ambos motores (D-038) | ✅ 2026-10-27 · PR #6 |
 | P-004 | `docs/despliegue.md`: Docker, Compose, Kubernetes, nginx, IIS, servicio de Windows, systemd, respaldo y permisos mínimos (D-039) | ✅ 2026-10-27 · PR #6 |
 | P-036 | Credenciales de demo documentadas como solo demo (`configuracion.md`, `despliegue.md`) | ✅ 2026-10-27 · PR #6 |
+| P-020 | Estrategia de inserción (devuelta / último id / provista) + prefijo de parámetros en el dialecto (D-040) | ✅ 2026-10-27 · PR #7 |
+| P-021 | Alias cortos `__lblN` para etiquetas de FK, renombrados en la respuesta (D-041) | ✅ 2026-10-27 · PR #7 |
+| P-022 | Capacidades por columna (ordenable / filtrable) en metadata, `QueryBuilder` y UI (D-042) | ✅ 2026-10-27 · PR #7 |
+| P-023 | Números de más de 28 dígitos como texto en PG y SQL Server (D-041) | ✅ 2026-10-27 · PR #7 |
+| P-024 | Escape de LIKE neutro `!` + `InitializeSessionAsync` para ajustes de sesión | ✅ 2026-10-27 · PR #7 |
+| P-028 | Versión mínima verificada al probar y al leer el esquema, con ajustes del servidor (D-043) | ✅ 2026-10-27 · PR #7 |
+| P-076 | Enums de PG ilegibles si se crean después de la primera conexión (caché de Npgsql) (D-041) | ✅ 2026-10-27 · PR #7 |
 | P-072 | `Storage:DataDirectory` relativa se resolvía contra el directorio de trabajo (`System32` como servicio de Windows) | ✅ 2026-10-27 · PR #6 |

@@ -4,6 +4,16 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Bloque M.1: abstracciones del dialecto
+- Estrategia de inserción en tres pasos (devuelta, último id, provista) y prefijo de parámetros en el dialecto (D-040).
+- Alias cortos para etiquetas de FK; números de más de 28 dígitos como texto (D-041).
+- Capacidades por columna: ordenable y filtrable (D-042).
+- Escape de LIKE neutro `!`; versión mínima verificada al conectar, con datos del servidor (D-043).
+- Bug encontrado por la batería: Npgsql no podía leer un enum creado después de su primera conexión. Ahora los enums se leen como texto.
+- Base de ejemplo: `monto_total` de 38 dígitos en `pedido`.
+- 70 unitarias y 65 de integración en verde (PG 12/16, SQL Server 2017/2022). Probado en navegador.
+- **Siguiente:** M.3, el proveedor MySQL/MariaDB.
+
 ## 2026-10-27 · Cierre Fase 1: errores amigables y despliegue
 - Errores de restricciones traducidos por código del motor y nombre de la restricción, sin depender del idioma del servidor (D-038). Probado igual en PG 12/16 y SQL Server 2017/2022.
 - `UseWindowsService` y `UseSystemd`. Bug corregido: la carpeta de datos relativa se resolvía contra el directorio de trabajo (D-039).

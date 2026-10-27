@@ -121,6 +121,7 @@ button.link.danger { color: var(--danger); }
 .grid { border-collapse: collapse; width: 100%; }
 .grid th, .grid td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
 .grid thead th { cursor: pointer; user-select: none; white-space: nowrap; font-weight: 600; background: var(--hover); }
+.grid thead th.no-sort { cursor: default; }
 .grid tr.filters th { cursor: default; background: var(--surface); padding: 4px 6px; }
 .grid tr.filters input, .grid tr.filters select { padding: 4px 6px; font-size: 0.85rem; min-width: 80px; }
 .grid tbody tr:hover { background: var(--hover); }

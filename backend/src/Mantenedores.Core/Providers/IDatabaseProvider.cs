@@ -16,6 +16,12 @@ public interface IDatabaseProvider
     /// Devuelve <see cref="DbErrorInfo.Unknown"/> si no es una violación de restricción conocida.
     /// </summary>
     DbErrorInfo ClassifyError(DbException exception);
+
+    /// <summary>Producto, versión y ajustes relevantes del servidor.</summary>
+    Task<ServerInfo> GetServerInfoAsync(DbConnection connection, CancellationToken ct);
+
+    /// <summary>Ajustes de sesión al abrir cada conexión (p. ej. zona horaria UTC en MySQL).</summary>
+    Task InitializeSessionAsync(DbConnection connection, CancellationToken ct) => Task.CompletedTask;
 }
 
 public sealed class ProviderRegistry

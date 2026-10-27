@@ -99,7 +99,12 @@ function Grid({ conn, meta }: { conn: string; meta: TableMeta }) {
           <thead>
             <tr>
               {columns.map(c => (
-                <th key={c.name} onClick={() => toggleSort(c.name)} title={`${c.nativeType}${c.isNullable ? '' : ' · obligatorio'}`}>
+                <th
+                  key={c.name}
+                  onClick={() => c.isSortable && toggleSort(c.name)}
+                  className={c.isSortable ? undefined : 'no-sort'}
+                  title={`${c.nativeType}${c.isNullable ? '' : ' · obligatorio'}${c.isSortable ? '' : ' · no se puede ordenar'}`}
+                >
                   {c.isPrimaryKey && <span className="pk">🔑</span>}
                   {c.name}
                   {sort?.col === c.name && (sort.desc ? ' ▼' : ' ▲')}
@@ -110,7 +115,9 @@ function Grid({ conn, meta }: { conn: string; meta: TableMeta }) {
             <tr className="filters">
               {columns.map(c => (
                 <th key={c.name}>
-                  <FilterInput column={c} value={filters[c.name] ?? ''} onChange={v => setFilters(f => ({ ...f, [c.name]: v }))} />
+                  {c.isFilterable && (
+                    <FilterInput column={c} value={filters[c.name] ?? ''} onChange={v => setFilters(f => ({ ...f, [c.name]: v }))} />
+                  )}
                 </th>
               ))}
               {meta.isEditable && <th />}

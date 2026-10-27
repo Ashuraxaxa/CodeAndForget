@@ -8,6 +8,9 @@ namespace Mantenedores.Core.Services;
 
 public sealed record ConnectionContext(ConnectionDefinition Definition, IDatabaseProvider Provider, DatabaseSchema Schema);
 
+/// <summary>Resultado de probar una conexión: tablas que ve y servidor (versión, ajustes).</summary>
+public sealed record ConnectionTestResult(int Tables, ServerInfo Server);
+
 /// <summary>
 /// Lee el esquema de cada conexión y lo guarda en memoria.
 /// En Fase 4 esta caché pasa a Redis para compartirla entre instancias.
@@ -53,17 +56,38 @@ public sealed class SchemaService(IConnectionStore store, ProviderRegistry provi
 
     public void Invalidate(string connectionId) => _cache.TryRemove(connectionId, out _);
 
-    /// <summary>Prueba una conexión sin guardarla: abre, lee el catálogo y devuelve cuántas tablas ve.</summary>
-    public async Task<int> TestAsync(ConnectionDefinition def, CancellationToken ct)
+    /// <summary>
+    /// Prueba una conexión sin guardarla: abre, verifica la versión y lee el catálogo.
+    /// Si la versión es menor que la mínima, devuelve el servidor sin leer el esquema.
+    /// </summary>
+    public async Task<ConnectionTestResult> TestAsync(ConnectionDefinition def, CancellationToken ct)
     {
-        var schema = await ReadAsync(def, providers.Get(def.Engine), ct);
-        return schema.Tables.Count;
+        var provider = providers.Get(def.Engine);
+        await using var conn = await OpenAsync(def, provider, ct);
+        var server = await provider.GetServerInfoAsync(conn, ct);
+        if (!server.IsSupported) return new ConnectionTestResult(0, server);
+        var schema = await provider.Schema.ReadAsync(conn, def.Schemas, ct);
+        return new ConnectionTestResult(schema.Tables.Count, server);
     }
 
     private static async Task<DatabaseSchema> ReadAsync(ConnectionDefinition def, IDatabaseProvider provider, CancellationToken ct)
     {
-        await using var conn = provider.CreateConnection(def.ConnectionString);
-        await conn.OpenAsync(ct);
+        await using var conn = await OpenAsync(def, provider, ct);
+        var server = await provider.GetServerInfoAsync(conn, ct);
+        if (!server.IsSupported)
+            throw new UnsupportedServerException(UnsupportedMessage(server));
         return await provider.Schema.ReadAsync(conn, def.Schemas, ct);
+    }
+
+    public static string UnsupportedMessage(ServerInfo server) =>
+        $"{server.Description} no está soportado: la versión mínima es {server.Product} {server.MinimumVersion} " +
+        "(ver \"Requisitos de instalación\" en el README).";
+
+    private static async Task<System.Data.Common.DbConnection> OpenAsync(ConnectionDefinition def, IDatabaseProvider provider, CancellationToken ct)
+    {
+        var conn = provider.CreateConnection(def.ConnectionString);
+        await conn.OpenAsync(ct);
+        await provider.InitializeSessionAsync(conn, ct);
+        return conn;
     }
 }

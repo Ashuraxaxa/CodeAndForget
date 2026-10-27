@@ -163,7 +163,7 @@ public static class TableReader
             var cells = Cells(r);
             if (cells.Values.All(string.IsNullOrEmpty)) continue;
             CheckLimit(result.Count + 1, maxRows);
-            result.Add(headers.ToDictionary(h => h.Name, h => cells.GetValueOrDefault(h.Key) ?? ""));
+            result.Add(headers.ToDictionary(h => h.Name, h => (string?)(cells.GetValueOrDefault(h.Key) ?? "")));
         }
         return new(headers.Select(h => h.Name).ToList(), result, 2);
     }

@@ -72,9 +72,9 @@ public class TransferTests
     }
 
     [Theory]
-    [InlineData("nombre;precio\r\nAgua;690\r\n", ';')]
-    [InlineData("nombre\tprecio\nAgua\t690\n", '\t')]
-    public async Task El_csv_deduce_el_separador(string csv, char _)
+    [InlineData("nombre;precio\r\nAgua;690\r\n")]
+    [InlineData("nombre\tprecio\nAgua\t690\n")]
+    public async Task El_csv_deduce_el_separador(string csv)
     {
         var file = await TableReader.ReadAsync(new MemoryStream(Encoding.UTF8.GetBytes(csv)), TransferFormat.Csv, 10, default);
         Assert.Equal(["nombre", "precio"], file.Headers);

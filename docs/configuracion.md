@@ -46,7 +46,33 @@ Bajo una subruta van precedidos por ella: `/mantenedores/api/health/ready`.
 
 | Clave | Por defecto | Qué hace |
 |---|---|---|
-| `Storage:DataDirectory` | `data` (en la imagen: `/app/data`) | Carpeta de las conexiones (`connections.json`, con secretos cifrados) y de las llaves de cifrado (`keys/`). Una ruta relativa se resuelve contra la carpeta de la app. **Debe persistir y respaldarse**: sin las llaves no se pueden leer las conexiones. |
+| `Storage:DataDirectory` | `data` (en la imagen: `/app/data`) | Carpeta de la metadata en SQLite (`mantenedores.db`) y de las llaves de cifrado (`keys/`), cuando se usan los valores por defecto. Una ruta relativa se resuelve contra la carpeta de la app. **Debe persistir y respaldarse.** |
+
+## Metadata del servicio (`Metadata`)
+
+Dónde guarda la app su propia configuración: hoy, las conexiones; luego, los ajustes de cada mantenedor (D-023).
+Las tablas llevan el prefijo `mnt_` y se crean solas al arrancar (migraciones en `backend/src/Mantenedores.Metadata/Migrations/`).
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `Metadata:Provider` | `Sqlite` | `Sqlite` (un archivo, nada que instalar) · `Postgres` · `SqlServer` · `File` (JSON de la Fase 1, solo para desarrollo). |
+| `Metadata:ConnectionString` | `Data Source=<datos>/mantenedores.db` en `Sqlite` | Obligatoria en `Postgres` y `SqlServer`. El usuario necesita crear tablas la primera vez (o se crean a mano con los scripts). |
+
+**Varias instancias** (Kubernetes con más de una réplica, granja de IIS): usar `Postgres` o `SqlServer` **y** `DataProtection:KeyStore=Database`,
+para que todas compartan conexiones y llaves sin un volumen común.
+
+Si al arrancar existe `data/connections.json` (Fase 1) y la base está vacía, sus conexiones se importan una sola vez
+y el archivo se renombra a `connections.json.importado`.
+
+## Llaves de cifrado (`DataProtection`)
+
+Las cadenas de conexión se guardan cifradas. Estas llaves son las que permiten leerlas: **si se pierden, hay que volver a ingresar las conexiones** (D-025).
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `DataProtection:KeyStore` | `FileSystem` | `FileSystem`: carpeta `<datos>/keys`. `Database`: tabla `mnt_dataprotection_key` de la metadata (requiere `Metadata:Provider` distinto de `File`). |
+| `DataProtection:CertificatePath` | — | Certificado `.pfx` para cifrar las llaves en reposo. Opcional. |
+| `DataProtection:CertificatePassword` | — | Contraseña del certificado. |
 
 ## Consultas (`Crud`)
 

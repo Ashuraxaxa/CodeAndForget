@@ -3,11 +3,11 @@ using Mantenedores.Core.Connections;
 using Mantenedores.Core.Providers;
 using Microsoft.AspNetCore.DataProtection;
 
-namespace Mantenedores.Api.Infrastructure;
+namespace Mantenedores.Metadata;
 
 /// <summary>
 /// Guarda las conexiones en un archivo JSON con la cadena de conexión cifrada (ASP.NET Data Protection).
-/// Suficiente para Fase 1; luego se reemplaza por el metadata store en Postgres y un vault para secretos.
+/// Almacén de la Fase 1. Se mantiene para desarrollo y pruebas (Metadata:Provider = File).
 /// </summary>
 public sealed class FileConnectionStore : IConnectionStore
 {
@@ -19,7 +19,7 @@ public sealed class FileConnectionStore : IConnectionStore
     public FileConnectionStore(string path, IDataProtectionProvider dataProtection)
     {
         _path = path;
-        _protector = dataProtection.CreateProtector("Mantenedores.ConnectionStrings.v1");
+        _protector = dataProtection.CreateProtector(SqlConnectionStore.ProtectorPurpose);
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
     }
 

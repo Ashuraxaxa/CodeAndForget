@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { LABEL_SUFFIX, labelOf, type Column, type Row, type TableMeta } from '../api/types'
-import { displayValue, keyQuery } from '../lib/format'
+import { FIXED_PREFIX, RETURN_PARAM, displayValue, keyQuery } from '../lib/format'
 import { useDebounce } from '../lib/useDebounce'
 import { useCan } from '../lib/useMe'
 
@@ -20,7 +20,17 @@ export function TablePage() {
   return <Grid key={`${conn}/${schema}/${table}`} conn={conn} meta={meta.data!} />
 }
 
-function Grid({ conn, meta }: { conn: string; meta: TableMeta }) {
+/**
+ * Grilla de una tabla. Con <c>fixed</c> se muestra dentro de otro registro (maestro-detalle, P-014):
+ * filtra por igualdad exacta, oculta esas columnas y los formularios que abre vuelven a <c>returnTo</c>.
+ */
+export function Grid({ conn, meta, fixed, returnTo }: {
+  conn: string
+  meta: TableMeta
+  fixed?: Record<string, string>
+  returnTo?: string
+}) {
+  const embedded = fixed !== undefined
   const qc = useQueryClient()
   const navigate = useNavigate()
   const canConfigure = useCan('ConfigureTables')
@@ -38,15 +48,25 @@ function Grid({ conn, meta }: { conn: string; meta: TableMeta }) {
   useEffect(() => setPage(1), [debouncedSearch, debouncedFilters, pageSize])
 
   // El orden viene del servidor (ajuste Order); las ocultas y las que van solo en el formulario no se muestran.
-  const columns = meta.columns.filter(c => c.isSelectable && !c.hidden && c.showInGrid)
+  const columns = meta.columns.filter(c => c.isSelectable && !c.hidden && c.showInGrid && !(fixed && c.name in fixed))
   const fkByColumn = new Map(meta.foreignKeys.filter(f => f.columns.length === 1).map(f => [f.columns[0], f]))
   const base = `/c/${conn}/t/${encodeURIComponent(meta.schema)}/${encodeURIComponent(meta.name)}`
+  // Lo que se agrega a los enlaces de alta y edición: los valores fijos y a dónde volver.
+  const extra = embedded
+    ? '&' + new URLSearchParams([
+      ...Object.entries(fixed!).map(([k, v]) => [FIXED_PREFIX + k, v]),
+      ...(returnTo ? [[RETURN_PARAM, returnTo]] : []),
+    ]).toString()
+    : ''
+  const editUrl = (row: Row) => `${base}/edit?${keyQuery(meta, row)}${extra}`
+  const newUrl = embedded ? `${base}/new?${extra.slice(1)}` : `${base}/new`
 
   const listParams = {
     page, pageSize,
     sort: sort ? `${sort.desc ? '-' : ''}${sort.col}` : undefined,
     q: debouncedSearch || undefined,
     filters: debouncedFilters,
+    exact: fixed,
   }
   const rows = useQuery({
     queryKey: ['rows', conn, meta.schema, meta.name, listParams],
@@ -68,7 +88,16 @@ function Grid({ conn, meta }: { conn: string; meta: TableMeta }) {
   const pages = Math.max(1, Math.ceil(total / pageSize))
 
   return (
-    <div className="page">
+    <div className={embedded ? 'embedded-grid' : 'page'}>
+      {embedded ? (
+        <div className="page-header">
+          <div className="muted small">{total} registros</div>
+          <div className="actions">
+            <input className="search" placeholder="Buscar en textos…" value={search} onChange={e => setSearch(e.target.value)} />
+            {meta.isEditable && <Link className="button primary" to={newUrl}>Nuevo</Link>}
+          </div>
+        </div>
+      ) : (
       <div className="page-header">
         <div>
           <h1>{labelOf(meta)}</h1>
@@ -82,11 +111,12 @@ function Grid({ conn, meta }: { conn: string; meta: TableMeta }) {
         <div className="actions">
           <input className="search" placeholder="Buscar en textos…" value={search} onChange={e => setSearch(e.target.value)} />
           {canConfigure && <Link className="button" to={`${base}/config`} title="Ajustar etiquetas, columnas y validaciones">⚙ Configurar</Link>}
-          {meta.isEditable && <Link className="button primary" to={`${base}/new`}>Nuevo</Link>}
+          {meta.isEditable && <Link className="button primary" to={newUrl}>Nuevo</Link>}
         </div>
       </div>
+      )}
 
-      {meta.referencedBy.length > 0 && (
+      {!embedded && meta.referencedBy.length > 0 && (
         <div className="related muted small">
           Referenciada por:{' '}
           {meta.referencedBy.map(r => (
@@ -131,7 +161,7 @@ function Grid({ conn, meta }: { conn: string; meta: TableMeta }) {
           <tbody className={rows.isFetching ? 'loading' : undefined}>
             {rows.data?.rows.map((row, i) => (
               <tr key={meta.hasPrimaryKey ? keyQuery(meta, row) : i}
-                  onDoubleClick={() => meta.isEditable && navigate(`${base}/edit?${keyQuery(meta, row)}`)}>
+                  onDoubleClick={() => meta.isEditable && navigate(editUrl(row))}>
                 {columns.map(c => {
                   const fk = fkByColumn.get(c.name)
                   const label = row[c.name + LABEL_SUFFIX]
@@ -147,7 +177,7 @@ function Grid({ conn, meta }: { conn: string; meta: TableMeta }) {
                 })}
                 {meta.isEditable && (
                   <td className="actions-col">
-                    <Link to={`${base}/edit?${keyQuery(meta, row)}`}>Editar</Link>
+                    <Link to={editUrl(row)}>Editar</Link>
                     <button
                       className="link danger"
                       onClick={() => confirm('¿Eliminar este registro?') && remove.mutate(row)}

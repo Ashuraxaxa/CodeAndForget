@@ -21,6 +21,12 @@ public sealed record ListRequest
     /// <summary>Filtro por columna: texto = contiene; otros tipos = igual.</summary>
     public IReadOnlyDictionary<string, string> Filters { get; init; } = new Dictionary<string, string>();
 
+    /// <summary>
+    /// Igualdad exacta por columna, también en textos (P-014): la usa el maestro-detalle para filtrar las hijas
+    /// por su FK, incluso compuesta. Se combina con <see cref="Filters"/> y <see cref="Search"/>.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Exact { get; init; } = new Dictionary<string, string>();
+
     /// <summary>Búsqueda general sobre todas las columnas de texto.</summary>
     public string? Search { get; init; }
 }

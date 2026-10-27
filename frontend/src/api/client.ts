@@ -72,6 +72,8 @@ export interface ListParams {
   sort?: string
   q?: string
   filters?: Record<string, string>
+  /** Igualdad exacta (maestro-detalle): `?e.pedido_id=5`. */
+  exact?: Record<string, string>
 }
 
 /** Permisos de la app (D-053): cada uno se otorga a roles por configuración. */
@@ -126,6 +128,7 @@ export const api = {
     if (p.sort) qs.set('sort', p.sort)
     if (p.q) qs.set('q', p.q)
     for (const [k, v] of Object.entries(p.filters ?? {})) if (v) qs.set(`f.${k}`, v)
+    for (const [k, v] of Object.entries(p.exact ?? {})) qs.set(`e.${k}`, v)
     return request<PagedResult>('GET', `${tablePath(conn, schema, table)}?${qs}`)
   },
   get: (conn: string, schema: string, table: string, key: string) =>

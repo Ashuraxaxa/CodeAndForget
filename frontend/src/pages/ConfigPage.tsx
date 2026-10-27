@@ -4,7 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api, ApiError } from '../api/client'
 import {
   WIDGETS, labelOf,
-  type Column, type ColumnOverride, type TableMeta, type TableOverride, type VirtualForeignKey,
+  type Column, type ColumnOverride, type ForeignKey, type TableMeta, type TableOverride, type VirtualForeignKey,
 } from '../api/types'
 import { FieldControl } from '../components/FieldControl'
 import { useDebounce } from '../lib/useDebounce'
@@ -245,6 +245,10 @@ function TableTab({ conn, doc, setDoc, table, shown, errors }: {
         </Field>
       )}
 
+      {shown.referencedBy.length > 0 && (
+        <ChildrenPicker all={shown.referencedBy} value={doc.children} error={errors.children} onChange={v => set({ children: v })} />
+      )}
+
       <VirtualForeignKeys conn={conn} table={table} value={doc.virtualForeignKeys ?? []} errors={errors}
         onChange={v => set({ virtualForeignKeys: v })} />
     </div>
@@ -300,6 +304,53 @@ function VirtualForeignKeys({ conn, table, value, errors, onChange }: {
         </select>
         <button disabled={!col || !refTable || !refCol} onClick={add}>Agregar</button>
       </div>
+    </Field>
+  )
+}
+
+/** Tablas hijas en pestañas al editar (P-014): cuáles y en qué orden. Todas y en su orden = automático. */
+function ChildrenPicker({ all, value, error, onChange }: {
+  all: ForeignKey[]
+  value?: string[]
+  error?: string
+  onChange: (v: string[] | undefined) => void
+}) {
+  const natural = all.map(f => f.name)
+  const order = [...(value ?? natural), ...natural.filter(n => value && !value.includes(n))]
+  const shown = new Set(value ?? natural)
+  const describe = (name: string) => {
+    const f = all.find(x => x.name === name)
+    return f ? `${f.schema}.${f.table} (${f.columns.join(', ')})` : `${name} (ya no existe)`
+  }
+  function emit(nextOrder: string[], nextShown: Set<string>) {
+    const picked = nextOrder.filter(n => nextShown.has(n) && natural.includes(n))
+    onChange(picked.join() === natural.join() ? undefined : picked)
+  }
+  function move(i: number, d: number) {
+    const n = [...order]
+    const j = i + d
+    if (j < 0 || j >= n.length) return
+    ;[n[i], n[j]] = [n[j], n[i]]
+    emit(n, shown)
+  }
+  return (
+    <Field label="Tablas hijas" span hint="Se muestran en pestañas al editar un registro" error={error}>
+      {order.map((name, i) => (
+        <div key={name} className="row">
+          <div className="col-move">
+            <button title="Subir" disabled={i === 0} onClick={() => move(i, -1)}>↑</button>
+            <button title="Bajar" disabled={i === order.length - 1} onClick={() => move(i, 1)}>↓</button>
+          </div>
+          <label className="check">
+            <input type="checkbox" checked={shown.has(name)} onChange={e => {
+              const next = new Set(shown)
+              if (e.target.checked) next.add(name); else next.delete(name)
+              emit(order, next)
+            }} />
+            {describe(name)}
+          </label>
+        </div>
+      ))}
     </Field>
   )
 }
@@ -504,7 +555,10 @@ function buildDoc(doc: TableOverride, order: string[], natural: string[]): Table
     const c = clean({ ...doc.columns?.[name], order: reordered ? order.indexOf(name) + 1 : undefined })
     if (Object.keys(c).length > 0) columns[name] = c
   }
-  return clean({ ...doc, columns: Object.keys(columns).length > 0 ? columns : undefined })
+  const result = clean({ ...doc, columns: Object.keys(columns).length > 0 ? columns : undefined })
+  // "children: []" significa "ninguna hija", distinto de no definirlo ("todas"): no se limpia.
+  if (Array.isArray(doc.children)) result.children = doc.children
+  return result
 }
 
 function clean<T extends object>(o: T): T {

@@ -187,3 +187,10 @@ button.link.danger { color: var(--danger); }
 @media (prefers-color-scheme: dark) {
   .banner { --warn-bg: #3a2f10; --warn-text: #f3d98b; --warn-border: #6b5520; }
 }
+
+/* ---------- Maestro-detalle (P-014) ---------- */
+.child-tabs { margin-top: 20px; }
+.child-tabs .tabs { overflow-x: auto; flex-wrap: nowrap; }
+.child-tabs .tab { white-space: nowrap; }
+.embedded-grid { display: flex; flex-direction: column; gap: 10px; }
+.embedded-grid .page-header { margin-bottom: 0; }

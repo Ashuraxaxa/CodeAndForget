@@ -250,6 +250,17 @@ public sealed class QueryBuilder(ISqlDialect dialect)
                 : $"{colExpr} = {dialect.ParameterFor(col, p.Add(ValueConverter.FromString(col, raw)))}");
         }
 
+        foreach (var (name, raw) in request.Exact)
+        {
+            var col = RequireColumn(table, name);
+            // Una columna oculta solo se acepta si es parte de una FK: así no se puede adivinar su valor probando.
+            var inForeignKey = table.ForeignKeys.Any(f => f.Columns.Contains(col.Name, StringComparer.OrdinalIgnoreCase));
+            if (col.Type is LogicalType.Unsupported or LogicalType.Binary or LogicalType.Json || (col.Hidden && !inForeignKey && !col.IsPrimaryKey))
+                throw new ValidationException(col.Name, "no se puede filtrar por esta columna");
+            var colExpr = $"{Base}.{dialect.Quote(col.Name)}";
+            predicates.Add($"{colExpr} = {dialect.ParameterFor(col, p.Add(ValueConverter.FromString(col, raw)))}");
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             // Las columnas ocultas no se buscan: revelaría su contenido.

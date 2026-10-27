@@ -64,3 +64,20 @@ function toLocalInput(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
+
+/** Parámetros de la URL que no son la clave del registro (P-014): `_return` (a dónde volver) y `_fk.<col>` (valores fijos). */
+export const RETURN_PARAM = '_return'
+export const FIXED_PREFIX = '_fk.'
+
+/** Separa la query string en clave del registro, valores fijos y a dónde volver. */
+export function parseRecordSearch(search: string) {
+  const all = new URLSearchParams(search)
+  const key = new URLSearchParams()
+  const fixed: Record<string, string> = {}
+  for (const [k, v] of all) {
+    if (k === RETURN_PARAM) continue
+    if (k.startsWith(FIXED_PREFIX)) fixed[k.slice(FIXED_PREFIX.length)] = v
+    else key.append(k, v)
+  }
+  return { key: key.toString(), fixed, returnTo: all.get(RETURN_PARAM) }
+}

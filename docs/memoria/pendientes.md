@@ -32,7 +32,6 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-085 | Editor: FK virtuales compuestas desde la UI (hoy solo por la API) y arrastrar para ordenar columnas (hoy, botones ↑ ↓) | ⚪ | ⏳ |
 | P-084 | UI: usar la etiqueta de la tabla referenciada (no su nombre) en "→ categoria" y en "Referenciada por" | ⚪ | ⏳ |
 | P-081 | Migraciones con varias instancias arrancando a la vez: bloqueo (p. ej. `pg_advisory_lock`, `sp_getapplock`) para que no corran dos veces en paralelo | 🟡 | ⏳ |
-| P-014 | Maestro-detalle con pestañas de tablas hijas y FK precompletada | 🟡 | ⏳ |
 | P-015 | N:M: detección de tablas puente + selector múltiple + sincronización en transacción | 🟡 | ⏳ |
 | P-016 | Árboles para autorreferencias + validación de ciclos | ⚪ | ⏳ |
 | P-017 | Exportar (CSV/Excel por streaming) e importar con vista previa y transacción | 🟡 | ⏳ |
@@ -74,7 +73,7 @@ Detalle técnico en [../motores.md](../motores.md).
 
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
-| P-030 | Etiquetas de FK y `/lookup` solo funcionan con FK y PK de una columna; extender a compuestas | 🟡 | ⏳ (con P-014) |
+| P-030 | Etiquetas de FK y `/lookup` solo funcionan con FK y PK de una columna; extender a compuestas (el filtro de hijas por FK compuesta ya funciona, PR #15) | 🟡 | ⏳ |
 | P-031 | No se detectan índices únicos que no son restricciones (`sys.indexes.is_unique`, `pg_index.indisunique`) | ⚪ | ⏳ |
 | P-032 | El filtro de una columna FK en la grilla pide el id, no permite buscar por la etiqueta | 🟡 | ⏳ |
 | P-033 | Las fechas se muestran con el formato del navegador (en inglés si el navegador está en inglés); fijar `es` | ⚪ | ⏳ |
@@ -113,6 +112,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-029 | UI: MySQL/MariaDB en el selector, ejemplo de cadena y ayuda de esquemas según el motor | ✅ 2026-10-27 · PR #8 |
 | P-010 | Metadata en `Sqlite` (por defecto), `Postgres` o `SqlServer`, con migraciones, `SqlConnectionStore` e importación de `connections.json` (D-047, D-048) | ✅ 2026-10-27 · PR #10 |
 | P-080 | Llaves de Data Protection en la base (`DataProtection:KeyStore=Database`) y certificado opcional: varias instancias comparten conexiones | ✅ 2026-10-27 · PR #10 |
+| P-014 | Maestro-detalle: pestañas de hijas al editar, alta con FK fija y vuelta al padre, filtro exacto `e.`, ajuste `children` (D-055) | ✅ 2026-10-27 · PR #15 |
 | P-013 | Diferencias de esquema: foto de referencia, `/diff`, aviso en la UI, aceptar cambios y quitar ajustes huérfanos en el editor (D-054) | ✅ 2026-10-27 · PR #14 |
 | P-083 | Permisos por acción: `ConfigureTables` y `ManageConnections`, otorgados a roles por `Auth:Permissions` (D-053) | ✅ 2026-10-27 · PR #13 |
 | P-012 | Editor de ajustes en la UI: pestañas Tabla y Columnas, orden, validaciones, PK y FK virtuales, vista previa en vivo y restablecer (D-052) | ✅ 2026-10-27 · PR #12 |

@@ -173,7 +173,7 @@ Todas las rutas (salvo `auth/config`, `auth/login` y health) requieren `Authoriz
 | GET | `/api/meta/{conn}/overrides[/{schema}/{table}]` | Ajustes de los mantenedores ([docs/ajustes.md](docs/ajustes.md)) |
 | PUT / DELETE | `/api/meta/{conn}/overrides/{schema}/{table}` | Guarda o quita el ajuste de una tabla. Permiso `ConfigureTables` |
 | POST | `/api/meta/{conn}/overrides/{schema}/{table}/preview` | Vista previa de un ajuste sin guardarlo. Permiso `ConfigureTables` |
-| GET | `/api/data/{conn}/{schema}/{table}` | Lista. `?page=1&pageSize=25&sort=nombre,-precio&q=texto&f.categoria_id=2` |
+| GET | `/api/data/{conn}/{schema}/{table}` | Lista. `?page=1&pageSize=25&sort=nombre,-precio&q=texto&f.categoria_id=2`. `f.` = contiene (textos) o igual; `e.` = igual exacto, también en textos (`e.pedido_id=5`) |
 | GET | `/api/data/{conn}/{schema}/{table}/row?{pk}=…` | Un registro. PK compuesta: `?PedidoId=1&Linea=2` |
 | POST | `/api/data/{conn}/{schema}/{table}` | Crea. Devuelve la fila creada |
 | PUT | `/api/data/{conn}/{schema}/{table}/row?{pk}=…` | Actualiza |

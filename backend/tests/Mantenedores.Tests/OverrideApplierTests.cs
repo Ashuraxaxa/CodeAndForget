@@ -264,6 +264,48 @@ public class OverrideApplierTests
         Assert.False(o.Columns["precio"].ShowInGrid);
     }
 
+    [Fact]
+    public void Hijas_por_defecto_todas_y_por_ajuste_las_elegidas_en_orden()
+    {
+        var raw = ConPrecioHistorico();
+        var vfk = new VirtualForeignKey(["producto_id"], "ventas", "producto", ["id"], "vfk_historico");
+        var s = OverrideApplier.Apply(raw, new Dictionary<(string, string), TableOverride>
+        {
+            [("ventas", "precio_historico")] = new() { VirtualForeignKeys = [vfk] }
+        });
+        Assert.Equal(["vfk_historico"], s.FindTable("ventas", "producto")!.Children!.Select(f => f.Name));
+        Assert.Equal(["producto_categoria_fk"], s.FindTable("ventas", "categoria")!.Children!.Select(f => f.Name));
+
+        s = OverrideApplier.Apply(raw, new Dictionary<(string, string), TableOverride>
+        {
+            [("ventas", "precio_historico")] = new() { VirtualForeignKeys = [vfk] },
+            [("ventas", "producto")] = new() { Children = ["no_existe", "vfk_historico"] },
+            [("ventas", "categoria")] = new() { Children = [] }
+        });
+        Assert.Equal(["vfk_historico"], s.FindTable("ventas", "producto")!.Children!.Select(f => f.Name));
+        Assert.Empty(s.FindTable("ventas", "categoria")!.Children!);
+        Assert.Single(s.FindTable("ventas", "categoria")!.ReferencedBy); // ReferencedBy no cambia
+        Assert.Contains(s.OverrideWarnings, w => w.Contains("children") && w.Contains("no_existe"));
+    }
+
+    [Fact]
+    public void Filtro_exacto_por_columna_incluso_texto()
+    {
+        var t = Raw.FindTable("ventas", "producto")!;
+        var (data, _) = new QueryBuilder(new PostgresDialect()).BuildList(Raw, t, new ListRequest
+        {
+            Exact = new Dictionary<string, string> { ["codigo"] = "BEB-001", ["categoria_id"] = "2" }
+        });
+        Assert.Contains("WHERE t0.\"codigo\" = @p0 AND t0.\"categoria_id\" = @p1", data.Sql);
+        Assert.Equal("BEB-001", data.Parameters["p0"]);
+
+        var oculta = Apply("ventas", "producto", new TableOverride { Columns = Cols(("notas", new ColumnOverride { Hidden = true })) });
+        Assert.Throws<ValidationException>(() => new QueryBuilder(new PostgresDialect()).BuildList(oculta, oculta.FindTable("ventas", "producto")!,
+            new ListRequest { Exact = new Dictionary<string, string> { ["notas"] = "x" } }));
+        Assert.Throws<ValidationException>(() => new QueryBuilder(new PostgresDialect()).BuildList(Raw, t,
+            new ListRequest { Exact = new Dictionary<string, string> { ["foto"] = "x" } }));
+    }
+
     /// <summary>TestSchema + una tabla sin PK ni FK declaradas.</summary>
     private static DatabaseSchema ConPrecioHistorico()
     {

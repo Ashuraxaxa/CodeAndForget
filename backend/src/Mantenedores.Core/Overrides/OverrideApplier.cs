@@ -43,7 +43,19 @@ public static class OverrideApplier
         var incoming = tables.SelectMany(t => t.ForeignKeys)
             .GroupBy(fk => Key(fk.RefSchema, fk.RefTable))
             .ToDictionary(g => g.Key, g => (IReadOnlyList<ForeignKeyInfo>)g.ToList());
-        tables = tables.Select(t => t with { ReferencedBy = incoming.GetValueOrDefault(Key(t.Schema, t.Name)) ?? [] }).ToList();
+        tables = tables.Select(t =>
+        {
+            var refs = incoming.GetValueOrDefault(Key(t.Schema, t.Name)) ?? [];
+            var children = refs;
+            // Hijas elegidas por ajuste: van después de recalcular las FK entrantes, que pueden ser virtuales.
+            if (byKey.TryGetValue(Key(t.Schema, t.Name), out var o) && o.Children is { } names)
+            {
+                children = names.Select(n => refs.FirstOrDefault(f => Same(f.Name, n))).OfType<ForeignKeyInfo>().ToList();
+                foreach (var n in names.Where(n => !refs.Any(f => Same(f.Name, n))))
+                    issues.Add(new(t.Schema, t.Name, "children", $"la relación '{n}' ya no existe"));
+            }
+            return t with { ReferencedBy = refs, Children = children };
+        }).ToList();
 
         // El hash sigue siendo el del catálogo: sirve para detectar cambios en la base (P-013).
         return raw with { Tables = tables, OverrideWarnings = issues.Select(i => i.ToString()).ToList() };

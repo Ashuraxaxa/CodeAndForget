@@ -4,15 +4,15 @@
 
 ## En una línea
 
-Fase 1 (MVP) terminada y fusionada en `main`. Próximo bloque: **cierre de la Fase 1** (P-001 a P-004),
-y luego **Fase 2** a partir de **P-010** (metadata store).
+Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
+Próximo bloque: **cierre de la Fase 1** (P-001, P-002, P-007, P-003, P-004, P-008), y luego **Fase 2** con P-041 (auth configurable) y P-010 (metadata configurable).
 
 ## Ramas y PR
 
 | Rama | Estado |
 |---|---|
-| `main` | Rama por defecto. Contiene la Fase 1 (PR #1 fusionado). CI en verde. |
-| `docs/siguientes-pasos` | Hoja de ruta + memoria del proyecto. PR #2 abierto, pendiente de fusionar. |
+| `main` | Rama por defecto. Fase 1 (PR #1) + hoja de ruta y memoria (PR #2). CI en verde. |
+| `docs/decisiones-entorno` | Registra D-022 a D-028 (entorno, auth y metadata configurables). PR por abrir. |
 | `feature/fase1-mantenedores` | Ya fusionada en `main`; se puede borrar (P-005). |
 
 ## Qué funciona hoy

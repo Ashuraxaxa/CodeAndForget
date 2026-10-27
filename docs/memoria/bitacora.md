@@ -4,6 +4,15 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Decisiones de entorno
+- El dueño respondió Q-001 a Q-003:
+  - Despliegue en cualquier entorno (servidor propio o nube).
+  - Uso por un solo equipo interno.
+  - Autenticación libre con cualquier JWT, como Duende IdentityServer.
+- Se registraron D-022 a D-028. Principio rector: **todo por configuración y sin dependencias externas por defecto**. La metadata puede estar en SQLite, Postgres o SQL Server; Redis y los vaults son opcionales.
+- La autenticación configurable (P-041) se adelantó a la Fase 2. Se agregaron P-007, P-008, P-038, P-039, P-063 y P-064.
+- Se ajustaron `docs/siguientes-pasos.md` y `docs/plan.md`. Fase 2: 5–6 semanas; total: 15–16 semanas.
+
 ## 2026-10-27 · Memoria del proyecto y hoja de ruta
 - Se creó `CLAUDE.md` y la carpeta `docs/memoria/` (estado, decisiones, pendientes, preguntas, convenciones, bitácora) (D-021).
 - Se escribió `docs/siguientes-pasos.md` con el cierre de la Fase 1 y el detalle de las Fases 2 a 5.

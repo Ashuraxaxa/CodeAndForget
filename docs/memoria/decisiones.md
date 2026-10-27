@@ -69,19 +69,19 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Por qué:** un `OUTPUT` directo falla si la tabla tiene triggers, lo que es común en bases SQL Server existentes. Probado con `ventas.Producto` y su trigger en `samples/`.
 
 ### D-011 · Conexiones en un archivo JSON cifrado
-- **Estado:** Temporal · 2026-10-27 → se reemplaza con P-010 (metadata store) y luego un vault (P-045)
+- **Estado:** Temporal · 2026-10-27 → se reemplaza con P-010 (metadata store, D-023) y P-045 (llaves y secretos del entorno, D-025)
 - **Qué:** `data/connections.json`, con la cadena cifrada por ASP.NET Data Protection. Las llaves van en `data/keys/`.
 - **Riesgo:** si se pierden las llaves, hay que volver a ingresar las conexiones.
 
 ### D-012 · Login básico con usuarios en configuración
-- **Estado:** Temporal · 2026-10-27 → se reemplaza con P-040 y P-041 (usuarios en BD + SSO)
+- **Estado:** Vigente como modo `Local` de D-024 · 2026-10-27 (los usuarios pasan al metadata store con P-040)
 - **Qué:**
   - Hash PBKDF2-SHA256 con 210.000 iteraciones y JWT HS256.
   - La API no arranca si `Auth:JwtKey` tiene menos de 32 caracteres.
   - Para generar un hash: `dotnet run --project backend/src/Mantenedores.Api -- hash-password "clave"`.
 
 ### D-013 · Caché del esquema en memoria
-- **Estado:** Temporal · 2026-10-27 → se reemplaza con P-050 (Redis)
+- **Estado:** Vigente como valor por defecto · 2026-10-27 (Redis es opcional, D-026)
 - **Qué:** se lee al primer uso y se guarda por conexión. Si la lectura falla, no se guarda el error. El esquema lleva un `hash` para detectar cambios (base de P-013).
 
 ### D-014 · Frontend sin librerías de formularios ni de tablas
@@ -130,12 +130,68 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Qué:** `CLAUDE.md` en la raíz obliga a leer `docs/memoria/` antes de cada tarea y a actualizarla al terminar.
 - **Por qué:** el trabajo se retoma en sesiones distintas y sin contexto previo; la memoria evita volver a discutir lo ya decidido.
 
+## Entorno y adaptabilidad (respuestas del dueño, 2026-10-27)
+
+### D-022 · Se adapta a cualquier entorno; todo por configuración
+- **Estado:** Vigente · 2026-10-27 · **Principio rector**
+- **Qué:** el servicio se despliega igual en un servidor propio o en cualquier nube, sin depender de servicios de un proveedor. Cada pieza de infraestructura está detrás de una interfaz y se elige por configuración: metadata, autenticación, llaves, caché, secretos y motores destino.
+- **Valores por defecto:** sin configurar nada arranca **sin dependencias externas** (un contenedor + un volumen `data/`).
+- **Consecuencias:**
+  - Nada de SDKs de nube como dependencia obligatoria; si se agregan, van como paquetes opcionales.
+  - Toda clave nueva se documenta en `docs/configuracion.md` con su valor por defecto y su variable de entorno equivalente.
+  - Publicable como contenedor, IIS, servicio de Windows, systemd o Kubernetes, y detrás de cualquier proxy (`PathBase`, `ForwardedHeaders`).
+- **Alternativa descartada:** elegir una nube (Azure) y usar sus servicios administrados, que era la sugerencia inicial.
+
+### D-023 · Metadata store de motor configurable
+- **Estado:** Vigente · 2026-10-27 (se implementa en P-010)
+- **Qué:** `Metadata:Provider` = `Sqlite` (por defecto) · `Postgres` · `SqlServer`. Migraciones con DbUp y scripts por motor.
+- **Por qué:**
+  - SQLite permite una instalación de un solo contenedor sin instalar otra base.
+  - Postgres o SQL Server se usan cuando hay varias instancias o el equipo ya respalda sus bases ahí. Cada equipo usa la que tiene.
+- **Alternativa descartada:** obligar a usar PostgreSQL (plan inicial).
+
+### D-024 · Autenticación libre: modo `Local` o cualquier emisor JWT/OIDC
+- **Estado:** Vigente · 2026-10-27 (se implementa en P-041)
+- **Qué:**
+  - `Auth:Mode = Local`: lo actual (D-012).
+  - `Auth:Mode = Jwt`: valida tokens de cualquier emisor, como Duende IdentityServer, Keycloak, Entra ID, Auth0 u otro.
+    - Por descubrimiento OIDC (`Authority` + `Audience`) o con llave o JWKS fija.
+    - Los claims de nombre y de rol se mapean por configuración.
+- **UI:**
+  - Lee `GET /api/auth/config`.
+  - Si hay `ClientId`, hace login con Authorization Code + PKCE; si no, asume que un gateway entrega el token.
+- **Por qué:** cada equipo ya tiene su proveedor de identidad; la app no debe imponer uno ni administrar usuarios si existe uno externo.
+- **Alternativa descartada:** integrar un proveedor concreto (Entra ID o Google).
+
+### D-025 · Llaves y secretos desde el entorno
+- **Estado:** Vigente · 2026-10-27 (P-045)
+- **Qué:**
+  - `DataProtection:KeyStore` = `FileSystem` (por defecto) · `Database`, con certificado opcional para cifrar las llaves.
+  - Las cadenas de conexión aceptan referencias `${env:VAR}` y `${file:/ruta}`, para usar Docker/Kubernetes secrets o variables.
+  - Los vaults específicos van como adaptadores opcionales.
+- **Alternativa descartada:** vault obligatorio (Azure Key Vault o HashiCorp Vault).
+
+### D-026 · Redis opcional
+- **Estado:** Vigente · 2026-10-27 (P-050)
+- **Qué:** `Cache:Provider` = `Memory` (por defecto) · `Redis`. Solo hace falta con varias instancias.
+
+### D-027 · Un solo equipo interno, sin multi-tenant
+- **Estado:** Vigente · 2026-10-27
+- **Qué:** no se agrega `tenant_id`. Si otro equipo lo necesita, instala su propia copia con su configuración.
+- **Por qué:** simplifica el modelo de datos y los permisos; D-022 hace barato instalar varias copias.
+
+### D-028 · Los permisos se asocian a nombres de rol
+- **Estado:** Vigente · 2026-10-27 (P-042)
+- **Qué:** las reglas de permisos (RBAC) guardadas en la metadata apuntan a nombres de rol. Esos roles salen del claim configurado (modo `Jwt`) o de los usuarios locales (modo `Local`).
+- **Por qué:** funciona igual con cualquier proveedor de identidad (consecuencia de D-024).
+
 ---
 
 ## Propuestas (aún no decididas)
 
 Se convierten en `D-xxx` al aprobarse.
 
-- **PR-01 · Migraciones del metadata store con DbUp** (scripts SQL versionados). Encaja con Dapper; la alternativa es EF Core Migrations. Ver P-010.
-- **PR-02 · Pruebas de integración con Testcontainers** contra Postgres 16 y SQL Server 2022 en la CI. Ver P-002.
+- **PR-01 · Migraciones del metadata store con DbUp** (scripts SQL versionados por motor: SQLite, Postgres, SQL Server). Encaja con Dapper; la alternativa es EF Core Migrations. Ver P-010.
+- **PR-02 · Pruebas de integración con Testcontainers** contra Postgres 16 y SQL Server 2022 en la CI, organizadas como batería común que todo proveedor debe pasar. Ver P-002 y P-063.
+- **PR-04 · Login en la SPA con `oidc-client-ts`** (Authorization Code + PKCE), librería estándar y sin dependencia de un proveedor. Ver P-041.
 - **PR-03 · Overrides guardados como JSON** por tabla y por columna (flexibles, sin migrar el esquema por cada ajuste nuevo). Ver P-011.

@@ -5,17 +5,34 @@
 > Este documento detalla qué sigue, en qué orden y cuándo se considera terminado cada paso.
 > El estado de cada tarea (IDs `P-xxx`) se lleva en [memoria/pendientes.md](memoria/pendientes.md).
 
+## Principio que guía todo el plan (D-022)
+
+El servicio debe **adaptarse al entorno, no al revés**: se instala igual en un servidor propio o en
+cualquier nube, y cada pieza de infraestructura se elige por configuración. Sin configurar nada,
+la app arranca con valores por defecto **sin dependencias externas** (un contenedor + un volumen).
+
+| Pieza | Opciones (clave de configuración) | Por defecto |
+|---|---|---|
+| Bases a administrar | SQL Server, PostgreSQL; más motores como proveedores nuevos | Ambos habilitados |
+| Metadata del servicio | `Metadata:Provider` = `Sqlite` · `Postgres` · `SqlServer` | `Sqlite` (archivo en `data/`) |
+| Autenticación | `Auth:Mode` = `Local` · `Jwt` (Duende IdentityServer, Keycloak, Entra ID, Auth0… vía OIDC) | `Local` |
+| Llaves de cifrado | `DataProtection:KeyStore` = `FileSystem` · `Database`, con certificado opcional | `FileSystem` |
+| Caché de esquema | `Cache:Provider` = `Memory` · `Redis` | `Memory` |
+| Publicación | Contenedor, IIS, servicio de Windows, systemd, Kubernetes; detrás de cualquier proxy (`PathBase`) | Contenedor |
+
+Es para **un solo equipo interno** (D-027): no hay multi-tenant; si otro equipo lo necesita, instala su propia copia.
+
 ## Resumen
 
 | # | Bloque | Duración estimada | Resultado |
 |---|---|---|---|
 | 0 | Cierre de la Fase 1 | 1 semana | Base sólida: imagen Docker probada, pruebas de integración, errores claros |
-| 1 | Fase 2: personalización | 4–5 semanas | Mantenedores ajustables sin tocar código, maestro-detalle, N:M, import/export |
-| 2 | Fase 3: seguridad | 3 semanas | Permisos por rol, auditoría, concurrencia, SSO |
-| 3 | Fase 4: escala y operación | 3 semanas | Caché compartida, límites, observabilidad, pruebas de carga |
+| 1 | Fase 2: configuración y personalización | 5–6 semanas | Auth y metadata configurables, mantenedores ajustables sin código, maestro-detalle, N:M, import/export |
+| 2 | Fase 3: seguridad | 3 semanas | Permisos por rol (desde claims del JWT), auditoría, concurrencia |
+| 3 | Fase 4: escala y operación | 3 semanas | Caché compartida opcional, límites, observabilidad, pruebas de carga |
 | 4 | Fase 5: extensiones | continuo | Hooks de negocio, más motores, acciones |
 
-Total hasta una v1 productiva: **unas 14–15 semanas** con 1 backend, 1 frontend y QA/DevOps parcial.
+Total hasta una v1 productiva: **unas 15–16 semanas** con 1 backend, 1 frontend y QA/DevOps parcial.
 
 ---
 
@@ -53,33 +70,61 @@ Pendientes detectados al construir la Fase 1, que conviene cerrar antes de crece
 
 - **Listo cuando:** cada caso muestra un mensaje en español, asociado al campo cuando se puede.
 
-### 0.4 Preparar producción
-- Guía de despliegue en `docs/despliegue.md`:
-  - Variables de entorno.
-  - Volumen persistente para `data/` (llaves de cifrado).
-  - HTTPS detrás de un proxy.
-  - Usuario de BD con permisos mínimos.
-- **Listo cuando:** alguien externo puede desplegar siguiendo solo la guía.
+### 0.4 Preparar producción en cualquier entorno
+- Soporte para publicar bajo una subruta y detrás de un proxy:
+  - `PathBase` configurable, p. ej. `https://intranet/mantenedores`. El frontend debe usar rutas relativas a esa base.
+  - `ForwardedHeaders` para HTTPS terminado en el proxy (nginx, IIS, Traefik, balanceador de nube).
+- Endpoints de salud separados: `/api/health/live` (proceso vivo) y `/api/health/ready` (metadata accesible).
+- Guía de despliegue en `docs/despliegue.md`, con recetas cortas para:
+  - Docker / Compose.
+  - Kubernetes.
+  - IIS.
+  - Servicio de Windows.
+  - systemd.
+- Referencia de configuración en `docs/configuracion.md`: cada clave, su valor por defecto y su variable de entorno equivalente.
+- **Listo cuando:** la app funciona en `/mantenedores` detrás de nginx y alguien externo la despliega siguiendo solo la guía.
 
 ---
 
-## 1. Fase 2: personalización (4–5 semanas)
+## 1. Fase 2: configuración y personalización (5–6 semanas)
 
-Objetivo: que cada mantenedor se pueda ajustar (nombres, campos, orden, reglas) sin
-tocar código, y que esos ajustes **no se pierdan** al volver a leer el esquema.
+Objetivo: que el servicio se acople a la infraestructura que ya tiene el equipo (su identidad,
+su base de datos) y que cada mantenedor se pueda ajustar sin tocar código, sin que esos ajustes
+**se pierdan** al volver a leer el esquema.
 
-### 1.1 Metadata store en PostgreSQL (1 semana)
-Reemplaza el archivo `connections.json` por una base propia del servicio.
+### 1.0 Autenticación configurable (1 semana) · D-024
+La app no impone un proveedor de identidad: acepta cualquier emisor de JWT.
 
-- **Migraciones:** DbUp con scripts SQL versionados en `backend/src/Mantenedores.Api/Migrations/`. Es simple y encaja con Dapper, que ya se usa.
+- **`Auth:Mode = Local`** (lo actual): usuarios en configuración y token propio. Sirve para empezar o para instalaciones aisladas.
+- **`Auth:Mode = Jwt`**: valida tokens de un emisor externo.
+  - **Con descubrimiento OIDC:** `Auth:Jwt:Authority` (p. ej. Duende IdentityServer, Keycloak, Entra ID, Auth0) y `Auth:Jwt:Audience`. Las llaves se toman de su JWKS.
+  - **Sin OIDC:** `Auth:Jwt:SigningKey` (simétrica) o `Auth:Jwt:JwksUrl` / certificado, para emisores propios.
+  - **Mapeo de claims configurable:** `NameClaim` (`name`, `preferred_username`, `email`), `RoleClaim` (`role`, `roles`, `groups`) y `AdminRoles`.
+  - Opcionales: `Issuer`, `RequiredScope` y tolerancia de reloj.
+- **Login desde la UI:**
+  - Si hay `Auth:Jwt:ClientId`, la SPA usa *Authorization Code + PKCE* con `oidc-client-ts` contra el `Authority`.
+  - Si no, se asume que un gateway o proxy entrega el token y la UI solo lo reenvía.
+- **Nuevo endpoint anónimo `GET /api/auth/config`:** devuelve el modo, el authority, el client id y los scopes, para que la UI se adapte sin recompilar.
+- **Pruebas:** emisor JWT de prueba en memoria y una prueba manual con Duende IdentityServer y con Keycloak, cada uno en un contenedor.
+- **Listo cuando:** el mismo build funciona con login local, con Duende y con Keycloak cambiando solo la configuración.
+
+### 1.1 Metadata store configurable (1 semana) · D-023
+Reemplaza el archivo `connections.json` por una base propia del servicio, **del motor que el entorno ya tenga**.
+
+- **`Metadata:Provider`:**
+  - `Sqlite`, por defecto: un archivo en `data/`, sin instalar nada.
+  - `Postgres` o `SqlServer`: para varias instancias o para respaldarlo junto al resto de las bases del equipo.
+- **Migraciones:** DbUp con scripts SQL versionados por motor en `backend/src/Mantenedores.Metadata/Migrations/{Sqlite,Postgres,SqlServer}/`. Encaja con Dapper, que ya se usa.
 - **Tablas:**
   - `connection`: id, nombre, motor, cadena cifrada, esquemas.
   - `table_override`: conexión, esquema, tabla, JSON de ajustes.
   - `column_override`: conexión, esquema, tabla, columna, JSON de ajustes.
   - `schema_snapshot`: conexión, hash, fecha, JSON del esquema leído.
-- **Código:** nueva clase `PostgresConnectionStore : IConnectionStore`. `FileConnectionStore` queda solo para desarrollo, elegido por configuración.
+- **Código:** proyecto nuevo `Mantenedores.Metadata` con `SqlConnectionStore : IConnectionStore`, que toma la diferencia entre motores de un dialecto pequeño, igual que en D-002. `FileConnectionStore` se mantiene para desarrollo.
+- **Llaves de cifrado:** `DataProtection:KeyStore = Database` permite guardarlas en la misma metadata, para que varias instancias compartan las llaves sin un volumen común. Opcionalmente se cifran con un certificado (`DataProtection:CertificatePath`).
 - **Migración de datos:** al arrancar, si existe `connections.json` y la tabla está vacía, se importa.
-- **Listo cuando:** las conexiones sobreviven a reinicios y a varias instancias de la API.
+- **Pruebas:** las mismas pruebas del almacén corren contra los tres motores.
+- **Listo cuando:** las conexiones sobreviven a reinicios con cualquiera de los tres motores y con dos instancias de la API.
 
 ### 1.2 Modelo de overrides (1 semana)
 
@@ -171,17 +216,19 @@ Reemplaza el archivo `connections.json` por una base propia del servicio.
 
 ## 2. Fase 3: seguridad (3 semanas)
 
-1. **Usuarios y roles** en el metadata store. Reemplaza los usuarios de `appsettings`.
-2. **SSO** con OIDC (Entra ID, Google o Keycloak), manteniendo el login local como respaldo.
+1. **Roles desde el token:**
+   - En modo `Jwt`, los roles salen del claim configurado (1.0). La app no administra usuarios: eso lo hace el proveedor de identidad.
+   - En modo `Local`, los usuarios y sus roles pasan de `appsettings` al metadata store.
+2. **Permisos asociados a nombres de rol:** las reglas se guardan en el metadata store y apuntan a nombres de rol, así funcionan igual con cualquier proveedor de identidad.
 3. **Permisos (RBAC)** por conexión, tabla, columna y operación (ver, crear, editar, eliminar, exportar, configurar). Se aplican en `QueryBuilder`; la UI solo oculta lo que no corresponde.
 4. **Filtros de fila por rol**, p. ej. `sucursal_id = {usuario.sucursal}`. Se agregan siempre al WHERE.
 5. **Auditoría:** quién, cuándo, tabla, clave, valor anterior y nuevo. Se guarda en el metadata store y se consulta desde la UI.
 6. **Concurrencia optimista** con `rowversion` (SQL Server) o `xmin` (Postgres). Si otro usuario cambió el registro, avisar en vez de pisarlo.
-7. **Secretos en un vault** (Azure Key Vault, HashiCorp Vault) en vez de Data Protection local.
+7. **Secretos externos opcionales:** `${env:VAR}` o `${file:/run/secrets/x}` dentro de una cadena de conexión, para usar los secretos que ya tenga el entorno (Docker/Kubernetes secrets, variables). Los adaptadores para vaults específicos (Azure Key Vault, HashiCorp Vault) van como paquetes opcionales, nunca como requisito.
 
 ## 3. Fase 4: escala y operación (3 semanas)
 
-1. **Caché del esquema en Redis**, compartida entre instancias, con invalidación por hash.
+1. **Caché del esquema compartida opcional:** `Cache:Provider = Redis` para varias instancias. Con una sola instancia sigue en memoria.
 2. **Pools de conexión con tope** por conexión y cierre de los inactivos.
 3. **Límites de uso** (rate limit) por usuario y por conexión.
 4. **Tablas grandes:** paginación por clave (sin OFFSET) y conteo estimado (`reltuples` / `sys.partitions`).
@@ -192,7 +239,8 @@ Reemplaza el archivo `connections.json` por una base propia del servicio.
 
 - Hooks de negocio antes y después de guardar: webhook o script.
 - Procedimientos almacenados expuestos como botones de acción.
-- Nuevos motores: MySQL y Oracle. Solo requieren un nuevo `IDatabaseProvider`.
+- Nuevos motores: MySQL/MariaDB y Oracle. Solo requieren un nuevo `IDatabaseProvider`, que debe pasar la batería común de pruebas de proveedor (P-063).
+- Carga de proveedores como *plugins* (ensamblados en una carpeta), para agregar un motor sin recompilar la app.
 - Cargas masivas y tareas programadas.
 
 ---
@@ -200,29 +248,33 @@ Reemplaza el archivo `connections.json` por una base propia del servicio.
 ## Orden recomendado y calendario
 
 ```
-Semana  1      0. Cierre Fase 1
-Semana  2      1.1 Metadata store
-Semana  3      1.2 Overrides (backend)
-Semana  4      1.3 Editor de overrides + 1.4 Diff de esquema
-Semana  5      1.5 Maestro-detalle
-Semana  6      1.6 N:M + 1.7 Árboles + 1.8 Import/Export + 1.9 Tipos
-Semana  7–9    Fase 3: seguridad
-Semana 10–12   Fase 4: escala y operación
-Semana 13–15   Estabilización, documentación y piloto con usuarios reales
+Semana  1      0. Cierre Fase 1 (Docker, integración, errores, despliegue en cualquier entorno)
+Semana  2      1.0 Autenticación configurable
+Semana  3      1.1 Metadata store configurable
+Semana  4      1.2 Overrides (backend)
+Semana  5      1.3 Editor de overrides + 1.4 Diff de esquema
+Semana  6      1.5 Maestro-detalle
+Semana  7      1.6 N:M + 1.7 Árboles + 1.8 Import/Export + 1.9 Tipos
+Semana  8–10   Fase 3: seguridad
+Semana 11–13   Fase 4: escala y operación
+Semana 14–16   Estabilización, documentación y piloto con usuarios reales
 ```
 
-Lo más urgente es **0.1, 0.2 y 1.1**: todo lo demás depende de tener pruebas contra bases reales
-y un lugar donde guardar la configuración.
+Lo más urgente es **0.1, 0.2, 1.0 y 1.1**: todo lo demás depende de tener pruebas contra bases reales,
+de poder conectarse al proveedor de identidad del equipo y de un lugar donde guardar la configuración.
 
-## Decisiones abiertas
+## Decisiones
 
-Conviene resolverlas antes de la semana 2:
+**Tomadas (2026-10-27):**
+- **Despliegue:** en cualquier entorno, sin depender de una nube. Todo se elige por configuración (D-022).
+- **Usuarios:** un solo equipo interno, sin multi-tenant (D-027).
+- **Identidad:** libre; cualquier emisor de JWT u OIDC, como Duende IdentityServer, según se configure (D-024).
 
-1. **¿Dónde se va a desplegar?** (Azure, AWS, servidor propio). Define el vault, el SSO y la base de metadata.
-2. **¿Quiénes lo usan?** Un equipo interno o varios clientes (multi-tenant). Cambia el modelo de datos de la Fase 2.
-3. **¿Qué proveedor de identidad?** Entra ID, Google o Keycloak.
-4. **¿Cuántas bases y de qué tamaño?** Define cuándo hace falta la Fase 4.
-5. **¿Habrá lógica de negocio propia?** Si sí, adelantar los hooks de la Fase 5.
+**Abiertas** (ver [memoria/preguntas-abiertas.md](memoria/preguntas-abiertas.md)):
+- Tamaño de las bases (Q-004).
+- Lógica de negocio al guardar (Q-005).
+- Quién configura los mantenedores (Q-006).
+- Retención de la auditoría (Q-007).
 
 ## Riesgos
 
@@ -232,4 +284,6 @@ Conviene resolverlas antes de la semana 2:
 | Lógica oculta en triggers | Mensajes de error claros (0.3) y pruebas con triggers (0.2) |
 | Exponer tablas sensibles | Ocultar por defecto y publicar explícitamente cuando llegue RBAC (Fase 3) |
 | Diferencias entre motores | Pruebas de integración contra ambos en cada PR (0.2) |
-| Pérdida de las llaves de cifrado | Metadata store + vault (1.1, Fase 3) y respaldo del volumen `data/` |
+| Pérdida de las llaves de cifrado | Llaves en la metadata (1.1), certificado opcional y respaldo documentado (0.4) |
+| Entornos muy distintos entre sí | Valores por defecto sin dependencias, cada pieza intercambiable por configuración y receta de despliegue por plataforma (0.4) |
+| Un proveedor de identidad con claims no estándar | Mapeo de claims configurable y prueba con al menos dos proveedores (1.0) |

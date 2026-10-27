@@ -200,3 +200,6 @@ button.link.danger { color: var(--danger); }
 .m2m-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .m2m-chips .chip { display: inline-flex; align-items: center; gap: 2px; margin: 0; }
 .m2m-chips .chip button { padding: 0 2px; font-size: 1rem; line-height: 1; }
+
+/* ---------- Exportar e importar (P-017) ---------- */
+select.export { width: auto; }

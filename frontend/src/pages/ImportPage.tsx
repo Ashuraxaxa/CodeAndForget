@@ -1,0 +1,154 @@
+import { useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { api } from '../api/client'
+import { labelOf, type ImportResult } from '../api/types'
+
+const ACCEPT = '.csv,.txt,.xlsx,.json,.xml'
+
+/**
+ * Importar (P-017): 1) elegir el archivo, 2) revisar la asociación de columnas y los errores por fila,
+ * 3) confirmar. Se graba todo en una transacción: o entran todas las filas o ninguna.
+ */
+export function ImportPage() {
+  const { conn = '', schema = '', table = '' } = useParams()
+  const qc = useQueryClient()
+  const meta = useQuery({ queryKey: ['meta', conn, schema, table], queryFn: () => api.table(conn, schema, table) })
+  const [file, setFile] = useState<File | null>(null)
+  const [mapping, setMapping] = useState<Record<string, string | null> | undefined>(undefined)
+  const [result, setResult] = useState<ImportResult | null>(null)
+  const back = `/c/${conn}/t/${encodeURIComponent(schema)}/${encodeURIComponent(table)}`
+
+  const preview = useMutation({
+    mutationFn: (args: { file: File; mapping?: Record<string, string | null> }) =>
+      api.previewImport(conn, schema, table, args.file, args.mapping),
+    onSuccess: r => { setResult(r); setMapping(r.mapping) },
+  })
+  const commit = useMutation({
+    mutationFn: () => api.importFile(conn, schema, table, file!, mapping),
+    onSuccess: r => {
+      setResult(r)
+      if (r.imported > 0) qc.invalidateQueries({ queryKey: ['rows', conn, schema, table] })
+    },
+  })
+
+  function choose(f: File | null) {
+    setFile(f)
+    setResult(null)
+    setMapping(undefined)
+    commit.reset()
+    if (f) preview.mutate({ file: f })
+  }
+
+  function remap(header: string, column: string) {
+    const next = { ...mapping, [header]: column || null }
+    setMapping(next)
+    if (file) preview.mutate({ file, mapping: next })
+  }
+
+  const title = meta.data ? labelOf(meta.data) : table
+  const r = result
+  const done = r && r.imported > 0
+  const error = (preview.error ?? commit.error) as Error | null
+  const mapped = r ? Object.entries(r.mapping).filter(([, c]) => c).map(([, c]) => c!) : []
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <h1>Importar · {title}</h1>
+          <div className="muted small">CSV, Excel, JSON o XML. La primera fila (o los nombres de los campos) indica las columnas.</div>
+        </div>
+        <Link to={back}>‹ Volver a la lista</Link>
+      </div>
+
+      <div className="card form">
+        <label>
+          <span className="field-label">1. Archivo</span>
+          <input type="file" accept={ACCEPT} onChange={e => choose(e.target.files?.[0] ?? null)} />
+        </label>
+        {preview.isPending && <p className="muted">Leyendo y validando…</p>}
+        {error && <div className="alert">{error.message}</div>}
+      </div>
+
+      {r && !done && (
+        <>
+          <div className="card form">
+            <span className="field-label">2. Columnas</span>
+            <div className="table-wrap">
+              <table className="grid">
+                <thead><tr><th>En el archivo</th><th>Se guarda en</th></tr></thead>
+                <tbody>
+                  {r.headers.map(h => (
+                    <tr key={h}>
+                      <td><code>{h}</code></td>
+                      <td>
+                        <select value={r.mapping[h] ?? ''} onChange={e => remap(h, e.target.value)}>
+                          <option value="">(ignorar)</option>
+                          {r.targets.map(t => (
+                            <option key={t.name} value={t.name}>
+                              {t.label ? `${t.label} (${t.name})` : t.name}{t.required ? ' *' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <span className="hint">* obligatoria. Las columnas que genera la base (identity, calculadas) no se importan.</span>
+          </div>
+
+          <div className="card form">
+            <span className="field-label">3. Revisión</span>
+            <p>
+              <b>{r.totalRows}</b> filas · <b>{r.validRows}</b> válidas
+              {r.errors.length > 0 && <> · <span className="field-error">{r.errors.length} errores</span></>}
+            </p>
+            {r.errors.length > 0 && (
+              <div className="alert">
+                {r.errors.map((e, i) => (
+                  <div key={i}>{e.line > 0 ? `Línea ${e.line}` : 'General'}{e.column ? ` · ${e.column}` : ''}: {e.message}</div>
+                ))}
+              </div>
+            )}
+            {r.sample.length > 0 && (
+              <>
+                <span className="muted small">Primeras {r.sample.length} filas, como se van a guardar:</span>
+                <div className="table-wrap">
+                  <table className="grid">
+                    <thead><tr>{mapped.map(c => <th key={c}>{c}</th>)}</tr></thead>
+                    <tbody>
+                      {r.sample.map((row, i) => (
+                        <tr key={i}>{mapped.map(c => <td key={c}><span className="cell">{row[c] ?? ''}</span></td>)}</tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+            <div className="actions">
+              <button className="primary" disabled={r.errors.length > 0 || r.totalRows === 0 || commit.isPending || preview.isPending}
+                onClick={() => commit.mutate()}>
+                {commit.isPending ? 'Importando…' : `Importar ${r.totalRows} filas`}
+              </button>
+              <Link to={back} className="button">Cancelar</Link>
+            </div>
+            {r.errors.length > 0 && <span className="hint">Corrija el archivo o la asociación de columnas: se importa todo o nada.</span>}
+          </div>
+        </>
+      )}
+
+      {done && (
+        <div className="card">
+          <div className="alert ok">Se importaron {r.imported} registros.</div>
+          <div className="actions">
+            <Link to={back} className="button primary">Ver la lista</Link>
+            <button onClick={() => choose(null)}>Importar otro archivo</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

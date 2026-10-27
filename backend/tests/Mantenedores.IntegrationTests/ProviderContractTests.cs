@@ -578,4 +578,80 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         }
         Assert.Equal(original, await Linked());
     }
+    // ---------- Exportar e importar (P-017) ----------
+
+    [Theory]
+    [InlineData(Core.Transfer.TransferFormat.Csv)]
+    [InlineData(Core.Transfer.TransferFormat.Xlsx)]
+    [InlineData(Core.Transfer.TransferFormat.Json)]
+    [InlineData(Core.Transfer.TransferFormat.Xml)]
+    public async Task Exporta_el_listado_filtrado_en_cada_formato(Core.Transfer.TransferFormat format)
+    {
+        var request = new ListRequest
+        {
+            Exact = new Dictionary<string, string> { [N("categoria_id")] = "1" },
+            Sort = [new SortSpec(N("codigo"))]
+        };
+        var plan = await Db.Crud.PrepareExportAsync(Conn, Schema, N("producto"), request, format, default);
+        var ms = new MemoryStream();
+        await plan.WriteAsync(ms, default);
+        ms.Position = 0;
+
+        var file = await Core.Transfer.TableReader.ReadAsync(ms, format, 1000, default);
+        Assert.Equal(plan.Rows, file.Rows.Count);
+        Assert.Contains(N("categoria_id") + QueryBuilder.LabelSuffix, file.Headers); // el texto de la FK va al lado
+        Assert.All(file.Rows, r => Assert.Equal("Bebidas", r[N("categoria_id") + QueryBuilder.LabelSuffix]));
+        Assert.Contains(file.Rows, r => r[N("codigo")] == "BEB-001");
+    }
+
+    private static Stream Csv(string text) => new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text));
+
+    [Fact]
+    public async Task Importa_csv_en_una_transaccion_y_nada_queda_a_medias()
+    {
+        var prefix = UniqueCode();
+        string Line(string code, string precio) => $"{code},Importado {code},2,{precio}";
+        var header = $"{N("codigo")},nombre,{N("categoria_id")},precio\n"; // "nombre"/"precio" se asocian sin distinguir el estilo
+
+        async Task<long> Count() => (await Db.Crud.ListAsync(Conn, Schema, N("producto"),
+            new ListRequest { Filters = new Dictionary<string, string> { [N("codigo")] = prefix } }, default)).Total;
+        try
+        {
+            // Vista previa con una fila inválida: informa la línea y no graba.
+            var bad = header + string.Join("\n", Line(prefix + "-1", "10"), Line(prefix + "-2", "abc"), Line(prefix + "-3", "30"));
+            var preview = await Db.Crud.PreviewImportAsync(Conn, Schema, N("producto"), Csv(bad), Core.Transfer.TransferFormat.Csv, null, default);
+            Assert.Equal(3, preview.TotalRows);
+            Assert.Equal(2, preview.ValidRows);
+            var error = Assert.Single(preview.Errors);
+            Assert.Equal(3, error.Line); // línea del archivo, contando el encabezado
+            Assert.Equal(N("precio"), error.Column, ignoreCase: true);
+            Assert.Equal(0, (await Db.Crud.ImportAsync(Conn, Schema, N("producto"), Csv(bad), Core.Transfer.TransferFormat.Csv, null, default)).Imported);
+            Assert.Equal(0, await Count());
+
+            // La base rechaza la tercera (código duplicado): se revierten las dos primeras.
+            var dup = header + string.Join("\n", Line(prefix + "-1", "10"), Line(prefix + "-2", "20"), Line(prefix + "-1", "30"));
+            var rejected = await Db.Crud.ImportAsync(Conn, Schema, N("producto"), Csv(dup), Core.Transfer.TransferFormat.Csv, null, default);
+            Assert.Equal(0, rejected.Imported);
+            Assert.Equal(4, Assert.Single(rejected.Errors).Line);
+            Assert.Equal(0, await Count());
+
+            // Todo bien: entran las tres.
+            var ok = header + string.Join("\n", Line(prefix + "-1", "10"), Line(prefix + "-2", "20.5"), Line(prefix + "-3", "30"));
+            var done = await Db.Crud.ImportAsync(Conn, Schema, N("producto"), Csv(ok), Core.Transfer.TransferFormat.Csv, null, default);
+            Assert.Equal(3, done.Imported);
+            Assert.Equal(3, await Count());
+
+            // Una columna obligatoria sin asociar es un error general (línea 0).
+            var sinCodigo = await Db.Crud.PreviewImportAsync(Conn, Schema, N("producto"), Csv(header + Line("x", "1")),
+                Core.Transfer.TransferFormat.Csv, new Dictionary<string, string?> { [N("codigo")] = null }, default);
+            Assert.Contains(sinCodigo.Errors, e => e.Line == 0 && string.Equals(e.Column, N("codigo"), StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            var rows = await Db.Crud.ListAsync(Conn, Schema, N("producto"),
+                new ListRequest { PageSize = 200, Filters = new Dictionary<string, string> { [N("codigo")] = prefix } }, default);
+            foreach (var r in rows.Rows)
+                await Db.Crud.DeleteAsync(Conn, Schema, N("producto"), Key((N("id"), r[N("id")]!)), default);
+        }
+    }
 }

@@ -457,6 +457,25 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Por qué:** la lista completa es idempotente y simple para la UI. Reusar los constructores del puente respeta solo lectura, ajustes y errores traducidos.
 - **Alternativa descartada:** endpoints de agregar y quitar uno por uno, que dejan estados a medias si falla el segundo.
 
+### D-057 · Exportar e importar en CSV, Excel, JSON y XML
+- **Estado:** Vigente · 2026-10-27 (P-017; el dueño pidió sumar JSON y XML)
+- **Qué:**
+  - **Exportar:** `GET /export?format=` con los filtros, la búsqueda y el orden del listado, sin paginar. Primero cuenta: si pasa `Crud:ExportMaxRows`, responde un error antes de escribir. Después lee con `QueryUnbufferedAsync` y escribe fila por fila. Las columnas son las visibles y, al lado de cada FK, su texto (`x__label`). Los valores van en texto estable (fechas ISO 8601, punto decimal).
+  - **Formatos:**
+    - CSV: RFC 4180, UTF-8 con BOM. Un texto que empieza con `= + - @` va con apóstrofo, contra la inyección de fórmulas; al importar se quita.
+    - Excel: OpenXml SDK en modo SAX sobre un archivo temporal. Los números de más de 15 dígitos van como texto.
+    - JSON: arreglo de objetos con tipos JSON.
+    - XML: `<rows><row><field name="…">`, con `null="true"` para los nulos.
+  - **Importar:** `POST /import/preview` y `POST /import`, sin estado: el navegador vuelve a enviar el archivo.
+    - Asociación automática por nombre o etiqueta, sin tildes, espacios ni mayúsculas, y corregible por el usuario.
+    - Cada fila se valida con las mismas reglas del formulario (`ParseValues`). Los errores llevan línea y columna.
+    - Se graba en una sola transacción: si la base rechaza una fila, no queda ninguna.
+    - XML sin DTD ni entidades externas. Hay topes de filas y de MB.
+- **Por qué:** importar los mismos cuatro formatos que se exportan permite exportar, corregir y volver a cargar. Sin estado en el servidor, funciona igual con varias instancias.
+- **Alternativas descartadas:**
+  - ClosedXML (arma todo el libro en memoria).
+  - Guardar el archivo en el servidor entre la vista previa y la confirmación (exige almacenamiento compartido).
+
 ---
 
 ## Propuestas (aún no decididas)

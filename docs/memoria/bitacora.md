@@ -4,6 +4,15 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Fase 2: exportar e importar
+- El dueño pidió sumar JSON y XML a CSV y Excel. Se exportan e importan los cuatro (D-057).
+- Exportación por streaming (`QueryUnbufferedAsync`), con tope y conteo previo; CSV protegido contra inyección de fórmulas; Excel con OpenXml SDK.
+- Importación sin estado en dos pasos (vista previa y confirmación), asociación automática sin tildes, errores por línea y una sola transacción.
+- Verificado: 5.000 productos validados en 0,4 s e importados en 2,3 s; exportación de 5.000 filas en menos de 0,4 s en cada formato.
+- Entorno: Docker quedó con un PID viejo y no arrancaba; se borró `/var/run/docker.pid`.
+- 148 unitarias y 187 de integración en verde.
+- **Siguiente:** P-016 o P-018. **Nuevo pendiente:** P-088 (importar actualizando por clave).
+
 ## 2026-10-27 · Fase 2: relaciones N:M
 - Detección de tablas puente (dos FK que forman la PK, sin otras obligatorias); `manyToMany` en la metadata (D-056).
 - `GET`/`PUT /row/links/{relación}`: lista completa sincronizada en una transacción. Selector múltiple en el formulario, guardado junto con el registro; el puente ya no sale como pestaña.

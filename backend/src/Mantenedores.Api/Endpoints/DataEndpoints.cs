@@ -1,6 +1,10 @@
 using System.Text.Json;
 using Mantenedores.Core.Query;
+using Mantenedores.Core.Errors;
 using Mantenedores.Core.Services;
+using Mantenedores.Core.Transfer;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Net.Http.Headers;
 
 namespace Mantenedores.Api.Endpoints;
 
@@ -47,6 +51,43 @@ public static class DataEndpoints
             List<System.Text.Json.JsonElement> values, CrudService crud, CancellationToken ct) =>
             crud.SetLinksAsync(conn, schema, table, Key(http.Query), link, values, ct));
 
+        // ---------- Exportar e importar (P-017) ----------
+
+        // ?format=csv|xlsx|json|xml con los mismos filtros, búsqueda y orden del listado (sin paginar).
+        group.MapGet("/export", async (string conn, string schema, string table, string? format, HttpContext http,
+            CrudService crud, CancellationToken ct) =>
+        {
+            var plan = await crud.PrepareExportAsync(conn, schema, table, ParseList(http.Request.Query),
+                TransferFormats.Parse(format ?? "csv"), ct);
+            http.Response.ContentType = TransferFormats.ContentType(plan.Format);
+            http.Response.Headers[HeaderNames.ContentDisposition] =
+                new ContentDispositionHeaderValue("attachment") { FileNameStar = plan.FileName }.ToString();
+            http.Response.Headers["X-Total-Count"] = plan.Rows.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            await plan.WriteAsync(http.Response.Body, ct);
+            return Results.Empty;
+        });
+
+        // Multipart: "file" (csv, xlsx, json o xml, por su extensión) y "mapping" opcional ({"encabezado": "columna" | null}).
+        group.MapPost("/import/preview", async (string conn, string schema, string table, HttpRequest http,
+            CrudService crud, CrudOptions options, CancellationToken ct) =>
+        {
+            var (file, mapping) = await ReadImportAsync(http, options, ct);
+            await using var stream = file.OpenReadStream();
+            return Results.Ok(await crud.PreviewImportAsync(conn, schema, table, stream, TransferFormats.FromFileName(file.FileName), mapping, ct));
+        });
+
+        // Igual que la vista previa, pero graba si no hay errores. Con errores responde 400 con el mismo detalle.
+        group.MapPost("/import", async (string conn, string schema, string table, HttpRequest http,
+            CrudService crud, CrudOptions options, CancellationToken ct) =>
+        {
+            var (file, mapping) = await ReadImportAsync(http, options, ct);
+            await using var stream = file.OpenReadStream();
+            var result = await crud.ImportAsync(conn, schema, table, stream, TransferFormats.FromFileName(file.FileName), mapping, ct);
+            return result.Imported > 0 || (result.Errors.Count == 0 && result.TotalRows == 0)
+                ? Results.Ok(result)
+                : Results.Json(result, statusCode: StatusCodes.Status400BadRequest);
+        });
+
         // Opciones para combos de FK: [{ value, label }]
         group.MapGet("/lookup", (string conn, string schema, string table, string? q, int? take, CrudService crud, CancellationToken ct) =>
             crud.LookupAsync(conn, schema, table, q, take ?? 20, ct));
@@ -71,6 +112,29 @@ public static class DataEndpoints
                 .ToDictionary(kv => kv.Key[ExactPrefix.Length..], kv => kv.Value.ToString()),
             Search = q["q"].ToString()
         };
+    }
+
+    private static async Task<(IFormFile File, Dictionary<string, string?>? Mapping)> ReadImportAsync(
+        HttpRequest http, CrudOptions options, CancellationToken ct)
+    {
+        var maxBytes = (long)Math.Max(1, options.ImportMaxMegabytes) * 1024 * 1024;
+        // El límite de Kestrel (30 MB) se ajusta al configurado, con margen para el resto del formulario.
+        if (http.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit)
+            limit.MaxRequestBodySize = maxBytes + 1024 * 1024;
+        if (!http.HasFormContentType) throw new ValidationException("file", "envíe el archivo como multipart/form-data");
+
+        var form = await http.ReadFormAsync(ct);
+        var file = form.Files["file"] ?? throw new ValidationException("file", "falta el archivo");
+        if (file.Length > maxBytes)
+            throw new ValidationException("file", $"el archivo pesa más de {options.ImportMaxMegabytes} MB (Crud:ImportMaxMegabytes)");
+
+        Dictionary<string, string?>? mapping = null;
+        if (form["mapping"].ToString() is { Length: > 0 } json)
+        {
+            try { mapping = JsonSerializer.Deserialize<Dictionary<string, string?>>(json); }
+            catch (JsonException) { throw new ValidationException("mapping", "debe ser un objeto JSON {\"encabezado\": \"columna\"}"); }
+        }
+        return (file, mapping);
     }
 
     private static Dictionary<string, string> Key(IQueryCollection q) =>

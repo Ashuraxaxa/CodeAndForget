@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
-import { LABEL_SUFFIX, labelOf, type Column, type Row, type TableMeta } from '../api/types'
+import { LABEL_SUFFIX, labelOf, type Column, type Row, type TableMeta, type TransferFormat } from '../api/types'
 import { FIXED_PREFIX, RETURN_PARAM, displayValue, keyQuery } from '../lib/format'
 import { useDebounce } from '../lib/useDebounce'
 import { useCan } from '../lib/useMe'
@@ -80,6 +80,19 @@ export function Grid({ conn, meta, fixed, returnTo }: {
     onError: err => alert((err as Error).message),
   })
 
+  const [exporting, setExporting] = useState(false)
+  async function exportAs(format: TransferFormat) {
+    setExporting(true)
+    try {
+      await api.exportTable(conn, meta.schema, meta.name, format,
+        { sort: listParams.sort, q: listParams.q, filters: listParams.filters, exact: fixed })
+    } catch (e) {
+      alert((e as Error).message)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   function toggleSort(col: string) {
     setSort(s => (!s || s.col !== col ? { col, desc: false } : !s.desc ? { col, desc: true } : null))
   }
@@ -110,6 +123,15 @@ export function Grid({ conn, meta, fixed, returnTo }: {
         </div>
         <div className="actions">
           <input className="search" placeholder="Buscar en textos…" value={search} onChange={e => setSearch(e.target.value)} />
+          <select className="export" value="" title="Exportar lo que muestra la grilla (filtros, búsqueda y orden)"
+            disabled={exporting} onChange={e => e.target.value && exportAs(e.target.value as TransferFormat)}>
+            <option value="">{exporting ? 'Exportando…' : '⤓ Exportar'}</option>
+            <option value="csv">CSV</option>
+            <option value="xlsx">Excel</option>
+            <option value="json">JSON</option>
+            <option value="xml">XML</option>
+          </select>
+          {meta.isEditable && <Link className="button" to={`${base}/import`}>⤒ Importar</Link>}
           {canConfigure && <Link className="button" to={`${base}/config`} title="Ajustar etiquetas, columnas y validaciones">⚙ Configurar</Link>}
           {meta.isEditable && <Link className="button primary" to={newUrl}>Nuevo</Link>}
         </div>

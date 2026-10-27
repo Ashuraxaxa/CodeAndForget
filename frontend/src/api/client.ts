@@ -1,4 +1,5 @@
 import type {
+  ImportResult, TransferFormat,
   Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride,
 } from './types'
 
@@ -57,6 +58,39 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   const data = text ? JSON.parse(text) : undefined
   if (!res.ok) throw new ApiError(res.status, data?.title ?? res.statusText, data?.detail, data?.errors)
   return data as T
+}
+
+/** Descarga un archivo de la API con el token (un enlace directo no lo llevaría). */
+async function download(url: string): Promise<void> {
+  const token = tokenProvider()
+  const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  if (res.status === 401) { onUnauthorized(); throw new ApiError(401, 'Sesión expirada') }
+  if (!res.ok) {
+    const data = await res.json().catch(() => undefined)
+    throw new ApiError(res.status, data?.title ?? res.statusText, data?.detail, data?.errors)
+  }
+  const name = /filename\*=UTF-8''([^;]+)/i.exec(res.headers.get('Content-Disposition') ?? '')?.[1]
+  const blob = await res.blob()
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = name ? decodeURIComponent(name) : 'exportacion'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(a.href), 10_000)
+}
+
+/** Sube un archivo para importar. Con errores (400) devuelve igual el detalle, que la pantalla muestra. */
+async function upload(url: string, file: File, mapping?: Record<string, string | null>): Promise<ImportResult> {
+  const form = new FormData()
+  form.append('file', file)
+  if (mapping) form.append('mapping', JSON.stringify(mapping))
+  const token = tokenProvider()
+  const res = await fetch(url, { method: 'POST', body: form, headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  if (res.status === 401) { onUnauthorized(); throw new ApiError(401, 'Sesión expirada') }
+  const data = await res.json().catch(() => undefined)
+  if (res.ok || (res.status === 400 && data && Array.isArray(data.headers))) return data as ImportResult
+  throw new ApiError(res.status, data?.title ?? res.statusText, data?.detail, data?.errors)
 }
 
 const enc = encodeURIComponent
@@ -143,6 +177,18 @@ export const api = {
     request<LookupItem[]>('GET', `${tablePath(conn, schema, table)}/row/links/${enc(link)}?${key}`),
   setLinks: (conn: string, schema: string, table: string, key: string, link: string, values: unknown[]) =>
     request<LookupItem[]>('PUT', `${tablePath(conn, schema, table)}/row/links/${enc(link)}?${key}`, values),
+  exportTable(conn: string, schema: string, table: string, format: TransferFormat, p: Omit<ListParams, 'page' | 'pageSize'>) {
+    const qs = new URLSearchParams({ format })
+    if (p.sort) qs.set('sort', p.sort)
+    if (p.q) qs.set('q', p.q)
+    for (const [k, v] of Object.entries(p.filters ?? {})) if (v) qs.set(`f.${k}`, v)
+    for (const [k, v] of Object.entries(p.exact ?? {})) qs.set(`e.${k}`, v)
+    return download(`${tablePath(conn, schema, table)}/export?${qs}`)
+  },
+  previewImport: (conn: string, schema: string, table: string, file: File, mapping?: Record<string, string | null>) =>
+    upload(`${tablePath(conn, schema, table)}/import/preview`, file, mapping),
+  importFile: (conn: string, schema: string, table: string, file: File, mapping?: Record<string, string | null>) =>
+    upload(`${tablePath(conn, schema, table)}/import`, file, mapping),
   lookup: (conn: string, schema: string, table: string, q: string) =>
     request<LookupItem[]>('GET', `${tablePath(conn, schema, table)}/lookup?${new URLSearchParams({ q, take: '20' })}`),
 }

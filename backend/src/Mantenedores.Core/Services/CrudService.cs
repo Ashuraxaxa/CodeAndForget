@@ -11,10 +11,19 @@ public sealed class CrudOptions
 {
     /// <summary>Tiempo máximo por consulta, en segundos.</summary>
     public int CommandTimeoutSeconds { get; set; } = 30;
+
+    /// <summary>Máximo de filas por exportación (P-017). Si el filtro trae más, se pide filtrar.</summary>
+    public int ExportMaxRows { get; set; } = 100_000;
+
+    /// <summary>Máximo de filas por importación.</summary>
+    public int ImportMaxRows { get; set; } = 10_000;
+
+    /// <summary>Tamaño máximo del archivo a importar, en MB.</summary>
+    public int ImportMaxMegabytes { get; set; } = 20;
 }
 
 /// <summary>CRUD genérico sobre cualquier tabla descubierta.</summary>
-public sealed class CrudService(SchemaService schemas, CrudOptions options)
+public sealed partial class CrudService(SchemaService schemas, CrudOptions options)
 {
     public async Task<PagedResult> ListAsync(string conn, string schema, string table, ListRequest request, CancellationToken ct)
     {

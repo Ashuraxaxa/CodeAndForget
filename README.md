@@ -4,7 +4,8 @@ Servicio que se conecta a una base **SQL Server** o **PostgreSQL**, lee su catá
 (tablas, columnas, PK, FK, únicos) y genera en tiempo real el **mantenedor** de cada
 tabla: listado con filtros, alta, edición y borrado, con combos para las claves foráneas.
 
-> Estado: **Fase 1 (MVP)**. Ver [docs/plan.md](docs/plan.md) para las fases siguientes.
+> Estado: **Fase 1 (MVP)**. La memoria del proyecto (estado, decisiones, pendientes) está en
+> [docs/memoria/](docs/memoria/README.md) y la hoja de ruta en [docs/siguientes-pasos.md](docs/siguientes-pasos.md).
 
 ## Cómo funciona
 

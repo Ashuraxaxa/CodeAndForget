@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Fase 2: tipos pendientes (Fase 2 completa)
+- Archivos: tamaño en el listado, descarga con tipo deducido, subida en base64 con tope `Crud:FileMaxMegabytes`.
+- Arreglos de PostgreSQL editables como lista; `geography`/`geometry`/`hierarchyid` y espaciales de MySQL como texto de solo lectura (D-059).
+- Bugs encontrados por la batería: Npgsql no lee un `int4[]` con nulos (se lee como `text[]`); SQL Server no acepta un `NULL` sin tipo en `varbinary` (`CAST` en el dialecto).
+- Bases de ejemplo con `icono` en categoría, `telefonos text[]` (PG), `Ubicacion geography` y `Nodo hierarchyid` (SQL Server), `ubicacion POINT` (MySQL).
+- 155 unitarias y 199 de integración en verde, versión mínima y actual. Probado en navegador.
+- **Fase 2 completa.** **Siguiente:** conversar el apartado de seguridad (Fase 3). **Nuevo pendiente:** P-090.
+
 ## 2026-10-27 · Fase 2: árboles
 - `SelfReference` en la metadata, `GET /tree` por niveles (raíces = sin padre o con padre inexistente) y validación de ciclos al editar, con SQL portable (D-058).
 - UI: Grilla/Árbol con la vista en la URL, "＋ hijo" con el jefe fijo. Encontrado en el navegador: tras guardar se perdía la vista de árbol; ahora queda en `?vista=arbol`.

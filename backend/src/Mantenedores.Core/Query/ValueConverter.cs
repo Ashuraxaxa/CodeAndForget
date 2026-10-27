@@ -23,6 +23,7 @@ public static partial class ValueConverter
                 _ => value.GetRawText()
             }),
         _ when column.Type == LogicalType.Json => value.GetRawText(),
+        JsonValueKind.Array when column.Type == LogicalType.Array => FromArray(column, value),
         _ => throw Invalid(column, "formato no soportado")
     };
 
@@ -134,6 +135,23 @@ public static partial class ValueConverter
                     throw Invalid(column, "JSON inválido");
                 }
 
+            case LogicalType.Binary:
+                // Archivo en base64 (P-018). Admite el prefijo "data:...;base64," que agregan los navegadores.
+                var comma = raw.StartsWith("data:", StringComparison.Ordinal) ? raw.IndexOf(',') : -1;
+                try { return Convert.FromBase64String(comma >= 0 ? raw[(comma + 1)..] : raw); }
+                catch (FormatException) { throw Invalid(column, "archivo inválido (se esperaba base64)"); }
+
+            case LogicalType.Array:
+                // Texto con un arreglo JSON (así llega desde una importación): ["a","b"] o [1,2].
+                try
+                {
+                    using var doc = JsonDocument.Parse(raw);
+                    return doc.RootElement.ValueKind == JsonValueKind.Array
+                        ? FromArray(column, doc.RootElement)
+                        : throw Invalid(column, "se esperaba una lista de valores");
+                }
+                catch (JsonException) { throw Invalid(column, "se esperaba una lista de valores, p. ej. [\"a\", \"b\"]"); }
+
             case LogicalType.Enum:
                 if (column.EnumValues is { Count: > 0 } values && !values.Contains(raw))
                     throw Invalid(column, $"valor permitido: {string.Join(", ", values)}");
@@ -142,6 +160,40 @@ public static partial class ValueConverter
             default:
                 throw Invalid(column, "tipo de columna no editable");
         }
+    }
+
+    /// <summary>
+    /// Arreglo (P-018): cada elemento se valida con el tipo del elemento y viaja como texto normalizado;
+    /// el dialecto lo convierte al arreglo del motor (en Postgres, CAST a int4[], text[]…).
+    /// </summary>
+    private static string?[] FromArray(ColumnInfo column, JsonElement array)
+    {
+        var element = new ColumnInfo
+        {
+            Name = column.Name,
+            NativeType = column.ElementNativeType ?? "text",
+            Type = column.ElementType ?? LogicalType.String,
+            IsNullable = true
+        };
+        var result = new List<string?>();
+        var i = 0;
+        foreach (var item in array.EnumerateArray())
+        {
+            i++;
+            try
+            {
+                var value = item.ValueKind == JsonValueKind.Null ? null : FromJson(element, item);
+                // Una fecha sola va sin hora ("2026-01-31").
+                result.Add(value is DateTime d && element.Type == LogicalType.Date
+                    ? d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                    : Transfer.TransferFormats.ToText(value));
+            }
+            catch (ValidationException ex)
+            {
+                throw Invalid(column, $"elemento {i}: {ex.Errors.Values.First()}");
+            }
+        }
+        return result.ToArray();
     }
 
     private static object? CheckNull(ColumnInfo column) =>

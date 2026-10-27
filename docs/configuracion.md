@@ -80,6 +80,7 @@ Las cadenas de conexión se guardan cifradas. Estas llaves son las que permiten 
 |---|---|---|
 | `Crud:CommandTimeoutSeconds` | `30` | Tiempo máximo por consulta a la base administrada. |
 | `Crud:ExportMaxRows` | `100000` | Máximo de filas por exportación (CSV, Excel, JSON o XML). Si el filtro trae más, se pide filtrar. |
+| `Crud:FileMaxMegabytes` | `10` | Tamaño máximo de un archivo guardado en una columna binaria. Viaja en base64 dentro del JSON (≈ 1,35 veces su tamaño): por encima de ~20 MB hay que subir también el límite de la solicitud (`Kestrel__Limits__MaxRequestBodySize`) y el del proxy. |
 | `Crud:ImportMaxRows` | `10000` | Máximo de filas por archivo importado. |
 | `Crud:ImportMaxMegabytes` | `20` | Tamaño máximo del archivo a importar. Si se sube, revisar también el límite del proxy (p. ej. `client_max_body_size` en nginx, `maxAllowedContentLength` en IIS). |
 

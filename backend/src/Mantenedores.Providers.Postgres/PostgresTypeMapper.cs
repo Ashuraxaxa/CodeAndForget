@@ -10,7 +10,7 @@ public static class PostgresTypeMapper
     public static (LogicalType Type, bool HasTimeZone) Map(string typeName, string typeKind, string typeCategory)
     {
         if (typeKind == "e") return (LogicalType.Enum, false);
-        if (typeCategory == "A") return (LogicalType.Unsupported, false); // arreglos: Fase 2
+        if (typeCategory == "A") return (LogicalType.Array, false); // el elemento se resuelve con MapElement (P-018)
 
         return typeName switch
         {
@@ -26,7 +26,19 @@ public static class PostgresTypeMapper
             "uuid" => (LogicalType.Uuid, false),
             "json" or "jsonb" => (LogicalType.Json, false),
             "bytea" => (LogicalType.Binary, false),
+            // PostGIS (P-018): como WKT, de solo lectura.
+            "geometry" or "geography" => (LogicalType.ReadOnlyText, false),
             _ => (LogicalType.Unsupported, false)
         };
+    }
+
+    /// <summary>Tipo del elemento de un arreglo; si no se puede editar como lista, el arreglo queda sin soporte.</summary>
+    public static LogicalType? MapElement(string? typeName, string? typeKind, string? typeCategory)
+    {
+        if (typeName is null) return null;
+        var (t, _) = Map(typeName, typeKind ?? "b", typeCategory ?? "");
+        return t is LogicalType.Array or LogicalType.Binary or LogicalType.Json or LogicalType.ReadOnlyText or LogicalType.Unsupported
+            ? null
+            : t;
     }
 }

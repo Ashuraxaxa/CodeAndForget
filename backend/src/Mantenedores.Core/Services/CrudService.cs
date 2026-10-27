@@ -18,6 +18,9 @@ public sealed class CrudOptions
     /// <summary>Máximo de filas por importación.</summary>
     public int ImportMaxRows { get; set; } = 10_000;
 
+    /// <summary>Tamaño máximo de un archivo guardado en una columna binaria, en MB (P-018).</summary>
+    public int FileMaxMegabytes { get; set; } = 10;
+
     /// <summary>Tamaño máximo del archivo a importar, en MB.</summary>
     public int ImportMaxMegabytes { get; set; } = 20;
 }
@@ -50,7 +53,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         string conn, string schema, string table, IReadOnlyDictionary<string, JsonElement> body, CancellationToken ct)
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
-        var insert = new QueryBuilder(ctx.Provider.Dialect).BuildInsert(info, ParseValues(info, body));
+        var insert = new QueryBuilder(ctx.Provider.Dialect).BuildInsert(info, ParseValues(info, body, MaxFileBytes));
 
         IReadOnlyDictionary<string, object?> keys;
         await using (var db = await OpenAsync(ctx, ct))
@@ -76,7 +79,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
         var keyValues = ParseKey(info, key);
-        var values = ParseValues(info, body);
+        var values = ParseValues(info, body, MaxFileBytes);
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildUpdate(info, keyValues, values);
 
         await using (var db = await OpenAsync(ctx, ct))
@@ -112,6 +115,38 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         {
             throw friendly;
         }
+    }
+
+    // ---------- Archivos (P-018) ----------
+
+    /// <summary>Archivo de una columna binaria: contenido, nombre sugerido y tipo (deducido de sus primeros bytes).</summary>
+    public sealed record FileContent(byte[] Content, string FileName, string ContentType);
+
+    public async Task<FileContent?> GetFileAsync(
+        string conn, string schema, string table, IReadOnlyDictionary<string, string> key, string column, CancellationToken ct)
+    {
+        var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
+        var col = info.FindColumn(column) ?? throw new NotFoundException($"La columna '{column}' no existe.");
+        var keyValues = ParseKey(info, key);
+        var query = new QueryBuilder(ctx.Provider.Dialect).BuildGetFile(info, keyValues, col);
+        await using var db = await OpenAsync(ctx, ct);
+        if (await db.ExecuteScalarAsync<object?>(Command(query, ct)) is not byte[] bytes) return null;
+
+        var (ext, type) = Sniff(bytes);
+        var id = string.Join("-", info.PrimaryKey.Select(k => Convert.ToString(keyValues[k], System.Globalization.CultureInfo.InvariantCulture)));
+        return new FileContent(bytes, $"{info.Name}-{col.Name}-{id}{ext}", type);
+    }
+
+    /// <summary>Tipo por la firma de los primeros bytes; si no se reconoce, binario genérico.</summary>
+    private static (string Ext, string ContentType) Sniff(byte[] b)
+    {
+        bool Starts(params byte[] sig) => b.Length >= sig.Length && b.AsSpan(0, sig.Length).SequenceEqual(sig);
+        if (Starts(0x89, 0x50, 0x4E, 0x47)) return (".png", "image/png");
+        if (Starts(0xFF, 0xD8, 0xFF)) return (".jpg", "image/jpeg");
+        if (Starts(0x47, 0x49, 0x46, 0x38)) return (".gif", "image/gif");
+        if (Starts(0x25, 0x50, 0x44, 0x46)) return (".pdf", "application/pdf");
+        if (Starts(0x50, 0x4B, 0x03, 0x04)) return (".zip", "application/zip");
+        return (".bin", "application/octet-stream");
     }
 
     // ---------- Árboles (P-016) ----------
@@ -281,7 +316,10 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
     }
 
     /// <summary>Valida y convierte el cuerpo JSON; junta todos los errores para mostrarlos de una vez.</summary>
-    private static Dictionary<string, object?> ParseValues(TableInfo table, IReadOnlyDictionary<string, JsonElement> body)
+    /// <summary>Tamaño máximo de un archivo (columna binaria) al guardar.</summary>
+    private long MaxFileBytes => (long)Math.Max(1, options.FileMaxMegabytes) * 1024 * 1024;
+
+    private static Dictionary<string, object?> ParseValues(TableInfo table, IReadOnlyDictionary<string, JsonElement> body, long maxFileBytes)
     {
         var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         var errors = new Dictionary<string, string>();
@@ -294,7 +332,13 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
             if (col is null) { errors[name] = "la columna no existe"; continue; }
             if (col.IsReadOnly) continue;
 
-            try { values[col.Name] = ValueConverter.ForWrite(col, element); }
+            try
+            {
+                var value = ValueConverter.ForWrite(col, element);
+                if (value is byte[] file && file.LongLength > maxFileBytes)
+                    throw new ValidationException(col.Name, $"el archivo pesa más de {maxFileBytes / 1024 / 1024} MB (Crud:FileMaxMegabytes)");
+                values[col.Name] = value;
+            }
             catch (ValidationException ex) { foreach (var e in ex.Errors) errors[e.Key] = e.Value; }
         }
 

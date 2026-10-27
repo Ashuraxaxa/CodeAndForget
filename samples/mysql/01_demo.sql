@@ -114,3 +114,8 @@ INSERT INTO pedido (cliente_id, estado, monto_total)
 INSERT INTO pedido_detalle VALUES (1, 1, 1, 10, 690), (1, 2, 3, 5, 1490);
 INSERT INTO empleado (nombre) VALUES ('Ana Gerente');
 INSERT INTO empleado (nombre, jefe_id, hora_entrada) VALUES ('Luis Vendedor', 1, '09:00');
+
+-- Tipos de P-018: archivo (LONGBLOB) y punto geográfico (se lee como WKT).
+ALTER TABLE categoria ADD COLUMN icono LONGBLOB NULL;
+ALTER TABLE cliente ADD COLUMN ubicacion POINT NULL;
+UPDATE cliente SET ubicacion = ST_GeomFromText('POINT(-70.66 -33.45)') WHERE rut = '76.123.456-7';

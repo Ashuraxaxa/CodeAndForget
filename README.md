@@ -185,8 +185,12 @@ Todas las rutas (salvo `auth/config`, `auth/login` y health) requieren `Authoriz
 | POST | `/api/data/{conn}/{schema}/{table}/import` | Igual, y si no hay errores inserta todo en una transacción |
 | GET | `/api/data/{conn}/{schema}/{table}/row/links/{relación}?{pk}=…` | Valores vinculados por una relación N:M (`[{ value, label }]`) |
 | PUT | `/api/data/{conn}/{schema}/{table}/row/links/{relación}?{pk}=…` | Reemplaza la lista completa (`[1, 2, 3]`) en una transacción |
+| GET | `/api/data/{conn}/{schema}/{table}/row/file/{columna}?{pk}=…` | Descarga el archivo de una columna binaria (imágenes y PDF se ven en el navegador; `&download=1` fuerza la descarga) |
 
-En los listados, cada FK de una columna trae además `<columna>__label` con el texto de la tabla referenciada.
+En los listados, cada FK de una columna trae además `<columna>__label` con el texto de la tabla referenciada, y cada
+columna de archivo, `<columna>__size` con su tamaño en bytes (el contenido no viaja en el listado). Un archivo se
+guarda enviando su contenido en base64 (admite `data:…;base64,`) en el alta o la edición; `null` lo quita.
+Los arreglos de PostgreSQL viajan como listas JSON (`["a", "b"]`).
 
 ## Qué cubre la Fase 1
 
@@ -199,4 +203,4 @@ En los listados, cada FK de una columna trae además `<columna>__label` con el t
 
 **Pendiente para fases siguientes**: personalización (etiquetas, campos ocultos, columna a mostrar),
 maestro-detalle, N:M con selección múltiple, permisos por rol, auditoría, concurrencia optimista,
-SSO, caché distribuida y tipos especiales (arreglos, `geography`, `hierarchyid`, binarios).
+SSO, caché distribuida. (Los tipos especiales ya están: arreglos, archivos, `geography`/`geometry` y `hierarchyid` como texto, P-018.)

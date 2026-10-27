@@ -21,9 +21,20 @@ export function displayValue(col: Column, value: unknown): string {
         : String(value).replace('T', ' ').slice(0, 19)
     case 'Json':
       return typeof value === 'string' ? value : JSON.stringify(value)
+    case 'Array':
+      return Array.isArray(value) ? value.map(v => (v === null ? '∅' : String(v))).join(', ') : String(value)
     default:
       return String(value)
   }
+}
+
+/** Tamaño legible de un archivo: "12 KB". */
+export function fileSize(bytes: unknown): string {
+  const n = Number(bytes)
+  if (bytes === null || bytes === undefined || Number.isNaN(n)) return ''
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(n < 10 * 1024 ? 1 : 0)} KB`
+  return `${(n / 1024 / 1024).toFixed(1)} MB`
 }
 
 /** Valor del servidor → valor para el control del formulario. */
@@ -40,6 +51,9 @@ export function toInputValue(col: Column, value: unknown): string | boolean {
       return String(value).slice(0, 8)
     case 'Json':
       return typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+    case 'Array':
+      // Un valor por línea (P-018).
+      return Array.isArray(value) ? value.map(v => (v === null ? '' : String(v))).join('\n') : String(value)
     default:
       return String(value)
   }
@@ -50,6 +64,11 @@ export function fromInputValue(col: Column, value: unknown): unknown {
   if (col.type === 'Boolean') {
     if (typeof value === 'boolean') return value
     return value === '' ? null : value === 'true'
+  }
+  if (col.type === 'Array') {
+    // Un valor por línea; las líneas vacías se ignoran. Sin líneas = arreglo vacío (o nulo si se permite).
+    const items = String(value ?? '').split('\n').map(s => s.trim()).filter(s => s.length > 0)
+    return items.length === 0 && col.isNullable ? null : items
   }
   if (value === '' || value === undefined) {
     // Un texto vacío en una columna que acepta nulos se guarda como nulo.

@@ -110,3 +110,8 @@ INSERT INTO ventas.pedido (cliente_id, estado, monto_total)
 INSERT INTO ventas.pedido_detalle VALUES (1, 1, 1, 10, 690), (1, 2, 3, 5, 1490);
 INSERT INTO ventas.empleado (nombre) VALUES ('Ana Gerente');
 INSERT INTO ventas.empleado (nombre, jefe_id, hora_entrada) VALUES ('Luis Vendedor', 1, '09:00');
+
+-- Tipos de P-018: archivo (bytea) y arreglo (text[]).
+ALTER TABLE ventas.categoria ADD COLUMN icono bytea;
+ALTER TABLE ventas.cliente ADD COLUMN telefonos text[];
+UPDATE ventas.cliente SET telefonos = ARRAY['+56 2 2345 6789', '+56 9 8765 4321'] WHERE rut = '76.123.456-7';

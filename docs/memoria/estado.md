@@ -5,7 +5,7 @@
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) y árboles (PR #18). Siguiente: P-018, tipos pendientes, el último de la Fase 2.
+**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Siguiente: conversar el apartado de seguridad (Fase 3) con el dueño.
 
 ## Ramas y PR
 
@@ -13,6 +13,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 |---|---|
 | `main` | Rama por defecto. Fase 1, bloque M y Fase 2 hasta exportar/importar: PR #1 a #17. |
 | `feature/f2-arboles` | PR #18: árboles por autorreferencia. |
+| `feature/f2-tipos` | PR #19 (sale de la rama del #18): archivos, arreglos y tipos que solo se muestran. |
 | `feature/fase1-*`, `feature/m1-*`, `feature/m3-*` | Ya fusionadas en `main`; se pueden borrar (P-005). |
 
 ## Qué funciona hoy
@@ -32,6 +33,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 - **Ajustes sin tocar código** (D-049, `docs/ajustes.md`): etiquetas, grupos del menú, columnas ocultas, orden, solo lectura, obligatorias, patrón, rango, lista de opciones, control de la UI, columna a mostrar, orden por defecto, PK y FK virtuales. Se aplican al instante, los cambia quien tiene el permiso `ConfigureTables` (D-053) y lo que deja de aplicar se avisa en el menú. Se editan con **⚙ Configurar** (pestañas Tabla y Columnas, vista previa en vivo, restablecer) o por la API.
 - **SQL Server:** la inserción funciona también en tablas con triggers (D-010).
 - **Permisos por acción** (D-053): `ConfigureTables` y `ManageConnections`, cada uno otorgado a roles por configuración (por defecto `mnt-configurador` y `mnt-conexiones`; los administradores tienen todos). La UI oculta lo que el usuario no puede hacer.
+- **Tipos especiales** (D-059): archivos (subir, descargar, tamaño y tope), arreglos de PostgreSQL como lista, y `geography`/`geometry`/`hierarchyid` y tipos espaciales de MySQL como texto de solo lectura.
 - **Árboles** (D-058): las tablas con autorreferencia (p. ej. empleado → jefe) tienen vista de árbol por niveles, "＋ hijo" y validación de ciclos al guardar.
 - **Exportar e importar** (D-057): CSV, Excel, JSON y XML del listado filtrado, por streaming; importación de los mismos formatos con asociación de columnas, errores por fila y una sola transacción. 5.000 productos: validación en 0,4 s e importación en 2,3 s (PostgreSQL 16).
 - **Relaciones N:M** (D-056): las tablas puente se detectan solas; en el formulario, un selector múltiple (p. ej. las etiquetas de un producto) que se guarda con el registro, en una transacción.
@@ -51,10 +53,11 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 
 ## Cómo se verificó (2026-10-27)
 
-- 149 pruebas unitarias (`backend/tests/Mantenedores.Tests`): núcleo (incluidos los ajustes, el traductor de errores y las capacidades del dialecto), API en memoria (`HostingTests`, `AuthTests`, con el permiso de administrador para los ajustes) y metadata en SQLite y archivo (`MetadataStoreTests`), entre ellas dos instancias de la API que comparten base y llaves.
+- 155 pruebas unitarias (`backend/tests/Mantenedores.Tests`): núcleo (incluidos los ajustes, el traductor de errores y las capacidades del dialecto), API en memoria (`HostingTests`, `AuthTests`, con el permiso de administrador para los ajustes) y metadata en SQLite y archivo (`MetadataStoreTests`), entre ellas dos instancias de la API que comparten base y llaves.
 - Recorrido en navegador con la app publicada en `/mantenedores` contra PostgreSQL 12: login, conexión, alta con FK, recarga directa y salida. Ninguna petición sale de la subruta.
-- 191 pruebas de integración (incluye ajustes, cambios de esquema, filtro exacto, N:M, exportar/importar y árboles en la batería común y el almacén de metadata en PG 12/16 y SQL Server 2017/2022) (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
+- 199 pruebas de integración (incluye ajustes, cambios de esquema, filtro exacto, N:M, exportar/importar, árboles y archivos en la batería común; arreglos, geografía y jerarquía en las pruebas propias de cada motor y el almacén de metadata en PG 12/16 y SQL Server 2017/2022) (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
 - Login con **Keycloak 26** en el navegador: PKCE, vuelta a la app, API con el token, roles anidados (`realm_access.roles`), cierre de sesión sin confirmación; el token no queda en `localStorage`.
+- Tipos en navegador contra PostgreSQL 16: teléfonos de un cliente como lista y un ícono subido, guardado y descargado.
 - Árbol en navegador contra PostgreSQL 16: jerarquía de empleados, alta de un hijo, ciclo rechazado en el campo y vuelta a la vista de árbol.
 - Exportar e importar en navegador contra PostgreSQL 16: descarga a Excel desde la grilla; importación con un error por fila, asociación manual de columnas y confirmación.
 - N:M en navegador contra PostgreSQL 16: cambiar las etiquetas de un producto y crear uno con etiquetas desde su formulario.
@@ -74,7 +77,7 @@ Ver detalle en `pendientes.md`:
 - Oracle fuera de alcance (D-034).
 - Etiquetas y combos solo para FK de una columna (P-030).
 - No se detectan índices únicos que no son restricciones (P-031).
-- Arreglos, binarios, `geography` y `hierarchyid` no se editan (P-018).
+- `geography`/`geometry` y `hierarchyid` se ven pero no se editan (P-090).
 
 ## Notas del entorno de desarrollo remoto (sesiones de Claude Code en la nube)
 

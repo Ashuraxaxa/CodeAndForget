@@ -16,7 +16,18 @@ public sealed class SqlServerDialect : ISqlDialect
 
     /// <summary>decimal(29..38) puede no caber en decimal de .NET: se lee como texto (P-023).</summary>
     public string SelectExpression(ColumnInfo column, string columnExpr) =>
-        column.IsLargeNumber ? $"CAST({columnExpr} AS varchar(50))" : columnExpr;
+        column.IsLargeNumber ? $"CAST({columnExpr} AS varchar(50))"
+        // Tipos CLR de SQL Server (P-018): geography/geometry como WKT y hierarchyid como ruta ("/1/2/").
+        : column.Type == LogicalType.ReadOnlyText && column.NativeType.Equals("hierarchyid", StringComparison.OrdinalIgnoreCase)
+            ? $"{columnExpr}.ToString()"
+        : column.Type == LogicalType.ReadOnlyText ? $"{columnExpr}.STAsText()"
+        : columnExpr;
+
+    public string ByteLength(string columnExpr) => $"DATALENGTH({columnExpr})";
+
+    /// <summary>Un nulo sin tipo llega como nvarchar, que SQL Server no convierte a varbinary: se fija el tipo (P-018).</summary>
+    public string ParameterFor(ColumnInfo column, string param) =>
+        column.Type == LogicalType.Binary ? $"CAST({param} AS varbinary(max))" : param;
 
     /// <summary>
     /// Usa OUTPUT ... INTO una variable de tabla: un OUTPUT directo falla si la tabla tiene triggers,

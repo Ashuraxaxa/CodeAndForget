@@ -49,4 +49,38 @@ public class ValueConverterTests
         Assert.Null(ValueConverter.FromString(C(LogicalType.Integer, nullable: true), ""));
         Assert.Equal("", ValueConverter.FromString(C(LogicalType.String), ""));
     }
+
+    [Fact]
+    public void Binario_en_base64_y_arreglo_validado_por_elemento()
+    {
+        var file = C(LogicalType.Binary, nullable: true);
+        Assert.Equal(new byte[] { 1, 2, 3 }, ValueConverter.FromJson(file, J("\"AQID\"")));
+        Assert.Equal(new byte[] { 1, 2, 3 }, ValueConverter.FromJson(file, J("\"data:image/png;base64,AQID\"")));
+        Assert.Throws<ValidationException>(() => ValueConverter.FromJson(file, J("\"no es base64!\"")));
+
+        var ints = new ColumnInfo { Name = "c", NativeType = "_int4", Type = LogicalType.Array, ElementType = LogicalType.Integer, ElementNativeType = "int4", IsNullable = true };
+        Assert.Equal(new string?[] { "1", "2", null }, ValueConverter.FromJson(ints, J("[1, \"2\", null]")));
+        Assert.Equal(new string?[] { "3" }, ValueConverter.FromString(ints, "[3]")); // desde una importación
+        var ex = Assert.Throws<ValidationException>(() => ValueConverter.FromJson(ints, J("[1, \"x\"]")));
+        Assert.StartsWith("elemento 2:", ex.Errors["c"]);
+
+        var dates = ints with { ElementType = LogicalType.Date, ElementNativeType = "date" };
+        Assert.Equal(new string?[] { "2026-01-31" }, ValueConverter.FromJson(dates, J("[\"2026-01-31\"]")));
+    }
+
+    [Fact]
+    public void Columnas_de_tipos_especiales()
+    {
+        var geo = C(LogicalType.ReadOnlyText, nullable: true);
+        Assert.True(geo.IsSelectable);
+        Assert.True(geo.IsReadOnly);
+        Assert.False(geo.IsSortable);
+        Assert.False(geo.IsFilterable);
+
+        var file = C(LogicalType.Binary, nullable: true);
+        Assert.False(file.IsSelectable); // no viaja en el listado
+        Assert.False(file.IsReadOnly);   // pero se puede escribir
+        Assert.True(file.IsFile);
+        Assert.False((file with { IsRowVersion = true }).IsFile);
+    }
 }

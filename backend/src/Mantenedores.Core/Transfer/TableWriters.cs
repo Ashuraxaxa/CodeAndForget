@@ -92,6 +92,7 @@ public sealed class JsonTableWriter(Stream output) : ITableWriter
                 case null or DBNull: _w.WriteNullValue(); break;
                 case bool b: _w.WriteBooleanValue(b); break;
                 case var n when TransferFormats.IsNumber(n): _w.WriteRawValue(TransferFormats.ToText(n)!); break;
+                case System.Collections.IEnumerable and not string and not byte[]: _w.WriteRawValue(TransferFormats.ToText(values[i])!); break;
                 case var v: _w.WriteStringValue(TransferFormats.ToText(v)); break;
             }
         }

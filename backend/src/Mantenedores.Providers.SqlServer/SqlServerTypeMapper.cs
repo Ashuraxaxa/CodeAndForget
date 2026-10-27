@@ -21,7 +21,9 @@ public static class SqlServerTypeMapper
             "time" => (LogicalType.Time, false),
             "uniqueidentifier" => (LogicalType.Uuid, false),
             "binary" or "varbinary" or "image" or "timestamp" or "rowversion" => (LogicalType.Binary, false),
-            // geography, geometry, hierarchyid, sql_variant: requieren tratamiento especial (Fase 2).
+            // Tipos CLR (P-018): se leen como texto (WKT o ruta) y no se editan.
+            "geography" or "geometry" or "hierarchyid" => (LogicalType.ReadOnlyText, false),
+            // sql_variant y otros: sin soporte.
             _ => (LogicalType.Unsupported, false)
         };
 

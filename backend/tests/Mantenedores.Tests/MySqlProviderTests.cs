@@ -18,7 +18,8 @@ public class MySqlProviderTests
     [InlineData("json", "json", null, LogicalType.Json)]
     [InlineData("enum", "enum('a','b')", null, LogicalType.Enum)]
     [InlineData("timestamp", "timestamp", null, LogicalType.DateTime)]
-    [InlineData("geometry", "geometry", null, LogicalType.Unsupported)]
+    [InlineData("geometry", "geometry", null, LogicalType.ReadOnlyText)]
+    [InlineData("point", "point", null, LogicalType.ReadOnlyText)]
     public void Mapea_tipos(string dataType, string columnType, int? length, LogicalType expected) =>
         Assert.Equal(expected, MySqlTypeMapper.Map(dataType, columnType, length));
 

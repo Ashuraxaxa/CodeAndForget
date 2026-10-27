@@ -15,6 +15,9 @@ public sealed class QueryBuilder(ISqlDialect dialect)
 {
     public const string LabelSuffix = "__label";
 
+    /// <summary>Sufijo del tamaño en bytes de un archivo en las filas (P-018): "foto__size".</summary>
+    public const string SizeSuffix = "__size";
+
     /// <summary>
     /// Carácter de escape de LIKE, igual en todos los motores (P-024). No se usa "\" porque en MySQL
     /// su significado depende de <c>NO_BACKSLASH_ESCAPES</c>.
@@ -231,6 +234,15 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         return new SqlQuery(sql, p.Snapshot());
     }
 
+    /// <summary>El contenido de un archivo de un registro (P-018).</summary>
+    public SqlQuery BuildGetFile(TableInfo table, IReadOnlyDictionary<string, object?> key, ColumnInfo column)
+    {
+        if (!column.IsFile) throw new ValidationException(column.Name, "no es una columna de archivo");
+        var p = new ParamBag(dialect.ParameterPrefix);
+        var where = KeyPredicate(table, key, p, "");
+        return new SqlQuery($"SELECT {dialect.Quote(column.Name)} FROM {dialect.Table(table.Schema, table.Name)} WHERE {where}", p.Snapshot());
+    }
+
     /// <summary>El padre de un registro (un paso hacia la raíz), para detectar ciclos.</summary>
     public SqlQuery BuildParentOf(TableInfo table, object? key)
     {
@@ -287,6 +299,14 @@ public sealed class QueryBuilder(ISqlDialect dialect)
                       $"ON {join}.{dialect.Quote(fk.RefColumns[0])} = {Base}.{dialect.Quote(fk.Columns[0])}");
             parts.Add(SelectColumn(display, join, alias, forceAlias: true));
             renames[alias] = fk.Columns[0] + LabelSuffix;
+        }
+
+        // Tamaño de cada archivo (P-018): el contenido no viaja en el listado, se descarga aparte.
+        foreach (var file in table.Columns.Where(c => c.IsFile))
+        {
+            var alias = $"__sz{i++}";
+            parts.Add($"{dialect.ByteLength($"{Base}.{dialect.Quote(file.Name)}")} AS {dialect.Quote(alias)}");
+            renames[alias] = file.Name + SizeSuffix;
         }
 
         return (string.Join(", ", parts), string.Concat(joins), renames);

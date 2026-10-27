@@ -211,3 +211,7 @@ select.export { width: auto; }
 .tree-toggle { border: none; background: none; width: 22px; padding: 0; font-size: 0.95rem; }
 .tree-toggle:disabled { opacity: 0.5; }
 .tree-indent { margin-left: 32px; }
+
+/* ---------- Archivos (P-018) ---------- */
+.file-field { display: flex; flex-direction: column; gap: 6px; }
+.file-field input[type=file] { width: auto; }

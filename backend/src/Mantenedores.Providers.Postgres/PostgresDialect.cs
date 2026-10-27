@@ -19,6 +19,8 @@ public sealed class PostgresDialect : ISqlDialect
         LogicalType.Decimal when column.IsLargeNumber => $"CAST({param} AS numeric)",
         LogicalType.Json => $"CAST({param} AS {(column.NativeType == "json" ? "json" : "jsonb")})",
         LogicalType.Enum => $"CAST({param} AS {Quote(column.NativeTypeSchema ?? "public")}.{Quote(column.NativeType)})",
+        // Arreglos (P-018): llegan como text[] y se convierten al arreglo de la columna (int4[], date[]…).
+        LogicalType.Array => $"CAST({param} AS {Quote(column.ElementNativeTypeSchema ?? "pg_catalog")}.{Quote(column.ElementNativeType ?? "text")}[])",
         _ => param
     };
 
@@ -29,7 +31,12 @@ public sealed class PostgresDialect : ISqlDialect
     ///   ("-.-" desconocido) no se podría leer. Como texto no depende de esa caché.
     /// </summary>
     public string SelectExpression(ColumnInfo column, string columnExpr) =>
-        column.IsLargeNumber || column.Type == LogicalType.Enum ? $"CAST({columnExpr} AS text)" : columnExpr;
+        column.IsLargeNumber || column.Type == LogicalType.Enum ? $"CAST({columnExpr} AS text)"
+        // PostGIS (P-018): geometry/geography como WKT, de solo lectura.
+        : column.Type == LogicalType.ReadOnlyText ? $"ST_AsText({columnExpr})"
+        // Arreglos (P-018) como text[]: Npgsql no lee un int4[] con nulos como int[], y la UI edita cada elemento como texto.
+        : column.Type == LogicalType.Array ? $"CAST({columnExpr} AS text[])"
+        : columnExpr;
 
     public string? InsertReturningKeys(string table, IReadOnlyList<string> columns, IReadOnlyList<string> values, IReadOnlyList<ColumnInfo> keyColumns)
     {

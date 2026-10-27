@@ -258,7 +258,7 @@ Guía de uso: [ajustes.md](ajustes.md). Decisiones: D-049 a D-051.
 - Se graba en una transacción por lotes; si algo falla, no queda nada a medias.
 - **Listo cuando:** se pueden cargar 5.000 productos con validación previa.
 
-### 1.9 Tipos pendientes (3 días)
+### 1.9 Tipos pendientes (3 días) · ✅ PR #19 — **Fase 2 completa**
 - Arreglos de Postgres: editar como lista de valores.
 - Binarios: descargar y subir archivos, con tope de tamaño.
 - `geography` / `geometry`: solo lectura, mostrados como texto WKT.

@@ -37,7 +37,9 @@ public sealed class PostgresSchemaProvider : ISchemaProvider
                CASE WHEN COALESCE(bt.typname, t.typname) = 'numeric' AND a.atttypmod > 0
                     THEN ((a.atttypmod - 4) >> 16) & 65535 END AS NumericPrecision,
                CASE WHEN COALESCE(bt.typname, t.typname) = 'numeric' AND a.atttypmod > 0
-                    THEN (a.atttypmod - 4) & 65535 END AS NumericScale
+                    THEN (a.atttypmod - 4) & 65535 END AS NumericScale,
+               et.typname AS ElementTypeName, et.typtype::text AS ElementTypeKind,
+               et.typcategory::text AS ElementTypeCategory, etn.nspname AS ElementTypeSchema
         FROM pg_attribute a
         JOIN pg_class c ON c.oid = a.attrelid
         JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -46,6 +48,9 @@ public sealed class PostgresSchemaProvider : ISchemaProvider
         LEFT JOIN pg_type bt ON t.typtype = 'd' AND bt.oid = t.typbasetype
         LEFT JOIN pg_namespace btn ON btn.oid = bt.typnamespace
         LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
+        LEFT JOIN pg_type et ON et.oid = COALESCE(bt.typelem, t.typelem)
+              AND COALESCE(bt.typcategory, t.typcategory) = 'A'
+        LEFT JOIN pg_namespace etn ON etn.oid = et.typnamespace
         WHERE a.attnum > 0 AND NOT a.attisdropped
           AND c.relkind IN ('r', 'p', 'v', 'm') AND NOT c.relispartition AND {SchemaFilter}
         ORDER BY 1, 2, 4
@@ -94,6 +99,11 @@ public sealed class PostgresSchemaProvider : ISchemaProvider
     private static ColumnInfo ToColumn(ColumnRow c, IReadOnlyDictionary<(string, string), IReadOnlyList<string>> enums)
     {
         var (type, tz) = PostgresTypeMapper.Map(c.TypeName, c.TypeKind, c.TypeCategory);
+        // Arreglos (P-018): editables como lista si el elemento es un tipo simple.
+        var element = type == LogicalType.Array
+            ? PostgresTypeMapper.MapElement(c.ElementTypeName, c.ElementTypeKind, c.ElementTypeCategory)
+            : null;
+        if (type == LogicalType.Array && element is null) type = LogicalType.Unsupported;
         var isSerial = c.DefaultExpr?.StartsWith("nextval(", StringComparison.OrdinalIgnoreCase) == true;
         return new ColumnInfo
         {
@@ -115,7 +125,10 @@ public sealed class PostgresSchemaProvider : ISchemaProvider
             IsLargeNumber = c.TypeName == "numeric" && (c.NumericPrecision is null || c.NumericPrecision > 28),
             // json y xml no tienen operador de igualdad ni de orden en Postgres (jsonb sí).
             Sortable = c.TypeName is not ("json" or "xml"),
-            Filterable = c.TypeName is not ("json" or "xml")
+            Filterable = c.TypeName is not ("json" or "xml"),
+            ElementType = element,
+            ElementNativeType = element is null ? null : c.ElementTypeName,
+            ElementNativeTypeSchema = element is null ? null : c.ElementTypeSchema
         };
     }
 
@@ -149,6 +162,10 @@ public sealed class PostgresSchemaProvider : ISchemaProvider
         public int? MaxLength { get; set; }
         public int? NumericPrecision { get; set; }
         public int? NumericScale { get; set; }
+        public string? ElementTypeName { get; set; }
+        public string? ElementTypeKind { get; set; }
+        public string? ElementTypeCategory { get; set; }
+        public string? ElementTypeSchema { get; set; }
     }
 
     private sealed class KeyRow

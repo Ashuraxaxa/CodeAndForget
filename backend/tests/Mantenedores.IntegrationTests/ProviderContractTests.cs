@@ -692,4 +692,41 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
             await Db.Crud.DeleteAsync(Conn, Schema, N("empleado"), Key((N("id"), nuevo[N("id")]!)), default);
         }
     }
+    // ---------- Archivos (P-018) ----------
+
+    [Fact]
+    public async Task Archivo_se_sube_en_base64_se_descarga_y_se_quita()
+    {
+        var categoria = await TableAsync("categoria");
+        var icono = categoria.FindColumn(N("icono"))!;
+        Assert.True(icono.IsFile);
+        Assert.False(icono.IsSelectable); // el contenido no va en el listado
+
+        byte[] png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4];
+        var key = Key((N("id"), 2));
+        try
+        {
+            var updated = await Db.Crud.UpdateAsync(Conn, Schema, N("categoria"), key,
+                Body((N("icono"), "data:image/png;base64," + Convert.ToBase64String(png))), default);
+            Assert.Equal(png.Length, Convert.ToInt32(updated[N("icono") + QueryBuilder.SizeSuffix]));
+            Assert.False(updated.ContainsKey(N("icono")));
+
+            var file = await Db.Crud.GetFileAsync(Conn, Schema, N("categoria"), key, N("icono"), default);
+            Assert.Equal(png, file!.Content);
+            Assert.Equal("image/png", file.ContentType);
+            Assert.EndsWith(".png", file.FileName);
+
+            // Con un tope de 1 MB, un archivo más grande se rechaza en el campo.
+            var chica = new Core.Services.CrudService(Db.Schemas, new Core.Services.CrudOptions { FileMaxMegabytes = 1 });
+            var ex = await Assert.ThrowsAsync<ValidationException>(() => chica.UpdateAsync(Conn, Schema, N("categoria"), key,
+                Body((N("icono"), Convert.ToBase64String(new byte[1024 * 1024 + 1]))), default));
+            Assert.Contains("MB", ex.Errors.Values.Single());
+        }
+        finally
+        {
+            var cleared = await Db.Crud.UpdateAsync(Conn, Schema, N("categoria"), key, Body((N("icono"), null)), default);
+            Assert.Null(cleared[N("icono") + QueryBuilder.SizeSuffix]);
+        }
+        Assert.Null(await Db.Crud.GetFileAsync(Conn, Schema, N("categoria"), key, N("icono"), default));
+    }
 }

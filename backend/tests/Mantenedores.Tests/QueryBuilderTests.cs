@@ -23,7 +23,8 @@ public class QueryBuilderTests
         });
 
         Assert.Equal(
-            "SELECT t0.\"id\", t0.\"codigo\", t0.\"categoria_id\", t0.\"precio\", t0.\"notas\", j0.\"nombre\" AS \"__lbl0\" " +
+            "SELECT t0.\"id\", t0.\"codigo\", t0.\"categoria_id\", t0.\"precio\", t0.\"notas\", j0.\"nombre\" AS \"__lbl0\", " +
+            "OCTET_LENGTH(t0.\"foto\") AS \"__sz1\" " +
             "FROM \"ventas\".\"producto\" t0 LEFT JOIN \"ventas\".\"categoria\" j0 ON j0.\"id\" = t0.\"categoria_id\" " +
             "WHERE CAST(t0.\"codigo\" AS text) ILIKE @p0 ESCAPE '!' AND t0.\"categoria_id\" = @p1 " +
             "ORDER BY t0.\"precio\" DESC, t0.\"id\" ASC LIMIT @p3 OFFSET @p2",
@@ -45,10 +46,13 @@ public class QueryBuilderTests
     }
 
     [Fact]
-    public void Las_columnas_binarias_no_se_seleccionan()
+    public void Las_columnas_binarias_no_se_seleccionan_solo_su_tamano()
     {
         var (data, _) = new QueryBuilder(new PostgresDialect()).BuildList(_schema, Producto, new ListRequest());
-        Assert.DoesNotContain("foto", data.Sql);
+        Assert.DoesNotContain("t0.\"foto\",", data.Sql); // el contenido no viaja en el listado (P-018)
+        Assert.Contains("OCTET_LENGTH(t0.\"foto\") AS \"__sz1\"", data.Sql);
+        Assert.Equal("foto" + QueryBuilder.SizeSuffix, data.Renames!["__sz1"]);
+        Assert.Contains("DATALENGTH(t0.[foto])", new QueryBuilder(new SqlServerDialect()).BuildList(_schema, Producto, new ListRequest()).Data.Sql);
     }
 
     [Fact]

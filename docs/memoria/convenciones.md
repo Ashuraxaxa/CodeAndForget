@@ -32,7 +32,7 @@
   - `OperationNotAllowedException` → 400.
   - `DbException` → 409.
 - Pruebas con xUnit; nombres en español y descriptivos (`Rechaza_columnas_que_no_estan_en_la_metadata`).
-- Antes de hacer push: `dotnet build` sin advertencias y `dotnet test` en verde.
+- Antes de hacer push: `dotnet build Mantenedores.sln -warnaserror` (igual que la CI: una advertencia rompe el build) y `dotnet test` en verde.
 
 ## Frontend (React)
 

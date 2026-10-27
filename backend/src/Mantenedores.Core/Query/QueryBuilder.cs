@@ -89,24 +89,33 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         if (dialect.InsertReturningKeys(tableSql, cols, exprs, keyCols) is { } returning)
             return new InsertQuery(new SqlQuery(returning, p.Snapshot()), null);
 
-        var insert = dialect.Insert(tableSql, cols, exprs);
-
         if (keyCols is [{ IsIdentity: true } identity] && dialect.LastInsertIdExpression is { } lastId)
-            return new InsertQuery(
-                new SqlQuery($"{insert}; SELECT {lastId} AS {dialect.Quote(identity.Name)}", p.Snapshot()), null);
+            return new InsertQuery(new SqlQuery(
+                $"{dialect.Insert(tableSql, cols, exprs)}; SELECT {lastId} AS {dialect.Quote(identity.Name)}", p.Snapshot()), null);
 
         var provided = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         foreach (var k in keyCols)
         {
             var entry = values.FirstOrDefault(v => string.Equals(v.Key, k.Name, StringComparison.OrdinalIgnoreCase));
-            if (entry.Key is not null && entry.Value is not null) provided[k.Name] = entry.Value;
+            if (entry.Key is not null && entry.Value is not null)
+            {
+                provided[k.Name] = entry.Value;
+            }
+            else if (k is { Type: LogicalType.Uuid, HasDefault: true, IsReadOnly: false })
+            {
+                // El motor generaría el UUID pero no puede devolverlo (MySQL): lo genera la app y lo envía (D-040).
+                var id = Guid.NewGuid();
+                provided[k.Name] = id;
+                cols.Add(dialect.Quote(k.Name));
+                exprs.Add(dialect.ParameterFor(k, p.Add(id)));
+            }
         }
         var missingKey = keyCols.Where(k => !provided.ContainsKey(k.Name)).ToList();
         if (missingKey.Count > 0)
             throw new ValidationException(missingKey.ToDictionary(k => k.Name,
                 _ => "este motor no puede devolver la clave que genera: ingrese el valor"));
 
-        return new InsertQuery(new SqlQuery(insert, p.Snapshot()), provided);
+        return new InsertQuery(new SqlQuery(dialect.Insert(tableSql, cols, exprs), p.Snapshot()), provided);
     }
 
     public SqlQuery BuildUpdate(TableInfo table, IReadOnlyDictionary<string, object?> key, IReadOnlyDictionary<string, object?> values)

@@ -5,7 +5,7 @@
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-**Cierre de la Fase 1 terminado** (PR #4, #5 y #6). **Bloque M en curso:** M.1 (abstracciones del dialecto) en el PR #7; sigue M.3, el proveedor MySQL/MariaDB (P-025, P-027, P-029). Después, la **Fase 2**.
+**Cierre de la Fase 1 terminado** (PR #4 a #6). **Bloque M terminado:** M.1 en el PR #7 y MySQL/MariaDB en el PR #8. Próximo: **Fase 2**, empezando por P-041 (autenticación configurable) y P-010 (metadata configurable).
 
 ## Ramas y PR
 
@@ -13,12 +13,13 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 |---|---|
 | `main` | Rama por defecto. Fase 1 completa: PR #1 a #6. |
 | `feature/m1-abstracciones-dialecto` | PR #7: estrategia de inserción, alias cortos, capacidades por columna, números grandes, escape neutro, versión al conectar. |
+| `feature/m3-mysql-mariadb` | PR #8 (sobre el #7): proveedor MySQL/MariaDB, base de ejemplo, matriz de CI y UI. |
 | `feature/fase1-*` | Ya fusionadas en `main`; se pueden borrar (P-005). |
 
 ## Qué funciona hoy
 
 - **Conexiones:** alta, edición, prueba y borrado. La cadena de conexión se guarda cifrada en `data/connections.json` (D-011).
-- **Lectura de esquema** en SQL Server y PostgreSQL:
+- **Lectura de esquema** en SQL Server, PostgreSQL, MySQL y MariaDB:
   - Tablas, vistas, columnas y tipos.
   - PK simples y compuestas, restricciones UNIQUE y FK.
   - Identity, serial, columnas calculadas y `rowversion`.
@@ -43,10 +44,11 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 
 ## Cómo se verificó (2026-10-27)
 
-- 63 pruebas unitarias del núcleo (`backend/tests/Mantenedores.Tests`), incluidos el traductor de errores y las capacidades del dialecto (con un dialecto de prueba sin `RETURNING` y con parámetros `:`).
+- 82 pruebas unitarias del núcleo (`backend/tests/Mantenedores.Tests`), incluidos el traductor de errores y las capacidades del dialecto (con un dialecto de prueba sin `RETURNING` y con parámetros `:`).
 - 7 pruebas de la API en memoria (`HostingTests`): subruta, `<base href>`, health checks y 404 de API.
 - Recorrido en navegador con la app publicada en `/mantenedores` contra PostgreSQL 12: login, conexión, alta con FK, recarga directa y salida. Ninguna petición sale de la subruta.
-- 65 pruebas de integración (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16** y **SQL Server 2017 y 2022** (D-035).
+- 137 pruebas de integración (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
+- Recorrido en navegador contra MySQL 8.0: prueba de conexión con versión, alta con combo FK (`LAST_INSERT_ID`), duplicado traducido en el campo y cliente con UUID generado por la app.
 - API probada a mano contra PostgreSQL 16 y SQL Server 2022 reales, con las bases de `samples/`.
 - Flujo completo en navegador con Playwright (escritorio y móvil).
 - CI de GitHub en verde (PR #1 y `main`).
@@ -55,7 +57,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 ## Limitaciones conocidas
 
 Ver detalle en `pendientes.md`:
-- Solo SQL Server y PostgreSQL implementados; MySQL/MariaDB en el bloque M (P-025). Oracle fuera de alcance (D-034).
+- Oracle fuera de alcance (D-034).
 - Etiquetas y combos solo para FK de una columna (P-030).
 - No se detectan índices únicos que no son restricciones (P-031).
 - Arreglos, binarios, `geography` y `hierarchyid` no se editan (P-018).
@@ -64,6 +66,6 @@ Ver detalle en `pendientes.md`:
 
 - .NET 8 no viene instalado: `apt-get update && apt-get install -y dotnet-sdk-8.0`.
 - Postgres 16 local disponible en `/usr/lib/postgresql/16/bin` (`initdb` + `pg_ctl` como usuario `postgres`).
-- Docker requiere iniciar el daemon a mano (`dockerd &`). Docker Hub responde 429 (límite de descargas): usar el espejo `mirror.gcr.io/library/postgres:12` vía `MANTENEDORES_PG_IMAGE` y `TESTCONTAINERS_RYUK_DISABLED=true`. Las imágenes de SQL Server (mcr.microsoft.com) bajan sin problema.
+- Docker requiere iniciar el daemon a mano (`dockerd &`). Docker Hub responde 429 (límite de descargas): usar el espejo `mirror.gcr.io/library/<imagen>` (postgres, mysql, mariadb) vía `MANTENEDORES_*_IMAGE` y `TESTCONTAINERS_RYUK_DISABLED=true`. Las imágenes de SQL Server (mcr.microsoft.com) bajan sin problema.
 - Dentro de `docker build` no hay acceso a NuGet, por eso la imagen no se pudo compilar ahí.
 - Borrar ramas remotas o hacer force-push está bloqueado por permisos de la sesión: lo hace el dueño desde GitHub.

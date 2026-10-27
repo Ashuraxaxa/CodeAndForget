@@ -75,6 +75,7 @@ button.link.danger { color: var(--danger); }
 .badge { font-size: 0.75rem; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
 .badge-mssql { background: #fde8e4; color: #a3321f; }
 .badge-pg { background: #e3ecfb; color: #1f4f9c; }
+.badge-mysql { background: #e6f4ea; color: #1e6b3a; }
 .chip { display: inline-block; margin: 2px 4px 2px 0; padding: 2px 8px; border: 1px solid var(--border); border-radius: 12px; }
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }

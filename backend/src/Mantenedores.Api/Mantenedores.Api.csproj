@@ -4,6 +4,7 @@
     <ProjectReference Include="..\Mantenedores.Core\Mantenedores.Core.csproj" />
     <ProjectReference Include="..\Mantenedores.Providers.SqlServer\Mantenedores.Providers.SqlServer.csproj" />
     <ProjectReference Include="..\Mantenedores.Providers.Postgres\Mantenedores.Providers.Postgres.csproj" />
+    <ProjectReference Include="..\Mantenedores.Providers.MySql\Mantenedores.Providers.MySql.csproj" />
   </ItemGroup>
 
   <ItemGroup>

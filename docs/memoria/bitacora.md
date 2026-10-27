@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Bloque M.3: MySQL y MariaDB
+- Nuevo `Mantenedores.Providers.MySql` (MySqlConnector) para ambos motores, con sus particularidades en el proveedor (D-045).
+- Core: UUID de la PK generado por la app si el motor no puede devolverlo (D-044); fechas con zona devueltas como UTC.
+- `samples/mysql/01_demo.sql`, equivalente a las otras bases. `docker-compose` con `mysql-demo`.
+- La batería común pasó **a la primera** en MySQL 8.0/8.4 y MariaDB 10.6/11.4: 137 pruebas de integración en verde en los cuatro motores.
+- CI con MySQL y MariaDB en la matriz; UI con el motor nuevo. Probado en navegador.
+- **Bloque M terminado.** Siguiente: Fase 2 (P-041 y P-010).
+
 ## 2026-10-27 · Bloque M.1: abstracciones del dialecto
 - Estrategia de inserción en tres pasos (devuelta, último id, provista) y prefijo de parámetros en el dialecto (D-040).
 - Alias cortos para etiquetas de FK; números de más de 28 dígitos como texto (D-041).

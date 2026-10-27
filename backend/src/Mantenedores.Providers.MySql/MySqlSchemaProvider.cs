@@ -1,0 +1,167 @@
+using System.Data.Common;
+using Dapper;
+using Mantenedores.Core.Providers;
+using Mantenedores.Core.Schema;
+
+namespace Mantenedores.Providers.MySql;
+
+/// <summary>
+/// Lee el catálogo desde information_schema. En MySQL el "esquema" es la base de datos (D-032):
+/// por defecto se expone solo la base de la cadena de conexión; la conexión puede listar más.
+/// </summary>
+public sealed class MySqlSchemaProvider : ISchemaProvider
+{
+    // Filtro de esquemas: la base actual, o la lista configurada en la conexión.
+    private const string SchemaFilter = "(@all = 0 AND {0} = DATABASE() OR @all = 1 AND {0} IN @schemas)";
+
+    private static string Filter(string column) => string.Format(SchemaFilter, column);
+
+    private static readonly string TablesSql = $"""
+        SELECT TABLE_SCHEMA AS SchemaName, TABLE_NAME AS TableName, TABLE_TYPE AS Kind
+        FROM information_schema.TABLES
+        WHERE {Filter("TABLE_SCHEMA")}
+        ORDER BY TABLE_SCHEMA, TABLE_NAME
+        """;
+
+    private static readonly string ColumnsSql = $"""
+        SELECT TABLE_SCHEMA AS SchemaName, TABLE_NAME AS TableName, COLUMN_NAME AS ColumnName,
+               CAST(ORDINAL_POSITION AS SIGNED) AS Ordinal, DATA_TYPE AS DataType, COLUMN_TYPE AS ColumnType,
+               IS_NULLABLE AS IsNullable, COLUMN_DEFAULT AS DefaultValue, EXTRA AS Extra,
+               CAST(CHARACTER_MAXIMUM_LENGTH AS SIGNED) AS MaxLength,
+               CAST(NUMERIC_PRECISION AS SIGNED) AS NumericPrecision, CAST(NUMERIC_SCALE AS SIGNED) AS NumericScale
+        FROM information_schema.COLUMNS
+        WHERE {Filter("TABLE_SCHEMA")}
+        ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION
+        """;
+
+    private static readonly string KeysSql = $"""
+        SELECT tc.CONSTRAINT_NAME AS ConstraintName, tc.CONSTRAINT_TYPE AS ConstraintType,
+               k.TABLE_SCHEMA AS SchemaName, k.TABLE_NAME AS TableName, k.COLUMN_NAME AS ColumnName,
+               CAST(k.ORDINAL_POSITION AS SIGNED) AS Position,
+               k.REFERENCED_TABLE_SCHEMA AS RefSchema, k.REFERENCED_TABLE_NAME AS RefTable, k.REFERENCED_COLUMN_NAME AS RefColumn
+        FROM information_schema.TABLE_CONSTRAINTS tc
+        JOIN information_schema.KEY_COLUMN_USAGE k
+          ON k.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA AND k.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+         AND k.TABLE_SCHEMA = tc.TABLE_SCHEMA AND k.TABLE_NAME = tc.TABLE_NAME
+        WHERE tc.CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE', 'FOREIGN KEY') AND {Filter("tc.TABLE_SCHEMA")}
+        ORDER BY k.TABLE_SCHEMA, k.TABLE_NAME, tc.CONSTRAINT_NAME, k.ORDINAL_POSITION
+        """;
+
+    // MariaDB guarda JSON como LONGTEXT con un CHECK json_valid(`columna`): así se detecta.
+    private static readonly string MariaDbJsonSql = $"""
+        SELECT CONSTRAINT_SCHEMA AS SchemaName, TABLE_NAME AS TableName, CHECK_CLAUSE AS Clause
+        FROM information_schema.CHECK_CONSTRAINTS
+        WHERE CHECK_CLAUSE LIKE 'json_valid(%' AND {Filter("CONSTRAINT_SCHEMA")}
+        """;
+
+    public async Task<DatabaseSchema> ReadAsync(DbConnection connection, IReadOnlyCollection<string>? includeSchemas, CancellationToken ct)
+    {
+        var args = new { all = includeSchemas is { Count: > 0 } ? 1 : 0, schemas = includeSchemas?.ToArray() ?? ["-"] };
+
+        var tables = await connection.QueryAsync<TableRow>(new CommandDefinition(TablesSql, args, cancellationToken: ct));
+        var columns = await connection.QueryAsync<ColumnRow>(new CommandDefinition(ColumnsSql, args, cancellationToken: ct));
+        var keys = await connection.QueryAsync<KeyRow>(new CommandDefinition(KeysSql, args, cancellationToken: ct));
+
+        var version = await connection.ExecuteScalarAsync<string>(new CommandDefinition("SELECT VERSION()", cancellationToken: ct)) ?? "";
+        var mariaJson = new HashSet<(string, string, string)>();
+        if (version.Contains("MariaDB", StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var j in await connection.QueryAsync<JsonCheckRow>(new CommandDefinition(MariaDbJsonSql, args, cancellationToken: ct)))
+            {
+                var col = j.Clause.Split('`').ElementAtOrDefault(1);
+                if (col is not null) mariaJson.Add((j.SchemaName.ToLowerInvariant(), j.TableName.ToLowerInvariant(), col.ToLowerInvariant()));
+            }
+        }
+
+        return SchemaAssembler.Assemble(
+            tables.Select(t => new RawTable(t.SchemaName, t.TableName, t.Kind == "VIEW" ? TableKind.View : TableKind.Table)),
+            columns.Select(c => new RawColumn(c.SchemaName, c.TableName,
+                ToColumn(c, mariaJson.Contains((c.SchemaName.ToLowerInvariant(), c.TableName.ToLowerInvariant(), c.ColumnName.ToLowerInvariant()))))),
+            keys.Select(ToKey),
+            includeSchemas);
+    }
+
+    private static ColumnInfo ToColumn(ColumnRow c, bool isMariaDbJson)
+    {
+        var length = c.MaxLength is > int.MaxValue ? null : (int?)c.MaxLength;
+        var type = isMariaDbJson ? LogicalType.Json : MySqlTypeMapper.Map(c.DataType, c.ColumnType, length);
+        var extra = c.Extra.ToLowerInvariant();
+        var isDecimal = c.DataType is "decimal" or "numeric";
+
+        // MariaDB informa "NULL" (texto) como default de las columnas nullable sin default.
+        var hasDefault = c.DefaultValue is not null && !string.Equals(c.DefaultValue, "NULL", StringComparison.OrdinalIgnoreCase);
+
+        return new ColumnInfo
+        {
+            Name = c.ColumnName,
+            NativeType = MySqlTypeMapper.NativeType(c.DataType, c.ColumnType),
+            Type = type,
+            Ordinal = (int)c.Ordinal,
+            IsNullable = c.IsNullable == "YES",
+            IsIdentity = extra.Contains("auto_increment"),
+            // "DEFAULT_GENERATED" (MySQL 8) es un default por expresión, no una columna calculada.
+            IsComputed = extra.Contains("virtual generated") || extra.Contains("stored generated") ||
+                         extra.Contains("persistent generated"),
+            HasDefault = hasDefault || extra.Contains("auto_increment"),
+            // TIMESTAMP se guarda en UTC y se convierte con la zona de la sesión, que se fija en UTC.
+            HasTimeZone = c.DataType == "timestamp",
+            MaxLength = type is LogicalType.String or LogicalType.Text ? length : null,
+            Precision = isDecimal ? (int?)c.NumericPrecision : null,
+            Scale = isDecimal ? (int?)c.NumericScale : null,
+            EnumValues = type == LogicalType.Enum ? MySqlTypeMapper.EnumValues(c.ColumnType) : null,
+            // DECIMAL admite hasta 65 dígitos: más de 28 no cabe en decimal de .NET (P-023).
+            IsLargeNumber = isDecimal && c.NumericPrecision > 28,
+            // La igualdad sobre JSON no compara texto, compara documentos: no se ofrece como filtro.
+            Filterable = type != LogicalType.Json
+        };
+    }
+
+    private static RawKeyColumn ToKey(KeyRow k) => new(
+        k.ConstraintName,
+        k.ConstraintType switch { "PRIMARY KEY" => KeyKind.PrimaryKey, "UNIQUE" => KeyKind.Unique, _ => KeyKind.ForeignKey },
+        k.SchemaName, k.TableName, k.ColumnName, (int)k.Position,
+        k.RefSchema, k.RefTable, k.RefColumn);
+
+    private sealed class TableRow
+    {
+        public string SchemaName { get; set; } = "";
+        public string TableName { get; set; } = "";
+        public string Kind { get; set; } = "";
+    }
+
+    private sealed class ColumnRow
+    {
+        public string SchemaName { get; set; } = "";
+        public string TableName { get; set; } = "";
+        public string ColumnName { get; set; } = "";
+        public long Ordinal { get; set; }
+        public string DataType { get; set; } = "";
+        public string ColumnType { get; set; } = "";
+        public string IsNullable { get; set; } = "";
+        public string? DefaultValue { get; set; }
+        public string Extra { get; set; } = "";
+        public long? MaxLength { get; set; }
+        public long? NumericPrecision { get; set; }
+        public long? NumericScale { get; set; }
+    }
+
+    private sealed class KeyRow
+    {
+        public string ConstraintName { get; set; } = "";
+        public string ConstraintType { get; set; } = "";
+        public string SchemaName { get; set; } = "";
+        public string TableName { get; set; } = "";
+        public string ColumnName { get; set; } = "";
+        public long Position { get; set; }
+        public string? RefSchema { get; set; }
+        public string? RefTable { get; set; }
+        public string? RefColumn { get; set; }
+    }
+
+    private sealed class JsonCheckRow
+    {
+        public string SchemaName { get; set; } = "";
+        public string TableName { get; set; } = "";
+        public string Clause { get; set; } = "";
+    }
+}

@@ -7,6 +7,14 @@ import type { Connection, ConnectionInput, Engine } from '../api/types'
 const EXAMPLES: Record<Engine, string> = {
   SqlServer: 'Server=mi-servidor,1433;Database=MiBase;User Id=usuario;Password=***;TrustServerCertificate=True',
   Postgres: 'Host=mi-servidor;Port=5432;Database=mibase;Username=usuario;Password=***',
+  MySql: 'Server=mi-servidor;Port=3306;Database=mibase;User ID=usuario;Password=***',
+}
+
+/** Nombre y estilo de cada motor. MySql cubre MySQL y MariaDB (un solo proveedor). */
+const ENGINES: Record<Engine, { label: string; badge: string }> = {
+  SqlServer: { label: 'SQL Server', badge: 'badge-mssql' },
+  Postgres: { label: 'PostgreSQL', badge: 'badge-pg' },
+  MySql: { label: 'MySQL / MariaDB', badge: 'badge-mysql' },
 }
 
 export function ConnectionsPage() {
@@ -45,8 +53,8 @@ export function ConnectionsPage() {
             <div>
               <div className="conn-title">{c.name}</div>
               <div className="muted small">
-                <span className={`badge ${c.engine === 'SqlServer' ? 'badge-mssql' : 'badge-pg'}`}>
-                  {c.engine === 'SqlServer' ? 'SQL Server' : 'PostgreSQL'}
+                <span className={`badge ${ENGINES[c.engine]?.badge ?? ''}`}>
+                  {ENGINES[c.engine]?.label ?? c.engine}
                 </span>{' '}
                 {c.server} / {c.database}
               </div>
@@ -142,14 +150,19 @@ function ConnectionForm({ initial, onClose }: { initial: Connection | null; onCl
         <label>
           Motor
           <select value={form.engine} onChange={set('engine')}>
-            <option value="SqlServer">SQL Server</option>
-            <option value="Postgres">PostgreSQL</option>
+            {(Object.keys(ENGINES) as Engine[]).map(e => (
+              <option key={e} value={e}>{ENGINES[e].label}</option>
+            ))}
           </select>
         </label>
         <label>
           Esquemas (opcional)
           <input value={form.schemas} onChange={set('schemas')} placeholder="dbo, ventas" />
-          <span className="hint">Separados por coma. Vacío = todos.</span>
+          <span className="hint">
+            {form.engine === 'MySql'
+              ? 'En MySQL cada esquema es una base de datos. Vacío = la base de la cadena de conexión.'
+              : 'Separados por coma. Vacío = todos.'}
+          </span>
         </label>
       </div>
       <label>

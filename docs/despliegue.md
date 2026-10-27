@@ -6,7 +6,7 @@ configuración está en [configuracion.md](configuracion.md).
 
 ## 1. Antes de instalar
 
-- [ ] **Versiones de las bases** que se van a administrar, según la tabla de [Requisitos de instalación](../README.md#requisitos-de-instalación): SQL Server 2016+, PostgreSQL 12+ (MySQL 8.0+ y MariaDB 10.6+ cuando terminen de desarrollarse).
+- [ ] **Versiones de las bases** que se van a administrar, según la tabla de [Requisitos de instalación](../README.md#requisitos-de-instalación): SQL Server 2016+, PostgreSQL 12+, MySQL 8.0+ y MariaDB 10.6+. La prueba de conexión de la app muestra la versión y rechaza las menores.
 - [ ] **Usuario de base de datos dedicado** en cada base, con permisos mínimos (ver [sección 9](#9-usuario-de-base-de-datos-con-permisos-mínimos)).
 - [ ] **Clave para firmar los tokens** (`Auth__JwtKey`): aleatoria, de 32 caracteres o más. Por ejemplo: `openssl rand -base64 48`.
 - [ ] **Hash de la contraseña de cada usuario:** `dotnet Mantenedores.Api.dll hash-password "clave"`.
@@ -212,5 +212,15 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA ventas GRANT USAGE ON SEQUENCES TO mantenedor
 ```
 
 `pg_catalog` es legible por cualquier usuario; no requiere permisos extra.
+
+**MySQL / MariaDB** (cada base es un "esquema")
+
+```sql
+CREATE USER 'mantenedores'@'%' IDENTIFIED BY '<clave>';
+GRANT SELECT, INSERT, UPDATE, DELETE ON ventas.* TO 'mantenedores'@'%';
+```
+
+`information_schema` muestra a cada usuario solo los objetos sobre los que tiene algún permiso: con el `GRANT`
+anterior ve la estructura de `ventas` y nada más.
 
 Para solo consulta, otorga únicamente `SELECT`: el servicio mostrará los errores de permiso de la base al intentar escribir.

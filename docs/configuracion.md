@@ -84,4 +84,6 @@ dotnet run --project backend/src/Mantenedores.Api -- hash-password "clave"
 |---|---|---|
 | `MANTENEDORES_PG_IMAGE` | `postgres:12` (versión mínima) | Imagen de PostgreSQL para la batería común. |
 | `MANTENEDORES_MSSQL_IMAGE` | `mcr.microsoft.com/mssql/server:2017-latest` | Imagen de SQL Server (2016 no tiene imagen Linux). |
+| `MANTENEDORES_MYSQL_IMAGE` | `mysql:8.0` (versión mínima) | Imagen de MySQL. |
+| `MANTENEDORES_MARIADB_IMAGE` | `mariadb:10.6` (versión mínima) | Imagen de MariaDB. |
 | `TESTCONTAINERS_RYUK_DISABLED` | `false` | Ponerla en `true` si el entorno no puede descargar la imagen auxiliar de Testcontainers. |

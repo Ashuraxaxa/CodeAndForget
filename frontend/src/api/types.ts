@@ -1,6 +1,6 @@
 // Tipos que espejan las respuestas de la API (.NET).
 
-export type Engine = 'SqlServer' | 'Postgres'
+export type Engine = 'SqlServer' | 'Postgres' | 'MySql'
 
 export type LogicalType =
   | 'String' | 'Text' | 'Integer' | 'Decimal' | 'Boolean' | 'Date' | 'DateTime'

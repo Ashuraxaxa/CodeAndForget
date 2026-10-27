@@ -71,10 +71,10 @@ Los tres usan `@p0` (Npgsql lo traduce en Postgres). El prefijo vive en el diale
 |---|---|---|
 | SQL Server | `OUTPUT … INTO @tabla` + `SELECT` | Sí (D-010) |
 | PostgreSQL | `RETURNING` | Sí |
-| MariaDB 10.5+ | `RETURNING` | Sí |
+| MariaDB 10.5+ | `RETURNING` (no se usa: el proveedor usa `LAST_INSERT_ID()` en ambos, D-040) | Sí |
 | MySQL | **No hay `RETURNING`**: `LAST_INSERT_ID()` solo sirve para una PK `AUTO_INCREMENT` | Sí |
 
-Caso especial: si la PK de MySQL tiene un default por expresión (p. ej. `UUID()`), no hay forma de recuperarla. El formulario exige el valor o se generan UUIDs en la app (override).
+Caso especial: si la PK de MySQL tiene un default por expresión (p. ej. `UUID()`), no hay forma de recuperarla. **Si es UUID (`CHAR(36)`), la genera la app** y la envía (D-040); si es de otro tipo, el formulario pide el valor.
 
 **Cómo lo resuelve Core (✅ P-020, D-040):** `QueryBuilder.BuildInsert` prueba en orden:
 1. `ISqlDialect.InsertReturningKeys` (SQL Server, PostgreSQL).
@@ -94,8 +94,10 @@ Si no se cumple ninguna, pide el valor de la clave al usuario.
 | Enteros sin signo | MySQL `INT UNSIGNED`, `BIGINT UNSIGNED` | `BIGINT UNSIGNED` no cabe en `long`: tratar como Decimal |
 | Enum por columna | MySQL `ENUM('a','b')` | Leer valores desde `COLUMN_TYPE` y tratar como `Enum` |
 | `SET('a','b')` | MySQL | Selección múltiple (Fase 2) o texto |
-| Fechas "cero" `0000-00-00` | MySQL con modos SQL laxos | `ConvertZeroDateTime=true` en el driver; mostrar vacío |
-| `TIMESTAMP` convierte a la zona de la sesión | MySQL | Fijar la zona de la sesión a UTC al abrir la conexión |
+| Fechas "cero" `0000-00-00` | MySQL con modos SQL laxos | El proveedor fuerza `ConvertZeroDateTime=true` en la conexión |
+| `TINYINT` con signo, `INT UNSIGNED` | MySQL | El tipo nativo se informa como `tinyint signed` / `int unsigned` para que Core no aplique rangos de SQL Server |
+| UUID en `CHAR(36)` | MySQL | Se trata como Uuid (MySqlConnector lo lee como `Guid`) |
+| `TIMESTAMP` convierte a la zona de la sesión | MySQL | La sesión se fija en UTC al abrir la conexión (`InitializeSessionAsync`) y el valor se devuelve como UTC (`HasTimeZone`) |
 | Tipos no comparables | SQL Server `text`, `ntext`, `image`, `xml`; PostgreSQL `json`, `xml` | El proveedor los marca `Sortable = false` y `Filterable = false`; la API los rechaza y la UI no ofrece ordenar ni filtrar (los textos igual admiten "contiene") (✅ P-022, D-042) |
 | JSON | PG `json/jsonb`, MySQL `JSON`, MariaDB (alias de `LONGTEXT` + CHECK), SQL Server (texto) | Detectar por tipo o por el CHECK `json_valid` (MariaDB) |
 | Espaciales y XML | Todos | Solo lectura como texto (P-018) |

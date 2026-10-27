@@ -193,7 +193,7 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
     /// <summary>
     /// Deja los valores en el mismo formato para todos los motores: cada driver devuelve fechas y horas
     /// con tipos distintos (Npgsql: DateOnly/TimeOnly; SqlClient: DateTime/TimeSpan).
-    /// Resultado: Date → DateOnly ("AAAA-MM-DD"), Time → TimeOnly ("HH:MM:SS").
+    /// Resultado: Date → DateOnly ("AAAA-MM-DD"), Time → TimeOnly ("HH:MM:SS"), fecha con zona → UTC.
     /// </summary>
     private static IDictionary<string, object?> Normalize(TableInfo table, IDictionary<string, object?> row)
     {
@@ -204,6 +204,9 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
             {
                 (LogicalType.Date, DateTime dt) => DateOnly.FromDateTime(dt),
                 (LogicalType.Time, TimeSpan ts) => TimeOnly.FromTimeSpan(ts),
+                // Columna con zona que el driver entrega sin zona (MySQL TIMESTAMP con sesión en UTC): es UTC.
+                (LogicalType.DateTime, DateTime { Kind: DateTimeKind.Unspecified } dt) when col.HasTimeZone =>
+                    DateTime.SpecifyKind(dt, DateTimeKind.Utc),
                 _ => value
             };
         }

@@ -70,13 +70,25 @@ public class DialectCapabilitiesTests
     }
 
     [Fact]
-    public void Sin_returning_y_pk_con_default_pide_el_valor()
+    public void Sin_returning_y_pk_uuid_con_default_la_genera_la_app()
     {
         var table = ConPk(new ColumnInfo { Name = "id", NativeType = "char", Type = LogicalType.Uuid, HasDefault = true },
             new ColumnInfo { Name = "nombre", NativeType = "varchar", Type = LogicalType.String });
+        var q = new QueryBuilder(new SinReturningDialect()).BuildInsert(table, new Dictionary<string, object?> { ["nombre"] = "x" });
+
+        var id = Assert.IsType<Guid>(q.ProvidedKeys!["id"]);
+        Assert.Equal("INSERT INTO `s`.`t` (`nombre`, `id`) VALUES (:p0, :p1)", q.Query.Sql);
+        Assert.Equal(id, q.Query.Parameters["p1"]);
+    }
+
+    [Fact]
+    public void Sin_returning_y_pk_no_uuid_con_default_pide_el_valor()
+    {
+        var table = ConPk(new ColumnInfo { Name = "codigo", NativeType = "varchar", Type = LogicalType.String, HasDefault = true },
+            new ColumnInfo { Name = "nombre", NativeType = "varchar", Type = LogicalType.String });
         var ex = Assert.Throws<ValidationException>(() => new QueryBuilder(new SinReturningDialect())
             .BuildInsert(table, new Dictionary<string, object?> { ["nombre"] = "x" }));
-        Assert.Contains("id", ex.Errors.Keys);
+        Assert.Contains("codigo", ex.Errors.Keys);
     }
 
     [Fact]

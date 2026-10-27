@@ -215,7 +215,7 @@ Guía de uso: [ajustes.md](ajustes.md). Decisiones: D-049 a D-051.
 - `QueryBuilder` y `ValueConverter` respetan las reglas nuevas: ocultas, solo lectura, PK y FK virtuales, validaciones.
 - **Listo cuando:** un override cambia la grilla y el formulario sin reiniciar, y persiste tras un "↻ refrescar esquema".
 
-### 1.3 Editor de overrides en la UI (1 semana)
+### 1.3 Editor de overrides en la UI (1 semana) · ✅ PR #12
 - Botón "Configurar" en cada mantenedor (solo para administradores; en Fase 3 pasa a ser un permiso).
 - Pantalla con dos pestañas:
   - **Tabla:** nombre visible, grupo, columna a mostrar, orden por defecto.

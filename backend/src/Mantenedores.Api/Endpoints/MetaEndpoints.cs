@@ -18,6 +18,9 @@ public static class MetaEndpoints
 
     public sealed record OverrideEntry(string Schema, string Table, TableOverride Settings);
 
+    /// <summary>Tabla con el ajuste aplicado y los errores por campo (vacío = se puede guardar).</summary>
+    public sealed record OverridePreview(TableInfo Table, IReadOnlyDictionary<string, string[]> Errors);
+
     public static void MapMeta(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/meta/{conn}").RequireAuthorization();
@@ -60,6 +63,25 @@ public static class MetaEndpoints
             await schemas.Overrides.SaveAsync(conn, info.Schema, info.Name, body, user.Identity?.Name, ct);
             schemas.InvalidateOverrides(conn);
             return (await schemas.GetTableAsync(conn, info.Schema, info.Name, ct)).Table;
+        }).RequireAuthorization(AuthSetup.AdminPolicy);
+
+        // Vista previa para el editor (P-012): aplica el ajuste sin guardarlo. Los errores no cortan la vista previa:
+        // se devuelven junto con la tabla combinada con lo que sí se pudo aplicar.
+        group.MapPost("/overrides/{schema}/{table}/preview", async (string conn, string schema, string table, TableOverride body,
+            SchemaService schemas, CancellationToken ct) =>
+        {
+            var raw = await schemas.GetRawSchemaAsync(conn, ct);
+            var info = await RawTableAsync(schemas, conn, schema, table, ct);
+            var others = (await schemas.Overrides.ListAsync(conn, ct))
+                .Where(kv => !(Same(kv.Key.Schema, info.Schema) && Same(kv.Key.Table, info.Name)))
+                .ToDictionary(kv => kv.Key, kv => kv.Value);
+            others[(info.Schema, info.Name)] = body;
+
+            var errors = new Dictionary<string, string[]>();
+            try { OverrideApplier.Validate(raw, info.Schema, info.Name, body); }
+            catch (Core.Errors.ValidationException ex) { foreach (var (k, v) in ex.Errors) errors[k] = [v]; }
+
+            return new OverridePreview(OverrideApplier.Apply(raw, others).FindTable(info.Schema, info.Name)!, errors);
         }).RequireAuthorization(AuthSetup.AdminPolicy);
 
         group.MapDelete("/overrides/{schema}/{table}", async (string conn, string schema, string table, SchemaService schemas, CancellationToken ct) =>

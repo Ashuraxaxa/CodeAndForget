@@ -401,6 +401,16 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Una PK virtual en una vista permite leer por clave y usarla en combos, pero la vista sigue siendo de solo lectura (D-009).
 - **Alternativa descartada:** que una tabla oculta responda 404, que daría una falsa sensación de seguridad.
 
+### D-052 · Editor de ajustes con vista previa calculada en el servidor
+- **Estado:** Vigente · 2026-10-27 (P-012)
+- **Qué:**
+  - `POST /api/meta/{conn}/overrides/{schema}/{table}/preview` aplica el borrador sin guardarlo, con los ajustes guardados de las demás tablas, y devuelve la tabla combinada **y** los errores por campo. Un error no corta la vista previa.
+  - El editor (`ConfigPage`) arma el mismo JSON de D-049 y quita lo vacío, así lo no tocado sigue automático. El orden se guarda solo si se cambió, y entonces para todas las columnas.
+  - El botón "Configurar" se muestra según `/api/auth/me`; es solo cosmético, porque el servidor exige `admin` (D-050).
+  - Las FK virtuales se agregan de una columna desde la UI; las compuestas, por la API.
+- **Por qué:** la vista previa usa el mismo `OverrideApplier` que la app, sin duplicar sus reglas en TypeScript.
+- **Alternativa descartada:** aplicar los ajustes en el navegador, que obligaría a mantener las reglas en dos lugares.
+
 ---
 
 ## Propuestas (aún no decididas)

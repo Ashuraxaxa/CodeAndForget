@@ -5,6 +5,7 @@ import { ConnectionsPage } from './pages/ConnectionsPage'
 import { ConnectionLayout, PickTable } from './pages/ConnectionLayout'
 import { TablePage } from './pages/TablePage'
 import { RecordPage } from './pages/RecordPage'
+import { ConfigPage } from './pages/ConfigPage'
 
 function Shell() {
   const { config, isAuthenticated, logout } = useAuth()
@@ -39,6 +40,7 @@ export default function App() {
               <Route path="t/:schema/:table" element={<TablePage />} />
               <Route path="t/:schema/:table/new" element={<RecordPage key="new" mode="new" />} />
               <Route path="t/:schema/:table/edit" element={<RecordPage key="edit" mode="edit" />} />
+              <Route path="t/:schema/:table/config" element={<ConfigPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

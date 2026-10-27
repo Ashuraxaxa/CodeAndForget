@@ -133,3 +133,48 @@ export interface LookupItem {
 }
 
 export const LABEL_SUFFIX = '__label'
+
+// ----- Ajustes (overrides, P-011): mismo JSON que guarda la API -----
+
+export interface ColumnOverride {
+  label?: string
+  helpText?: string
+  hidden?: boolean
+  showInGrid?: boolean
+  order?: number
+  readOnly?: boolean
+  required?: boolean
+  widget?: string
+  pattern?: string
+  min?: number
+  max?: number
+  maxLength?: number
+  options?: string[]
+}
+
+export interface VirtualForeignKey {
+  columns: string[]
+  refSchema: string
+  refTable: string
+  refColumns: string[]
+  name?: string
+}
+
+export interface TableOverride {
+  label?: string
+  hidden?: boolean
+  readOnly?: boolean
+  displayColumn?: string
+  defaultSort?: string
+  group?: string
+  virtualPrimaryKey?: string[]
+  virtualForeignKeys?: VirtualForeignKey[]
+  columns?: Record<string, ColumnOverride>
+}
+
+export interface OverridePreview {
+  table: TableMeta
+  errors: Record<string, string[]>
+}
+
+export const WIDGETS = ['textarea', 'email', 'url', 'color', 'money', 'password'] as const

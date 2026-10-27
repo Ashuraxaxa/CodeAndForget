@@ -1,5 +1,5 @@
 import type {
-  Connection, ConnectionInput, LookupItem, PagedResult, Row, SchemaSummary, TableMeta,
+  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaSummary, TableMeta, TableOverride,
 } from './types'
 
 /** Error de la API con el formato ProblemDetails de ASP.NET. */
@@ -63,6 +63,9 @@ const enc = encodeURIComponent
 const tablePath = (conn: string, schema: string, table: string) =>
   `api/data/${enc(conn)}/${enc(schema)}/${enc(table)}`
 
+const overridePath = (conn: string, schema: string, table: string) =>
+  `api/meta/${enc(conn)}/overrides/${enc(schema)}/${enc(table)}`
+
 export interface ListParams {
   page: number
   pageSize: number
@@ -103,6 +106,15 @@ export const api = {
   refresh: (conn: string) => request<SchemaSummary>('POST', `api/meta/${enc(conn)}/refresh`),
   table: (conn: string, schema: string, table: string) =>
     request<TableMeta>('GET', `api/meta/${enc(conn)}/tables/${enc(schema)}/${enc(table)}`),
+
+  override: (conn: string, schema: string, table: string) =>
+    request<TableOverride>('GET', overridePath(conn, schema, table)),
+  saveOverride: (conn: string, schema: string, table: string, value: TableOverride) =>
+    request<TableMeta>('PUT', overridePath(conn, schema, table), value),
+  resetOverride: (conn: string, schema: string, table: string) =>
+    request<void>('DELETE', overridePath(conn, schema, table)),
+  previewOverride: (conn: string, schema: string, table: string, value: TableOverride) =>
+    request<OverridePreview>('POST', `${overridePath(conn, schema, table)}/preview`, value),
 
   list(conn: string, schema: string, table: string, p: ListParams) {
     const qs = new URLSearchParams({ page: String(p.page), pageSize: String(p.pageSize) })

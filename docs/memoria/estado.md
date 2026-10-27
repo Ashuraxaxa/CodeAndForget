@@ -5,14 +5,14 @@
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-Próximo bloque: **cierre de la Fase 1** (P-001, P-002, P-007, P-003, P-004, P-008); luego el bloque **M** con MySQL/MariaDB (P-020 a P-029, D-034; Oracle fuera de alcance), y después la **Fase 2**.
+Próximo bloque: resto del **cierre de la Fase 1** (P-007, P-008, P-003, P-004; P-001 y P-002 ya hechos); luego el bloque **M** con MySQL/MariaDB (P-020 a P-029, D-034; Oracle fuera de alcance), y después la **Fase 2**.
 
 ## Ramas y PR
 
 | Rama | Estado |
 |---|---|
-| `main` | Rama por defecto. Fase 1 (PR #1) + hoja de ruta y memoria (PR #2). CI en verde. |
-| `docs/decisiones-entorno` | PR #3 abierto: D-022 a D-034 (entorno configurable + MySQL/MariaDB, sin Oracle) y `docs/motores.md`. |
+| `main` | Rama por defecto. Fase 1 (PR #1), memoria y hoja de ruta (PR #2), decisiones de entorno y motores (PR #3). |
+| `feature/fase1-pruebas-integracion` | PR #4: batería común por motor, matriz de versiones mínimas y actuales, imagen Docker en la CI, requisitos en el README. |
 | `feature/fase1-mantenedores` | Ya fusionada en `main`; se puede borrar (P-005). |
 
 ## Qué funciona hoy
@@ -39,10 +39,11 @@ Próximo bloque: **cierre de la Fase 1** (P-001, P-002, P-007, P-003, P-004, P-0
 ## Cómo se verificó (2026-10-27)
 
 - 44 pruebas unitarias (`backend/tests/Mantenedores.Tests`).
+- 57 pruebas de integración (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16** y **SQL Server 2017 y 2022** (D-035).
 - API probada a mano contra PostgreSQL 16 y SQL Server 2022 reales, con las bases de `samples/`.
 - Flujo completo en navegador con Playwright (escritorio y móvil).
 - CI de GitHub en verde (PR #1 y `main`).
-- **No verificado:** `docker build` de la imagen completa (P-001).
+- `docker build` se verifica en la CI (P-001); en el entorno remoto no se puede, por falta de acceso a NuGet dentro del build.
 
 ## Limitaciones conocidas
 
@@ -58,6 +59,6 @@ Ver detalle en `pendientes.md`:
 
 - .NET 8 no viene instalado: `apt-get update && apt-get install -y dotnet-sdk-8.0`.
 - Postgres 16 local disponible en `/usr/lib/postgresql/16/bin` (`initdb` + `pg_ctl` como usuario `postgres`).
-- Docker requiere iniciar el daemon a mano (`dockerd &`). SQL Server corre con `mcr.microsoft.com/mssql/server:2022-latest`.
+- Docker requiere iniciar el daemon a mano (`dockerd &`). Docker Hub responde 429 (límite de descargas): usar el espejo `mirror.gcr.io/library/postgres:12` vía `MANTENEDORES_PG_IMAGE` y `TESTCONTAINERS_RYUK_DISABLED=true`. Las imágenes de SQL Server (mcr.microsoft.com) bajan sin problema.
 - Dentro de `docker build` no hay acceso a NuGet, por eso la imagen no se pudo compilar ahí.
 - Borrar ramas remotas o hacer force-push está bloqueado por permisos de la sesión: lo hace el dueño desde GitHub.

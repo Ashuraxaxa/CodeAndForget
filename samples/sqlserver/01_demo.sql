@@ -1,5 +1,6 @@
 -- Base de ejemplo para probar los mantenedores dinámicos (SQL Server).
--- Misma estructura que la de Postgres, más un trigger (caso típico que rompe OUTPUT directo).
+-- Misma estructura que la de Postgres, incluido el trigger (caso típico que rompe un OUTPUT directo).
+-- Compatible con SQL Server 2016+ (versión mínima, D-035): no usar CREATE OR ALTER, STRING_AGG, TRIM ni CONCAT_WS.
 IF DB_ID('Demo') IS NULL CREATE DATABASE Demo;
 GO
 USE Demo;

@@ -7,15 +7,43 @@ on:
 
 jobs:
   backend:
+    name: Backend (build + pruebas unitarias)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - run: dotnet test backend/Mantenedores.sln
+      - run: dotnet build backend/Mantenedores.sln -warnaserror
+      - run: dotnet test backend/tests/Mantenedores.Tests --no-build
+
+  # Batería común por motor (D-033) contra la versión mínima soportada (D-035) y la actual.
+  # SQL Server 2016 no tiene imagen Linux: la más antigua en contenedor es 2017.
+  integration:
+    name: Integración · ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: versiones mínimas (PostgreSQL 12 · SQL Server 2017)
+            pg: postgres:12
+            mssql: mcr.microsoft.com/mssql/server:2017-latest
+          - name: versiones actuales (PostgreSQL 16 · SQL Server 2022)
+            pg: postgres:16
+            mssql: mcr.microsoft.com/mssql/server:2022-latest
+    env:
+      MANTENEDORES_PG_IMAGE: ${{ matrix.pg }}
+      MANTENEDORES_MSSQL_IMAGE: ${{ matrix.mssql }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet test backend/tests/Mantenedores.IntegrationTests
 
   frontend:
+    name: Frontend (lint + build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -30,3 +58,18 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+
+  # Valida que la imagen única (API + frontend) compile (P-001).
+  docker:
+    name: Imagen Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t mantenedores:ci .
+      - name: La imagen arranca y responde
+        run: |
+          docker run -d --name app -p 8080:8080 \
+            -e Auth__JwtKey=ci-solo-pruebas-0123456789abcdefghijklmn \
+            mantenedores:ci
+          for i in $(seq 1 30); do curl -fsS localhost:8080/api/health && exit 0; sleep 2; done
+          docker logs app; exit 1

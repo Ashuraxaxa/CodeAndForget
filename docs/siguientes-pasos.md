@@ -41,13 +41,13 @@ Total hasta una v1 productiva: **unas 17–18 semanas** con 1 backend, 1 fronten
 
 Pendientes detectados al construir la Fase 1, que conviene cerrar antes de crecer.
 
-### 0.1 Validar la imagen Docker
+### 0.1 Validar la imagen Docker · ✅ PR #4
 - La imagen no se pudo compilar en el entorno de desarrollo, que no tenía acceso a NuGet.
 - Agregar a la CI un job que ejecute `docker build`.
 - **Listo cuando:** la CI compila la imagen y `docker compose up` levanta la app con ambas bases de ejemplo.
 
-### 0.2 Pruebas de integración con bases reales
-- Nuevo proyecto `backend/tests/Mantenedores.IntegrationTests` con Testcontainers (Postgres 16 y SQL Server 2022).
+### 0.2 Pruebas de integración con bases reales · ✅ PR #4
+- Nuevo proyecto `backend/tests/Mantenedores.IntegrationTests` con Testcontainers, contra la versión mínima (PostgreSQL 12, SQL Server 2017) y la actual (PostgreSQL 16, SQL Server 2022) (D-035).
 - Carga `samples/postgres/01_demo.sql` y `samples/sqlserver/01_demo.sql`.
 - Casos a cubrir:
   - Lectura del esquema: tablas, PK compuesta, FK, vista, tabla sin PK.

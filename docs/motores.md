@@ -4,14 +4,22 @@ Referencia para implementar y mantener los proveedores (`IDatabaseProvider`).
 Todo proveedor debe pasar la batería común de pruebas (P-002). Si una diferencia de esta
 tabla no está cubierta por una prueba, falta la prueba.
 
-## Alcance (D-034)
+## Alcance (D-034, D-035)
 
-| Familia | Versión mínima | Driver .NET (D-030) | Licencia del driver | Imagen de pruebas |
+| Familia | Versión mínima | Driver .NET (D-030) | Licencia del driver | Imágenes de prueba (mínima · actual) |
 |---|---|---|---|---|
-| SQL Server | 2016 | `Microsoft.Data.SqlClient` | MIT | `mcr.microsoft.com/mssql/server:2022-latest` |
-| PostgreSQL | 12 | `Npgsql` | PostgreSQL (MIT-like) | `postgres:16` |
-| MySQL | 8.0 | `MySqlConnector` | MIT | `mysql:8.4` |
-| MariaDB | 10.6 | `MySqlConnector` (mismo proveedor) | MIT | `mariadb:11.4` |
+| SQL Server | 2016 | `Microsoft.Data.SqlClient` | MIT | `mssql/server:2017-latest` · `mssql/server:2022-latest` (1) |
+| PostgreSQL | 12 | `Npgsql` | PostgreSQL (MIT-like) | `postgres:12` · `postgres:16` |
+| MySQL | 8.0 | `MySqlConnector` | MIT | `mysql:8.0` · `mysql:8.4` |
+| MariaDB | 10.6 | `MySqlConnector` (mismo proveedor) | MIT | `mariadb:10.6` · `mariadb:11.4` |
+
+(1) SQL Server 2016 no tiene imagen Linux; 2017 es la más antigua en contenedor. Para no romper 2016,
+**no usar T-SQL posterior a 2016**: `STRING_AGG`, `TRIM`, `CONCAT_WS`, `TRANSLATE` (2017+) ni `GREATEST`/`LEAST` (2022+).
+
+**Política de pruebas (D-035):** la batería común corre siempre contra la versión **mínima**, que es la que
+más casos rompe (p. ej. `gen_random_uuid()` no existe en PostgreSQL 12 sin `pgcrypto`), y contra una **actual**.
+Las imágenes se cambian con `MANTENEDORES_PG_IMAGE` y `MANTENEDORES_MSSQL_IMAGE` (y, en el bloque M,
+`MANTENEDORES_MYSQL_IMAGE` y `MANTENEDORES_MARIADB_IMAGE`).
 
 **Oracle queda fuera de alcance** (D-034). Sus notas están al final de este archivo por si se retoma.
 
@@ -74,6 +82,7 @@ Caso especial: si la PK de MySQL tiene un default por expresión (p. ej. `UUID()
 
 | Caso | Dónde | Qué hacer |
 |---|---|---|
+| **Cada driver devuelve fechas y horas con tipos distintos** | Npgsql 10: `DateOnly`/`TimeOnly`; SqlClient: `DateTime`/`TimeSpan` | `CrudService` normaliza: Date → `DateOnly` (`AAAA-MM-DD`), Time → `TimeOnly` (`HH:MM:SS`) (D-036) |
 | **Números más grandes que `decimal` de .NET (28–29 dígitos)** | PG `numeric` sin límite, MySQL `DECIMAL(65)` | Leer como texto cuando la precisión supera 28 o no está declarada (P-023). **Hoy ya puede fallar en Postgres** |
 | Booleanos simulados | MySQL `TINYINT(1)` / `BIT(1)` | Boolean por defecto, corregible por override |
 | Enteros sin signo | MySQL `INT UNSIGNED`, `BIGINT UNSIGNED` | `BIGINT UNSIGNED` no cabe en `long`: tratar como Decimal |

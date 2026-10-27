@@ -238,6 +238,21 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Un cambio en Core o en un proveedor no se fusiona si algún motor falla.
 - **Por qué:** es lo que evita que un motor quede "soportado en el papel".
 
+### D-035 · Versiones mínimas confirmadas y probadas
+- **Estado:** Vigente · 2026-10-27 (responde Q-008)
+- **Qué:** se trabaja con **SQL Server 2016, PostgreSQL 12, MySQL 8.0 y MariaDB 10.6** como mínimos, publicados en el `README.md` ("Requisitos de instalación") para que toda instalación los verifique.
+- **Cómo se prueban:**
+  - La batería común corre siempre contra la versión **mínima** y contra una **actual** de cada motor (matriz de la CI).
+  - Por defecto, las pruebas locales usan la mínima, porque es la que más casos rompe.
+- **SQL Server 2016:** no tiene imagen Linux. Se prueba con 2017 y no se usa T-SQL posterior a 2016 (lista en `docs/motores.md`).
+- **Ya dio frutos:** la base de ejemplo de Postgres no funcionaba en PG 12 (`gen_random_uuid()` sin `pgcrypto`).
+
+### D-036 · Fechas y horas con el mismo formato en todos los motores
+- **Estado:** Vigente · 2026-10-27
+- **Qué:** `CrudService` normaliza la respuesta: Date → `DateOnly` (`"AAAA-MM-DD"`) y Time → `TimeOnly` (`"HH:MM:SS"`).
+- **Por qué:** cada driver usa tipos distintos (Npgsql 10: `DateOnly`/`TimeOnly`; SqlClient: `DateTime`/`TimeSpan`), y la API devolvía formatos diferentes según el motor. Lo detectó la batería común.
+- **Alternativa descartada:** dejar que cada proveedor devuelva lo que entrega su driver, y que el frontend lo corrija.
+
 ---
 
 ## Propuestas (aún no decididas)
@@ -245,6 +260,5 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 Se convierten en `D-xxx` al aprobarse.
 
 - **PR-01 · Migraciones del metadata store con DbUp** (scripts SQL versionados por motor: SQLite, Postgres, SQL Server). Encaja con Dapper; la alternativa es EF Core Migrations. Ver P-010.
-- **PR-02 · Pruebas de integración con Testcontainers** (la organización como batería común ya quedó decidida en D-033). Ver P-002 y P-027.
 - **PR-04 · Login en la SPA con `oidc-client-ts`** (Authorization Code + PKCE), librería estándar y sin dependencia de un proveedor. Ver P-041.
 - **PR-03 · Overrides guardados como JSON** por tabla y por columna (flexibles, sin migrar el esquema por cada ajuste nuevo). Ver P-011.

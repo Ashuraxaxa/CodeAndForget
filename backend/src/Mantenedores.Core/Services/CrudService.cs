@@ -25,7 +25,7 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
         var rows = await db.QueryAsync(Command(data, ct));
 
         var pageSize = Math.Clamp(request.PageSize, 1, ListRequest.MaxPageSize);
-        return new PagedResult(rows.Select(ToRow).ToList(), total, Math.Max(request.Page, 1), pageSize);
+        return new PagedResult(rows.Cast<object>().Select(r => Normalize(info, ToRow(r))).ToList(), total, Math.Max(request.Page, 1), pageSize);
     }
 
     public async Task<IDictionary<string, object?>> GetAsync(
@@ -97,7 +97,7 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildGetByKey(ctx.Schema, info, key);
         await using var db = await OpenAsync(ctx, ct);
         var row = await db.QuerySingleOrDefaultAsync(Command(query, ct));
-        return row is null ? throw new NotFoundException("El registro no existe.") : ToRow(row);
+        return row is null ? throw new NotFoundException("El registro no existe.") : Normalize(info, ToRow(row));
     }
 
     /// <summary>Convierte los valores de la clave (vienen como texto en la URL) a su tipo.</summary>
@@ -148,6 +148,26 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
     private CommandDefinition Command(SqlQuery q, CancellationToken ct) =>
         new(q.Sql, new DynamicParameters(q.Parameters), commandTimeout: options.CommandTimeoutSeconds, cancellationToken: ct);
 
-    private static IDictionary<string, object?> ToRow(dynamic row) =>
+    /// <summary>
+    /// Deja los valores en el mismo formato para todos los motores: cada driver devuelve fechas y horas
+    /// con tipos distintos (Npgsql: DateOnly/TimeOnly; SqlClient: DateTime/TimeSpan).
+    /// Resultado: Date → DateOnly ("AAAA-MM-DD"), Time → TimeOnly ("HH:MM:SS").
+    /// </summary>
+    private static IDictionary<string, object?> Normalize(TableInfo table, IDictionary<string, object?> row)
+    {
+        foreach (var col in table.Columns)
+        {
+            if (!row.TryGetValue(col.Name, out var value) || value is null) continue;
+            row[col.Name] = (col.Type, value) switch
+            {
+                (LogicalType.Date, DateTime dt) => DateOnly.FromDateTime(dt),
+                (LogicalType.Time, TimeSpan ts) => TimeOnly.FromTimeSpan(ts),
+                _ => value
+            };
+        }
+        return row;
+    }
+
+    private static IDictionary<string, object?> ToRow(object row) =>
         ((IDictionary<string, object>)row).ToDictionary(kv => kv.Key, kv => (object?)kv.Value, StringComparer.OrdinalIgnoreCase);
 }

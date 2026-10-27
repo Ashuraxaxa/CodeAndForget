@@ -4,6 +4,16 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Cierre Fase 1: pruebas de integración y versiones mínimas
+- El dueño confirmó las versiones mínimas (Q-008 → D-035) y pidió publicarlas en el README ("Requisitos de instalación").
+- Nuevo proyecto `Mantenedores.IntegrationTests`: batería común (`ProviderContractTests`) que hereda cada motor. Son 57 pruebas, en verde contra PG 12/16 y SQL Server 2017/2022.
+- Problemas que encontró la batería y se corrigieron:
+  - La base de ejemplo de PG no funcionaba en PG 12 (faltaba `pgcrypto`).
+  - Los motores devolvían fechas y horas en formatos distintos (D-036).
+  - Se agregó un trigger a la base de PG para igualarla a la de SQL Server.
+- CI: unitarias separadas, matriz de integración (versión mínima y actual), job que compila y arranca la imagen Docker.
+- **Siguiente:** P-007 y P-008 (subruta, proxy y health checks), luego P-003 y P-004.
+
 ## 2026-10-27 · Oracle fuera de alcance
 - El dueño decidió dejar Oracle fuera y mantener MySQL/MariaDB (D-034 reemplaza a D-029).
 - P-026 queda ⛔. Se quitó `EmptyStringIsNull` de P-024. El prefijo de parámetros en el dialecto se mantiene, porque es barato y deja la puerta abierta.

@@ -20,6 +20,7 @@ Ninguna de las abiertas bloquea el trabajo inmediato.
 - **Opciones:** solo los roles listados en `Auth:AdminRoles` · cualquier usuario con permiso de "configurar" en esa conexión.
 - **Qué define:** el editor de overrides (P-012) antes de que exista RBAC (P-042).
 - **Sugerencia:** en la Fase 2, solo `Auth:AdminRoles` (en modo `Local`, el usuario marcado como admin); en la Fase 3, un permiso específico por conexión.
+- **Nota (2026-10-27):** `Auth:AdminRoles` y la política `admin` ya existen (D-046); falta decidir si alcanzan para el editor de overrides.
 
 ### Q-007 · ¿Cuánto tiempo se guarda la auditoría?
 - **Opciones:** 90 días · 1 año · indefinido · según la tabla.

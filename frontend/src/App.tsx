@@ -1,19 +1,21 @@
 import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
-import { LoginPage } from './pages/LoginPage'
+import { AuthCallbackPage, LoginPage } from './pages/LoginPage'
 import { ConnectionsPage } from './pages/ConnectionsPage'
 import { ConnectionLayout, PickTable } from './pages/ConnectionLayout'
 import { TablePage } from './pages/TablePage'
 import { RecordPage } from './pages/RecordPage'
 
 function Shell() {
-  const { isAuthenticated, logout } = useAuth()
+  const { config, isAuthenticated, logout } = useAuth()
+  if (!config) return <p className="muted pad">Cargando…</p>
   if (!isAuthenticated) return <Navigate to="/login" replace />
   return (
     <div className="app">
       <header className="topbar">
         <Link to="/" className="brand">Mantenedores</Link>
-        <button className="link" onClick={logout}>Salir</button>
+        {/* Con un proxy que maneja la sesión no hay "salir" desde la app. */}
+        {!(config.mode === 'Jwt' && !config.clientId) && <button className="link" onClick={logout}>Salir</button>}
       </header>
       <Outlet />
     </div>
@@ -29,6 +31,7 @@ export default function App() {
       <BrowserRouter basename={basename}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route element={<Shell />}>
             <Route index element={<ConnectionsPage />} />
             <Route path="c/:conn" element={<ConnectionLayout />}>

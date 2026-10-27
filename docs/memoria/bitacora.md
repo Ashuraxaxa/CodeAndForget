@@ -4,6 +4,13 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Fase 2: login configurable
+- `Auth:Mode` = `Local` o `Jwt`, con Authority OIDC, MetadataAddress o SigningKey. Claims normalizados (nombre y roles, incluso anidados), `AdminRoles`, `/api/auth/config` y `/api/auth/me` (D-046). `Auth:JwtKey` solo se exige en `Local`.
+- UI: login PKCE con `oidc-client-ts` cuando hay `ClientId`; modo proxy sin login; redirect bajo subruta.
+- Probado en vivo con Keycloak 26 (`samples/keycloak/realm-demo.json`): login, roles, API y salida. Bug corregido: al salir se borraba el usuario antes de redirigir, y Keycloak pedía confirmación.
+- 10 pruebas nuevas en `AuthTests` (emisor en memoria): audiencia, firma, vencimiento, scope, roles anidados y por defecto, configuración inválida.
+- **Pendiente:** prueba en vivo con Duende (P-078). **Siguiente:** P-010, la metadata configurable.
+
 ## 2026-10-27 · Bloque M.3: MySQL y MariaDB
 - Nuevo `Mantenedores.Providers.MySql` (MySqlConnector) para ambos motores, con sus particularidades en el proveedor (D-045).
 - Core: UUID de la PK generado por la app si el motor no puede devolverlo (D-044); fechas con zona devueltas como UTC.

@@ -8,8 +8,9 @@ configuración está en [configuracion.md](configuracion.md).
 
 - [ ] **Versiones de las bases** que se van a administrar, según la tabla de [Requisitos de instalación](../README.md#requisitos-de-instalación): SQL Server 2016+, PostgreSQL 12+, MySQL 8.0+ y MariaDB 10.6+. La prueba de conexión de la app muestra la versión y rechaza las menores.
 - [ ] **Usuario de base de datos dedicado** en cada base, con permisos mínimos (ver [sección 9](#9-usuario-de-base-de-datos-con-permisos-mínimos)).
-- [ ] **Clave para firmar los tokens** (`Auth__JwtKey`): aleatoria, de 32 caracteres o más. Por ejemplo: `openssl rand -base64 48`.
-- [ ] **Hash de la contraseña de cada usuario:** `dotnet Mantenedores.Api.dll hash-password "clave"`.
+- [ ] **Autenticación:** elegir el modo ([configuracion.md](configuracion.md#autenticación-auth)).
+  - `Local`: clave para firmar (`Auth__JwtKey`, aleatoria de 32+ caracteres, p. ej. `openssl rand -base64 48`) y el hash de la contraseña de cada usuario (`dotnet Mantenedores.Api.dll hash-password "clave"`).
+  - `Jwt`: registrar en el proveedor (Duende, Keycloak, Entra ID…) un cliente **público con PKCE**, con *redirect URI* `https://<app>/auth/callback`, y configurar `Auth__Jwt__*`.
 - [ ] **Carpeta de datos persistente y respaldada** (`Storage__DataDirectory`): guarda las conexiones cifradas y **las llaves para descifrarlas**. Si se pierde, hay que volver a ingresar las conexiones.
 - [ ] **HTTPS:** lo termina un proxy (nginx, IIS, Traefik, balanceador). Si es así, activa `Hosting__ForwardedHeaders__Enabled`.
 - [ ] **Una sola instancia** por ahora: el almacén de conexiones es un archivo local. Varias instancias requieren P-010 (metadata en una base) y P-045 (llaves compartidas).

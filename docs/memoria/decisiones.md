@@ -151,7 +151,7 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Alternativa descartada:** obligar a usar PostgreSQL (plan inicial).
 
 ### D-024 · Autenticación libre: modo `Local` o cualquier emisor JWT/OIDC
-- **Estado:** Vigente · 2026-10-27 (se implementa en P-041)
+- **Estado:** Vigente e implementada · 2026-10-27 (P-041, PR #9; detalle en D-046)
 - **Qué:**
   - `Auth:Mode = Local`: lo actual (D-012).
   - `Auth:Mode = Jwt`: valida tokens de cualquier emisor, como Duende IdentityServer, Keycloak, Entra ID, Auth0 u otro.
@@ -336,6 +336,22 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Errores por número: 1062, 1451, 1452, 3819, 4025, 1048, 1364.
 - **Por qué:** D-031: todo lo propio del motor vive en su proveedor; Core no cambió salvo D-044 y la normalización a UTC.
 
+## Fase 2
+
+### D-046 · Cómo se implementa la autenticación configurable
+- **Estado:** Vigente · 2026-10-27 (P-041)
+- **Qué:**
+  - `AuthSetup` configura JwtBearer según `Auth:Mode`. En modo `Jwt` la fuente de llaves es `Authority` (OIDC), `MetadataAddress` o `SigningKey`. La configuración se valida al arrancar con mensajes que dicen qué falta, y `Auth:JwtKey` solo se exige en modo `Local` (resuelve P-039).
+  - **Claims normalizados:** al validar el token, `ClaimsMapper` agrega `ClaimTypes.Name` y `ClaimTypes.Role` según `NameClaim` y `RoleClaim`. Admite claims repetidos, arreglos JSON y rutas anidadas (`realm_access.roles`). El resto de la app no conoce el formato de cada emisor. Se usa `MapInboundClaims = false` para leer los nombres originales.
+  - Política `admin` = algún rol en `Auth:AdminRoles`. Los usuarios locales tienen `Roles`.
+  - `GET /api/auth/config` (anónimo, sin secretos) le dice a la UI cómo iniciar sesión; `GET /api/auth/me` devuelve nombre, roles y si es admin. El login local se desactiva (404) en modo `Jwt`.
+  - **UI:** con `ClientId`, Authorization Code + PKCE con `oidc-client-ts`. El token queda en memoria y en `sessionStorage`, manejado por la librería, **no en `localStorage`**. Sin `ClientId` se asume un proxy que autentica y no hay login ni botón de salir.
+  - El `redirect_uri` se arma con `<base href>`, así funciona bajo subruta (D-037).
+- **Alternativas descartadas:**
+  - Mapear roles con `ClaimActions` por proveedor, que exige código por emisor.
+  - Guardar el token OIDC en `localStorage`, más expuesto ante XSS.
+- **Probado:** con un emisor HS256 en memoria (`AuthTests`) y con Keycloak 26 real (realm en `samples/keycloak`): login PKCE en el navegador, roles anidados y cierre de sesión. **Duende IdentityServer no se probó en vivo** (P-078); su configuración es OIDC estándar y está documentada.
+
 ---
 
 ## Propuestas (aún no decididas)
@@ -343,5 +359,4 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 Se convierten en `D-xxx` al aprobarse.
 
 - **PR-01 · Migraciones del metadata store con DbUp** (scripts SQL versionados por motor: SQLite, Postgres, SQL Server). Encaja con Dapper; la alternativa es EF Core Migrations. Ver P-010.
-- **PR-04 · Login en la SPA con `oidc-client-ts`** (Authorization Code + PKCE), librería estándar y sin dependencia de un proveedor. Ver P-041.
 - **PR-03 · Overrides guardados como JSON** por tabla y por columna (flexibles, sin migrar el esquema por cada ajuste nuevo). Ver P-011.

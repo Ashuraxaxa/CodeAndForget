@@ -9,6 +9,9 @@ public sealed record DatabaseSchema
 
     public DateTimeOffset ReadAt { get; init; } = DateTimeOffset.UtcNow;
 
+    /// <summary>Ajustes que no se pudieron aplicar (p. ej. una columna que ya no existe). Base del aviso de P-013.</summary>
+    public IReadOnlyList<string> OverrideWarnings { get; init; } = [];
+
     public TableInfo? FindTable(string schema, string name) =>
         Tables.FirstOrDefault(t =>
             string.Equals(t.Schema, schema, StringComparison.OrdinalIgnoreCase) &&

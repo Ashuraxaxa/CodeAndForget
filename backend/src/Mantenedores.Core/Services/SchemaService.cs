@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Mantenedores.Core.Connections;
 using Mantenedores.Core.Errors;
+using Mantenedores.Core.Overrides;
 using Mantenedores.Core.Providers;
 using Mantenedores.Core.Schema;
 
@@ -12,29 +13,55 @@ public sealed record ConnectionContext(ConnectionDefinition Definition, IDatabas
 public sealed record ConnectionTestResult(int Tables, ServerInfo Server);
 
 /// <summary>
-/// Lee el esquema de cada conexión y lo guarda en memoria.
-/// En Fase 4 esta caché pasa a Redis para compartirla entre instancias.
+/// Lee el esquema de cada conexión, le aplica los ajustes (P-011) y guarda ambos en memoria:
+/// el leído del catálogo (caro: va a la base) y el combinado (barato: se rehace al cambiar un ajuste,
+/// sin volver a leer la base). En Fase 4 esta caché pasa a Redis para compartirla entre instancias.
 /// </summary>
-public sealed class SchemaService(IConnectionStore store, ProviderRegistry providers)
+public sealed class SchemaService(IConnectionStore store, ProviderRegistry providers, IOverrideStore? overrides = null)
 {
-    private readonly ConcurrentDictionary<string, Lazy<Task<DatabaseSchema>>> _cache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly IOverrideStore _overrides = overrides ?? new NoOverrideStore();
+    private readonly ConcurrentDictionary<string, Lazy<Task<DatabaseSchema>>> _raw = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, Lazy<Task<DatabaseSchema>>> _applied = new(StringComparer.OrdinalIgnoreCase);
+
+    public IOverrideStore Overrides => _overrides;
 
     public async Task<ConnectionContext> GetContextAsync(string connectionId, CancellationToken ct)
     {
+        var (def, provider) = await DefinitionAsync(connectionId, ct);
+        var schema = await Cached(_applied, def.Id, async () =>
+        {
+            var raw = await Cached(_raw, def.Id, () => ReadAsync(def, provider, CancellationToken.None), CancellationToken.None);
+            return OverrideApplier.Apply(raw, await _overrides.ListAsync(def.Id, CancellationToken.None));
+        }, ct);
+        return new ConnectionContext(def, provider, schema);
+    }
+
+    /// <summary>El esquema tal como lo lee el catálogo, sin ajustes (para validarlos y para el editor).</summary>
+    public async Task<DatabaseSchema> GetRawSchemaAsync(string connectionId, CancellationToken ct)
+    {
+        var (def, provider) = await DefinitionAsync(connectionId, ct);
+        return await Cached(_raw, def.Id, () => ReadAsync(def, provider, CancellationToken.None), ct);
+    }
+
+    private async Task<(ConnectionDefinition, IDatabaseProvider)> DefinitionAsync(string connectionId, CancellationToken ct)
+    {
         var def = await store.GetAsync(connectionId, ct)
                   ?? throw new NotFoundException($"La conexión '{connectionId}' no existe.");
-        var provider = providers.Get(def.Engine);
+        return (def, providers.Get(def.Engine));
+    }
 
-        var lazy = _cache.GetOrAdd(def.Id, _ => new Lazy<Task<DatabaseSchema>>(() => ReadAsync(def, provider, CancellationToken.None)));
+    private static async Task<DatabaseSchema> Cached(
+        ConcurrentDictionary<string, Lazy<Task<DatabaseSchema>>> cache, string key, Func<Task<DatabaseSchema>> load, CancellationToken ct)
+    {
+        var lazy = cache.GetOrAdd(key, _ => new Lazy<Task<DatabaseSchema>>(load));
         try
         {
-            var schema = await lazy.Value.WaitAsync(ct);
-            return new ConnectionContext(def, provider, schema);
+            return await lazy.Value.WaitAsync(ct);
         }
         catch when (lazy.Value.IsFaulted)
         {
             // No se guarda en caché un error: el siguiente intento vuelve a leer.
-            _cache.TryRemove(new KeyValuePair<string, Lazy<Task<DatabaseSchema>>>(def.Id, lazy));
+            cache.TryRemove(new KeyValuePair<string, Lazy<Task<DatabaseSchema>>>(key, lazy));
             throw;
         }
     }
@@ -54,7 +81,14 @@ public sealed class SchemaService(IConnectionStore store, ProviderRegistry provi
         return (await GetContextAsync(connectionId, ct)).Schema;
     }
 
-    public void Invalidate(string connectionId) => _cache.TryRemove(connectionId, out _);
+    public void Invalidate(string connectionId)
+    {
+        _raw.TryRemove(connectionId, out _);
+        _applied.TryRemove(connectionId, out _);
+    }
+
+    /// <summary>Tras guardar o borrar un ajuste: se rehace el combinado sin volver a leer la base.</summary>
+    public void InvalidateOverrides(string connectionId) => _applied.TryRemove(connectionId, out _);
 
     /// <summary>
     /// Prueba una conexión sin guardarla: abre, verifica la versión y lee el catálogo.

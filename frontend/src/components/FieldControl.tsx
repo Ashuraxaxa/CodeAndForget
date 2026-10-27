@@ -32,6 +32,25 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
     )
   }
 
+  // Lista fija de valores (ajuste Options).
+  if (c.options && c.options.length > 0) {
+    return (
+      <select id={id} value={str} disabled={disabled} required={required} onChange={e => onChange(e.target.value)}>
+        <option value="">{required ? 'Seleccionar…' : '(vacío)'}</option>
+        {/* Un valor guardado antes del ajuste se sigue mostrando. */}
+        {str && !c.options.includes(str) && <option value={str}>{str}</option>}
+        {c.options.map(v => <option key={v} value={v}>{v}</option>)}
+      </select>
+    )
+  }
+
+  if (c.widget === 'textarea' && (c.type === 'String' || c.type === 'Text')) {
+    return (
+      <textarea id={id} rows={4} value={str} disabled={disabled} required={required}
+        maxLength={c.maxLength ?? undefined} onChange={e => onChange(e.target.value)} />
+    )
+  }
+
   switch (c.type) {
     case 'Boolean':
       return c.isNullable ? (
@@ -69,8 +88,10 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
 
     default: {
       // Los números de más de 28 dígitos van en un campo de texto: el control numérico del navegador los redondea.
+      const widgetType: Record<string, string> = { email: 'email', url: 'url', color: 'color', password: 'password' }
       const type =
-        c.isLargeNumber ? 'text'
+        c.widget && widgetType[c.widget] && c.type === 'String' ? widgetType[c.widget]
+        : c.isLargeNumber ? 'text'
         : c.type === 'Integer' || c.type === 'Decimal' ? 'number'
           : c.type === 'Date' ? 'date'
             : c.type === 'DateTime' ? 'datetime-local'
@@ -80,7 +101,9 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
         <input
           id={id}
           type={type}
-          step={c.type === 'Decimal' ? 'any' : c.type === 'Time' ? 1 : undefined}
+          step={c.widget === 'money' ? '0.01' : c.type === 'Decimal' ? 'any' : c.type === 'Time' ? 1 : undefined}
+          min={c.min ?? undefined}
+          max={c.max ?? undefined}
           inputMode={c.isLargeNumber ? 'decimal' : undefined}
           value={str}
           disabled={disabled}

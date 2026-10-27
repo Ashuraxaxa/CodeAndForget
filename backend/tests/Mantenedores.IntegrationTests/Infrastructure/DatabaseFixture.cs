@@ -43,6 +43,9 @@ public abstract class DatabaseFixture : IAsyncLifetime
     public SchemaService Schemas { get; private set; } = null!;
     public CrudService Crud { get; private set; } = null!;
 
+    /// <summary>Ajustes en memoria (P-011); cada prueba que los usa los borra al terminar.</summary>
+    public InMemoryOverrideStore Overrides { get; } = new();
+
     /// <summary>Cadena de conexión para el host y puerto publicados del contenedor.</summary>
     protected abstract string BuildConnectionString(string host, int port, bool forSeed);
 
@@ -91,7 +94,7 @@ public abstract class DatabaseFixture : IAsyncLifetime
             ConnectionString = ConnectionString,
             Schemas = [SampleSchema]
         });
-        Schemas = new SchemaService(store, new ProviderRegistry([Provider]));
+        Schemas = new SchemaService(store, new ProviderRegistry([Provider]), Overrides);
         Crud = new CrudService(Schemas, new CrudOptions { CommandTimeoutSeconds = 60 });
     }
 

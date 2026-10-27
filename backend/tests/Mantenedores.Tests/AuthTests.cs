@@ -172,6 +172,29 @@ public sealed class AuthTests : IDisposable
         Assert.Contains(expected, ex.Message);
     }
 
+    [Fact]
+    public async Task Cambiar_ajustes_exige_un_rol_de_administrador()
+    {
+        var c = JwtClient(("Auth:Jwt:RoleClaim", "realm_access.roles"));
+        async Task<HttpStatusCode> Send(HttpMethod method, string token)
+        {
+            var req = new HttpRequestMessage(method, "/api/meta/no-existe/overrides/ventas/producto");
+            if (method == HttpMethod.Put) req.Content = JsonContent.Create(new { label = "Productos" });
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            return (await c.SendAsync(req)).StatusCode;
+        }
+
+        var user = Token(KeycloakLike("ventas"));
+        var admin = Token(KeycloakLike("admin"));
+        Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Put, user));
+        Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Delete, user));
+        // El administrador pasa la autorización y llega a la conexión, que no existe.
+        Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Put, admin));
+        Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Delete, admin));
+        // Leerlos no exige ser administrador.
+        Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Get, user));
+    }
+
     private sealed record MeDto(string? Name, List<string> Roles, bool IsAdmin);
     private sealed record LoginDto(string Token);
 

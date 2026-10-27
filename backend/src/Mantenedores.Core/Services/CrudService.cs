@@ -159,7 +159,7 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
             if (col is null) { errors[name] = "la columna no existe"; continue; }
             if (col.IsReadOnly) continue;
 
-            try { values[col.Name] = ValueConverter.FromJson(col, element); }
+            try { values[col.Name] = ValueConverter.ForWrite(col, element); }
             catch (ValidationException ex) { foreach (var e in ex.Errors) errors[e.Key] = e.Value; }
         }
 

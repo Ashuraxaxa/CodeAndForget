@@ -176,7 +176,9 @@ Reemplaza el archivo `connections.json` por una base propia del servicio, **del 
 - **Pruebas:** las mismas pruebas del almacén corren contra los tres motores.
 - **Listo cuando:** las conexiones sobreviven a reinicios con cualquiera de los tres motores y con dos instancias de la API.
 
-### 1.2 Modelo de overrides (1 semana)
+### 1.2 Modelo de overrides (1 semana) · ✅ PR #11
+
+Guía de uso: [ajustes.md](ajustes.md). Decisiones: D-049 a D-051.
 
 **Ajustes por tabla**
 

@@ -1,5 +1,6 @@
 using System.Security.Cryptography.X509Certificates;
 using Mantenedores.Core.Connections;
+using Mantenedores.Core.Overrides;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Configuration;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Mantenedores.Metadata;
 
-/// <summary>Registra el almacén de conexiones y las llaves de cifrado según la configuración (D-023, D-025).</summary>
+/// <summary>Registra el almacén de conexiones, el de ajustes (P-011) y las llaves de cifrado según la configuración (D-023, D-025).</summary>
 public static class MetadataSetup
 {
     public const string ApplicationName = "Mantenedores";
@@ -33,12 +34,14 @@ public static class MetadataSetup
         {
             services.AddSingleton<IConnectionStore>(sp => new FileConnectionStore(
                 Path.Combine(dataDirectory, "connections.json"), sp.GetRequiredService<IDataProtectionProvider>()));
+            services.AddSingleton<IOverrideStore>(new FileOverrideStore(Path.Combine(dataDirectory, "overrides.json")));
             return;
         }
 
         services.AddSingleton(new MetadataDatabase(options, dataDirectory));
         services.AddSingleton<SqlConnectionStore>();
         services.AddSingleton<IConnectionStore>(sp => sp.GetRequiredService<SqlConnectionStore>());
+        services.AddSingleton<IOverrideStore, SqlOverrideStore>();
 
         if (protection.KeyStore == KeyStore.Database)
             services.AddOptions<KeyManagementOptions>()

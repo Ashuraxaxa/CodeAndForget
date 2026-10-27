@@ -32,7 +32,9 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         var count = new SqlQuery($"SELECT COUNT(*) FROM {from}{where}", p.Snapshot());
 
         var (select, joins, renames) = BuildSelectWithLabels(schema, table);
-        var orderBy = BuildOrderBy(table, request.Sort);
+        // Sin orden pedido, el del ajuste de la tabla (P-011).
+        var sort = request.Sort.Count > 0 ? request.Sort : SortSpec.ParseList(table.DefaultSort);
+        var orderBy = BuildOrderBy(table, sort);
 
         var pageSize = Math.Clamp(request.PageSize, 1, ListRequest.MaxPageSize);
         var page = Math.Max(request.Page, 1);
@@ -208,7 +210,8 @@ public sealed class QueryBuilder(ISqlDialect dialect)
             var target = schema.FindTable(fk.RefSchema, fk.RefTable);
             var display = target?.DisplayColumn is { } d ? target.FindColumn(d) : null;
             // Si la columna a mostrar es la misma clave, la etiqueta no aporta nada.
-            if (target is null || display is null || !display.IsSelectable ||
+            // Tampoco si la columna local está oculta: la etiqueta revelaría su valor.
+            if (target is null || display is null || !display.IsSelectable || table.FindColumn(fk.Columns[0]) is not { IsSelectable: true } ||
                 string.Equals(display.Name, fk.RefColumns[0], StringComparison.OrdinalIgnoreCase))
                 continue;
 
@@ -249,7 +252,8 @@ public sealed class QueryBuilder(ISqlDialect dialect)
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var textCols = table.Columns.Where(c => c.Type is LogicalType.String or LogicalType.Text).ToList();
+            // Las columnas ocultas no se buscan: revelaría su contenido.
+            var textCols = table.Columns.Where(c => c.IsSelectable && c.Type is LogicalType.String or LogicalType.Text).ToList();
             if (textCols.Count > 0)
             {
                 var param = p.Add(LikePattern(request.Search));

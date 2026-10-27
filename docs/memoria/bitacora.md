@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Fase 2: ajustes por tabla y columna
+- `OverrideApplier` en Core aplica un JSON por tabla sobre el esquema leído; dos cachés (leído y combinado) para aplicar sin volver a leer la base (D-049).
+- Migración `002_overrides`, `SqlOverrideStore` y `FileOverrideStore`; endpoints `/api/meta/{conn}/overrides`, que solo cambia un administrador (D-050, provisional hasta Q-006).
+- Reglas en el servidor: obligatoria, patrón con tiempo máximo, opciones, rango y largo. Columnas ocultas fuera de lecturas, escrituras y búsqueda (D-051).
+- UI: grupos, etiquetas, orden, ayudas, controles (`textarea`, `email`, `money`…) y aviso de ajustes que no aplican. Guía en `docs/ajustes.md`.
+- 123 unitarias y 153 de integración en verde en los cuatro motores, versión mínima y actual. Probado en navegador.
+- **Siguiente:** P-012, el editor en la UI. **Nuevos pendientes:** P-082 (ajustes con varias instancias), P-083 (conexiones solo admin), P-084.
+
 ## 2026-10-27 · Fase 2: metadata configurable
 - Nuevo `Mantenedores.Metadata`: conexiones en SQLite (por defecto), Postgres o SQL Server, con un migrador propio en vez de DbUp (D-047).
 - Llaves de Data Protection en la base (`KeyStore=Database`) y certificado opcional: dos instancias comparten conexiones (probado).

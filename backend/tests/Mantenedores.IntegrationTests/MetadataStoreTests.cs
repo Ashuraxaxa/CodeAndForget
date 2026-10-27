@@ -60,6 +60,33 @@ public abstract class MetadataStoreContractTests<TFixture>(TFixture db) : IClass
         Assert.True(await a.DeleteAsync(id, default));
         Assert.Null(await b.GetAsync(id, default));
     }
+
+    [Fact]
+    public async Task Guarda_y_lee_ajustes()
+    {
+        var database = Database();
+        await new MetadataMigrator(database).MigrateAsync();
+        var store = new SqlOverrideStore(database);
+        var id = "c" + Guid.NewGuid().ToString("N")[..8];
+
+        var o = new Mantenedores.Core.Overrides.TableOverride
+        {
+            Label = "Productos — ñandú",
+            Columns = new Dictionary<string, Mantenedores.Core.Overrides.ColumnOverride> { ["Precio"] = new() { Min = 0.5m, Pattern = "\\d+" } }
+        };
+        await store.SaveAsync(id.ToUpperInvariant(), "ventas", "Producto", o, "ana", default);
+        await store.SaveAsync(id, "ventas", "Producto", o with { Group = "Catálogo" }, "ana", default); // reemplaza
+
+        var got = Assert.Single(await store.ListAsync(id, default));
+        Assert.Equal(("ventas", "Producto"), got.Key);
+        Assert.Equal("Productos — ñandú", got.Value.Label);
+        Assert.Equal("Catálogo", got.Value.Group);
+        Assert.Equal(0.5m, got.Value.Columns!["Precio"].Min);
+        Assert.Equal("\\d+", got.Value.Columns["Precio"].Pattern);
+
+        await store.DeleteAllAsync(id, default);
+        Assert.Empty(await store.ListAsync(id, default));
+    }
 }
 
 public sealed class PostgresMetadataStoreTests(PostgresFixture db) : MetadataStoreContractTests<PostgresFixture>(db)

@@ -367,4 +367,104 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         await Assert.ThrowsAsync<OperationNotAllowedException>(() =>
             Db.Crud.CreateAsync(Conn, Schema, N("log_evento"), Body((N("detalle"), "x")), default));
     }
+    // ---------- Ajustes por tabla y columna (P-011) ----------
+
+    /// <summary>Aplica un ajuste mientras corre <paramref name="body"/> y lo quita al terminar (el fixture es compartido).</summary>
+    private async Task WithOverrideAsync(string logicalTable, Core.Overrides.TableOverride value, Func<Task> body)
+    {
+        var raw = await Db.Schemas.GetRawSchemaAsync(Conn, default);
+        var table = raw.FindTable(Schema, N(logicalTable))!;
+        Core.Overrides.OverrideApplier.Validate(raw, table.Schema, table.Name, value);
+        await Db.Overrides.SaveAsync(Conn, table.Schema, table.Name, value, "prueba", default);
+        Db.Schemas.InvalidateOverrides(Conn);
+        try { await body(); }
+        finally
+        {
+            await Db.Overrides.DeleteAllAsync(Conn, default);
+            Db.Schemas.InvalidateOverrides(Conn);
+        }
+    }
+
+    private static bool HasKey(IDictionary<string, object?> row, string name) =>
+        row.Keys.Any(k => string.Equals(k, name, StringComparison.OrdinalIgnoreCase));
+
+    [Fact]
+    public async Task Un_ajuste_cambia_listado_y_escritura_sin_reiniciar_y_sobrevive_al_refrescar()
+    {
+        var o = new Core.Overrides.TableOverride
+        {
+            Label = "Productos",
+            DefaultSort = "-" + N("precio"),
+            Columns = new Dictionary<string, Core.Overrides.ColumnOverride>
+            {
+                [N("atributos")] = new() { Hidden = true },
+                [N("codigo")] = new() { Pattern = "[A-Z]-[A-Z0-9]+", Label = "Código" },
+                [N("precio")] = new() { Max = 100000 }
+            }
+        };
+        await WithOverrideAsync("producto", o, async () =>
+        {
+            Assert.Equal("Productos", (await TableAsync("producto")).Label);
+
+            var list = await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { PageSize = 200 }, default);
+            Assert.All(list.Rows, r => Assert.False(HasKey(r, N("atributos")))); // oculta: no se lee
+            var precios = list.Rows.Select(r => Convert.ToDecimal(r[N("precio")])).ToList();
+            Assert.Equal(precios.OrderByDescending(p => p), precios); // orden por defecto
+
+            var bad = await Assert.ThrowsAsync<ValidationException>(() => Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
+                (N("codigo"), "minusculas"), (N("nombre"), "x"), (N("categoria_id"), 1), (N("precio"), 200000)), default));
+            Assert.Equal(2, bad.Errors.Count); // patrón y máximo, juntos
+
+            // Escribir una columna oculta se ignora: el valor no llega a la base.
+            var created = await Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
+                (N("codigo"), UniqueCode()), (N("nombre"), "Con ajuste"), (N("categoria_id"), 1), (N("precio"), 10),
+                (N("atributos"), "{\"a\":1}")), default);
+            Assert.False(HasKey(created, N("atributos")));
+            var table = $"{Db.Provider.Dialect.Quote(Schema)}.{Db.Provider.Dialect.Quote(N("producto"))}";
+            Assert.Equal(0, await Db.ScalarAsync(
+                $"SELECT COUNT(*) FROM {table} WHERE {Db.Provider.Dialect.Quote(N("id"))} = {Convert.ToInt64(created[N("id")])} " +
+                $"AND {Db.Provider.Dialect.Quote(N("atributos"))} IS NOT NULL"));
+
+            // Refrescar el esquema vuelve a leer la base y el ajuste se mantiene.
+            await Db.Schemas.RefreshAsync(Conn, default);
+            Assert.True((await TableAsync("producto")).FindColumn(N("atributos"))!.Hidden);
+            await Db.Crud.DeleteAsync(Conn, Schema, N("producto"), Key((N("id"), created[N("id")]!)), default);
+        });
+
+        Assert.Null((await TableAsync("producto")).Label); // sin el ajuste, vuelve a lo automático
+    }
+
+    [Fact]
+    public async Task Pk_y_fk_virtuales_en_una_vista()
+    {
+        var o = new Core.Overrides.TableOverride
+        {
+            VirtualPrimaryKey = [N("id")],
+            VirtualForeignKeys = [new Core.Overrides.VirtualForeignKey([N("id")], Schema, N("producto"), [N("id")])]
+        };
+        await WithOverrideAsync("v_productos", o, async () =>
+        {
+            var view = await TableAsync("v_productos");
+            Assert.False(view.IsEditable); // una vista sigue siendo de solo lectura
+            Assert.Contains((await TableAsync("producto")).ReferencedBy, r => string.Equals(r.Table, view.Name, StringComparison.OrdinalIgnoreCase));
+
+            // La PK virtual permite leer por clave; la FK virtual trae la etiqueta como una declarada.
+            var row = await Db.Crud.GetAsync(Conn, Schema, N("v_productos"), Key((N("id"), 1)), default);
+            Assert.Equal("Agua mineral 500ml", row[N("id") + QueryBuilder.LabelSuffix]);
+
+            var lookup = await Db.Crud.LookupAsync(Conn, Schema, N("v_productos"), "Agua", 10, default);
+            Assert.Contains(lookup, i => i.Label == "Agua mineral 500ml");
+        });
+    }
+
+    [Fact]
+    public async Task Columna_a_mostrar_por_ajuste_cambia_las_etiquetas_de_quien_la_referencia()
+    {
+        await WithOverrideAsync("categoria", new Core.Overrides.TableOverride { DisplayColumn = N("id") }, async () =>
+        {
+            var list = await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest(), default);
+            // La columna a mostrar es la misma clave: no hay etiqueta.
+            Assert.All(list.Rows, r => Assert.False(HasKey(r, N("categoria_id") + QueryBuilder.LabelSuffix)));
+        });
+    }
 }

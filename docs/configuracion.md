@@ -50,12 +50,12 @@ Bajo una subruta van precedidos por ella: `/mantenedores/api/health/ready`.
 
 ## Metadata del servicio (`Metadata`)
 
-Dónde guarda la app su propia configuración: hoy, las conexiones; luego, los ajustes de cada mantenedor (D-023).
+Dónde guarda la app su propia configuración: las conexiones y los ajustes de cada mantenedor ([ajustes.md](ajustes.md)) (D-023).
 Las tablas llevan el prefijo `mnt_` y se crean solas al arrancar (migraciones en `backend/src/Mantenedores.Metadata/Migrations/`).
 
 | Clave | Por defecto | Qué hace |
 |---|---|---|
-| `Metadata:Provider` | `Sqlite` | `Sqlite` (un archivo, nada que instalar) · `Postgres` · `SqlServer` · `File` (JSON de la Fase 1, solo para desarrollo). |
+| `Metadata:Provider` | `Sqlite` | `Sqlite` (un archivo, nada que instalar) · `Postgres` · `SqlServer` · `File` (archivos JSON `connections.json` y `overrides.json`, solo para desarrollo). |
 | `Metadata:ConnectionString` | `Data Source=<datos>/mantenedores.db` en `Sqlite` | Obligatoria en `Postgres` y `SqlServer`. El usuario necesita crear tablas la primera vez (o se crean a mano con los scripts). |
 
 **Varias instancias** (Kubernetes con más de una réplica, granja de IIS): usar `Postgres` o `SqlServer` **y** `DataProtection:KeyStore=Database`,

@@ -26,6 +26,38 @@ public static partial class ValueConverter
         _ => throw Invalid(column, "formato no soportado")
     };
 
+    /// <summary>
+    /// Valor de un alta o una edición: convierte y además aplica las reglas de los ajustes (P-011):
+    /// obligatorio, patrón, lista de opciones, mínimo y máximo. Los filtros y las claves usan <see cref="FromString"/>, sin reglas.
+    /// </summary>
+    public static object? ForWrite(ColumnInfo column, JsonElement value)
+    {
+        var result = FromJson(column, value);
+        switch (result)
+        {
+            case string s when column.Type is LogicalType.String or LogicalType.Text:
+                if (column.ForcedRequired && s.Trim().Length == 0) throw Invalid(column, "es obligatorio");
+                if (s.Length == 0) break;
+                if (column.Options is { Count: > 0 } options && !options.Contains(s))
+                    throw Invalid(column, $"valor permitido: {string.Join(", ", options)}");
+                if (column.Pattern is { } pattern && !Matches(s, pattern))
+                    throw Invalid(column, "no tiene el formato esperado");
+                break;
+            case byte or short or int or long or decimal or double when column.Min is not null || column.Max is not null:
+                var n = Convert.ToDecimal(result, CultureInfo.InvariantCulture);
+                if (column.Min is { } min && n < min) throw Invalid(column, $"mínimo {min.ToString(CultureInfo.InvariantCulture)}");
+                if (column.Max is { } max && n > max) throw Invalid(column, $"máximo {max.ToString(CultureInfo.InvariantCulture)}");
+                break;
+        }
+        return result;
+    }
+
+    private static bool Matches(string value, string pattern)
+    {
+        try { return Overrides.OverrideApplier.MatchesPattern(value, pattern); }
+        catch (System.Text.RegularExpressions.RegexMatchTimeoutException) { return false; }
+    }
+
     public static object? FromString(ColumnInfo column, string? raw)
     {
         if (raw is null) return CheckNull(column);

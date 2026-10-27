@@ -31,11 +31,29 @@ public sealed record TableInfo
     /// <summary>Columna que se muestra cuando otra tabla referencia a esta (combos de FK).</summary>
     public string? DisplayColumn { get; init; }
 
+    // ----- Ajustes (overrides, P-011) -----
+
+    public string? Label { get; init; }
+
+    /// <summary>No se muestra en el menú.</summary>
+    public bool Hidden { get; init; }
+
+    /// <summary>De consulta por ajuste.</summary>
+    public bool ForcedReadOnly { get; init; }
+
+    public string? Group { get; init; }
+
+    /// <summary>Orden por defecto: "-fecha,nombre".</summary>
+    public string? DefaultSort { get; init; }
+
+    /// <summary>La PK no está declarada en la BD: viene de un ajuste.</summary>
+    public bool HasVirtualPrimaryKey { get; init; }
+
     public string FullName => $"{Schema}.{Name}";
     public bool HasPrimaryKey => PrimaryKey.Count > 0;
 
-    /// <summary>En Fase 1 solo se editan tablas con PK. Vistas y tablas sin PK quedan de solo lectura.</summary>
-    public bool IsEditable => Kind == TableKind.Table && HasPrimaryKey;
+    /// <summary>Se editan tablas con PK (declarada o virtual). Vistas, tablas sin PK y las marcadas de consulta quedan de solo lectura.</summary>
+    public bool IsEditable => Kind == TableKind.Table && HasPrimaryKey && !ForcedReadOnly;
 
     public ColumnInfo? FindColumn(string name) =>
         Columns.FirstOrDefault(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));

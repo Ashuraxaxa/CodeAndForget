@@ -27,9 +27,11 @@ Detalle técnico en [../motores.md](../motores.md).
 |---|---|---|---|
 | P-078 | Prueba en vivo con Duende IdentityServer (requiere un host .NET de prueba con Duende; la config está documentada) | 🟡 | ⏳ |
 | P-079 | Renovación silenciosa sin refresh token (iframe `silent_redirect_uri`); hoy, sin refresh token, al vencer se vuelve a iniciar sesión | ⚪ | ⏳ |
+| P-082 | Ajustes con varias instancias: un ajuste guardado en una instancia solo se ve en las otras al refrescar o reiniciar (caché en memoria). Opciones: TTL corto del esquema combinado o caché compartida (P-050) | 🟡 | ⏳ |
+| P-083 | Gestión de conexiones (`PUT`/`DELETE /api/connections`) disponible para cualquier usuario autenticado; restringirla a `admin` como los ajustes (D-050) | 🟡 | ⏳ |
+| P-084 | UI: usar la etiqueta de la tabla referenciada (no su nombre) en "→ categoria" y en "Referenciada por" | ⚪ | ⏳ |
 | P-081 | Migraciones con varias instancias arrancando a la vez: bloqueo (p. ej. `pg_advisory_lock`, `sp_getapplock`) para que no corran dos veces en paralelo | 🟡 | ⏳ |
-| P-011 | Modelo de overrides (tabla y columna) + `OverrideApplier` + endpoints (migración `002_overrides`) | 🔴 | ⏳ (P-010 listo) |
-| P-012 | Editor de overrides en la UI con vista previa | 🟡 | ⏳ depende de P-011 |
+| P-012 | Editor de overrides en la UI con vista previa (la API y el render ya están, `docs/ajustes.md`) | 🔴 | ⏳ (P-011 listo) |
 | P-013 | Diferencias de esquema (snapshot + `/diff` + aviso de overrides huérfanos) | 🟡 | ⏳ depende de P-010 |
 | P-014 | Maestro-detalle con pestañas de tablas hijas y FK precompletada | 🟡 | ⏳ |
 | P-015 | N:M: detección de tablas puente + selector múltiple + sincronización en transacción | 🟡 | ⏳ |
@@ -82,7 +84,6 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-073 | Traducir también errores de permisos (PG `42501`, SQL Server `229`/`230`) a "el usuario de la base no tiene permiso para …" | ⚪ | ⏳ |
 | P-074 | Health check del contenedor sin `curl`/`wget` en la imagen (p. ej. subcomando `healthcheck` de la propia app) | ⚪ | ⏳ |
 | P-075 | Revisar otros tipos definidos por el usuario en PG (compuestos, rangos) frente a la caché de tipos de Npgsql (D-041); hoy se marcan `Unsupported` | ⚪ | ⏳ |
-| P-037 | El `DisplayColumn` automático elige mal en algunos casos (p. ej. `ventas.Pedido` usa `Estado` en SQL Server) | ⚪ | ⏳ se resuelve con P-011 |
 
 ---
 
@@ -113,6 +114,8 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-029 | UI: MySQL/MariaDB en el selector, ejemplo de cadena y ayuda de esquemas según el motor | ✅ 2026-10-27 · PR #8 |
 | P-010 | Metadata en `Sqlite` (por defecto), `Postgres` o `SqlServer`, con migraciones, `SqlConnectionStore` e importación de `connections.json` (D-047, D-048) | ✅ 2026-10-27 · PR #10 |
 | P-080 | Llaves de Data Protection en la base (`DataProtection:KeyStore=Database`) y certificado opcional: varias instancias comparten conexiones | ✅ 2026-10-27 · PR #10 |
+| P-011 | Ajustes por tabla y columna: modelo, `OverrideApplier`, almacén (`002_overrides`), endpoints solo admin, reglas en el servidor, render en la UI (D-049 a D-051) | ✅ 2026-10-27 · PR #11 |
+| P-037 | `DisplayColumn` automático mal elegido: se corrige con el ajuste `displayColumn` | ✅ 2026-10-27 · PR #11 |
 | P-041 | Autenticación configurable: modo `Local` o `Jwt` (Authority/Metadata/SigningKey), mapeo de claims, `/api/auth/config`, `/api/auth/me`, login PKCE en la UI (D-046) | ✅ 2026-10-27 · PR #9 |
 | P-039 | `Auth:JwtKey` se exige solo en modo `Local` | ✅ 2026-10-27 · PR #9 |
 | P-077 | PK UUID con default en motores sin `RETURNING`: la genera la app (D-044) | ✅ 2026-10-27 · PR #8 |

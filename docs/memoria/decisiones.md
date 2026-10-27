@@ -48,7 +48,7 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Por qué:** una sola consulta por página, en vez de una búsqueda de etiquetas por fila.
 
 ### D-008 · Heurística para la columna a mostrar
-- **Estado:** Vigente · 2026-10-27 (se podrá corregir con overrides, P-011)
+- **Estado:** Vigente · 2026-10-27 (se corrige por tabla con el ajuste `displayColumn`, D-049)
 - **Orden de preferencia:**
   1. Nombres típicos (`nombre`, `descripcion`, `razon_social`, `codigo`…), exactos y luego parciales.
   2. Primera columna de texto corto que no sea clave.
@@ -62,7 +62,7 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Las vistas y las tablas sin PK son de solo lectura.
   - La PK no se modifica en una edición.
   - Identity, columnas calculadas y `rowversion` nunca se escriben.
-- **Se revisa con:** PK virtual (P-011) y edición de vistas actualizables (sin fecha).
+- **Se revisa con:** edición de vistas actualizables (sin fecha). Las tablas sin PK ya se editan con una PK virtual (D-049).
 
 ### D-010 · En SQL Server, INSERT con `OUTPUT … INTO` una variable de tabla
 - **Estado:** Vigente · 2026-10-27
@@ -374,10 +374,35 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Después el archivo se renombra a `connections.json.importado`.
 - **Por qué:** quien ya usaba la app no pierde sus conexiones al actualizar, aunque cambie de almacén de llaves.
 
+### D-049 · Ajustes: un documento JSON por tabla, aplicado sobre el esquema leído
+- **Estado:** Vigente · 2026-10-27 (P-011; era la propuesta PR-03)
+- **Qué:**
+  - `TableOverride` (con sus `ColumnOverride`) se guarda como **un JSON por tabla** en `mnt_table_override` (clave: conexión, esquema, tabla), o en `data/overrides.json` con `Metadata:Provider=File`.
+  - `OverrideApplier` (Core, puro) combina el esquema del catálogo con los ajustes y devuelve un `DatabaseSchema` nuevo: etiquetas, orden, ocultas, solo lectura, obligatorias, reglas, PK y FK virtuales, columna a mostrar y orden por defecto. Recalcula las FK entrantes.
+  - `SchemaService` guarda **dos cachés**: el esquema leído (caro) y el combinado (barato). Guardar un ajuste solo invalida el combinado; no vuelve a leer la base. El hash sigue siendo el del catálogo (base de P-013).
+  - Lo que no se puede aplicar se omite y queda en `OverrideWarnings`; al guardar, los mismos problemas se devuelven como errores por campo (`columns.email.pattern`). Así un cambio en la base nunca rompe el mantenedor.
+  - Las reglas de escritura (`required`, `pattern`, `options`, `min`, `max`, `maxLength`) se aplican en `ValueConverter.ForWrite`, solo en altas y ediciones; los filtros no las usan.
+  - `pattern` se evalúa sobre el texto completo y con 100 ms de tiempo máximo (evita ReDoS).
+- **Por qué:** sumar un ajuste nuevo no exige migrar la metadata; el documento es el mismo JSON de la API y del futuro editor (P-012).
+- **Alternativas descartadas:**
+  - Una fila por ajuste o por columna: más tablas y migraciones por cada ajuste nuevo.
+  - Aplicar los ajustes en la UI: las reglas y las columnas ocultas deben cumplirse en el servidor.
+
+### D-050 · Solo los administradores cambian los ajustes (por ahora)
+- **Estado:** Provisional · 2026-10-27 (se confirma o cambia con Q-006)
+- **Qué:** `PUT` y `DELETE` de `/api/meta/{conn}/overrides/...` exigen la política `admin` (`Auth:AdminRoles`, D-046). Leerlos lo puede hacer cualquier usuario autenticado, porque la UI los necesita para dibujar.
+- **Por qué:** es la sugerencia de Q-006 y no requiere nada nuevo. En la Fase 3 puede pasar a un permiso por conexión (P-042).
+
+### D-051 · Qué significa "oculto"
+- **Estado:** Vigente · 2026-10-27
+- **Qué:**
+  - **Columna oculta:** no se lee, no se escribe ni se busca por la API (sirve para datos sensibles). Si es PK, se sigue usando como clave y solo la UI la esconde. Ocultar se aplica aunque el resto del ajuste tenga avisos.
+  - **Tabla oculta:** solo sale del menú. **No es un permiso**; restringir el acceso es tarea de P-042.
+  - Una PK virtual en una vista permite leer por clave y usarla en combos, pero la vista sigue siendo de solo lectura (D-009).
+- **Alternativa descartada:** que una tabla oculta responda 404, que daría una falsa sensación de seguridad.
+
 ---
 
 ## Propuestas (aún no decididas)
 
-Se convierten en `D-xxx` al aprobarse.
-
-- **PR-03 · Overrides guardados como JSON** por tabla y por columna (flexibles, sin migrar el esquema por cada ajuste nuevo). Ver P-011.
+Se convierten en `D-xxx` al aprobarse. Por ahora no hay.

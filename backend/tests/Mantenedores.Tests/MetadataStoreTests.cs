@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dapper;
 using Mantenedores.Core.Connections;
+using Mantenedores.Core.Overrides;
 using Mantenedores.Core.Providers;
 using Mantenedores.Metadata;
 using Microsoft.AspNetCore.DataProtection;
@@ -41,7 +42,7 @@ public sealed class MetadataStoreTests : IDisposable
         var first = await new MetadataMigrator(db).MigrateAsync();
         var second = await new MetadataMigrator(db).MigrateAsync();
 
-        Assert.Equal(["001_conexiones"], first);
+        Assert.Equal(["001_conexiones", "002_overrides"], first);
         Assert.Empty(second);
         Assert.True(File.Exists(Path.Combine(_root, "mantenedores.db")));
     }
@@ -133,6 +134,43 @@ public sealed class MetadataStoreTests : IDisposable
         var list = await b.GetStringAsync("/api/connections");
         Assert.Contains("\"server\":\"srv-a\"", list);
         Assert.Contains("\"database\":\"ventas\"", list);
+    }
+
+    [Theory]
+    [InlineData("Sqlite")]
+    [InlineData("File")]
+    public async Task Ajustes_se_guardan_reemplazan_y_borran_por_conexion(string provider)
+    {
+        await using var sp = Services(_root, ("Metadata:Provider", provider));
+        await sp.InitializeMetadataAsync(_root);
+        var store = sp.GetRequiredService<IOverrideStore>();
+
+        var o = new TableOverride
+        {
+            Label = "Productos",
+            VirtualForeignKeys = [new VirtualForeignKey(["categoria_id"], "ventas", "categoria", ["id"])],
+            Columns = new Dictionary<string, ColumnOverride> { ["precio"] = new() { Min = 0, Options = ["a"] } }
+        };
+        await store.SaveAsync("Ventas", "ventas", "Producto", o, "ana", default);
+        await store.SaveAsync("ventas", "ventas", "categoria", new TableOverride { Hidden = true }, null, default);
+        await store.SaveAsync("otra", "ventas", "producto", new TableOverride { Label = "Otra" }, null, default);
+
+        var all = await store.ListAsync("VENTAS", default);
+        Assert.Equal(2, all.Count);
+        var got = all[("ventas", "Producto")]; // esquema y tabla tal como se guardaron
+        Assert.Equal("Productos", got.Label);
+        Assert.Equal("categoria", got.VirtualForeignKeys![0].RefTable);
+        Assert.Equal(0m, got.Columns!["precio"].Min);
+        Assert.Null(got.Hidden);
+
+        await store.SaveAsync("ventas", "ventas", "Producto", new TableOverride { Label = "Nuevo" }, "ana", default);
+        Assert.Equal("Nuevo", (await store.ListAsync("ventas", default))[("ventas", "Producto")].Label);
+
+        Assert.True(await store.DeleteAsync("ventas", "ventas", "Producto", default));
+        Assert.False(await store.DeleteAsync("ventas", "ventas", "Producto", default));
+        await store.DeleteAllAsync("ventas", default);
+        Assert.Empty(await store.ListAsync("ventas", default));
+        Assert.Single(await store.ListAsync("otra", default)); // las otras conexiones no se tocan
     }
 
     [Theory]

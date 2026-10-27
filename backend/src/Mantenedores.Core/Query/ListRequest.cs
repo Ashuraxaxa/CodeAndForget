@@ -1,6 +1,14 @@
 namespace Mantenedores.Core.Query;
 
-public sealed record SortSpec(string Column, bool Descending = false);
+public sealed record SortSpec(string Column, bool Descending = false)
+{
+    /// <summary>"-fecha,nombre" → fecha descendente, nombre ascendente.</summary>
+    public static IReadOnlyList<SortSpec> ParseList(string? text) =>
+        (text ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(s => s.StartsWith('-') ? new SortSpec(s[1..].Trim(), true) : new SortSpec(s))
+            .Where(s => s.Column.Length > 0)
+            .ToList();
+}
 
 public sealed record ListRequest
 {

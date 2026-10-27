@@ -44,10 +44,7 @@ public static class DataEndpoints
     {
         int Int(string name, int fallback) => int.TryParse(q[name], out var v) ? v : fallback;
 
-        var sort = q["sort"].ToString()
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(s => s.StartsWith('-') ? new SortSpec(s[1..], true) : new SortSpec(s))
-            .ToList();
+        var sort = SortSpec.ParseList(q["sort"].ToString());
 
         var filters = q.Where(kv => kv.Key.StartsWith(FilterPrefix, StringComparison.Ordinal))
             .ToDictionary(kv => kv.Key[FilterPrefix.Length..], kv => kv.Value.ToString());

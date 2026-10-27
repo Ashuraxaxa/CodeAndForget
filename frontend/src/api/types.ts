@@ -33,12 +33,17 @@ export interface TableSummary {
   columns: number
   foreignKeys: number
   referencedBy: number
+  label: string | null
+  group: string | null
+  hidden: boolean
 }
 
 export interface SchemaSummary {
   hash: string
   readAt: string
   tables: TableSummary[]
+  /** Ajustes que no se pudieron aplicar (p. ej. una columna que ya no existe). */
+  warnings: string[]
 }
 
 export interface Column {
@@ -64,6 +69,20 @@ export interface Column {
   isLargeNumber: boolean
   isReadOnly: boolean
   isRequiredOnInsert: boolean
+  // Ajustes (P-011)
+  label: string | null
+  helpText: string | null
+  hidden: boolean
+  showInGrid: boolean
+  order: number
+  forcedReadOnly: boolean
+  forcedRequired: boolean
+  /** textarea, email, url, color, money, password */
+  widget: string | null
+  pattern: string | null
+  min: number | null
+  max: number | null
+  options: string[] | null
 }
 
 export interface ForeignKey {
@@ -87,7 +106,17 @@ export interface TableMeta {
   displayColumn: string | null
   isEditable: boolean
   hasPrimaryKey: boolean
+  // Ajustes (P-011)
+  label: string | null
+  group: string | null
+  hidden: boolean
+  forcedReadOnly: boolean
+  defaultSort: string | null
+  hasVirtualPrimaryKey: boolean
 }
+
+/** Nombre visible: el del ajuste o, si no hay, el de la base. */
+export const labelOf = (x: { name: string; label: string | null }) => x.label ?? x.name
 
 export type Row = Record<string, unknown>
 

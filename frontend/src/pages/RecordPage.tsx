@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
-import { LABEL_SUFFIX, type Column, type Row, type TableMeta } from '../api/types'
+import { LABEL_SUFFIX, labelOf, type Column, type Row, type TableMeta } from '../api/types'
 import { FieldControl } from '../components/FieldControl'
 import { fromInputValue, toInputValue } from '../lib/format'
 
@@ -34,7 +34,8 @@ function RecordForm({ conn, meta, row, recordKey }: { conn: string; meta: TableM
   const fkByColumn = new Map(meta.foreignKeys.filter(f => f.columns.length === 1).map(f => [f.columns[0], f]))
 
   // En alta se ocultan las columnas que genera la BD; en edición se muestran deshabilitadas.
-  const fields = meta.columns.filter(c => c.isSelectable && (isEdit || !(c.isIdentity || c.isComputed || c.isRowVersion)))
+  // Las ocultas por ajuste no se muestran (la PK oculta viaja igual en la clave de la URL).
+  const fields = meta.columns.filter(c => c.isSelectable && !c.hidden && (isEdit || !(c.isIdentity || c.isComputed || c.isRowVersion)))
   const isLocked = (c: Column) => c.isReadOnly || (isEdit && c.isPrimaryKey)
 
   const [values, setValues] = useState<Record<string, string | boolean>>(() =>
@@ -76,7 +77,7 @@ function RecordForm({ conn, meta, row, recordKey }: { conn: string; meta: TableM
   return (
     <div className="page">
       <div className="page-header">
-        <h1>{isEdit ? `Editar ${meta.name}` : `Nuevo ${meta.name}`}</h1>
+        <h1>{isEdit ? `Editar registro · ${labelOf(meta)}` : `Nuevo registro · ${labelOf(meta)}`}</h1>
         <Link to={back}>‹ Volver a la lista</Link>
       </div>
 
@@ -86,9 +87,9 @@ function RecordForm({ conn, meta, row, recordKey }: { conn: string; meta: TableM
             const required = !isLocked(c) && (isEdit ? !c.isNullable && c.type !== 'Boolean' : c.isRequiredOnInsert)
             const fk = fkByColumn.get(c.name)
             return (
-              <label key={c.name} className={c.type === 'Text' || c.type === 'Json' ? 'span-2' : undefined}>
-                <span className="field-label">
-                  {c.name}{required && <span className="req"> *</span>}
+              <label key={c.name} className={c.type === 'Text' || c.type === 'Json' || c.widget === 'textarea' ? 'span-2' : undefined}>
+                <span className="field-label" title={c.label ? c.name : undefined}>
+                  {labelOf(c)}{required && <span className="req"> *</span>}
                   <span className="muted small"> {fk ? `→ ${fk.refTable}` : c.nativeType}</span>
                 </span>
                 <FieldControl
@@ -104,6 +105,7 @@ function RecordForm({ conn, meta, row, recordKey }: { conn: string; meta: TableM
                     if (l !== undefined) setLabels(s => ({ ...s, [c.name]: l }))
                   }}
                 />
+                {c.helpText && <span className="hint">{c.helpText}</span>}
                 {c.isComputed && <span className="hint">Calculada por la base de datos</span>}
                 {errors[c.name] && <span className="field-error">{errors[c.name]}</span>}
               </label>

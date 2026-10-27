@@ -43,7 +43,10 @@ public static partial class ConnectionEndpoints
         group.MapDelete("/{id}", async (string id, IConnectionStore store, SchemaService schemas, CancellationToken ct) =>
         {
             schemas.Invalidate(id);
-            return await store.DeleteAsync(id, ct) ? Results.NoContent() : Results.NotFound();
+            if (!await store.DeleteAsync(id, ct)) return Results.NotFound();
+            // Sus ajustes se van con ella: una conexión nueva con el mismo id no los hereda.
+            await schemas.Overrides.DeleteAllAsync(id, ct);
+            return Results.NoContent();
         });
 
         // Prueba sin guardar. Un error de conexión es un resultado esperado, no una falla de la API.

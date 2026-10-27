@@ -5,14 +5,14 @@
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9, fusionado) y metadata configurable (PR #10). Siguiente: P-011, los ajustes por tabla y columna (overrides).
+**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11). Siguiente: P-012, el editor de ajustes en la UI.
 
 ## Ramas y PR
 
 | Rama | Estado |
 |---|---|
-| `main` | Rama por defecto. Fase 1, bloque M y login configurable: PR #1 a #9. |
-| `feature/f2-metadata-store` | PR #10: metadata en SQLite/Postgres/SQL Server, migraciones, llaves en la base, importación de la Fase 1. |
+| `main` | Rama por defecto. Fase 1, bloque M, login y metadata configurables: PR #1 a #10. |
+| `feature/f2-overrides` | PR #11: ajustes por tabla y columna (overrides). |
 | `feature/fase1-*`, `feature/m1-*`, `feature/m3-*` | Ya fusionadas en `main`; se pueden borrar (P-005). |
 
 ## Qué funciona hoy
@@ -28,7 +28,8 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
   - Listado con orden, filtros por columna, búsqueda en textos y paginación (máx. 200).
   - Alta, edición y borrado, también con PK compuesta.
 - **Etiquetas de FK:** los listados traen `<columna>__label` (D-007) y hay combos con búsqueda (`/lookup`).
-- **Solo lectura:** vistas y tablas sin PK (D-009).
+- **Solo lectura:** vistas y tablas sin PK (D-009), salvo que un ajuste les dé una PK virtual.
+- **Ajustes sin tocar código** (D-049, `docs/ajustes.md`): etiquetas, grupos del menú, columnas ocultas, orden, solo lectura, obligatorias, patrón, rango, lista de opciones, control de la UI, columna a mostrar, orden por defecto, PK y FK virtuales. Se aplican al instante, solo los cambia un administrador (D-050) y lo que deja de aplicar se avisa en el menú. Por ahora se cargan por la API (editor: P-012).
 - **SQL Server:** la inserción funciona también en tablas con triggers (D-010).
 - **Login configurable** (D-024, D-046): modo `Local` (usuarios en configuración) o `Jwt` con cualquier emisor OIDC (Keycloak probado en vivo; Duende y Entra ID documentados), con roles desde los claims, login PKCE en la UI y `/api/auth/me`.
 - **UI:**
@@ -44,10 +45,11 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 
 ## Cómo se verificó (2026-10-27)
 
-- 82 pruebas unitarias del núcleo, 17 de la API en memoria (`HostingTests`, `AuthTests`) y 7 de la metadata en SQLite (`MetadataStoreTests`), entre ellas dos instancias de la API que comparten base y llaves. (`backend/tests/Mantenedores.Tests`), incluidos el traductor de errores y las capacidades del dialecto (con un dialecto de prueba sin `RETURNING` y con parámetros `:`).
+- 123 pruebas unitarias (`backend/tests/Mantenedores.Tests`): núcleo (incluidos los ajustes, el traductor de errores y las capacidades del dialecto), API en memoria (`HostingTests`, `AuthTests`, con el permiso de administrador para los ajustes) y metadata en SQLite y archivo (`MetadataStoreTests`), entre ellas dos instancias de la API que comparten base y llaves.
 - Recorrido en navegador con la app publicada en `/mantenedores` contra PostgreSQL 12: login, conexión, alta con FK, recarga directa y salida. Ninguna petición sale de la subruta.
-- 139 pruebas de integración (incluye el almacén de metadata en PG 12/16 y SQL Server 2017/2022) (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
+- 153 pruebas de integración (incluye ajustes en la batería común y el almacén de metadata en PG 12/16 y SQL Server 2017/2022) (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
 - Login con **Keycloak 26** en el navegador: PKCE, vuelta a la app, API con el token, roles anidados (`realm_access.roles`), cierre de sesión sin confirmación; el token no queda en `localStorage`.
+- Recorrido en navegador con ajustes contra PostgreSQL 16: grupo y etiquetas en el menú, tabla oculta, orden de columnas, orden por defecto, columnas ocultas y solo de formulario, ayudas y error del patrón en el campo.
 - Recorrido en navegador contra MySQL 8.0: prueba de conexión con versión, alta con combo FK (`LAST_INSERT_ID`), duplicado traducido en el campo y cliente con UUID generado por la app.
 - API probada a mano contra PostgreSQL 16 y SQL Server 2022 reales, con las bases de `samples/`.
 - Flujo completo en navegador con Playwright (escritorio y móvil).

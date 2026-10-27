@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
-import { LABEL_SUFFIX, type Column, type Row, type TableMeta } from '../api/types'
+import { LABEL_SUFFIX, labelOf, type Column, type Row, type TableMeta } from '../api/types'
 import { displayValue, keyQuery } from '../lib/format'
 import { useDebounce } from '../lib/useDebounce'
 
@@ -35,7 +35,8 @@ function Grid({ conn, meta }: { conn: string; meta: TableMeta }) {
   const debouncedFilters = useDebounce(filters)
   useEffect(() => setPage(1), [debouncedSearch, debouncedFilters, pageSize])
 
-  const columns = meta.columns.filter(c => c.isSelectable)
+  // El orden viene del servidor (ajuste Order); las ocultas y las que van solo en el formulario no se muestran.
+  const columns = meta.columns.filter(c => c.isSelectable && !c.hidden && c.showInGrid)
   const fkByColumn = new Map(meta.foreignKeys.filter(f => f.columns.length === 1).map(f => [f.columns[0], f]))
   const base = `/c/${conn}/t/${encodeURIComponent(meta.schema)}/${encodeURIComponent(meta.name)}`
 
@@ -68,11 +69,12 @@ function Grid({ conn, meta }: { conn: string; meta: TableMeta }) {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>{meta.name}</h1>
+          <h1>{labelOf(meta)}</h1>
           <div className="muted small">
             {meta.schema} · {total} registros
             {meta.kind === 'View' && <span className="tag">vista · solo lectura</span>}
             {meta.kind === 'Table' && !meta.hasPrimaryKey && <span className="tag">sin PK · solo lectura</span>}
+            {meta.kind === 'Table' && meta.hasPrimaryKey && meta.forcedReadOnly && <span className="tag">solo lectura</span>}
           </div>
         </div>
         <div className="actions">
@@ -103,10 +105,10 @@ function Grid({ conn, meta }: { conn: string; meta: TableMeta }) {
                   key={c.name}
                   onClick={() => c.isSortable && toggleSort(c.name)}
                   className={c.isSortable ? undefined : 'no-sort'}
-                  title={`${c.nativeType}${c.isNullable ? '' : ' · obligatorio'}${c.isSortable ? '' : ' · no se puede ordenar'}`}
+                  title={`${c.label ? c.name + ' · ' : ''}${c.nativeType}${c.isNullable ? '' : ' · obligatorio'}${c.isSortable ? '' : ' · no se puede ordenar'}${c.helpText ? '\n' + c.helpText : ''}`}
                 >
                   {c.isPrimaryKey && <span className="pk">🔑</span>}
-                  {c.name}
+                  {labelOf(c)}
                   {sort?.col === c.name && (sort.desc ? ' ▼' : ' ▲')}
                 </th>
               ))}

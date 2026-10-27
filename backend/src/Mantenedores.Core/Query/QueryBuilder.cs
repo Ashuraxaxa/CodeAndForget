@@ -23,7 +23,8 @@ public sealed class QueryBuilder(ISqlDialect dialect)
 
     private const string Base = "t0";
 
-    public (SqlQuery Data, SqlQuery Count) BuildList(DatabaseSchema schema, TableInfo table, ListRequest request)
+    /// <param name="maxPageSize">Tope de filas; por defecto el del listado (200). La exportación usa el suyo.</param>
+    public (SqlQuery Data, SqlQuery Count) BuildList(DatabaseSchema schema, TableInfo table, ListRequest request, int? maxPageSize = null)
     {
         var p = new ParamBag(dialect.ParameterPrefix);
         var where = BuildWhere(table, request, p);
@@ -36,7 +37,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         var sort = request.Sort.Count > 0 ? request.Sort : SortSpec.ParseList(table.DefaultSort);
         var orderBy = BuildOrderBy(table, sort);
 
-        var pageSize = Math.Clamp(request.PageSize, 1, ListRequest.MaxPageSize);
+        var pageSize = Math.Clamp(request.PageSize, 1, maxPageSize ?? ListRequest.MaxPageSize);
         var page = Math.Max(request.Page, 1);
         var offset = p.Add((long)(page - 1) * pageSize);
         var limit = p.Add((long)pageSize);

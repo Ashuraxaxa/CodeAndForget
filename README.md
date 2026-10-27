@@ -179,6 +179,9 @@ Todas las rutas (salvo `auth/config`, `auth/login` y health) requieren `Authoriz
 | PUT | `/api/data/{conn}/{schema}/{table}/row?{pk}=…` | Actualiza |
 | DELETE | `/api/data/{conn}/{schema}/{table}/row?{pk}=…` | Elimina |
 | GET | `/api/data/{conn}/{schema}/{table}/lookup?q=…` | `[{ value, label }]` para combos de FK |
+| GET | `/api/data/{conn}/{schema}/{table}/export?format=csv\|xlsx\|json\|xml` | Exporta el listado con los mismos filtros, búsqueda y orden, sin paginar (tope `Crud:ExportMaxRows`) |
+| POST | `/api/data/{conn}/{schema}/{table}/import/preview` | Multipart `file` (+ `mapping` opcional): asociación de columnas y errores por fila, sin grabar |
+| POST | `/api/data/{conn}/{schema}/{table}/import` | Igual, y si no hay errores inserta todo en una transacción |
 | GET | `/api/data/{conn}/{schema}/{table}/row/links/{relación}?{pk}=…` | Valores vinculados por una relación N:M (`[{ value, label }]`) |
 | PUT | `/api/data/{conn}/{schema}/{table}/row/links/{relación}?{pk}=…` | Reemplaza la lista completa (`[1, 2, 3]`) en una transacción |
 

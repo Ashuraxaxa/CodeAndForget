@@ -221,3 +221,26 @@ export interface ManyToManyLink {
   targetTable: string
   targetColumn: string
 }
+
+// ----- Exportar e importar (P-017) -----
+
+export type TransferFormat = 'csv' | 'xlsx' | 'json' | 'xml'
+
+export interface ImportError {
+  /** Línea del archivo (0 = error general, p. ej. una columna obligatoria sin asociar). */
+  line: number
+  column: string | null
+  message: string
+}
+
+export interface ImportResult {
+  headers: string[]
+  /** Encabezado del archivo → columna de la tabla (null = se ignora). */
+  mapping: Record<string, string | null>
+  targets: { name: string; label: string | null; type: LogicalType; required: boolean }[]
+  totalRows: number
+  validRows: number
+  errors: ImportError[]
+  sample: Record<string, string | null>[]
+  imported: number
+}

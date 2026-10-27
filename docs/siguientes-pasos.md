@@ -249,7 +249,7 @@ Guía de uso: [ajustes.md](ajustes.md). Decisiones: D-049 a D-051.
 - Validar ciclos al guardar: un registro no puede ser su propio ancestro.
 - **Listo cuando:** se ve la jerarquía de empleados y no se puede crear un ciclo.
 
-### 1.8 Exportar e importar (4 días)
+### 1.8 Exportar e importar (4 días) · ✅ PR #17 (además JSON y XML, pedido del dueño)
 - **Exportar:** CSV y Excel del filtro actual, por streaming, con un tope configurable (p. ej. 100.000 filas).
 - **Importar** CSV o Excel en tres pasos:
   1. Subir el archivo.

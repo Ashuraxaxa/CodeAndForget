@@ -11,8 +11,6 @@ El detalle de cada bloque y su criterio de "listo" está en [../siguientes-pasos
 
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
-| P-001 | Job de CI que ejecute `docker build` y valide la imagen | 🔴 | ⏳ |
-| P-002 | Pruebas de integración con Testcontainers como **batería común por proveedor** (clase base heredable, D-033); primero PG 16 + MSSQL 2022 con `samples/` | 🔴 | ⏳ |
 | P-003 | Mensajes amigables para errores del motor (único, FK, CHECK, nulo) en ambos motores | 🟡 | ⏳ |
 | P-004 | Guía de despliegue `docs/despliegue.md` con recetas (Docker, Kubernetes, IIS, servicio de Windows, systemd) + referencia `docs/configuracion.md` | 🟡 | ⏳ |
 | P-007 | Publicar bajo subruta y detrás de proxy: `PathBase`, `ForwardedHeaders`, frontend con base relativa | 🔴 | ⏳ |
@@ -32,8 +30,8 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-024 | Escape neutro de LIKE (`!`) y ajustes de sesión (zona UTC en MySQL) | 🔴 | ⏳ |
 | P-025 | Proveedor MySQL/MariaDB (`MySqlConnector`) + `samples/mysql` | 🔴 | ⏳ depende de P-020 a P-024 |
 | P-026 | Proveedor Oracle | — | ⛔ fuera de alcance (D-034); análisis en `docs/motores.md` |
-| P-027 | Matriz de CI: un job por motor (SQL Server, PG, MySQL, MariaDB) con la batería común | 🔴 | ⏳ depende de P-002 |
-| P-028 | Verificar versión mínima al probar la conexión y mostrar ajustes relevantes (`sql_mode`, intercalación) | 🟡 | ⏳ |
+| P-027 | Agregar MySQL 8.0/8.4 y MariaDB 10.6/11.4 a la matriz de CI (la matriz con SQL Server y PG ya existe) | 🔴 | ⏳ depende de P-002 |
+| P-028 | Verificar la versión mínima (D-035) al probar y al abrir una conexión, y mostrar ajustes relevantes (`sql_mode`, intercalación) | 🔴 | ⏳ (las pruebas ya la verifican; falta en el producto) |
 | P-029 | UI: nuevos motores en el selector, ejemplos de cadena y controles según capacidades | 🟡 | ⏳ |
 
 ## 1. Fase 2: configuración y personalización
@@ -106,3 +104,7 @@ Detalle técnico en [../motores.md](../motores.md).
 |---|---|---|
 | P-000 | Estructura base de la Fase 1: backend, proveedores, API, UI, ejemplos, CI | ✅ 2026-10-27 · PR #1 |
 | P-006 | Hoja de ruta + memoria del proyecto | ✅ 2026-10-27 · PR #2 |
+| P-001 | Job de CI que compila la imagen Docker y verifica que arranca | ✅ 2026-10-27 · PR #4 |
+| P-002 | Batería común por proveedor (57 pruebas, Testcontainers) contra PG 12/16 y SQL Server 2017/2022 | ✅ 2026-10-27 · PR #4 |
+| P-070 | La base de ejemplo de PG no funcionaba en PG 12 (`pgcrypto`) y no tenía trigger como la de SQL Server | ✅ 2026-10-27 · PR #4 |
+| P-071 | Fechas y horas con formato distinto según el motor (D-036) | ✅ 2026-10-27 · PR #4 |

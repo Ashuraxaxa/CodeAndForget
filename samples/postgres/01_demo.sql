@@ -1,5 +1,10 @@
 -- Base de ejemplo para probar los mantenedores dinámicos (PostgreSQL).
--- Cubre: FK simples, PK compuesta, N:M, autorreferencia, enum, json, uuid, vista y tabla sin PK.
+-- Cubre: FK simples, PK compuesta, N:M, autorreferencia, enum, json, uuid, vista, tabla sin PK y trigger.
+-- Compatible con PostgreSQL 12+ (versión mínima, D-035).
+
+-- gen_random_uuid() es nativo recién desde PostgreSQL 13; en la 12 lo aporta pgcrypto.
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE SCHEMA IF NOT EXISTS ventas;
 
 CREATE TYPE ventas.estado_pedido AS ENUM ('borrador', 'confirmado', 'despachado', 'anulado');
@@ -72,6 +77,17 @@ CREATE TABLE ventas.log_evento (
     detalle     text
 );
 
+-- Trigger equivalente al de SQL Server: deja registro de cada producto guardado.
+CREATE FUNCTION ventas.fn_producto_log() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    INSERT INTO ventas.log_evento (detalle) VALUES ('Producto ' || NEW.codigo || ' guardado');
+    RETURN NEW;
+END
+$$;
+
+CREATE TRIGGER trg_producto_log AFTER INSERT OR UPDATE ON ventas.producto
+    FOR EACH ROW EXECUTE FUNCTION ventas.fn_producto_log();
+
 CREATE VIEW ventas.v_productos AS
 SELECT p.id, p.codigo, p.nombre, c.nombre AS categoria, p.precio
 FROM ventas.producto p JOIN ventas.categoria c ON c.id = p.categoria_id;
@@ -91,4 +107,3 @@ INSERT INTO ventas.pedido (cliente_id, estado) SELECT id, 'confirmado' FROM vent
 INSERT INTO ventas.pedido_detalle VALUES (1, 1, 1, 10, 690), (1, 2, 3, 5, 1490);
 INSERT INTO ventas.empleado (nombre) VALUES ('Ana Gerente');
 INSERT INTO ventas.empleado (nombre, jefe_id, hora_entrada) VALUES ('Luis Vendedor', 1, '09:00');
-INSERT INTO ventas.log_evento (detalle) VALUES ('Base de ejemplo creada');

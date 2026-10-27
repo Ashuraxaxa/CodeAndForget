@@ -39,10 +39,49 @@ backend/
   src/Mantenedores.Providers.Postgres    Lectura de catálogo + dialecto PostgreSQL
   src/Mantenedores.Api                   API minimal, JWT, almacén de conexiones
   tests/Mantenedores.Tests               Pruebas unitarias (xUnit)
+  tests/Mantenedores.IntegrationTests    Batería común por motor contra bases reales (Testcontainers)
 frontend/                                React + Vite + TanStack Query
 samples/                                 Bases de ejemplo (mismo modelo en ambos motores)
 docs/plan.md                             Viabilidad, escalabilidad y plan por fases
 ```
+
+## Requisitos de instalación
+
+> **Antes de instalar o de conectar una base nueva, verifica esta sección.**
+> Las versiones mínimas son una decisión del proyecto (D-035): por debajo de ellas el servicio
+> no se prueba y la conexión no está soportada.
+
+### Bases de datos que se pueden administrar
+
+| Motor | Versión mínima | Estado | Cómo ver la versión |
+|---|---|---|---|
+| SQL Server | **2016** (13.x) | ✅ Soportado | `SELECT SERVERPROPERTY('ProductVersion');` |
+| PostgreSQL | **12** | ✅ Soportado | `SHOW server_version;` |
+| MySQL | **8.0** | 🚧 En desarrollo (bloque M) | `SELECT VERSION();` |
+| MariaDB | **10.6** | 🚧 En desarrollo (bloque M) | `SELECT VERSION();` (el texto incluye `MariaDB`) |
+
+Oracle no está soportado (D-034).
+
+**Si la versión es menor**, actualiza el motor antes de conectarlo. No hay modo de compatibilidad para versiones
+fuera de soporte del fabricante, porque cada una agrega casos especiales que nadie prueba.
+
+Las pruebas automáticas corren contra la **versión mínima** y contra una **actual** de cada motor:
+- PostgreSQL 12 y 16.
+- SQL Server 2017 y 2022. SQL Server 2016 no tiene imagen para contenedores: su compatibilidad se cuida no usando T-SQL posterior a 2016.
+
+Detalle técnico por motor: [docs/motores.md](docs/motores.md).
+
+### Usuario de base de datos
+
+Crea un usuario dedicado para el servicio, nunca `sa`, `postgres` ni `root`. Necesita:
+- Lectura del catálogo (`sys.*` / `pg_catalog` / `information_schema`).
+- `SELECT`, `INSERT`, `UPDATE` y `DELETE` sobre los esquemas que quieras exponer.
+
+### Para ejecutar el servicio
+
+- **Con Docker:** Docker 20+ (o cualquier entorno de contenedores).
+- **Sin Docker:** el runtime de ASP.NET Core 8.
+- **Para desarrollar:** .NET 8 SDK y Node 20+. Para las pruebas de integración, además, Docker.
 
 ## Ejecutar
 
@@ -61,7 +100,7 @@ Abre http://localhost:8080, entra con `admin` / `admin` y crea las conexiones:
 
 ### Opción B: desarrollo local
 
-Requisitos: .NET 8 SDK y Node 20+.
+Requisitos: ver [Requisitos de instalación](#requisitos-de-instalación).
 
 ```bash
 # API en http://localhost:5080 (usa appsettings.Development.json: admin / admin)
@@ -71,7 +110,17 @@ cd backend && dotnet run --project src/Mantenedores.Api
 cd frontend && npm install && npm run dev
 ```
 
-Pruebas: `cd backend && dotnet test`.
+Pruebas:
+
+```bash
+cd backend
+dotnet test tests/Mantenedores.Tests              # unitarias, sin dependencias
+dotnet test tests/Mantenedores.IntegrationTests   # contra bases reales en contenedores (requiere Docker)
+
+# Por defecto usan las versiones mínimas; para probar otra:
+MANTENEDORES_PG_IMAGE=postgres:16 MANTENEDORES_MSSQL_IMAGE=mcr.microsoft.com/mssql/server:2022-latest \
+  dotnet test tests/Mantenedores.IntegrationTests
+```
 
 ## Configuración
 

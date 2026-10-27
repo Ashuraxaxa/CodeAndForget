@@ -3,7 +3,7 @@
 Decisiones que necesitan respuesta del dueño del proyecto. Cuando se respondan, se registran
 como `D-xxx` en [decisiones.md](decisiones.md) y se borran de aquí.
 
-**Respondidas el 2026-10-27:** Q-001 → D-022 (cualquier entorno), Q-002 → D-027 (equipo interno), Q-003 → D-024 (cualquier emisor JWT/OIDC).
+**Respondidas el 2026-10-27:** Q-001 → D-022 (cualquier entorno), Q-002 → D-027 (equipo interno), Q-003 → D-024 (cualquier emisor JWT/OIDC), Q-008 → D-035 (versiones mínimas).
 Ninguna de las abiertas bloquea el trabajo inmediato.
 
 ---
@@ -24,8 +24,3 @@ Ninguna de las abiertas bloquea el trabajo inmediato.
 ### Q-007 · ¿Cuánto tiempo se guarda la auditoría?
 - **Opciones:** 90 días · 1 año · indefinido · según la tabla.
 - **Qué define:** el tamaño del metadata store y si se necesita un archivado (P-044).
-
-### Q-008 · ¿Qué versiones de cada motor usa el equipo?
-- **Datos útiles:** versión exacta de SQL Server, PostgreSQL y MySQL/MariaDB en producción, y si alguna está por debajo del mínimo (SQL Server 2016, PG 12, MySQL 8.0, MariaDB 10.6).
-- **Qué define:** si hace falta algún modo de compatibilidad (p. ej. MySQL 5.7), que hoy se decidió **no** soportar (D-034). También sirve para probar P-025 contra una base real del equipo.
-- **Sugerencia:** si hay alguna versión vieja, conviene actualizarla antes de que soportarla sea una deuda permanente.

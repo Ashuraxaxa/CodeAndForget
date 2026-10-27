@@ -16,6 +16,8 @@ export class ApiError extends Error {
   }
 }
 
+// Las rutas de la API son relativas: el navegador las resuelve contra <base href>,
+// así funcionan igual en "/" o en una subruta como "/mantenedores/" (P-007).
 const TOKEN_KEY = 'mantenedores.token'
 
 export const tokenStore = {
@@ -41,7 +43,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 
   const res = await fetch(url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
 
-  if (res.status === 401 && !url.endsWith('/auth/login')) {
+  if (res.status === 401 && !url.endsWith('auth/login')) {
     onUnauthorized()
     throw new ApiError(401, 'Sesión expirada')
   }
@@ -55,7 +57,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 
 const enc = encodeURIComponent
 const tablePath = (conn: string, schema: string, table: string) =>
-  `/api/data/${enc(conn)}/${enc(schema)}/${enc(table)}`
+  `api/data/${enc(conn)}/${enc(schema)}/${enc(table)}`
 
 export interface ListParams {
   page: number
@@ -67,18 +69,18 @@ export interface ListParams {
 
 export const api = {
   login: (username: string, password: string) =>
-    request<{ token: string; expiresAt: string; username: string }>('POST', '/api/auth/login', { username, password }),
+    request<{ token: string; expiresAt: string; username: string }>('POST', 'api/auth/login', { username, password }),
 
-  connections: () => request<Connection[]>('GET', '/api/connections'),
-  saveConnection: (c: ConnectionInput) => request<Connection>('PUT', `/api/connections/${enc(c.id)}`, c),
-  deleteConnection: (id: string) => request<void>('DELETE', `/api/connections/${enc(id)}`),
+  connections: () => request<Connection[]>('GET', 'api/connections'),
+  saveConnection: (c: ConnectionInput) => request<Connection>('PUT', `api/connections/${enc(c.id)}`, c),
+  deleteConnection: (id: string) => request<void>('DELETE', `api/connections/${enc(id)}`),
   testConnection: (c: ConnectionInput) =>
-    request<{ ok: boolean; tables: number; error: string | null }>('POST', '/api/connections/test', c),
+    request<{ ok: boolean; tables: number; error: string | null }>('POST', 'api/connections/test', c),
 
-  tables: (conn: string) => request<SchemaSummary>('GET', `/api/meta/${enc(conn)}/tables`),
-  refresh: (conn: string) => request<SchemaSummary>('POST', `/api/meta/${enc(conn)}/refresh`),
+  tables: (conn: string) => request<SchemaSummary>('GET', `api/meta/${enc(conn)}/tables`),
+  refresh: (conn: string) => request<SchemaSummary>('POST', `api/meta/${enc(conn)}/refresh`),
   table: (conn: string, schema: string, table: string) =>
-    request<TableMeta>('GET', `/api/meta/${enc(conn)}/tables/${enc(schema)}/${enc(table)}`),
+    request<TableMeta>('GET', `api/meta/${enc(conn)}/tables/${enc(schema)}/${enc(table)}`),
 
   list(conn: string, schema: string, table: string, p: ListParams) {
     const qs = new URLSearchParams({ page: String(p.page), pageSize: String(p.pageSize) })

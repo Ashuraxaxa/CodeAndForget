@@ -21,6 +21,10 @@ if (args is ["hash-password", var plain])
 var builder = WebApplication.CreateBuilder(args);
 var dataDir = builder.Configuration["Storage:DataDirectory"] ?? "data";
 
+// --- Publicación: subruta y proxy (P-007) ---
+var hosting = builder.Configuration.GetSection(HostingOptions.Section).Get<HostingOptions>() ?? new HostingOptions();
+builder.Services.ConfigureForwardedHeaders(hosting);
+
 // --- Autenticación (Fase 1: usuarios en configuración + JWT) ---
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.Section));
 var auth = builder.Configuration.GetSection(AuthOptions.Section).Get<AuthOptions>() ?? new AuthOptions();
@@ -57,23 +61,24 @@ builder.Services.AddSingleton<CrudService>();
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddExceptionHandler<ErrorHandler>();
 builder.Services.AddProblemDetails();
+builder.Services.AddMantenedoresHealthChecks();
 
 var app = builder.Build();
 
 app.UseExceptionHandler();
-app.UseDefaultFiles();
-app.UseStaticFiles(); // El frontend compilado se sirve desde wwwroot.
+app.UseHosting(hosting);
+app.UseStaticFiles(); // Recursos del frontend compilado (wwwroot). index.html lo sirve MapSpaIndex.
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
+app.MapMantenedoresHealthChecks();
 app.MapAuth();
 app.MapConnections();
 app.MapMeta();
 app.MapData();
 // Una ruta /api desconocida es 404; cualquier otra ruta la resuelve el router del frontend.
 app.Map("/api/{**rest}", () => Results.NotFound()).AllowAnonymous();
-app.MapFallbackToFile("index.html");
+app.MapSpaIndex();
 
 app.Run();
 

@@ -71,7 +71,7 @@ Pendientes detectados al construir la Fase 1, que conviene cerrar antes de crece
 
 - **Listo cuando:** cada caso muestra un mensaje en español, asociado al campo cuando se puede.
 
-### 0.4 Preparar producción en cualquier entorno
+### 0.4 Preparar producción en cualquier entorno · 🚧 subruta, proxy, health y configuración ✅ PR #5; falta la guía de despliegue
 - Soporte para publicar bajo una subruta y detrás de un proxy:
   - `PathBase` configurable, p. ej. `https://intranet/mantenedores`. El frontend debe usar rutas relativas a esa base.
   - `ForwardedHeaders` para HTTPS terminado en el proxy (nginx, IIS, Traefik, balanceador de nube).

@@ -130,6 +130,12 @@ MANTENEDORES_PG_IMAGE=postgres:16 MANTENEDORES_MSSQL_IMAGE=mcr.microsoft.com/mss
 | `Auth__Users__0__Username` / `Auth__Users__0__PasswordHash` | Usuarios del login básico. El hash se genera con `dotnet run --project backend/src/Mantenedores.Api -- hash-password "clave"`. |
 | `Storage__DataDirectory` | Carpeta donde se guardan las conexiones (cifradas) y las llaves de cifrado. Por defecto `data/`. |
 | `Crud__CommandTimeoutSeconds` | Tiempo máximo por consulta. Por defecto 30. |
+| `Hosting__PathBase` | Subruta de publicación, p. ej. `/mantenedores`. Por defecto la raíz. |
+| `Hosting__ForwardedHeaders__Enabled` | Activa `X-Forwarded-*` detrás de un proxy (HTTPS terminado en nginx, IIS, Traefik…). |
+
+Referencia completa, con todas las claves y sus valores por defecto: [docs/configuracion.md](docs/configuracion.md).
+
+Health checks sin autenticación: `/api/health/live` (proceso vivo) y `/api/health/ready` (listo para atender).
 
 > La carpeta de datos contiene las llaves que descifran las cadenas de conexión: respáldala
 > y protégela. Si se pierde, hay que volver a ingresar las conexiones.

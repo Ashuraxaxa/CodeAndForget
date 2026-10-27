@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0" />
     <PackageReference Include="xunit" Version="2.4.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
@@ -26,6 +27,7 @@
     <ProjectReference Include="..\..\src\Mantenedores.Core\Mantenedores.Core.csproj" />
     <ProjectReference Include="..\..\src\Mantenedores.Providers.SqlServer\Mantenedores.Providers.SqlServer.csproj" />
     <ProjectReference Include="..\..\src\Mantenedores.Providers.Postgres\Mantenedores.Providers.Postgres.csproj" />
+    <ProjectReference Include="..\..\src\Mantenedores.Api\Mantenedores.Api.csproj" />
   </ItemGroup>
 
 </Project>

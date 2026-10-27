@@ -5,7 +5,7 @@
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-Próximo bloque: resto del **cierre de la Fase 1** (P-007, P-008, P-003, P-004; P-001 y P-002 ya hechos); luego el bloque **M** con MySQL/MariaDB (P-020 a P-029, D-034; Oracle fuera de alcance), y después la **Fase 2**.
+Próximo bloque: resto del **cierre de la Fase 1** (P-003 y P-004; P-001, P-002, P-007 y P-008 ya hechos); luego el bloque **M** con MySQL/MariaDB (P-020 a P-029, D-034; Oracle fuera de alcance), y después la **Fase 2**.
 
 ## Ramas y PR
 
@@ -13,6 +13,7 @@ Próximo bloque: resto del **cierre de la Fase 1** (P-007, P-008, P-003, P-004; 
 |---|---|
 | `main` | Rama por defecto. Fase 1 (PR #1), memoria y hoja de ruta (PR #2), decisiones de entorno y motores (PR #3). |
 | `feature/fase1-pruebas-integracion` | PR #4: batería común por motor, matriz de versiones mínimas y actuales, imagen Docker en la CI, requisitos en el README. |
+| `feature/fase1-subruta-proxy` | PR #5 (sobre el #4): subruta, proxy, health checks y `docs/configuracion.md`. |
 | `feature/fase1-mantenedores` | Ya fusionada en `main`; se puede borrar (P-005). |
 
 ## Qué funciona hoy
@@ -34,11 +35,14 @@ Próximo bloque: resto del **cierre de la Fase 1** (P-007, P-008, P-003, P-004; 
   - Login, conexiones y menú de tablas.
   - Grilla y formulario dinámico.
   - Funciona en pantallas de teléfono.
-- **Despliegue:** una sola app; la API sirve el frontend (D-015).
+- **Despliegue:** una sola app; la API sirve el frontend (D-015), en la raíz o bajo cualquier subruta y detrás de un proxy (D-037).
+- **Health checks:** `/api/health/live` y `/api/health/ready`.
 
 ## Cómo se verificó (2026-10-27)
 
-- 44 pruebas unitarias (`backend/tests/Mantenedores.Tests`).
+- 44 pruebas unitarias del núcleo (`backend/tests/Mantenedores.Tests`).
+- 7 pruebas de la API en memoria (`HostingTests`): subruta, `<base href>`, health checks y 404 de API.
+- Recorrido en navegador con la app publicada en `/mantenedores` contra PostgreSQL 12: login, conexión, alta con FK, recarga directa y salida. Ninguna petición sale de la subruta.
 - 57 pruebas de integración (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16** y **SQL Server 2017 y 2022** (D-035).
 - API probada a mano contra PostgreSQL 16 y SQL Server 2022 reales, con las bases de `samples/`.
 - Flujo completo en navegador con Playwright (escritorio y móvil).

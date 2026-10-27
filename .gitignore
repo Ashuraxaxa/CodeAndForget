@@ -1,0 +1,19 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# Datos locales de la API (conexiones cifradas y llaves)
+backend/src/Mantenedores.Api/data/
+backend/src/Mantenedores.Api/wwwroot/
+
+# Frontend
+node_modules/
+frontend/dist/
+
+# Editores / SO
+.idea/
+.vscode/
+.DS_Store

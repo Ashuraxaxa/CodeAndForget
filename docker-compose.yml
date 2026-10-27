@@ -1,0 +1,54 @@
+# Entorno de prueba: la app + una base de ejemplo en Postgres y otra en SQL Server.
+#   docker compose up --build
+#   Abrir http://localhost:8080 (usuario admin / clave admin) y crear las conexiones:
+#     Postgres:   Host=pg-demo;Port=5432;Database=demo;Username=postgres;Password=postgres
+#     SQL Server: Server=mssql-demo,1433;Database=Demo;User Id=sa;Password=Demo_Pass_123!;TrustServerCertificate=True
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Solo para pruebas locales. En producción use secretos y su propio hash
+      # (dotnet run --project backend/src/Mantenedores.Api -- hash-password "clave").
+      Auth__JwtKey: "demo-local-cambiar-esta-clave-0123456789abcdef"
+      Auth__Users__0__Username: "admin"
+      Auth__Users__0__PasswordHash: "pbkdf2$$210000$$tghhyxydv8a0G0aWwnVI6Q==$$7xL63Yggo8yuRPxuhFSPhGJmuO1RWWbaf1kV1U0fqTI="
+    volumes:
+      - app-data:/app/data
+    depends_on:
+      - pg-demo
+      - mssql-demo
+
+  pg-demo:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: demo
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./samples/postgres:/docker-entrypoint-initdb.d:ro
+
+  mssql-demo:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Demo_Pass_123!"
+    ports:
+      - "1433:1433"
+
+  # Carga la base de ejemplo en SQL Server cuando el motor ya responde.
+  mssql-seed:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      - mssql-demo
+    volumes:
+      - ./samples/sqlserver:/seed:ro
+    environment:
+      MSSQL_SA_PASSWORD: "Demo_Pass_123!"
+    entrypoint: ["bash", "/seed/seed.sh"]
+    restart: "no"
+
+volumes:
+  app-data:

@@ -87,7 +87,21 @@ Dos modos (D-024). El mismo build sirve para cualquiera: solo cambia la configur
 | Clave | Por defecto | Qué hace |
 |---|---|---|
 | `Auth:Mode` | `Local` | `Local`: usuarios en la configuración. `Jwt`: tokens de un emisor externo. |
-| `Auth:AdminRoles` | `["admin"]` | Roles que administran la app (p. ej. configurar mantenedores). Se comparan sin distinguir mayúsculas. |
+| `Auth:AdminRoles` | `["admin"]` | Roles de administrador: tienen **todos** los permisos. Se comparan sin distinguir mayúsculas. |
+| `Auth:Permissions:ConfigureTables` | `["mnt-configurador"]` | Roles que pueden **configurar mantenedores** (ajustes por tabla y columna, botón ⚙ Configurar). |
+| `Auth:Permissions:ManageConnections` | `["mnt-conexiones"]` | Roles que pueden **crear, editar, probar y borrar conexiones**. Ver y abrir conexiones no exige permiso. |
+
+**Permisos (D-053).** Cada acción sensible tiene su propio permiso, y cada permiso se otorga a uno o más roles.
+Así se le puede dar a una persona solo lo que necesita, asignándole el rol en el proveedor de identidad (modo `Jwt`)
+o en `Auth:Users:N:Roles` (modo `Local`). Por ejemplo, para que el rol `analista-datos` configure mantenedores:
+
+```json
+"Auth": { "Permissions": { "ConfigureTables": [ "analista-datos" ] } }
+```
+
+o, por variable de entorno, `Auth__Permissions__ConfigureTables__0=analista-datos`. Un nombre de permiso que no existe
+detiene el arranque con un mensaje. Cuando exista el apartado de seguridad propio (perfiles y usuarios, P-040/P-042),
+estos mismos permisos se asignarán a perfiles desde ahí.
 
 ### Modo `Local`
 
@@ -175,7 +189,7 @@ Auth__Jwt__Scopes="openid profile api://<client-id-de-la-api>/acceso"
 
 **Detrás de un proxy que autentica** (p. ej. oauth2-proxy): `Auth__Mode=Jwt` con la fuente de llaves del emisor y **sin** `ClientId`. El proxy agrega `Authorization: Bearer …` y la UI no muestra login ni botón de salir.
 
-`GET /api/auth/config` (anónimo) devuelve a la UI el modo, el `authority`, el `clientId`, los scopes y el nombre del proveedor; **nunca** devuelve llaves. `GET /api/auth/me` devuelve el nombre, los roles y si es administrador.
+`GET /api/auth/config` (anónimo) devuelve a la UI el modo, el `authority`, el `clientId`, los scopes y el nombre del proveedor; **nunca** devuelve llaves. `GET /api/auth/me` devuelve el nombre, los roles, si es administrador y sus permisos (`permissions`).
 
 ## Pruebas de integración
 

@@ -16,6 +16,9 @@ public static class AuthSetup
     /// <summary>Valida la configuración al arrancar, con mensajes que dicen qué falta.</summary>
     public static void Validate(AuthOptions auth)
     {
+        if (auth.Permissions.Keys.FirstOrDefault(k => !Permissions.All.Contains(k, StringComparer.OrdinalIgnoreCase)) is { } unknown)
+            throw new InvalidOperationException(
+                $"Auth:Permissions:{unknown} no existe. Permisos válidos: {string.Join(", ", Permissions.All)}.");
         if (auth.Mode == AuthMode.Local)
         {
             if (auth.JwtKey.Length < 32)
@@ -73,8 +76,13 @@ public static class AuthSetup
             o.Events = new JwtBearerEvents { OnTokenValidated = ctx => Normalize(ctx, auth) };
         });
 
-        services.AddAuthorization(o => o.AddPolicy(AdminPolicy, p => p.RequireAssertion(ctx =>
-            ClaimsMapper.IsAdmin(ctx.User.FindAll(ClaimTypes.Role).Select(c => c.Value), auth.AdminRoles))));
+        services.AddAuthorization(o =>
+        {
+            o.AddPolicy(AdminPolicy, p => p.RequireAssertion(ctx =>
+                ClaimsMapper.IsAdmin(ctx.User.FindAll(ClaimTypes.Role).Select(c => c.Value), auth.AdminRoles)));
+            foreach (var permission in Permissions.All)
+                o.AddPolicy(Permissions.Policy(permission), p => p.RequireAssertion(ctx => Permissions.Has(auth, ctx.User, permission)));
+        });
     }
 
     private static Task Normalize(TokenValidatedContext ctx, AuthOptions auth)

@@ -198,7 +198,60 @@ public sealed class AuthTests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Get, user));
     }
 
-    private sealed record MeDto(string? Name, List<string> Roles, bool IsAdmin);
+    [Fact]
+    public async Task Cada_permiso_tiene_su_rol_y_el_administrador_tiene_todos()
+    {
+        var c = JwtClient(("Auth:Jwt:RoleClaim", "realm_access.roles"));
+        async Task<HttpStatusCode> Send(HttpMethod method, string path, string token, object? body = null)
+        {
+            var req = new HttpRequestMessage(method, path);
+            if (body is not null) req.Content = JsonContent.Create(body);
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            return (await c.SendAsync(req)).StatusCode;
+        }
+        var conexion = new { id = "x", name = "X", engine = "Postgres", connectionString = "Host=nada" };
+        const string ajuste = "/api/meta/no-existe/overrides/ventas/producto";
+
+        var configurador = Token(KeycloakLike("mnt-configurador"));
+        Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Put, ajuste, configurador, new { label = "x" })); // pasa la autorización
+        Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Put, "/api/connections/x", configurador, conexion));
+
+        var conexiones = Token(KeycloakLike("mnt-conexiones"));
+        Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Put, ajuste, conexiones, new { label = "x" }));
+        Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Delete, "/api/connections/x", conexiones));
+        Assert.Equal(HttpStatusCode.OK, await Send(HttpMethod.Post, "/api/connections/test", conexiones, conexion));
+
+        var usuario = Token(KeycloakLike("ventas"));
+        Assert.Equal(HttpStatusCode.OK, await Send(HttpMethod.Get, "/api/connections", usuario)); // listar no exige permiso
+        Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Delete, "/api/connections/x", usuario));
+        Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Post, "/api/connections/test", usuario, conexion));
+
+        var me = await (await Get(c, "/api/auth/me", Token(KeycloakLike("admin")))).Content.ReadFromJsonAsync<MeDto>();
+        Assert.Equal(["ConfigureTables", "ManageConnections"], me!.Permissions);
+        me = await (await Get(c, "/api/auth/me", configurador)).Content.ReadFromJsonAsync<MeDto>();
+        Assert.Equal(["ConfigureTables"], me!.Permissions);
+    }
+
+    [Fact]
+    public async Task Los_roles_de_cada_permiso_se_configuran()
+    {
+        var c = JwtClient(("Auth:Jwt:RoleClaim", "realm_access.roles"),
+            ("Auth:Permissions:ConfigureTables:0", "analista-datos"), ("Auth:Permissions:ConfigureTables:1", "jefe-ti"));
+        foreach (var (role, expected) in new[] { ("analista-datos", true), ("jefe-ti", true), ("mnt-configurador", false) })
+        {
+            var me = await (await Get(c, "/api/auth/me", Token(KeycloakLike(role)))).Content.ReadFromJsonAsync<MeDto>();
+            Assert.Equal(expected, me!.Permissions.Contains("ConfigureTables"));
+        }
+
+        var ex = Assert.Throws<InvalidOperationException>(() => AuthSetup.Validate(new AuthOptions
+        {
+            JwtKey = new string('k', 40),
+            Permissions = new(StringComparer.OrdinalIgnoreCase) { ["BorrarTodo"] = ["x"] }
+        }));
+        Assert.Contains("ConfigureTables, ManageConnections", ex.Message);
+    }
+
+    private sealed record MeDto(string? Name, List<string> Roles, bool IsAdmin, List<string> Permissions);
     private sealed record LoginDto(string Token);
 
     public void Dispose()

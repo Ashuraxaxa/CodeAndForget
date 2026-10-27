@@ -5,7 +5,7 @@ import { api } from '../api/client'
 import { LABEL_SUFFIX, labelOf, type Column, type Row, type TableMeta } from '../api/types'
 import { displayValue, keyQuery } from '../lib/format'
 import { useDebounce } from '../lib/useDebounce'
-import { useMe } from '../lib/useMe'
+import { useCan } from '../lib/useMe'
 
 const PAGE_SIZES = [10, 25, 50, 100]
 
@@ -23,7 +23,7 @@ export function TablePage() {
 function Grid({ conn, meta }: { conn: string; meta: TableMeta }) {
   const qc = useQueryClient()
   const navigate = useNavigate()
-  const isAdmin = useMe().data?.isAdmin === true
+  const canConfigure = useCan('ConfigureTables')
   const [params] = useSearchParams()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
@@ -81,7 +81,7 @@ function Grid({ conn, meta }: { conn: string; meta: TableMeta }) {
         </div>
         <div className="actions">
           <input className="search" placeholder="Buscar en textos…" value={search} onChange={e => setSearch(e.target.value)} />
-          {isAdmin && <Link className="button" to={`${base}/config`} title="Ajustar etiquetas, columnas y validaciones">⚙ Configurar</Link>}
+          {canConfigure && <Link className="button" to={`${base}/config`} title="Ajustar etiquetas, columnas y validaciones">⚙ Configurar</Link>}
           {meta.isEditable && <Link className="button primary" to={`${base}/new`}>Nuevo</Link>}
         </div>
       </div>

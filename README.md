@@ -160,17 +160,17 @@ Todas las rutas (salvo `auth/config`, `auth/login` y health) requieren `Authoriz
 |---|---|---|
 | GET | `/api/auth/config` | Modo de autenticación y datos públicos para el login (sin secretos) |
 | POST | `/api/auth/login` | Solo modo `Local`: `{ username, password }` → `{ token }` |
-| GET | `/api/auth/me` | Nombre, roles y si es administrador |
+| GET | `/api/auth/me` | Nombre, roles, si es administrador y permisos |
 | GET | `/api/connections` | Lista conexiones (sin la cadena de conexión) |
-| PUT | `/api/connections/{id}` | Crea o edita. Si `connectionString` va vacío, se conserva la anterior |
-| POST | `/api/connections/test` | Prueba sin guardar |
-| DELETE | `/api/connections/{id}` | Elimina la conexión (no toca la base) |
+| PUT | `/api/connections/{id}` | Crea o edita. Si `connectionString` va vacío, se conserva la anterior. Permiso `ManageConnections` |
+| POST | `/api/connections/test` | Prueba sin guardar. Permiso `ManageConnections` |
+| DELETE | `/api/connections/{id}` | Elimina la conexión (no toca la base). Permiso `ManageConnections` |
 | GET | `/api/meta/{conn}/tables` | Tablas y vistas descubiertas |
 | GET | `/api/meta/{conn}/tables/{schema}/{table}` | Definición completa (columnas, PK, FK) |
 | POST | `/api/meta/{conn}/refresh` | Vuelve a leer el esquema |
 | GET | `/api/meta/{conn}/overrides[/{schema}/{table}]` | Ajustes de los mantenedores ([docs/ajustes.md](docs/ajustes.md)) |
-| PUT / DELETE | `/api/meta/{conn}/overrides/{schema}/{table}` | Guarda o quita el ajuste de una tabla. Solo administradores |
-| POST | `/api/meta/{conn}/overrides/{schema}/{table}/preview` | Vista previa de un ajuste sin guardarlo. Solo administradores |
+| PUT / DELETE | `/api/meta/{conn}/overrides/{schema}/{table}` | Guarda o quita el ajuste de una tabla. Permiso `ConfigureTables` |
+| POST | `/api/meta/{conn}/overrides/{schema}/{table}/preview` | Vista previa de un ajuste sin guardarlo. Permiso `ConfigureTables` |
 | GET | `/api/data/{conn}/{schema}/{table}` | Lista. `?page=1&pageSize=25&sort=nombre,-precio&q=texto&f.categoria_id=2` |
 | GET | `/api/data/{conn}/{schema}/{table}/row?{pk}=…` | Un registro. PK compuesta: `?PedidoId=1&Linea=2` |
 | POST | `/api/data/{conn}/{schema}/{table}` | Crea. Devuelve la fila creada |

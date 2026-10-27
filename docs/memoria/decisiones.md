@@ -389,7 +389,7 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Aplicar los ajustes en la UI: las reglas y las columnas ocultas deben cumplirse en el servidor.
 
 ### D-050 · Solo los administradores cambian los ajustes (por ahora)
-- **Estado:** Provisional · 2026-10-27 (se confirma o cambia con Q-006)
+- **Estado:** Reemplazada por D-053 · 2026-10-27
 - **Qué:** `PUT` y `DELETE` de `/api/meta/{conn}/overrides/...` exigen la política `admin` (`Auth:AdminRoles`, D-046). Leerlos lo puede hacer cualquier usuario autenticado, porque la UI los necesita para dibujar.
 - **Por qué:** es la sugerencia de Q-006 y no requiere nada nuevo. En la Fase 3 puede pasar a un permiso por conexión (P-042).
 
@@ -410,6 +410,18 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Las FK virtuales se agregan de una columna desde la UI; las compuestas, por la API.
 - **Por qué:** la vista previa usa el mismo `OverrideApplier` que la app, sin duplicar sus reglas en TypeScript.
 - **Alternativa descartada:** aplicar los ajustes en el navegador, que obligaría a mantener las reglas en dos lugares.
+
+### D-053 · Un permiso por acción sensible, otorgado a roles por configuración
+- **Estado:** Vigente · 2026-10-27 (responde Q-006 y P-083; el dueño lo pidió así)
+- **Qué:**
+  - Permisos `ConfigureTables` (ajustes de mantenedores) y `ManageConnections` (crear, editar, probar y borrar conexiones). Ver y abrir conexiones no exige permiso.
+  - Cada permiso se otorga a roles en `Auth:Permissions:<permiso>`. Por defecto: `mnt-configurador` y `mnt-conexiones`. Los `Auth:AdminRoles` tienen todos.
+  - Una política por permiso (`perm:<permiso>`). `/api/auth/me` devuelve `permissions` y la UI muestra u oculta las acciones, pero quien decide es el servidor.
+  - Un permiso desconocido en la configuración detiene el arranque.
+- **Por qué:** el dueño quiere poder dar a una persona o perfil solo lo que necesita. Los roles ya vienen del proveedor de identidad o de los usuarios locales (D-028). El futuro apartado de seguridad (P-040/P-042) asignará estos mismos permisos a perfiles, sin cambiar los endpoints.
+- **Alternativas descartadas:**
+  - Seguir con "solo admin" (D-050): no permite delegar.
+  - Nombres de rol fijos en el código: no se adaptan a los roles que ya existen en cada empresa (D-022).
 
 ---
 

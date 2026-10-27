@@ -74,6 +74,9 @@ export interface ListParams {
   filters?: Record<string, string>
 }
 
+/** Permisos de la app (D-053): cada uno se otorga a roles por configuración. */
+export type Permission = 'ConfigureTables' | 'ManageConnections'
+
 /** Configuración pública de autenticación que expone la API (D-024). */
 export interface AuthConfig {
   mode: 'Local' | 'Jwt'
@@ -85,7 +88,7 @@ export interface AuthConfig {
 
 export const api = {
   authConfig: () => request<AuthConfig>('GET', 'api/auth/config'),
-  me: () => request<{ name: string | null; roles: string[]; isAdmin: boolean }>('GET', 'api/auth/me'),
+  me: () => request<{ name: string | null; roles: string[]; isAdmin: boolean; permissions: Permission[] }>('GET', 'api/auth/me'),
   login: (username: string, password: string) =>
     request<{ token: string; expiresAt: string; username: string }>('POST', 'api/auth/login', { username, password }),
 

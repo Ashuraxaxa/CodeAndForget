@@ -10,14 +10,14 @@ import { FieldControl } from '../components/FieldControl'
 import { useDebounce } from '../lib/useDebounce'
 import { useMe } from '../lib/useMe'
 
-/** Editor de ajustes de un mantenedor (P-012): sin editar JSON, con vista previa en vivo. Solo administradores. */
+/** Editor de ajustes de un mantenedor (P-012): sin editar JSON, con vista previa en vivo. Requiere el permiso ConfigureTables (D-053). */
 export function ConfigPage() {
   const { conn = '', schema = '', table = '' } = useParams()
   const me = useMe()
   const current = useQuery({
     queryKey: ['override', conn, schema, table],
     queryFn: () => api.override(conn, schema, table),
-    enabled: me.data?.isAdmin === true,
+    enabled: me.data?.permissions.includes('ConfigureTables') === true,
     gcTime: 0,
   })
   // La primera vista previa da las columnas tal como quedan con el ajuste guardado.
@@ -29,7 +29,8 @@ export function ConfigPage() {
   })
 
   if (me.isLoading) return <p className="muted">Cargando…</p>
-  if (!me.data?.isAdmin) return <div className="alert">Solo un administrador puede configurar los mantenedores.</div>
+  if (!me.data?.permissions.includes('ConfigureTables'))
+    return <div className="alert">No tiene permiso para configurar mantenedores (pídale a un administrador el rol correspondiente).</div>
   const error = current.error ?? initial.error
   if (error) return <div className="alert">{(error as Error).message}</div>
   if (!initial.data) return <p className="muted">Cargando…</p>

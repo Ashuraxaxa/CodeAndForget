@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
 import type { Connection, ConnectionInput, Engine } from '../api/types'
+import { useCan } from '../lib/useMe'
 
 const EXAMPLES: Record<Engine, string> = {
   SqlServer: 'Server=mi-servidor,1433;Database=MiBase;User Id=usuario;Password=***;TrustServerCertificate=True',
@@ -19,6 +20,7 @@ const ENGINES: Record<Engine, { label: string; badge: string }> = {
 
 export function ConnectionsPage() {
   const qc = useQueryClient()
+  const canManage = useCan('ManageConnections')
   const { data, isLoading, error } = useQuery({ queryKey: ['connections'], queryFn: api.connections })
   const [editing, setEditing] = useState<Connection | 'new' | null>(null)
 
@@ -31,7 +33,7 @@ export function ConnectionsPage() {
     <div className="page">
       <div className="page-header">
         <h1>Conexiones</h1>
-        <button className="primary" onClick={() => setEditing('new')}>Nueva conexión</button>
+        {canManage && <button className="primary" onClick={() => setEditing('new')}>Nueva conexión</button>}
       </div>
 
       {editing && (
@@ -44,7 +46,11 @@ export function ConnectionsPage() {
       {isLoading && <p className="muted">Cargando…</p>}
       {error && <div className="alert">{(error as Error).message}</div>}
       {data?.length === 0 && !editing && (
-        <div className="empty">Aún no hay conexiones. Crea una para descubrir sus tablas.</div>
+        <div className="empty">
+          {canManage
+            ? 'Aún no hay conexiones. Crea una para descubrir sus tablas.'
+            : 'Aún no hay conexiones. Pídele a quien administra las conexiones que agregue una.'}
+        </div>
       )}
 
       <div className="cards">
@@ -62,13 +68,17 @@ export function ConnectionsPage() {
             </div>
             <div className="actions">
               <Link className="button primary" to={`/c/${c.id}`}>Abrir</Link>
-              <button onClick={() => setEditing(c)}>Editar</button>
-              <button
-                className="danger"
-                onClick={() => confirm(`¿Eliminar la conexión "${c.name}"? No borra datos de la base.`) && remove.mutate(c.id)}
-              >
-                Eliminar
-              </button>
+              {canManage && (
+                <>
+                  <button onClick={() => setEditing(c)}>Editar</button>
+                  <button
+                    className="danger"
+                    onClick={() => confirm(`¿Eliminar la conexión "${c.name}"? No borra datos de la base.`) && remove.mutate(c.id)}
+                  >
+                    Eliminar
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ))}

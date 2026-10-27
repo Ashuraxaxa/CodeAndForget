@@ -6,8 +6,8 @@ muestra en los combos y claves o relaciones que la base no declara (P-011, D-049
 
 - Se guardan en la metadata del servicio (`mnt_table_override`, o `data/overrides.json` con `Metadata:Provider=File`).
 - Se aplican **al momento**, sin reiniciar, y se mantienen al refrescar el esquema (↻).
-- Leerlos lo puede hacer cualquier usuario; **cambiarlos, solo un administrador** (`Auth:AdminRoles`, D-050).
-- Se editan desde la UI: botón **⚙ Configurar** en cada mantenedor (solo lo ven los administradores), con pestañas *Tabla* y *Columnas*, vista previa en vivo y **Restablecer a lo automático** (P-012). También se pueden cargar por la API.
+- Leerlos lo puede hacer cualquier usuario; **cambiarlos exige el permiso `ConfigureTables`**: por defecto, el rol `mnt-configurador` o un administrador (D-053, ver `Auth:Permissions` en [configuracion.md](configuracion.md)).
+- Se editan desde la UI: botón **⚙ Configurar** en cada mantenedor (solo lo ve quien tiene el permiso), con pestañas *Tabla* y *Columnas*, vista previa en vivo y **Restablecer a lo automático** (P-012). También se pueden cargar por la API.
 
 ## API
 
@@ -15,9 +15,9 @@ muestra en los combos y claves o relaciones que la base no declara (P-011, D-049
 |---|---|---|
 | GET | `/api/meta/{conn}/overrides` | Todos los ajustes de la conexión |
 | GET | `/api/meta/{conn}/overrides/{schema}/{table}` | El ajuste de una tabla (`{}` si no tiene) |
-| PUT | `/api/meta/{conn}/overrides/{schema}/{table}` | Reemplaza el ajuste completo. Valida y devuelve la tabla ya combinada. **Admin** |
-| DELETE | `/api/meta/{conn}/overrides/{schema}/{table}` | Vuelve a lo automático. **Admin** |
-| POST | `/api/meta/{conn}/overrides/{schema}/{table}/preview` | Aplica el ajuste **sin guardarlo**: devuelve `{ table, errors }`, con la tabla combinada y los errores por campo. La usa el editor. **Admin** |
+| PUT | `/api/meta/{conn}/overrides/{schema}/{table}` | Reemplaza el ajuste completo. Valida y devuelve la tabla ya combinada. **ConfigureTables** |
+| DELETE | `/api/meta/{conn}/overrides/{schema}/{table}` | Vuelve a lo automático. **ConfigureTables** |
+| POST | `/api/meta/{conn}/overrides/{schema}/{table}/preview` | Aplica el ajuste **sin guardarlo**: devuelve `{ table, errors }`, con la tabla combinada y los errores por campo. La usa el editor. **ConfigureTables** |
 
 Un ajuste inválido se rechaza con `400` y un error por campo, con la ruta del JSON:
 

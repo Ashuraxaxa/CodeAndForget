@@ -57,7 +57,7 @@ Pendientes detectados al construir la Fase 1, que conviene cerrar antes de crece
   - Errores de único, FK y CHECK.
 - **Listo cuando:** corren en la CI contra ambos motores.
 
-### 0.3 Mensajes de error amigables
+### 0.3 Mensajes de error amigables · ✅ PR #6
 - Hoy se muestra el mensaje crudo del motor; en Postgres incluso dice "Detail redacted".
 - Traducir los códigos más comunes en `backend/src/Mantenedores.Api/Infrastructure/ErrorHandling.cs`:
 
@@ -71,7 +71,7 @@ Pendientes detectados al construir la Fase 1, que conviene cerrar antes de crece
 
 - **Listo cuando:** cada caso muestra un mensaje en español, asociado al campo cuando se puede.
 
-### 0.4 Preparar producción en cualquier entorno · 🚧 subruta, proxy, health y configuración ✅ PR #5; falta la guía de despliegue
+### 0.4 Preparar producción en cualquier entorno · ✅ PR #5 y #6
 - Soporte para publicar bajo una subruta y detrás de un proxy:
   - `PathBase` configurable, p. ej. `https://intranet/mantenedores`. El frontend debe usar rutas relativas a esa base.
   - `ForwardedHeaders` para HTTPS terminado en el proxy (nginx, IIS, Traefik, balanceador de nube).

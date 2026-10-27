@@ -1,4 +1,5 @@
 using System.Data.Common;
+using Mantenedores.Core.Errors;
 
 namespace Mantenedores.Core.Providers;
 
@@ -9,6 +10,12 @@ public interface IDatabaseProvider
     ISqlDialect Dialect { get; }
     ISchemaProvider Schema { get; }
     DbConnection CreateConnection(string connectionString);
+
+    /// <summary>
+    /// Clasifica un error del motor por su código (no por el texto, que depende del idioma del servidor).
+    /// Devuelve <see cref="DbErrorInfo.Unknown"/> si no es una violación de restricción conocida.
+    /// </summary>
+    DbErrorInfo ClassifyError(DbException exception);
 }
 
 public sealed class ProviderRegistry

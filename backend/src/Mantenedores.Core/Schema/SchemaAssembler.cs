@@ -64,12 +64,12 @@ public static class SchemaAssembler
             var cols = columnsByTable.GetValueOrDefault(k) ?? [];
             var tableKeys = keysByTable.GetValueOrDefault(k) ?? [];
 
-            var pk = tableKeys.Where(x => x.Kind == KeyKind.PrimaryKey)
-                .OrderBy(x => x.Position).Select(x => x.Column).ToList();
+            var pkRows = tableKeys.Where(x => x.Kind == KeyKind.PrimaryKey).OrderBy(x => x.Position).ToList();
+            var pk = pkRows.Select(x => x.Column).ToList();
 
             var uniques = tableKeys.Where(x => x.Kind == KeyKind.Unique)
                 .GroupBy(x => x.Name)
-                .Select(g => (IReadOnlyList<string>)g.OrderBy(x => x.Position).Select(x => x.Column).ToList())
+                .Select(g => new UniqueKeyInfo(g.Key, g.OrderBy(x => x.Position).Select(x => x.Column).ToList()))
                 .ToList();
 
             var fks = tableKeys.Where(x => x.Kind == KeyKind.ForeignKey)
@@ -101,6 +101,7 @@ public static class SchemaAssembler
                 Kind = t.Kind,
                 Columns = finalCols,
                 PrimaryKey = pk,
+                PrimaryKeyName = pkRows.FirstOrDefault()?.Name,
                 UniqueKeys = uniques,
                 ForeignKeys = fks,
                 DisplayColumn = DisplayColumnResolver.Resolve(finalCols, fkColumns)

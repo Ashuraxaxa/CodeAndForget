@@ -134,6 +134,7 @@ MANTENEDORES_PG_IMAGE=postgres:16 MANTENEDORES_MSSQL_IMAGE=mcr.microsoft.com/mss
 | `Hosting__ForwardedHeaders__Enabled` | Activa `X-Forwarded-*` detrás de un proxy (HTTPS terminado en nginx, IIS, Traefik…). |
 
 Referencia completa, con todas las claves y sus valores por defecto: [docs/configuracion.md](docs/configuracion.md).
+Cómo instalar en Docker, Kubernetes, IIS, servicio de Windows o systemd: [docs/despliegue.md](docs/despliegue.md).
 
 Health checks sin autenticación: `/api/health/live` (proceso vivo) y `/api/health/ready` (listo para atender).
 

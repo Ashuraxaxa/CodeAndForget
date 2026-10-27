@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Text.Json;
 using Dapper;
 using Mantenedores.Core.Errors;
@@ -44,7 +45,7 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
         IDictionary<string, object?> keys;
         await using (var db = await OpenAsync(ctx, ct))
         {
-            var row = await db.QuerySingleAsync(Command(query, ct));
+            var row = await Translated(ctx, info, DbOperation.Insert, () => db.QuerySingleAsync(Command(query, ct)));
             keys = ToRow(row);
         }
         return await GetByKeyAsync(ctx, info, new Dictionary<string, object?>(keys), ct);
@@ -60,7 +61,7 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
 
         await using (var db = await OpenAsync(ctx, ct))
         {
-            if (await db.ExecuteAsync(Command(query, ct)) == 0)
+            if (await Translated(ctx, info, DbOperation.Update, () => db.ExecuteAsync(Command(query, ct))) == 0)
                 throw new NotFoundException("El registro no existe.");
         }
         return await GetByKeyAsync(ctx, info, keyValues, ct);
@@ -72,8 +73,24 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildDelete(info, ParseKey(info, key));
 
         await using var db = await OpenAsync(ctx, ct);
-        if (await db.ExecuteAsync(Command(query, ct)) == 0)
+        if (await Translated(ctx, info, DbOperation.Delete, () => db.ExecuteAsync(Command(query, ct))) == 0)
             throw new NotFoundException("El registro no existe.");
+    }
+
+    /// <summary>
+    /// Ejecuta una escritura y, si la BD la rechaza por una restricción, la traduce a un mensaje
+    /// entendible (P-003). Los errores que no se reconocen se propagan tal cual.
+    /// </summary>
+    private static async Task<T> Translated<T>(ConnectionContext ctx, TableInfo table, DbOperation op, Func<Task<T>> action)
+    {
+        try
+        {
+            return await action();
+        }
+        catch (DbException ex) when (DbErrorTranslator.Translate(ctx.Provider.ClassifyError(ex), table, op) is { } friendly)
+        {
+            throw friendly;
+        }
     }
 
     public async Task<IReadOnlyList<LookupItem>> LookupAsync(

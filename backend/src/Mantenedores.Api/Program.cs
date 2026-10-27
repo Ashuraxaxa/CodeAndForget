@@ -19,7 +19,15 @@ if (args is ["hash-password", var plain])
 }
 
 var builder = WebApplication.CreateBuilder(args);
-var dataDir = builder.Configuration["Storage:DataDirectory"] ?? "data";
+
+// Corre igual como proceso, contenedor, servicio de Windows o servicio systemd (D-022).
+// Ambos son inactivos si la app no se ejecuta bajo ese administrador de servicios.
+builder.Host.UseWindowsService();
+builder.Host.UseSystemd();
+
+// Una ruta relativa se resuelve contra la carpeta de la app, no contra el directorio de trabajo
+// (como servicio de Windows el directorio de trabajo es C:\Windows\System32).
+var dataDir = Path.GetFullPath(builder.Configuration["Storage:DataDirectory"] ?? "data", builder.Environment.ContentRootPath);
 
 // --- Publicación: subruta y proxy (P-007) ---
 var hosting = builder.Configuration.GetSection(HostingOptions.Section).Get<HostingOptions>() ?? new HostingOptions();

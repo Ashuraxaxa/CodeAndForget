@@ -5,16 +5,15 @@
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-**Cierre de la Fase 1 terminado** (PR #4 a #6). **Bloque M terminado:** M.1 en el PR #7 y MySQL/MariaDB en el PR #8. Próximo: **Fase 2**, empezando por P-041 (autenticación configurable) y P-010 (metadata configurable).
+**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (P-041) en el PR #9. Siguiente: P-010 (metadata configurable).
 
 ## Ramas y PR
 
 | Rama | Estado |
 |---|---|
-| `main` | Rama por defecto. Fase 1 completa: PR #1 a #6. |
-| `feature/m1-abstracciones-dialecto` | PR #7: estrategia de inserción, alias cortos, capacidades por columna, números grandes, escape neutro, versión al conectar. |
-| `feature/m3-mysql-mariadb` | PR #8 (sobre el #7): proveedor MySQL/MariaDB, base de ejemplo, matriz de CI y UI. |
-| `feature/fase1-*` | Ya fusionadas en `main`; se pueden borrar (P-005). |
+| `main` | Rama por defecto. Fase 1 y bloque M completos: PR #1 a #8. |
+| `feature/f2-auth-configurable` | PR #9: modo `Local` o `Jwt` (OIDC/PKCE), mapeo de claims, `/api/auth/config` y `/api/auth/me`. |
+| `feature/fase1-*`, `feature/m1-*`, `feature/m3-*` | Ya fusionadas en `main`; se pueden borrar (P-005). |
 
 ## Qué funciona hoy
 
@@ -30,7 +29,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 - **Etiquetas de FK:** los listados traen `<columna>__label` (D-007) y hay combos con búsqueda (`/lookup`).
 - **Solo lectura:** vistas y tablas sin PK (D-009).
 - **SQL Server:** la inserción funciona también en tablas con triggers (D-010).
-- **Login básico:** JWT con usuarios en configuración (D-012).
+- **Login configurable** (D-024, D-046): modo `Local` (usuarios en configuración) o `Jwt` con cualquier emisor OIDC (Keycloak probado en vivo; Duende y Entra ID documentados), con roles desde los claims, login PKCE en la UI y `/api/auth/me`.
 - **UI:**
   - Login, conexiones y menú de tablas.
   - Grilla y formulario dinámico.
@@ -44,10 +43,10 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 
 ## Cómo se verificó (2026-10-27)
 
-- 82 pruebas unitarias del núcleo (`backend/tests/Mantenedores.Tests`), incluidos el traductor de errores y las capacidades del dialecto (con un dialecto de prueba sin `RETURNING` y con parámetros `:`).
-- 7 pruebas de la API en memoria (`HostingTests`): subruta, `<base href>`, health checks y 404 de API.
+- 82 pruebas unitarias del núcleo y 17 de la API en memoria (`HostingTests`, `AuthTests` con un emisor JWT de prueba). (`backend/tests/Mantenedores.Tests`), incluidos el traductor de errores y las capacidades del dialecto (con un dialecto de prueba sin `RETURNING` y con parámetros `:`).
 - Recorrido en navegador con la app publicada en `/mantenedores` contra PostgreSQL 12: login, conexión, alta con FK, recarga directa y salida. Ninguna petición sale de la subruta.
 - 137 pruebas de integración (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
+- Login con **Keycloak 26** en el navegador: PKCE, vuelta a la app, API con el token, roles anidados (`realm_access.roles`), cierre de sesión sin confirmación; el token no queda en `localStorage`.
 - Recorrido en navegador contra MySQL 8.0: prueba de conexión con versión, alta con combo FK (`LAST_INSERT_ID`), duplicado traducido en el campo y cliente con UUID generado por la app.
 - API probada a mano contra PostgreSQL 16 y SQL Server 2022 reales, con las bases de `samples/`.
 - Flujo completo en navegador con Playwright (escritorio y móvil).
@@ -66,6 +65,7 @@ Ver detalle en `pendientes.md`:
 
 - .NET 8 no viene instalado: `apt-get update && apt-get install -y dotnet-sdk-8.0`.
 - Postgres 16 local disponible en `/usr/lib/postgresql/16/bin` (`initdb` + `pg_ctl` como usuario `postgres`).
+- quay.io está bloqueado: Keycloak se baja como `mirror.gcr.io/keycloak/keycloak:26.0`.
 - Docker requiere iniciar el daemon a mano (`dockerd &`). Docker Hub responde 429 (límite de descargas): usar el espejo `mirror.gcr.io/library/<imagen>` (postgres, mysql, mariadb) vía `MANTENEDORES_*_IMAGE` y `TESTCONTAINERS_RYUK_DISABLED=true`. Las imágenes de SQL Server (mcr.microsoft.com) bajan sin problema.
 - Dentro de `docker build` no hay acceso a NuGet, por eso la imagen no se pudo compilar ahí.
 - Borrar ramas remotas o hacer force-push está bloqueado por permisos de la sesión: lo hace el dueño desde GitHub.

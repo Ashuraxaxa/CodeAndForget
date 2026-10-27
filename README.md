@@ -132,8 +132,10 @@ MANTENEDORES_MYSQL_IMAGE=mysql:8.4 MANTENEDORES_MARIADB_IMAGE=mariadb:11.4 \
 
 | Clave | Para qué |
 |---|---|
-| `Auth__JwtKey` | Clave para firmar tokens (mín. 32 caracteres). **Obligatoria**. |
-| `Auth__Users__0__Username` / `Auth__Users__0__PasswordHash` | Usuarios del login básico. El hash se genera con `dotnet run --project backend/src/Mantenedores.Api -- hash-password "clave"`. |
+| `Auth__Mode` | `Local` (usuarios en la configuración, por defecto) o `Jwt` (Duende IdentityServer, Keycloak, Entra ID u otro emisor). |
+| `Auth__JwtKey` | Clave para firmar tokens del modo `Local` (mín. 32 caracteres). **Obligatoria en ese modo**. |
+| `Auth__Jwt__Authority` / `Auth__Jwt__ClientId` | Emisor OIDC y cliente público para el login con PKCE desde la UI (modo `Jwt`). |
+| `Auth__Users__0__Username` / `Auth__Users__0__PasswordHash` / `Auth__Users__0__Roles__0` | Usuarios del modo `Local`. El hash se genera con `dotnet run --project backend/src/Mantenedores.Api -- hash-password "clave"`. |
 | `Storage__DataDirectory` | Carpeta donde se guardan las conexiones (cifradas) y las llaves de cifrado. Por defecto `data/`. |
 | `Crud__CommandTimeoutSeconds` | Tiempo máximo por consulta. Por defecto 30. |
 | `Hosting__PathBase` | Subruta de publicación, p. ej. `/mantenedores`. Por defecto la raíz. |
@@ -149,11 +151,13 @@ Health checks sin autenticación: `/api/health/live` (proceso vivo) y `/api/heal
 
 ## API
 
-Todas las rutas (salvo login y health) requieren `Authorization: Bearer <token>`.
+Todas las rutas (salvo `auth/config`, `auth/login` y health) requieren `Authorization: Bearer <token>`: del login local o del proveedor de identidad.
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| POST | `/api/auth/login` | `{ username, password }` → `{ token }` |
+| GET | `/api/auth/config` | Modo de autenticación y datos públicos para el login (sin secretos) |
+| POST | `/api/auth/login` | Solo modo `Local`: `{ username, password }` → `{ token }` |
+| GET | `/api/auth/me` | Nombre, roles y si es administrador |
 | GET | `/api/connections` | Lista conexiones (sin la cadena de conexión) |
 | PUT | `/api/connections/{id}` | Crea o edita. Si `connectionString` va vacío, se conserva la anterior |
 | POST | `/api/connections/test` | Prueba sin guardar |

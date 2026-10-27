@@ -142,7 +142,7 @@ Objetivo: que el servicio se acople a la infraestructura que ya tiene el equipo 
 su base de datos) y que cada mantenedor se pueda ajustar sin tocar código, sin que esos ajustes
 **se pierdan** al volver a leer el esquema.
 
-### 1.0 Autenticación configurable (1 semana) · D-024
+### 1.0 Autenticación configurable (1 semana) · D-024 · ✅ PR #9 (Keycloak probado; Duende pendiente, P-078)
 La app no impone un proveedor de identidad: acepta cualquier emisor de JWT.
 
 - **`Auth:Mode = Local`** (lo actual): usuarios en configuración y token propio. Sirve para empezar o para instalaciones aisladas.

@@ -35,9 +35,13 @@ export const tokenStore = {
 let onUnauthorized: () => void = () => {}
 export function setUnauthorizedHandler(fn: () => void) { onUnauthorized = fn }
 
+// De dónde sale el token: del login local (localStorage) o del proveedor OIDC (en memoria, lo maneja oidc-client-ts).
+let tokenProvider: () => string | null = () => tokenStore.get()
+export function setTokenProvider(fn: () => string | null) { tokenProvider = fn }
+
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {}
-  const token = tokenStore.get()
+  const token = tokenProvider()
   if (token) headers.Authorization = `Bearer ${token}`
   if (body !== undefined) headers['Content-Type'] = 'application/json'
 
@@ -67,7 +71,18 @@ export interface ListParams {
   filters?: Record<string, string>
 }
 
+/** Configuración pública de autenticación que expone la API (D-024). */
+export interface AuthConfig {
+  mode: 'Local' | 'Jwt'
+  authority: string | null
+  clientId: string | null
+  scopes: string | null
+  providerName: string | null
+}
+
 export const api = {
+  authConfig: () => request<AuthConfig>('GET', 'api/auth/config'),
+  me: () => request<{ name: string | null; roles: string[]; isAdmin: boolean }>('GET', 'api/auth/me'),
   login: (username: string, password: string) =>
     request<{ token: string; expiresAt: string; username: string }>('POST', 'api/auth/login', { username, password }),
 

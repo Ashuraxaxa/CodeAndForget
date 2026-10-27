@@ -14,6 +14,7 @@ services:
       # (dotnet run --project backend/src/Mantenedores.Api -- hash-password "clave").
       Auth__JwtKey: "demo-local-cambiar-esta-clave-0123456789abcdef"
       Auth__Users__0__Username: "admin"
+      Auth__Users__0__Roles__0: "admin"
       Auth__Users__0__PasswordHash: "pbkdf2$$210000$$tghhyxydv8a0G0aWwnVI6Q==$$7xL63Yggo8yuRPxuhFSPhGJmuO1RWWbaf1kV1U0fqTI="
     volumes:
       - app-data:/app/data

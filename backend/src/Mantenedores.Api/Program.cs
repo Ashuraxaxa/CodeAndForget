@@ -8,9 +8,7 @@ using Mantenedores.Core.Services;
 using Mantenedores.Providers.MySql;
 using Mantenedores.Providers.Postgres;
 using Mantenedores.Providers.SqlServer;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.IdentityModel.Tokens;
 
 // Utilidad para generar el hash de una contraseña: dotnet run -- hash-password "mi-clave"
 if (args is ["hash-password", var plain])
@@ -34,22 +32,11 @@ var dataDir = Path.GetFullPath(builder.Configuration["Storage:DataDirectory"] ??
 var hosting = builder.Configuration.GetSection(HostingOptions.Section).Get<HostingOptions>() ?? new HostingOptions();
 builder.Services.ConfigureForwardedHeaders(hosting);
 
-// --- Autenticación (Fase 1: usuarios en configuración + JWT) ---
+// --- Autenticación: modo Local o cualquier emisor JWT/OIDC (D-024) ---
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.Section));
 var auth = builder.Configuration.GetSection(AuthOptions.Section).Get<AuthOptions>() ?? new AuthOptions();
-if (auth.JwtKey.Length < 32)
-    throw new InvalidOperationException("Configure Auth:JwtKey con al menos 32 caracteres (variable de entorno Auth__JwtKey).");
-
 builder.Services.AddSingleton<TokenService>();
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o => o.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidIssuer = auth.Issuer,
-        ValidAudience = auth.Issuer,
-        IssuerSigningKey = TokenService.SigningKey(auth),
-        ClockSkew = TimeSpan.FromMinutes(1)
-    });
-builder.Services.AddAuthorization();
+builder.Services.AddMantenedoresAuth(auth);
 
 // --- Conexiones: archivo JSON con secretos cifrados ---
 builder.Services.AddDataProtection()

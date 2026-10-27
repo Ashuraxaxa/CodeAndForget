@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from 'react'
-import { Navigate } from 'react-router-dom'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 
 export function LoginPage() {
-  const { isAuthenticated, login } = useAuth()
+  const { config, configError, isAuthenticated, login, loginExternal } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -11,35 +11,85 @@ export function LoginPage() {
 
   if (isAuthenticated) return <Navigate to="/" replace />
 
-  async function submit(e: FormEvent) {
-    e.preventDefault()
+  async function run(action: () => Promise<void>) {
     setBusy(true)
     setError(null)
     try {
-      await login(username, password)
+      await action()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo iniciar sesión')
-    } finally {
       setBusy(false)
     }
   }
 
+  function submit(e: FormEvent) {
+    e.preventDefault()
+    run(() => login(username, password)).then(() => setBusy(false))
+  }
+
   return (
     <div className="login">
-      <form className="card login-card" onSubmit={submit}>
+      <div className="card login-card">
         <h1>Mantenedores</h1>
-        <p className="muted">Ingresa para administrar tus tablas.</p>
-        <label>
-          Usuario
-          <input value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" autoFocus required />
-        </label>
-        <label>
-          Contraseña
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required />
-        </label>
-        {error && <div className="alert">{error}</div>}
-        <button className="primary" disabled={busy}>{busy ? 'Ingresando…' : 'Ingresar'}</button>
-      </form>
+        {configError && <div className="alert">No se pudo leer la configuración de acceso: {configError}</div>}
+        {!config && !configError && <p className="muted">Cargando…</p>}
+
+        {config?.mode === 'Local' && (
+          <form className="login-form" onSubmit={submit}>
+            <p className="muted">Ingresa para administrar tus tablas.</p>
+            <label>
+              Usuario
+              <input value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" autoFocus required />
+            </label>
+            <label>
+              Contraseña
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required />
+            </label>
+            {error && <div className="alert">{error}</div>}
+            <button className="primary" disabled={busy}>{busy ? 'Ingresando…' : 'Ingresar'}</button>
+          </form>
+        )}
+
+        {config?.mode === 'Jwt' && config.clientId && (
+          <>
+            <p className="muted">El acceso se valida con {config.providerName}.</p>
+            {error && <div className="alert">{error}</div>}
+            <button className="primary" disabled={busy} onClick={() => run(loginExternal)}>
+              {busy ? 'Redirigiendo…' : `Ingresar con ${config.providerName}`}
+            </button>
+          </>
+        )}
+
+        {config?.mode === 'Jwt' && !config.clientId && (
+          <div className="alert">
+            El acceso lo gestiona el proxy de tu organización y no llegó una sesión válida. Vuelve a ingresar desde el portal.
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Vuelta del proveedor OIDC (redirect_uri): completa el login y entra a la app. */
+export function AuthCallbackPage() {
+  const { config, completeExternalLogin } = useAuth()
+  const navigate = useNavigate()
+  const [error, setError] = useState<string | null>(null)
+  const done = useRef(false)
+
+  useEffect(() => {
+    if (!config || done.current) return
+    done.current = true
+    completeExternalLogin()
+      .then(() => navigate('/', { replace: true }))
+      .catch(e => setError((e as Error).message))
+  }, [config, completeExternalLogin, navigate])
+
+  return (
+    <div className="login">
+      <div className="card login-card">
+        {error ? <div className="alert">No se pudo completar el inicio de sesión: {error}</div> : <p className="muted">Completando el inicio de sesión…</p>}
+      </div>
     </div>
   )
 }

@@ -18,7 +18,7 @@ API .NET 8 ──► SchemaService ──► IDatabaseProvider (SqlServer | Post
         ▼            ▼
    CrudService ──► QueryBuilder + ISqlDialect ──► BD destino
         │
-   FileConnectionStore (conexiones con secreto cifrado)
+   Metadata store: SQLite · Postgres · SQL Server (conexiones con secreto cifrado)
 ```
 
 1. **Lectura del esquema**: cada proveedor consulta su catálogo (`sys.*` o `pg_catalog`)
@@ -38,7 +38,8 @@ backend/
   src/Mantenedores.Providers.SqlServer   Lectura de catálogo + dialecto SQL Server
   src/Mantenedores.Providers.Postgres    Lectura de catálogo + dialecto PostgreSQL
   src/Mantenedores.Providers.MySql       Lectura de catálogo + dialecto MySQL / MariaDB
-  src/Mantenedores.Api                   API minimal, JWT, almacén de conexiones
+  src/Mantenedores.Metadata              Metadata del servicio (conexiones, llaves) y sus migraciones
+  src/Mantenedores.Api                   API minimal, autenticación, endpoints
   tests/Mantenedores.Tests               Pruebas unitarias (xUnit)
   tests/Mantenedores.IntegrationTests    Batería común por motor contra bases reales (Testcontainers)
 frontend/                                React + Vite + TanStack Query
@@ -136,7 +137,9 @@ MANTENEDORES_MYSQL_IMAGE=mysql:8.4 MANTENEDORES_MARIADB_IMAGE=mariadb:11.4 \
 | `Auth__JwtKey` | Clave para firmar tokens del modo `Local` (mín. 32 caracteres). **Obligatoria en ese modo**. |
 | `Auth__Jwt__Authority` / `Auth__Jwt__ClientId` | Emisor OIDC y cliente público para el login con PKCE desde la UI (modo `Jwt`). |
 | `Auth__Users__0__Username` / `Auth__Users__0__PasswordHash` / `Auth__Users__0__Roles__0` | Usuarios del modo `Local`. El hash se genera con `dotnet run --project backend/src/Mantenedores.Api -- hash-password "clave"`. |
-| `Storage__DataDirectory` | Carpeta donde se guardan las conexiones (cifradas) y las llaves de cifrado. Por defecto `data/`. |
+| `Storage__DataDirectory` | Carpeta de datos (metadata SQLite y llaves de cifrado por defecto). Por defecto `data/`. |
+| `Metadata__Provider` | Dónde guarda la app sus conexiones: `Sqlite` (por defecto), `Postgres` o `SqlServer` (con `Metadata__ConnectionString`). |
+| `DataProtection__KeyStore` | Llaves de cifrado en `FileSystem` (por defecto) o en la base de metadata (`Database`), necesario para varias instancias. |
 | `Crud__CommandTimeoutSeconds` | Tiempo máximo por consulta. Por defecto 30. |
 | `Hosting__PathBase` | Subruta de publicación, p. ej. `/mantenedores`. Por defecto la raíz. |
 | `Hosting__ForwardedHeaders__Enabled` | Activa `X-Forwarded-*` detrás de un proxy (HTTPS terminado en nginx, IIS, Traefik…). |

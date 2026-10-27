@@ -5,19 +5,20 @@
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (P-041) en el PR #9. Siguiente: P-010 (metadata configurable).
+**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9, fusionado) y metadata configurable (PR #10). Siguiente: P-011, los ajustes por tabla y columna (overrides).
 
 ## Ramas y PR
 
 | Rama | Estado |
 |---|---|
-| `main` | Rama por defecto. Fase 1 y bloque M completos: PR #1 a #8. |
-| `feature/f2-auth-configurable` | PR #9: modo `Local` o `Jwt` (OIDC/PKCE), mapeo de claims, `/api/auth/config` y `/api/auth/me`. |
+| `main` | Rama por defecto. Fase 1, bloque M y login configurable: PR #1 a #9. |
+| `feature/f2-metadata-store` | PR #10: metadata en SQLite/Postgres/SQL Server, migraciones, llaves en la base, importación de la Fase 1. |
 | `feature/fase1-*`, `feature/m1-*`, `feature/m3-*` | Ya fusionadas en `main`; se pueden borrar (P-005). |
 
 ## Qué funciona hoy
 
-- **Conexiones:** alta, edición, prueba y borrado. La cadena de conexión se guarda cifrada en `data/connections.json` (D-011).
+- **Conexiones:** alta, edición, prueba y borrado. Se guardan con la cadena cifrada en la metadata del servicio: SQLite por defecto, o Postgres / SQL Server (D-023, D-047).
+- **Varias instancias** comparten conexiones y llaves con metadata en Postgres/SQL Server y `DataProtection:KeyStore=Database`.
 - **Lectura de esquema** en SQL Server, PostgreSQL, MySQL y MariaDB:
   - Tablas, vistas, columnas y tipos.
   - PK simples y compuestas, restricciones UNIQUE y FK.
@@ -43,9 +44,9 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 
 ## Cómo se verificó (2026-10-27)
 
-- 82 pruebas unitarias del núcleo y 17 de la API en memoria (`HostingTests`, `AuthTests` con un emisor JWT de prueba). (`backend/tests/Mantenedores.Tests`), incluidos el traductor de errores y las capacidades del dialecto (con un dialecto de prueba sin `RETURNING` y con parámetros `:`).
+- 82 pruebas unitarias del núcleo, 17 de la API en memoria (`HostingTests`, `AuthTests`) y 7 de la metadata en SQLite (`MetadataStoreTests`), entre ellas dos instancias de la API que comparten base y llaves. (`backend/tests/Mantenedores.Tests`), incluidos el traductor de errores y las capacidades del dialecto (con un dialecto de prueba sin `RETURNING` y con parámetros `:`).
 - Recorrido en navegador con la app publicada en `/mantenedores` contra PostgreSQL 12: login, conexión, alta con FK, recarga directa y salida. Ninguna petición sale de la subruta.
-- 137 pruebas de integración (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
+- 139 pruebas de integración (incluye el almacén de metadata en PG 12/16 y SQL Server 2017/2022) (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
 - Login con **Keycloak 26** en el navegador: PKCE, vuelta a la app, API con el token, roles anidados (`realm_access.roles`), cierre de sesión sin confirmación; el token no queda en `localStorage`.
 - Recorrido en navegador contra MySQL 8.0: prueba de conexión con versión, alta con combo FK (`LAST_INSERT_ID`), duplicado traducido en el campo y cliente con UUID generado por la app.
 - API probada a mano contra PostgreSQL 16 y SQL Server 2022 reales, con las bases de `samples/`.

@@ -2,13 +2,12 @@ using System.Text.Json.Serialization;
 using Mantenedores.Api.Auth;
 using Mantenedores.Api.Endpoints;
 using Mantenedores.Api.Infrastructure;
-using Mantenedores.Core.Connections;
 using Mantenedores.Core.Providers;
 using Mantenedores.Core.Services;
+using Mantenedores.Metadata;
 using Mantenedores.Providers.MySql;
 using Mantenedores.Providers.Postgres;
 using Mantenedores.Providers.SqlServer;
-using Microsoft.AspNetCore.DataProtection;
 
 // Utilidad para generar el hash de una contraseña: dotnet run -- hash-password "mi-clave"
 if (args is ["hash-password", var plain])
@@ -38,12 +37,8 @@ var auth = builder.Configuration.GetSection(AuthOptions.Section).Get<AuthOptions
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddMantenedoresAuth(auth);
 
-// --- Conexiones: archivo JSON con secretos cifrados ---
-builder.Services.AddDataProtection()
-    .SetApplicationName("Mantenedores")
-    .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(dataDir, "keys")));
-builder.Services.AddSingleton<IConnectionStore>(sp =>
-    new FileConnectionStore(Path.Combine(dataDir, "connections.json"), sp.GetRequiredService<IDataProtectionProvider>()));
+// --- Metadata del servicio (conexiones) y llaves de cifrado: SQLite por defecto, o Postgres / SQL Server (D-023, D-025) ---
+builder.Services.AddMetadataStore(builder.Configuration, dataDir);
 
 // --- Motores soportados: agregar uno nuevo = registrar su IDatabaseProvider ---
 builder.Services.AddSingleton<IDatabaseProvider, SqlServerProvider>();
@@ -62,6 +57,9 @@ builder.Services.AddMantenedoresHealthChecks();
 
 var app = builder.Build();
 
+// Migraciones de la metadata e importación del connections.json de la Fase 1, antes de atender solicitudes.
+await app.Services.InitializeMetadataAsync(dataDir);
+
 app.UseExceptionHandler();
 app.UseHosting(hosting);
 app.UseStaticFiles(); // Recursos del frontend compilado (wwwroot). index.html lo sirve MapSpaIndex.
@@ -77,6 +75,6 @@ app.MapData();
 app.Map("/api/{**rest}", () => Results.NotFound()).AllowAnonymous();
 app.MapSpaIndex();
 
-app.Run();
+await app.RunAsync();
 
 public partial class Program;

@@ -4,6 +4,13 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Fase 2: metadata configurable
+- Nuevo `Mantenedores.Metadata`: conexiones en SQLite (por defecto), Postgres o SQL Server, con un migrador propio en vez de DbUp (D-047).
+- Llaves de Data Protection en la base (`KeyStore=Database`) y certificado opcional: dos instancias comparten conexiones (probado).
+- Importación automática del `connections.json` de la Fase 1, que se vuelve a cifrar con las llaves nuevas (D-048).
+- 106 unitarias y 139 de integración en verde.
+- **Siguiente:** P-011, los overrides. **Nuevo pendiente:** P-081, el bloqueo de migraciones con varias instancias.
+
 ## 2026-10-27 · Fase 2: login configurable
 - `Auth:Mode` = `Local` o `Jwt`, con Authority OIDC, MetadataAddress o SigningKey. Claims normalizados (nombre y roles, incluso anidados), `AdminRoles`, `/api/auth/config` y `/api/auth/me` (D-046). `Auth:JwtKey` solo se exige en `Local`.
 - UI: login PKCE con `oidc-client-ts` cuando hay `ClientId`; modo proxy sin login; redirect bajo subruta.

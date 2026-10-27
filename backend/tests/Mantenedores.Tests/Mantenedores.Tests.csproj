@@ -29,6 +29,7 @@
     <ProjectReference Include="..\..\src\Mantenedores.Providers.Postgres\Mantenedores.Providers.Postgres.csproj" />
     <ProjectReference Include="..\..\src\Mantenedores.Api\Mantenedores.Api.csproj" />
     <ProjectReference Include="..\..\src\Mantenedores.Providers.MySql\Mantenedores.Providers.MySql.csproj" />
+    <ProjectReference Include="..\..\src\Mantenedores.Metadata\Mantenedores.Metadata.csproj" />
   </ItemGroup>
 
 </Project>

@@ -69,7 +69,7 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Por qué:** un `OUTPUT` directo falla si la tabla tiene triggers, lo que es común en bases SQL Server existentes. Probado con `ventas.Producto` y su trigger en `samples/`.
 
 ### D-011 · Conexiones en un archivo JSON cifrado
-- **Estado:** Temporal · 2026-10-27 → se reemplaza con P-010 (metadata store, D-023) y P-045 (llaves y secretos del entorno, D-025)
+- **Estado:** Reemplazada por D-023/D-047 · 2026-10-27 (queda como `Metadata:Provider=File` para desarrollo)
 - **Qué:** `data/connections.json`, con la cadena cifrada por ASP.NET Data Protection. Las llaves van en `data/keys/`.
 - **Riesgo:** si se pierden las llaves, hay que volver a ingresar las conexiones.
 
@@ -143,8 +143,8 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Alternativa descartada:** elegir una nube (Azure) y usar sus servicios administrados, que era la sugerencia inicial.
 
 ### D-023 · Metadata store de motor configurable
-- **Estado:** Vigente · 2026-10-27 (se implementa en P-010)
-- **Qué:** `Metadata:Provider` = `Sqlite` (por defecto) · `Postgres` · `SqlServer`. Migraciones con DbUp y scripts por motor.
+- **Estado:** Vigente e implementada · 2026-10-27 (P-010, PR #10; detalle en D-047)
+- **Qué:** `Metadata:Provider` = `Sqlite` (por defecto) · `Postgres` · `SqlServer`. Scripts de migración por motor (con un migrador propio, no DbUp: ver D-047).
 - **Por qué:**
   - SQLite permite una instalación de un solo contenedor sin instalar otra base.
   - Postgres o SQL Server se usan cuando hay varias instancias o el equipo ya respalda sus bases ahí. Cada equipo usa la que tiene.
@@ -352,11 +352,32 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Guardar el token OIDC en `localStorage`, más expuesto ante XSS.
 - **Probado:** con un emisor HS256 en memoria (`AuthTests`) y con Keycloak 26 real (realm en `samples/keycloak`): login PKCE en el navegador, roles anidados y cierre de sesión. **Duende IdentityServer no se probó en vivo** (P-078); su configuración es OIDC estándar y está documentada.
 
+### D-047 · Metadata en un proyecto propio con un migrador mínimo
+- **Estado:** Vigente · 2026-10-27 (P-010)
+- **Qué:**
+  - `Mantenedores.Metadata` contiene:
+    - `SqlConnectionStore`: SQL portable (UPDATE y, si no hubo fila, INSERT; ids en minúsculas).
+    - `MetadataMigrator`: scripts embebidos `Migrations/<Motor>/NNN_nombre.sql`, registro en `mnt_migration` y una transacción por script.
+    - `DatabaseXmlRepository`: llaves de Data Protection en `mnt_dataprotection_key`.
+    - `LegacyConnectionImporter` y `MetadataSetup`.
+  - Las tablas llevan el prefijo `mnt_`.
+  - Las migraciones corren al arrancar, antes de atender solicitudes.
+  - SQLite en modo WAL.
+  - `FileConnectionStore` se movió al mismo proyecto y queda como `Metadata:Provider=File`.
+- **Por qué:** cubre lo que hacía falta de DbUp (orden, registro, transacción) en unas 60 líneas, sin sumar cuatro paquetes que dependen de versiones de Npgsql y SqlClient distintas de las que ya se usan.
+- **Alternativa descartada:** DbUp (propuesta PR-01) y EF Core Migrations.
+
+### D-048 · Paso de la Fase 1 a la metadata sin intervención
+- **Estado:** Vigente · 2026-10-27 (P-010)
+- **Qué:** al arrancar, si existe `data/connections.json` y la tabla está vacía, se importa una sola vez:
+  - Se descifra con las llaves de `data/keys` y se vuelve a cifrar con las llaves activas, que pueden estar en la base.
+  - Después el archivo se renombra a `connections.json.importado`.
+- **Por qué:** quien ya usaba la app no pierde sus conexiones al actualizar, aunque cambie de almacén de llaves.
+
 ---
 
 ## Propuestas (aún no decididas)
 
 Se convierten en `D-xxx` al aprobarse.
 
-- **PR-01 · Migraciones del metadata store con DbUp** (scripts SQL versionados por motor: SQLite, Postgres, SQL Server). Encaja con Dapper; la alternativa es EF Core Migrations. Ver P-010.
 - **PR-03 · Overrides guardados como JSON** por tabla y por columna (flexibles, sin migrar el esquema por cada ajuste nuevo). Ver P-011.

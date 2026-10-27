@@ -11,9 +11,9 @@ configuración está en [configuracion.md](configuracion.md).
 - [ ] **Autenticación:** elegir el modo ([configuracion.md](configuracion.md#autenticación-auth)).
   - `Local`: clave para firmar (`Auth__JwtKey`, aleatoria de 32+ caracteres, p. ej. `openssl rand -base64 48`) y el hash de la contraseña de cada usuario (`dotnet Mantenedores.Api.dll hash-password "clave"`).
   - `Jwt`: registrar en el proveedor (Duende, Keycloak, Entra ID…) un cliente **público con PKCE**, con *redirect URI* `https://<app>/auth/callback`, y configurar `Auth__Jwt__*`.
-- [ ] **Carpeta de datos persistente y respaldada** (`Storage__DataDirectory`): guarda las conexiones cifradas y **las llaves para descifrarlas**. Si se pierde, hay que volver a ingresar las conexiones.
+- [ ] **Dónde vive la metadata** ([configuracion.md](configuracion.md#metadata-del-servicio-metadata)): por defecto SQLite en la carpeta de datos (`Storage__DataDirectory`), que debe ser **persistente y respaldarse** porque guarda las conexiones cifradas y **las llaves para descifrarlas**. Con Postgres o SQL Server (`Metadata__Provider`, `Metadata__ConnectionString`) y `DataProtection__KeyStore=Database`, todo queda en esa base.
 - [ ] **HTTPS:** lo termina un proxy (nginx, IIS, Traefik, balanceador). Si es así, activa `Hosting__ForwardedHeaders__Enabled`.
-- [ ] **Una sola instancia** por ahora: el almacén de conexiones es un archivo local. Varias instancias requieren P-010 (metadata en una base) y P-045 (llaves compartidas).
+- [ ] **Varias instancias:** solo con `Metadata__Provider=Postgres` o `SqlServer` y `DataProtection__KeyStore=Database`. Con SQLite, una sola instancia.
 
 ## 2. Docker
 
@@ -68,7 +68,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: { name: mantenedores }
 spec:
-  replicas: 1                      # una sola instancia hasta P-010 / P-045
+  replicas: 1                      # con SQLite, una; para más: Metadata en Postgres/SQL Server + DataProtection__KeyStore=Database
   strategy: { type: Recreate }     # el volumen ReadWriteOnce no se comparte
   selector: { matchLabels: { app: mantenedores } }
   template:
@@ -180,7 +180,8 @@ sudo systemctl daemon-reload && sudo systemctl enable --now mantenedores
 
 ## 8. Respaldo y actualización
 
-- **Respaldo:** copia la carpeta de datos completa (`connections.json` y `keys/`). Sin `keys/` las conexiones no se pueden descifrar.
+- **Respaldo:** con los valores por defecto, copia la carpeta de datos completa (`mantenedores.db` y `keys/`); sin `keys/` las conexiones no se pueden descifrar. Con metadata en Postgres/SQL Server y llaves en la base, basta con el respaldo de esa base.
+- **Desde la Fase 1:** si existe `connections.json`, se importa solo al primer arranque y queda como `connections.json.importado`.
 - **Actualización:** reemplaza la imagen o los binarios conservando la carpeta de datos, y verifica `/api/health/ready`.
 - **Rotación de la clave JWT:** cambiar `Auth:JwtKey` cierra todas las sesiones; no afecta a las conexiones guardadas.
 

@@ -158,13 +158,13 @@ La app no impone un proveedor de identidad: acepta cualquier emisor de JWT.
 - **Pruebas:** emisor JWT de prueba en memoria y una prueba manual con Duende IdentityServer y con Keycloak, cada uno en un contenedor.
 - **Listo cuando:** el mismo build funciona con login local, con Duende y con Keycloak cambiando solo la configuración.
 
-### 1.1 Metadata store configurable (1 semana) · D-023
+### 1.1 Metadata store configurable (1 semana) · D-023 · ✅ PR #10
 Reemplaza el archivo `connections.json` por una base propia del servicio, **del motor que el entorno ya tenga**.
 
 - **`Metadata:Provider`:**
   - `Sqlite`, por defecto: un archivo en `data/`, sin instalar nada.
   - `Postgres` o `SqlServer`: para varias instancias o para respaldarlo junto al resto de las bases del equipo.
-- **Migraciones:** DbUp con scripts SQL versionados por motor en `backend/src/Mantenedores.Metadata/Migrations/{Sqlite,Postgres,SqlServer}/`. Encaja con Dapper, que ya se usa.
+- **Migraciones:** scripts SQL versionados por motor en `backend/src/Mantenedores.Metadata/Migrations/{Sqlite,Postgres,SqlServer}/`, aplicados por un migrador propio (D-047).
 - **Tablas:**
   - `connection`: id, nombre, motor, cadena cifrada, esquemas.
   - `table_override`: conexión, esquema, tabla, JSON de ajustes.

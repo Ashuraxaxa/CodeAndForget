@@ -27,8 +27,8 @@ Detalle técnico en [../motores.md](../motores.md).
 |---|---|---|---|
 | P-078 | Prueba en vivo con Duende IdentityServer (requiere un host .NET de prueba con Duende; la config está documentada) | 🟡 | ⏳ |
 | P-079 | Renovación silenciosa sin refresh token (iframe `silent_redirect_uri`); hoy, sin refresh token, al vencer se vuelve a iniciar sesión | ⚪ | ⏳ |
-| P-010 | Metadata store configurable (`Sqlite` · `Postgres` · `SqlServer`) + migraciones DbUp + `SqlConnectionStore` + importar `connections.json` (D-023) | 🔴 | ⏳ |
-| P-011 | Modelo de overrides (tabla y columna) + `OverrideApplier` + endpoints | 🔴 | ⏳ depende de P-010 |
+| P-081 | Migraciones con varias instancias arrancando a la vez: bloqueo (p. ej. `pg_advisory_lock`, `sp_getapplock`) para que no corran dos veces en paralelo | 🟡 | ⏳ |
+| P-011 | Modelo de overrides (tabla y columna) + `OverrideApplier` + endpoints (migración `002_overrides`) | 🔴 | ⏳ (P-010 listo) |
 | P-012 | Editor de overrides en la UI con vista previa | 🟡 | ⏳ depende de P-011 |
 | P-013 | Diferencias de esquema (snapshot + `/diff` + aviso de overrides huérfanos) | 🟡 | ⏳ depende de P-010 |
 | P-014 | Maestro-detalle con pestañas de tablas hijas y FK precompletada | 🟡 | ⏳ |
@@ -45,7 +45,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-042 | RBAC por conexión, tabla, columna y operación, asociado a nombres de rol de los claims (D-028) y aplicado en `QueryBuilder` | 🔴 | ⏳ |
 | P-043 | Filtros de fila por rol | 🟡 | ⏳ |
 | P-044 | Auditoría (quién, cuándo, valor anterior y nuevo) + vista en la UI | 🟡 | ⏳ depende de Q-007 |
-| P-045 | Llaves en la metadata (`DataProtection:KeyStore`), certificado opcional y referencias `${env:}` / `${file:}` en cadenas de conexión (D-025) | 🟡 | ⏳ |
+| P-045 | Referencias `${env:VAR}` / `${file:/ruta}` en las cadenas de conexión (D-025) (las llaves en la base y el certificado ya están, PR #10) | 🟡 | ⏳ |
 | P-046 | Concurrencia optimista (`rowversion` / `xmin`) | 🟡 | ⏳ |
 
 ## 3. Fase 4: escala y operación
@@ -111,6 +111,8 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-025 | Proveedor MySQL/MariaDB (`MySqlConnector`) + `samples/mysql`; batería común en verde en MySQL 8.0/8.4 y MariaDB 10.6/11.4 (D-045) | ✅ 2026-10-27 · PR #8 |
 | P-027 | MySQL y MariaDB en la matriz de CI (versión mínima y actual) | ✅ 2026-10-27 · PR #8 |
 | P-029 | UI: MySQL/MariaDB en el selector, ejemplo de cadena y ayuda de esquemas según el motor | ✅ 2026-10-27 · PR #8 |
+| P-010 | Metadata en `Sqlite` (por defecto), `Postgres` o `SqlServer`, con migraciones, `SqlConnectionStore` e importación de `connections.json` (D-047, D-048) | ✅ 2026-10-27 · PR #10 |
+| P-080 | Llaves de Data Protection en la base (`DataProtection:KeyStore=Database`) y certificado opcional: varias instancias comparten conexiones | ✅ 2026-10-27 · PR #10 |
 | P-041 | Autenticación configurable: modo `Local` o `Jwt` (Authority/Metadata/SigningKey), mapeo de claims, `/api/auth/config`, `/api/auth/me`, login PKCE en la UI (D-046) | ✅ 2026-10-27 · PR #9 |
 | P-039 | `Auth:JwtKey` se exige solo en modo `Local` | ✅ 2026-10-27 · PR #9 |
 | P-077 | PK UUID con default en motores sin `RETURNING`: la genera la app (D-044) | ✅ 2026-10-27 · PR #8 |

@@ -51,6 +51,8 @@ Equipo sugerido: 1 backend, 1 frontend, QA/DevOps parcial. v1 productiva en ~4�
 
 ## Próximos pasos sugeridos (inicio de Fase 2)
 
+Detalle completo, con tareas y criterios de "listo": [siguientes-pasos.md](siguientes-pasos.md).
+
 1. Metadata store en PostgreSQL (conexiones + overrides) reemplazando `FileConnectionStore`.
 2. Modelo de overrides por tabla/columna y su aplicación sobre `TableInfo`.
 3. Pruebas de integración con Testcontainers contra ambos motores usando `samples/`.

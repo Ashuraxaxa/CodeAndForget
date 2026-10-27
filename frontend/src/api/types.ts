@@ -105,6 +105,10 @@ export interface TableMeta {
   referencedBy: ForeignKey[]
   /** Hijas que se muestran en pestañas al editar (ajuste `children`); null = todas las de referencedBy. */
   children: ForeignKey[] | null
+  /** Relaciones N:M (P-015): se editan con un selector múltiple en el formulario. */
+  manyToMany: ManyToManyLink[]
+  /** Es la tabla puente de una relación N:M. */
+  isBridge: boolean
   displayColumn: string | null
   isEditable: boolean
   hasPrimaryKey: boolean
@@ -203,4 +207,17 @@ export interface SchemaDiff {
   acceptedBy: string | null
   changes: SchemaChange[]
   overrideWarnings: string[]
+}
+
+// ----- Relaciones N:M (P-015) -----
+
+export interface ManyToManyLink {
+  name: string
+  bridgeSchema: string
+  bridgeTable: string
+  localColumn: string
+  foreignColumn: string
+  targetSchema: string
+  targetTable: string
+  targetColumn: string
 }

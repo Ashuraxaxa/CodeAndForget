@@ -238,7 +238,7 @@ Guía de uso: [ajustes.md](ajustes.md). Decisiones: D-049 a D-051.
 - Override `children` para elegir qué hijas mostrar y en qué orden.
 - **Listo cuando:** se puede crear un pedido y sus líneas sin salir de la pantalla del pedido.
 
-### 1.6 Relaciones N:M (4 días)
+### 1.6 Relaciones N:M (4 días) · ✅ PR #16
 - **Detección:** una tabla con exactamente 2 FK cuya PK está formada por ambas y sin otras columnas obligatorias se trata como tabla puente (p. ej. `producto_etiqueta`).
 - **UI:** en el formulario del producto, selector múltiple de etiquetas.
 - **API:** `PUT /api/data/{conn}/{schema}/{tabla}/row/links/{puente}` recibe la lista completa y sincroniza en una transacción: inserta las nuevas y borra las quitadas.

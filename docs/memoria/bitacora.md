@@ -4,6 +4,13 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Fase 2: relaciones N:M
+- Detección de tablas puente (dos FK que forman la PK, sin otras obligatorias); `manyToMany` en la metadata (D-056).
+- `GET`/`PUT /row/links/{relación}`: lista completa sincronizada en una transacción. Selector múltiple en el formulario, guardado junto con el registro; el puente ya no sale como pestaña.
+- Bug de UI encontrado en el navegador: la lista de opciones quedaba abierta y tapaba "Guardar"; ahora se cierra al elegir.
+- 136 unitarias y 167 de integración en verde, versión mínima y actual.
+- **Siguiente:** P-017, exportar e importar. **Nuevo pendiente:** P-087.
+
 ## 2026-10-27 · Fase 2: maestro-detalle
 - Al editar un registro, una pestaña por tabla hija con su grilla filtrada por la FK; "Nuevo" con la FK fija y vuelta al padre; un alta con hijas queda en su edición (D-055).
 - Filtro exacto `e.<col>` en la API (la grilla de hijas lo usa; sirve para FK compuestas y textos). Ajuste `children` y su selector en el editor.

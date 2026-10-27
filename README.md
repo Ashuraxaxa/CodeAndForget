@@ -179,6 +179,8 @@ Todas las rutas (salvo `auth/config`, `auth/login` y health) requieren `Authoriz
 | PUT | `/api/data/{conn}/{schema}/{table}/row?{pk}=…` | Actualiza |
 | DELETE | `/api/data/{conn}/{schema}/{table}/row?{pk}=…` | Elimina |
 | GET | `/api/data/{conn}/{schema}/{table}/lookup?q=…` | `[{ value, label }]` para combos de FK |
+| GET | `/api/data/{conn}/{schema}/{table}/row/links/{relación}?{pk}=…` | Valores vinculados por una relación N:M (`[{ value, label }]`) |
+| PUT | `/api/data/{conn}/{schema}/{table}/row/links/{relación}?{pk}=…` | Reemplaza la lista completa (`[1, 2, 3]`) en una transacción |
 
 En los listados, cada FK de una columna trae además `<columna>__label` con el texto de la tabla referenciada.
 

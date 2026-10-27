@@ -5,15 +5,14 @@
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14) y maestro-detalle (PR #15). Siguiente: P-015, relaciones N:M.
+**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15) y relaciones N:M (PR #16). Siguiente: P-017, exportar e importar.
 
 ## Ramas y PR
 
 | Rama | Estado |
 |---|---|
-| `main` | Rama por defecto. Fase 1, bloque M, login, metadata, ajustes, editor y permisos: PR #1 a #13. |
-| `feature/f2-schema-diff` | PR #14: aviso de cambios del esquema. |
-| `feature/f2-maestro-detalle` | PR #15 (sale de la rama del #14): maestro-detalle. |
+| `main` | Rama por defecto. Fase 1, bloque M y Fase 2 hasta el maestro-detalle: PR #1 a #15. |
+| `feature/f2-nm` | PR #16: relaciones N:M. |
 | `feature/fase1-*`, `feature/m1-*`, `feature/m3-*` | Ya fusionadas en `main`; se pueden borrar (P-005). |
 
 ## Qué funciona hoy
@@ -33,6 +32,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 - **Ajustes sin tocar código** (D-049, `docs/ajustes.md`): etiquetas, grupos del menú, columnas ocultas, orden, solo lectura, obligatorias, patrón, rango, lista de opciones, control de la UI, columna a mostrar, orden por defecto, PK y FK virtuales. Se aplican al instante, los cambia quien tiene el permiso `ConfigureTables` (D-053) y lo que deja de aplicar se avisa en el menú. Se editan con **⚙ Configurar** (pestañas Tabla y Columnas, vista previa en vivo, restablecer) o por la API.
 - **SQL Server:** la inserción funciona también en tablas con triggers (D-010).
 - **Permisos por acción** (D-053): `ConfigureTables` y `ManageConnections`, cada uno otorgado a roles por configuración (por defecto `mnt-configurador` y `mnt-conexiones`; los administradores tienen todos). La UI oculta lo que el usuario no puede hacer.
+- **Relaciones N:M** (D-056): las tablas puente se detectan solas; en el formulario, un selector múltiple (p. ej. las etiquetas de un producto) que se guarda con el registro, en una transacción.
 - **Maestro-detalle** (D-055): al editar, pestañas con las tablas hijas filtradas por su FK (también compuestas o virtuales); "Nuevo" llega con la FK completada y vuelve al padre. El ajuste `children` elige cuáles y en qué orden.
 - **Cambios de esquema** (D-054): al refrescar se compara con una foto de referencia; aviso con el detalle (tablas, columnas, tipos, nulos, PK, FK) y los ajustes sin efecto, hasta que alguien con `ConfigureTables` lo acepta. Borrar una columna en la base no rompe el mantenedor.
 - **Login configurable** (D-024, D-046): modo `Local` (usuarios en configuración) o `Jwt` con cualquier emisor OIDC (Keycloak probado en vivo; Duende y Entra ID documentados), con roles desde los claims, login PKCE en la UI y `/api/auth/me`.
@@ -49,10 +49,11 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 
 ## Cómo se verificó (2026-10-27)
 
-- 133 pruebas unitarias (`backend/tests/Mantenedores.Tests`): núcleo (incluidos los ajustes, el traductor de errores y las capacidades del dialecto), API en memoria (`HostingTests`, `AuthTests`, con el permiso de administrador para los ajustes) y metadata en SQLite y archivo (`MetadataStoreTests`), entre ellas dos instancias de la API que comparten base y llaves.
+- 136 pruebas unitarias (`backend/tests/Mantenedores.Tests`): núcleo (incluidos los ajustes, el traductor de errores y las capacidades del dialecto), API en memoria (`HostingTests`, `AuthTests`, con el permiso de administrador para los ajustes) y metadata en SQLite y archivo (`MetadataStoreTests`), entre ellas dos instancias de la API que comparten base y llaves.
 - Recorrido en navegador con la app publicada en `/mantenedores` contra PostgreSQL 12: login, conexión, alta con FK, recarga directa y salida. Ninguna petición sale de la subruta.
-- 163 pruebas de integración (incluye ajustes, cambios de esquema y filtro exacto en la batería común y el almacén de metadata en PG 12/16 y SQL Server 2017/2022) (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
+- 167 pruebas de integración (incluye ajustes, cambios de esquema, filtro exacto y N:M en la batería común y el almacén de metadata en PG 12/16 y SQL Server 2017/2022) (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
 - Login con **Keycloak 26** en el navegador: PKCE, vuelta a la app, API con el token, roles anidados (`realm_access.roles`), cierre de sesión sin confirmación; el token no queda en `localStorage`.
+- N:M en navegador contra PostgreSQL 16: cambiar las etiquetas de un producto y crear uno con etiquetas desde su formulario.
 - Maestro-detalle en navegador contra PostgreSQL 16: pedido con su pestaña de líneas, alta de línea con el pedido fijo y vuelta al pedido; alta de categoría que queda en su edición con la pestaña de productos.
 - Cambios de esquema en navegador contra PostgreSQL 16: columna borrada y nueva, tipo cambiado y tabla nueva; aviso con detalle, ajuste sin efecto, quitarlo desde el editor y aceptar.
 - Editor de ajustes en navegador contra PostgreSQL 16 (escritorio y teléfono, sin desborde): cambiar nombre, grupo, orden por defecto, orden de columnas, ocultar, patrón y control; error en vivo; guardar, reabrir y restablecer.

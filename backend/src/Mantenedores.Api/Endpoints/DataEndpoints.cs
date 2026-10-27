@@ -38,6 +38,15 @@ public static class DataEndpoints
             return Results.NoContent();
         });
 
+        // Relación N:M (P-015): valores vinculados [{ value, label }] y reemplazo de la lista completa en una transacción.
+        group.MapGet("/row/links/{link}", (string conn, string schema, string table, string link, HttpRequest http,
+            CrudService crud, CancellationToken ct) =>
+            crud.GetLinksAsync(conn, schema, table, Key(http.Query), link, ct));
+
+        group.MapPut("/row/links/{link}", (string conn, string schema, string table, string link, HttpRequest http,
+            List<System.Text.Json.JsonElement> values, CrudService crud, CancellationToken ct) =>
+            crud.SetLinksAsync(conn, schema, table, Key(http.Query), link, values, ct));
+
         // Opciones para combos de FK: [{ value, label }]
         group.MapGet("/lookup", (string conn, string schema, string table, string? q, int? take, CrudService crud, CancellationToken ct) =>
             crud.LookupAsync(conn, schema, table, q, take ?? 20, ct));

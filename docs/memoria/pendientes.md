@@ -29,10 +29,10 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-079 | Renovación silenciosa sin refresh token (iframe `silent_redirect_uri`); hoy, sin refresh token, al vencer se vuelve a iniciar sesión | ⚪ | ⏳ |
 | P-082 | Ajustes con varias instancias: un ajuste guardado en una instancia solo se ve en las otras al refrescar o reiniciar (caché en memoria). Opciones: TTL corto del esquema combinado o caché compartida (P-050) | 🟡 | ⏳ |
 | P-086 | Detectar cambios de esquema sin que nadie pulse ↻ (p. ej. relectura periódica configurable o al fallar una consulta por columna inexistente) | ⚪ | ⏳ |
+| P-087 | N:M: ajuste para desactivar el selector de un puente o mostrarlo como pestaña; puentes con columnas extra (p. ej. `cantidad`) como hijas con su propio formulario | ⚪ | ⏳ |
 | P-085 | Editor: FK virtuales compuestas desde la UI (hoy solo por la API) y arrastrar para ordenar columnas (hoy, botones ↑ ↓) | ⚪ | ⏳ |
 | P-084 | UI: usar la etiqueta de la tabla referenciada (no su nombre) en "→ categoria" y en "Referenciada por" | ⚪ | ⏳ |
 | P-081 | Migraciones con varias instancias arrancando a la vez: bloqueo (p. ej. `pg_advisory_lock`, `sp_getapplock`) para que no corran dos veces en paralelo | 🟡 | ⏳ |
-| P-015 | N:M: detección de tablas puente + selector múltiple + sincronización en transacción | 🟡 | ⏳ |
 | P-016 | Árboles para autorreferencias + validación de ciclos | ⚪ | ⏳ |
 | P-017 | Exportar (CSV/Excel por streaming) e importar con vista previa y transacción | 🟡 | ⏳ |
 | P-018 | Tipos pendientes: arreglos PG, binarios (subir/bajar), `geography`/`hierarchyid` como texto | ⚪ | ⏳ |
@@ -112,6 +112,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-029 | UI: MySQL/MariaDB en el selector, ejemplo de cadena y ayuda de esquemas según el motor | ✅ 2026-10-27 · PR #8 |
 | P-010 | Metadata en `Sqlite` (por defecto), `Postgres` o `SqlServer`, con migraciones, `SqlConnectionStore` e importación de `connections.json` (D-047, D-048) | ✅ 2026-10-27 · PR #10 |
 | P-080 | Llaves de Data Protection en la base (`DataProtection:KeyStore=Database`) y certificado opcional: varias instancias comparten conexiones | ✅ 2026-10-27 · PR #10 |
+| P-015 | Relaciones N:M: detección de tablas puente, selector múltiple en el formulario y `PUT /row/links` en transacción (D-056) | ✅ 2026-10-27 · PR #16 |
 | P-014 | Maestro-detalle: pestañas de hijas al editar, alta con FK fija y vuelta al padre, filtro exacto `e.`, ajuste `children` (D-055) | ✅ 2026-10-27 · PR #15 |
 | P-013 | Diferencias de esquema: foto de referencia, `/diff`, aviso en la UI, aceptar cambios y quitar ajustes huérfanos en el editor (D-054) | ✅ 2026-10-27 · PR #14 |
 | P-083 | Permisos por acción: `ConfigureTables` y `ManageConnections`, otorgados a roles por `Auth:Permissions` (D-053) | ✅ 2026-10-27 · PR #13 |

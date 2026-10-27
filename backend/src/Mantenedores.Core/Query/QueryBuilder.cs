@@ -178,6 +178,29 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         return new SqlQuery(sql, p.Snapshot());
     }
 
+    /// <summary>
+    /// Valores vinculados en una relación N:M (P-015): la clave del otro lado y su texto a mostrar,
+    /// p. ej. las etiquetas de un producto. Sin paginar: una relación N:M de un registro es corta.
+    /// </summary>
+    public SqlQuery BuildLinkedValues(TableInfo bridge, TableInfo target, ManyToManyLink link, object? localValue)
+    {
+        var p = new ParamBag(dialect.ParameterPrefix);
+        var local = bridge.FindColumn(link.LocalColumn)!;
+        var foreign = bridge.FindColumn(link.ForeignColumn)!;
+        var targetKey = target.FindColumn(link.TargetColumn)!;
+        var display = (target.DisplayColumn is { } d ? target.FindColumn(d) : null) is { IsSelectable: true } dc ? dc : targetKey;
+
+        var value = $"b.{dialect.Quote(foreign.Name)}";
+        var label = $"t.{dialect.Quote(display.Name)}";
+        var sql = $"SELECT {dialect.SelectExpression(foreign, value)} AS {dialect.Quote("value")}, " +
+                  $"{dialect.SelectExpression(display, label)} AS {dialect.Quote("label")} " +
+                  $"FROM {dialect.Table(bridge.Schema, bridge.Name)} b " +
+                  $"LEFT JOIN {dialect.Table(target.Schema, target.Name)} t ON t.{dialect.Quote(targetKey.Name)} = b.{dialect.Quote(foreign.Name)} " +
+                  $"WHERE b.{dialect.Quote(local.Name)} = {dialect.ParameterFor(local, p.Add(localValue))} " +
+                  $"ORDER BY {(display.IsSortable ? label : value)}";
+        return new SqlQuery(sql, p.Snapshot());
+    }
+
     /// <summary>Patrón "contiene" con los comodines del usuario escapados con <see cref="LikeEscape"/>.</summary>
     public static string LikePattern(string search)
     {

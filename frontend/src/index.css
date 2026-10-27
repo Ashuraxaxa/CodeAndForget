@@ -194,3 +194,9 @@ button.link.danger { color: var(--danger); }
 .child-tabs .tab { white-space: nowrap; }
 .embedded-grid { display: flex; flex-direction: column; gap: 10px; }
 .embedded-grid .page-header { margin-bottom: 0; }
+
+/* ---------- Selector N:M (P-015) ---------- */
+.m2m { display: flex; flex-direction: column; gap: 6px; }
+.m2m-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.m2m-chips .chip { display: inline-flex; align-items: center; gap: 2px; margin: 0; }
+.m2m-chips .chip button { padding: 0 2px; font-size: 1rem; line-height: 1; }

@@ -139,6 +139,10 @@ export const api = {
     request<Row>('PUT', `${tablePath(conn, schema, table)}/row?${key}`, body),
   remove: (conn: string, schema: string, table: string, key: string) =>
     request<void>('DELETE', `${tablePath(conn, schema, table)}/row?${key}`),
+  links: (conn: string, schema: string, table: string, key: string, link: string) =>
+    request<LookupItem[]>('GET', `${tablePath(conn, schema, table)}/row/links/${enc(link)}?${key}`),
+  setLinks: (conn: string, schema: string, table: string, key: string, link: string, values: unknown[]) =>
+    request<LookupItem[]>('PUT', `${tablePath(conn, schema, table)}/row/links/${enc(link)}?${key}`, values),
   lookup: (conn: string, schema: string, table: string, q: string) =>
     request<LookupItem[]>('GET', `${tablePath(conn, schema, table)}/lookup?${new URLSearchParams({ q, take: '20' })}`),
 }

@@ -103,6 +103,85 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
         }
     }
 
+    // ---------- Relaciones N:M (P-015) ----------
+
+    /// <summary>Valores vinculados a un registro por una relación N:M, con su etiqueta.</summary>
+    public async Task<IReadOnlyList<LookupItem>> GetLinksAsync(
+        string conn, string schema, string table, IReadOnlyDictionary<string, string> key, string linkName, CancellationToken ct)
+    {
+        var (ctx, _, link, bridge, target, localValue) = await ResolveLinkAsync(conn, schema, table, key, linkName, ct);
+        var query = new QueryBuilder(ctx.Provider.Dialect).BuildLinkedValues(bridge, target, link, localValue);
+        await using var db = await OpenAsync(ctx, ct);
+        var rows = await db.QueryAsync(Command(query, ct));
+        return rows.Cast<IDictionary<string, object?>>()
+            .Select(r => new LookupItem(r["value"], r["label"]?.ToString()))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Deja vinculados exactamente <paramref name="values"/>: inserta los nuevos y borra los quitados, en una transacción.
+    /// Devuelve los valores vinculados al terminar.
+    /// </summary>
+    public async Task<IReadOnlyList<LookupItem>> SetLinksAsync(
+        string conn, string schema, string table, IReadOnlyDictionary<string, string> key, string linkName,
+        IReadOnlyList<JsonElement> values, CancellationToken ct)
+    {
+        var (ctx, _, link, bridge, target, localValue) = await ResolveLinkAsync(conn, schema, table, key, linkName, ct);
+        if (!bridge.IsEditable) throw new OperationNotAllowedException($"{bridge.FullName} es de solo lectura.");
+        var foreignCol = bridge.FindColumn(link.ForeignColumn)!;
+
+        // Se comparan como texto invariante: así 5, "5" y 5L son el mismo valor.
+        static string K(object? v) => Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture) ?? "";
+        var wanted = new Dictionary<string, object?>();
+        var errors = new Dictionary<string, string>();
+        foreach (var v in values)
+        {
+            try
+            {
+                var converted = ValueConverter.FromJson(foreignCol, v)
+                    ?? throw new ValidationException(link.Name, "no se aceptan valores vacíos");
+                wanted.TryAdd(K(converted), converted);
+            }
+            catch (ValidationException ex) { errors[link.Name] = string.Join(" ", ex.Errors.Values); }
+        }
+        if (errors.Count > 0) throw new ValidationException(errors);
+
+        var qb = new QueryBuilder(ctx.Provider.Dialect);
+        await using (var db = await OpenAsync(ctx, ct))
+        await using (var tx = await db.BeginTransactionAsync(ct))
+        {
+            var current = (await db.QueryAsync(Command(qb.BuildLinkedValues(bridge, target, link, localValue), ct, tx)))
+                .Cast<IDictionary<string, object?>>().Select(r => r["value"]).ToList();
+            var currentKeys = current.Select(K).ToHashSet();
+
+            foreach (var old in current.Where(c => !wanted.ContainsKey(K(c))))
+            {
+                var delete = qb.BuildDelete(bridge, new Dictionary<string, object?> { [link.LocalColumn] = localValue, [link.ForeignColumn] = old });
+                await Translated(ctx, bridge, DbOperation.Delete, () => db.ExecuteAsync(Command(delete, ct, tx)));
+            }
+            foreach (var (k, add) in wanted.Where(w => !currentKeys.Contains(w.Key)))
+            {
+                var insert = qb.BuildInsert(bridge, new Dictionary<string, object?> { [link.LocalColumn] = localValue, [link.ForeignColumn] = add });
+                await Translated(ctx, bridge, DbOperation.Insert, () => db.ExecuteAsync(Command(insert.Query, ct, tx)));
+            }
+            await tx.CommitAsync(ct);
+        }
+        return await GetLinksAsync(conn, schema, table, key, linkName, ct);
+    }
+
+    private async Task<(ConnectionContext Ctx, TableInfo Owner, ManyToManyLink Link, TableInfo Bridge, TableInfo Target, object? LocalValue)>
+        ResolveLinkAsync(string conn, string schema, string table, IReadOnlyDictionary<string, string> key, string linkName, CancellationToken ct)
+    {
+        var (ctx, owner) = await schemas.GetTableAsync(conn, schema, table, ct);
+        var link = owner.ManyToMany.FirstOrDefault(l => string.Equals(l.Name, linkName, StringComparison.OrdinalIgnoreCase))
+                   ?? throw new NotFoundException($"{owner.FullName} no tiene la relación '{linkName}'.");
+        var bridge = ctx.Schema.FindTable(link.BridgeSchema, link.BridgeTable)!;
+        var target = ctx.Schema.FindTable(link.TargetSchema, link.TargetTable)!;
+        // La columna local del puente apunta a la PK (de una columna) de esta tabla.
+        var localValue = ParseKey(owner, key)[owner.PrimaryKey[0]];
+        return (ctx, owner, link, bridge, target, localValue);
+    }
+
     public async Task<IReadOnlyList<LookupItem>> LookupAsync(
         string conn, string schema, string table, string? search, int take, CancellationToken ct)
     {
@@ -187,8 +266,8 @@ public sealed class CrudService(SchemaService schemas, CrudOptions options)
         return row;
     }
 
-    private CommandDefinition Command(SqlQuery q, CancellationToken ct) =>
-        new(q.Sql, new DynamicParameters(q.Parameters), commandTimeout: options.CommandTimeoutSeconds, cancellationToken: ct);
+    private CommandDefinition Command(SqlQuery q, CancellationToken ct, DbTransaction? tx = null) =>
+        new(q.Sql, new DynamicParameters(q.Parameters), tx, options.CommandTimeoutSeconds, cancellationToken: ct);
 
     /// <summary>
     /// Deja los valores en el mismo formato para todos los motores: cada driver devuelve fechas y horas

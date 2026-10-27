@@ -43,10 +43,17 @@ public static class OverrideApplier
         var incoming = tables.SelectMany(t => t.ForeignKeys)
             .GroupBy(fk => Key(fk.RefSchema, fk.RefTable))
             .ToDictionary(g => g.Key, g => (IReadOnlyList<ForeignKeyInfo>)g.ToList());
+        tables = tables.Select(t => t with { ReferencedBy = incoming.GetValueOrDefault(Key(t.Schema, t.Name)) ?? [] }).ToList();
+
+        // N:M (P-015): con PK y FK ya definitivas (pueden ser virtuales).
+        var links = ManyToManyDetector.Detect(tables);
+        var bridges = tables.Where(ManyToManyDetector.IsBridge).Select(t => Key(t.Schema, t.Name)).ToHashSet();
+
         tables = tables.Select(t =>
         {
-            var refs = incoming.GetValueOrDefault(Key(t.Schema, t.Name)) ?? [];
-            var children = refs;
+            var refs = t.ReferencedBy;
+            // Las tablas puente no van en pestañas por defecto: se editan con el selector múltiple.
+            IReadOnlyList<ForeignKeyInfo> children = refs.Where(f => !bridges.Contains(Key(f.Schema, f.Table))).ToList();
             // Hijas elegidas por ajuste: van después de recalcular las FK entrantes, que pueden ser virtuales.
             if (byKey.TryGetValue(Key(t.Schema, t.Name), out var o) && o.Children is { } names)
             {
@@ -54,7 +61,12 @@ public static class OverrideApplier
                 foreach (var n in names.Where(n => !refs.Any(f => Same(f.Name, n))))
                     issues.Add(new(t.Schema, t.Name, "children", $"la relación '{n}' ya no existe"));
             }
-            return t with { ReferencedBy = refs, Children = children };
+            return t with
+            {
+                Children = children,
+                ManyToMany = links.GetValueOrDefault(Key(t.Schema, t.Name)) ?? [],
+                IsBridge = bridges.Contains(Key(t.Schema, t.Name))
+            };
         }).ToList();
 
         // El hash sigue siendo el del catálogo: sirve para detectar cambios en la base (P-013).

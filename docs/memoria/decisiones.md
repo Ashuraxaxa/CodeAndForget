@@ -447,6 +447,16 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Por qué:** reusar la misma grilla evita una segunda implementación. El filtro "contiene" traería hijas de otro padre con un código parecido.
 - **Alternativa descartada:** un endpoint propio de hijas (`/children`), que duplicaría paginación, orden y filtros.
 
+### D-056 · Relaciones N:M con tabla puente detectada y sincronización en transacción
+- **Estado:** Vigente · 2026-10-27 (P-015)
+- **Qué:**
+  - **Puente:** una tabla con exactamente dos FK de una columna, cuya PK (declarada o virtual) son esas dos columnas, sin otras columnas obligatorias y con PK de una columna en ambas puntas. Se detecta en `OverrideApplier`, con las FK y PK ya definitivas.
+  - `TableInfo.ManyToMany` lista las relaciones de cada tabla (en ambos sentidos) y `IsBridge` marca el puente. El nombre de la relación es el del puente, o `puente.columna` si la tabla se relaciona consigo misma.
+  - El puente no sale como pestaña de hija: lo reemplaza un selector múltiple en el formulario, que se guarda junto con el registro.
+  - `GET /row/links/{relación}` devuelve `[{ value, label }]`. `PUT` recibe la lista completa, borra los quitados e inserta los nuevos en una transacción, con los mismos `BuildInsert`/`BuildDelete` del puente (seguridad y dialecto incluidos). Un valor inválido revierte todo.
+- **Por qué:** la lista completa es idempotente y simple para la UI. Reusar los constructores del puente respeta solo lectura, ajustes y errores traducidos.
+- **Alternativa descartada:** endpoints de agregar y quitar uno por uno, que dejan estados a medias si falla el segundo.
+
 ---
 
 ## Propuestas (aún no decididas)

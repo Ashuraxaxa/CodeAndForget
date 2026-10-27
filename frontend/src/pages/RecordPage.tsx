@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
-import { LABEL_SUFFIX, labelOf, type Column, type Row, type TableMeta } from '../api/types'
+import { LABEL_SUFFIX, labelOf, type Column, type LookupItem, type Row, type TableMeta } from '../api/types'
 import { FieldControl } from '../components/FieldControl'
 import { fromInputValue, keyQuery, parseRecordSearch, toInputValue } from '../lib/format'
 import { ChildTabs } from '../components/ChildTabs'
+import { ManyToManySelect } from '../components/ManyToManySelect'
 
 /** Formulario de alta y edición generado desde la metadata de la tabla. */
 export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
@@ -22,17 +23,28 @@ export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
     gcTime: 0,
   })
 
-  if (meta.isLoading || row.isLoading) return <p className="muted">Cargando…</p>
-  const error = meta.error ?? row.error
+  // Valores vinculados de cada relación N:M del registro (P-015).
+  const links = useQueries({
+    queries: (meta.data?.manyToMany ?? []).map(l => ({
+      queryKey: ['links', conn, schema, table, key, l.name],
+      queryFn: () => api.links(conn, schema, table, key, l.name),
+      enabled: mode === 'edit',
+      gcTime: 0,
+    })),
+  })
+
+  if (meta.isLoading || row.isLoading || links.some(l => l.isLoading)) return <p className="muted">Cargando…</p>
+  const error = meta.error ?? row.error ?? links.find(l => l.error)?.error
   if (error) return <div className="alert">{(error as Error).message}</div>
+  const initialLinks = Object.fromEntries(meta.data!.manyToMany.map((l, i) => [l.name, links[i]?.data ?? []]))
 
   return (
     <RecordForm key={location.search} conn={conn} meta={meta.data!} row={mode === 'edit' ? row.data! : null}
-      recordKey={key} fixed={fixed} returnTo={returnTo} />
+      recordKey={key} fixed={fixed} returnTo={returnTo} initialLinks={initialLinks} />
   )
 }
 
-function RecordForm({ conn, meta, row, recordKey, fixed, returnTo }: {
+function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks }: {
   conn: string
   meta: TableMeta
   row: Row | null
@@ -40,6 +52,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo }: {
   /** Columnas que vienen completadas y bloqueadas (la FK al padre, en un alta desde una pestaña hija). */
   fixed: Record<string, string>
   returnTo: string | null
+  initialLinks: Record<string, LookupItem[]>
 }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -59,9 +72,12 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo }: {
   const [labels, setLabels] = useState<Record<string, string | null>>(() =>
     Object.fromEntries(fields.map(c => [c.name, (row?.[c.name + LABEL_SUFFIX] as string | null) ?? null])))
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [links, setLinks] = useState(initialLinks)
+  const sameLinks = (a: LookupItem[], b: LookupItem[]) =>
+    a.map(x => String(x.value)).sort().join('\u0001') === b.map(x => String(x.value)).sort().join('\u0001')
 
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const body: Row = {}
       for (const c of fields) {
         // Los valores fijos se envían aunque estén bloqueados: son la FK al registro padre.
@@ -72,9 +88,21 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo }: {
         if (!isEdit && v === null && c.hasDefault) continue
         body[c.name] = v
       }
-      return isEdit
+      const saved = await (isEdit
         ? api.update(conn, meta.schema, meta.name, recordKey, body)
-        : api.create(conn, meta.schema, meta.name, body)
+        : api.create(conn, meta.schema, meta.name, body))
+      // Después del registro, las relaciones N:M que cambiaron: cada una se sincroniza en una transacción (P-015).
+      const key = isEdit ? recordKey : keyQuery(meta, saved)
+      for (const l of meta.manyToMany) {
+        const now = links[l.name] ?? []
+        if (sameLinks(now, initialLinks[l.name] ?? [])) continue
+        try {
+          await api.setLinks(conn, meta.schema, meta.name, key, l.name, now.map(v => v.value))
+        } catch (e) {
+          throw new Error(`El registro se guardó, pero no ${l.targetTable}: ${(e as Error).message}`)
+        }
+      }
+      return saved
     },
     onSuccess: saved => {
       qc.invalidateQueries({ queryKey: ['rows', conn, meta.schema, meta.name] })
@@ -132,6 +160,16 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo }: {
               </label>
             )
           })}
+          {meta.manyToMany.map(l => (
+            <label key={l.name} className="span-2">
+              <span className="field-label">
+                {l.targetTable}<span className="muted small"> · varios, vía {l.bridgeTable}</span>
+              </span>
+              <ManyToManySelect id={`m2m-${l.name}`} conn={conn} link={l} value={links[l.name] ?? []}
+                onChange={v => setLinks(s => ({ ...s, [l.name]: v }))} />
+              {errors[l.name] && <span className="field-error">{errors[l.name]}</span>}
+            </label>
+          ))}
         </div>
 
         {(generalError || errors._) && <div className="alert">{generalError ?? errors._}</div>}

@@ -34,6 +34,12 @@ public sealed record TableInfo
     /// </summary>
     public IReadOnlyList<ForeignKeyInfo>? Children { get; init; }
 
+    /// <summary>Relaciones N:M a través de una tabla puente (P-015): en el formulario se editan con un selector múltiple.</summary>
+    public IReadOnlyList<ManyToManyLink> ManyToMany { get; init; } = [];
+
+    /// <summary>La tabla es el puente de una relación N:M (solo dos FK que forman la PK).</summary>
+    public bool IsBridge { get; init; }
+
     /// <summary>Columna que se muestra cuando otra tabla referencia a esta (combos de FK).</summary>
     public string? DisplayColumn { get; init; }
 

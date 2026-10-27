@@ -539,4 +539,43 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         var pedido = await TableAsync("pedido");
         Assert.Contains(pedido.Children!, f => string.Equals(f.Table, N("pedido_detalle"), StringComparison.OrdinalIgnoreCase));
     }
+    // ---------- Relaciones N:M (P-015) ----------
+
+    [Fact]
+    public async Task Relacion_n_m_se_lee_y_se_sincroniza_en_una_transaccion()
+    {
+        var producto = await TableAsync("producto");
+        var link = Assert.Single(producto.ManyToMany);
+        Assert.Equal(N("etiqueta"), link.TargetTable, ignoreCase: true);
+        Assert.True((await TableAsync("producto_etiqueta")).IsBridge);
+
+        var key = Key((N("id"), 1));
+        async Task<List<long>> Linked() => (await Db.Crud.GetLinksAsync(Conn, Schema, N("producto"), key, link.Name, default))
+            .Select(i => Convert.ToInt64(i.Value)).OrderBy(v => v).ToList();
+        JsonElement V(long v) => JsonSerializer.SerializeToElement(v);
+
+        var original = await Linked();
+        Assert.Equal([1L], original); // la base de ejemplo: producto 1 con etiqueta 1
+        Assert.NotNull((await Db.Crud.GetLinksAsync(Conn, Schema, N("producto"), key, link.Name, default))[0].Label);
+        try
+        {
+            // Quita la 1 y agrega la 2 (con un duplicado, que se ignora).
+            var result = await Db.Crud.SetLinksAsync(Conn, Schema, N("producto"), key, link.Name, [V(2), V(2)], default);
+            Assert.Equal([2L], result.Select(i => Convert.ToInt64(i.Value)));
+            Assert.Equal([1L, 2L], (await Db.Crud.SetLinksAsync(Conn, Schema, N("producto"), key, link.Name, [V(1), V(2)], default))
+                .Select(i => Convert.ToInt64(i.Value)).OrderBy(v => v));
+
+            // Un valor que no existe en la otra tabla falla entero: no queda nada a medias.
+            await Assert.ThrowsAsync<ConstraintViolationException>(() =>
+                Db.Crud.SetLinksAsync(Conn, Schema, N("producto"), key, link.Name, [V(2), V(99999)], default));
+            Assert.Equal([1L, 2L], await Linked());
+
+            Assert.Empty(await Db.Crud.SetLinksAsync(Conn, Schema, N("producto"), key, link.Name, [], default));
+        }
+        finally
+        {
+            await Db.Crud.SetLinksAsync(Conn, Schema, N("producto"), key, link.Name, original.Select(V).ToList(), default);
+        }
+        Assert.Equal(original, await Linked());
+    }
 }

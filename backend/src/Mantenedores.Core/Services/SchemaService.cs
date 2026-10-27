@@ -13,17 +13,53 @@ public sealed record ConnectionContext(ConnectionDefinition Definition, IDatabas
 public sealed record ConnectionTestResult(int Tables, ServerInfo Server);
 
 /// <summary>
+/// Cambios del esquema desde la foto de referencia (P-013). <c>Since</c>: cuándo se tomó esa foto.
+/// <c>OverrideWarnings</c>: ajustes que quedaron sin efecto (p. ej. apuntan a una columna eliminada).
+/// </summary>
+public sealed record SchemaDiffResult(
+    DateTimeOffset Since, string? AcceptedBy, IReadOnlyList<SchemaChange> Changes, IReadOnlyList<string> OverrideWarnings);
+
+/// <summary>
 /// Lee el esquema de cada conexión, le aplica los ajustes (P-011) y guarda ambos en memoria:
 /// el leído del catálogo (caro: va a la base) y el combinado (barato: se rehace al cambiar un ajuste,
 /// sin volver a leer la base). En Fase 4 esta caché pasa a Redis para compartirla entre instancias.
 /// </summary>
-public sealed class SchemaService(IConnectionStore store, ProviderRegistry providers, IOverrideStore? overrides = null)
+public sealed class SchemaService(
+    IConnectionStore store, ProviderRegistry providers, IOverrideStore? overrides = null, ISchemaSnapshotStore? snapshots = null)
 {
     private readonly IOverrideStore _overrides = overrides ?? new NoOverrideStore();
+    private readonly ISchemaSnapshotStore _snapshots = snapshots ?? new NoSnapshotStore();
     private readonly ConcurrentDictionary<string, Lazy<Task<DatabaseSchema>>> _raw = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, Lazy<Task<DatabaseSchema>>> _applied = new(StringComparer.OrdinalIgnoreCase);
 
     public IOverrideStore Overrides => _overrides;
+    public ISchemaSnapshotStore Snapshots => _snapshots;
+
+    /// <summary>
+    /// Diferencias entre la foto de referencia y el esquema leído (el de la caché; tras "refrescar", el nuevo).
+    /// Si la conexión aún no tiene foto, la de ahora pasa a serlo y no hay cambios.
+    /// </summary>
+    public async Task<SchemaDiffResult> GetDiffAsync(string connectionId, CancellationToken ct)
+    {
+        var raw = await GetRawSchemaAsync(connectionId, ct);
+        var current = SchemaSnapshot.From(raw);
+        var stored = await _snapshots.GetAsync(connectionId, ct);
+        if (stored is null)
+        {
+            await _snapshots.SaveAsync(connectionId, current, null, ct);
+            stored = new StoredSnapshot(current, DateTimeOffset.UtcNow, null);
+        }
+        var applied = (await GetContextAsync(connectionId, ct)).Schema;
+        return new SchemaDiffResult(stored.TakenAt, stored.TakenBy, SchemaDiff.Compare(stored.Snapshot, current), applied.OverrideWarnings);
+    }
+
+    /// <summary>Da por revisados los cambios: el esquema actual pasa a ser la referencia.</summary>
+    public async Task<SchemaDiffResult> AcceptSchemaAsync(string connectionId, string? user, CancellationToken ct)
+    {
+        var raw = await GetRawSchemaAsync(connectionId, ct);
+        await _snapshots.SaveAsync(connectionId, SchemaSnapshot.From(raw), user, ct);
+        return await GetDiffAsync(connectionId, ct);
+    }
 
     public async Task<ConnectionContext> GetContextAsync(string connectionId, CancellationToken ct)
     {

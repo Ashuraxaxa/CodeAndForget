@@ -49,6 +49,7 @@ public static partial class ConnectionEndpoints
             if (!await store.DeleteAsync(id, ct)) return Results.NotFound();
             // Sus ajustes se van con ella: una conexión nueva con el mismo id no los hereda.
             await schemas.Overrides.DeleteAllAsync(id, ct);
+            await schemas.Snapshots.DeleteAsync(id, ct);
             return Results.NoContent();
         }).RequireAuthorization(ManageConnectionsPolicy);
 

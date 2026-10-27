@@ -177,3 +177,13 @@ button.link.danger { color: var(--danger); }
 .preview h2 { margin: 0; font-size: 1.1rem; }
 .preview .form { display: flex; flex-direction: column; gap: 10px; }
 .preview.loading { opacity: 0.7; }
+
+/* ---------- Aviso de cambios de esquema (P-013) ---------- */
+.banner { background: var(--warn-bg, #fff6e0); color: var(--warn-text, #6b4e00); border: 1px solid var(--warn-border, #f1d78a); border-radius: var(--radius); padding: 8px 12px; margin-bottom: 12px; }
+.banner-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.banner-head span { flex: 1 1 220px; }
+.banner-body { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; overflow-wrap: anywhere; }
+.banner-body ul { margin: 4px 0 0 18px; padding: 0; }
+@media (prefers-color-scheme: dark) {
+  .banner { --warn-bg: #3a2f10; --warn-text: #f3d98b; --warn-border: #6b5520; }
+}

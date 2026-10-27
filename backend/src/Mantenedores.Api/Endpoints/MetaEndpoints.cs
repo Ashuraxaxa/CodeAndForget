@@ -35,6 +35,13 @@ public static class MetaEndpoints
         group.MapPost("/refresh", async (string conn, SchemaService schemas, CancellationToken ct) =>
             Summarize(await schemas.RefreshAsync(conn, ct)));
 
+        // Cambios del esquema desde la foto de referencia (P-013). Aceptarlos exige ConfigureTables (D-054).
+        group.MapGet("/diff", (string conn, SchemaService schemas, CancellationToken ct) => schemas.GetDiffAsync(conn, ct));
+
+        group.MapPost("/diff/accept", (string conn, SchemaService schemas, ClaimsPrincipal user, CancellationToken ct) =>
+            schemas.AcceptSchemaAsync(conn, user.Identity?.Name, ct))
+            .RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
+
         // --- Ajustes por tabla (P-011). Leer: cualquier usuario; cambiar: permiso ConfigureTables (D-053). ---
 
         group.MapGet("/overrides", async (string conn, SchemaService schemas, CancellationToken ct) =>

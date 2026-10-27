@@ -55,7 +55,7 @@ Las tablas llevan el prefijo `mnt_` y se crean solas al arrancar (migraciones en
 
 | Clave | Por defecto | Qué hace |
 |---|---|---|
-| `Metadata:Provider` | `Sqlite` | `Sqlite` (un archivo, nada que instalar) · `Postgres` · `SqlServer` · `File` (archivos JSON `connections.json` y `overrides.json`, solo para desarrollo). |
+| `Metadata:Provider` | `Sqlite` | `Sqlite` (un archivo, nada que instalar) · `Postgres` · `SqlServer` · `File` (archivos JSON `connections.json`, `overrides.json` y `snapshots/`, solo para desarrollo). |
 | `Metadata:ConnectionString` | `Data Source=<datos>/mantenedores.db` en `Sqlite` | Obligatoria en `Postgres` y `SqlServer`. El usuario necesita crear tablas la primera vez (o se crean a mano con los scripts). |
 
 **Varias instancias** (Kubernetes con más de una réplica, granja de IIS): usar `Postgres` o `SqlServer` **y** `DataProtection:KeyStore=Database`,

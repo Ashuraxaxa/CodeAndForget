@@ -1,5 +1,5 @@
 import type {
-  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaSummary, TableMeta, TableOverride,
+  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride,
 } from './types'
 
 /** Error de la API con el formato ProblemDetails de ASP.NET. */
@@ -107,6 +107,8 @@ export const api = {
 
   tables: (conn: string) => request<SchemaSummary>('GET', `api/meta/${enc(conn)}/tables`),
   refresh: (conn: string) => request<SchemaSummary>('POST', `api/meta/${enc(conn)}/refresh`),
+  diff: (conn: string) => request<SchemaDiff>('GET', `api/meta/${enc(conn)}/diff`),
+  acceptDiff: (conn: string) => request<SchemaDiff>('POST', `api/meta/${enc(conn)}/diff/accept`),
   table: (conn: string, schema: string, table: string) =>
     request<TableMeta>('GET', `api/meta/${enc(conn)}/tables/${enc(schema)}/${enc(table)}`),
 

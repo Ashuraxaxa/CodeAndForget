@@ -4,6 +4,13 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Fase 2: cambios de esquema
+- Foto de referencia por conexión (`mnt_schema_snapshot`, migración `003`) y comparación al refrescar: tablas, columnas, tipos, nulos, PK y FK (D-054).
+- `GET /diff` y `POST /diff/accept` (permiso `ConfigureTables`). Aviso en la UI con detalle; en el editor se quitan los ajustes de columnas que ya no existen.
+- Batería común: crear una tabla, borrar y agregar columnas en la base real; aviso correcto y el mantenedor sigue funcionando, en los cuatro motores.
+- 131 unitarias y 159 de integración en verde, versión mínima y actual. Probado en navegador.
+- **Siguiente:** P-014, maestro-detalle. **Nuevo pendiente:** P-086 (detectar cambios sin pulsar ↻).
+
 ## 2026-10-27 · Fase 2: permisos por acción
 - El dueño respondió Q-006 y P-083: configurar mantenedores y gestionar conexiones deben tener **cada uno su rol**, asignable a un perfil o usuario. El apartado de seguridad propio se conversará después.
 - Permisos `ConfigureTables` y `ManageConnections`, otorgados a roles en `Auth:Permissions` (por defecto `mnt-configurador` y `mnt-conexiones`); los administradores tienen todos (D-053, reemplaza a D-050).

@@ -223,6 +223,9 @@ public sealed class AuthTests : IDisposable
 
         var usuario = Token(KeycloakLike("ventas"));
         Assert.Equal(HttpStatusCode.OK, await Send(HttpMethod.Get, "/api/connections", usuario)); // listar no exige permiso
+        Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Post, "/api/meta/no-existe/diff/accept", usuario));
+        Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Post, "/api/meta/no-existe/diff/accept", configurador));
+        Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Get, "/api/meta/no-existe/diff", usuario)); // ver los cambios, cualquiera
         Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Delete, "/api/connections/x", usuario));
         Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Post, "/api/connections/test", usuario, conexion));
 

@@ -467,4 +467,51 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
             Assert.All(list.Rows, r => Assert.False(HasKey(r, N("categoria_id") + QueryBuilder.LabelSuffix)));
         });
     }
+    // ---------- Diferencias de esquema (P-013) ----------
+
+    [Fact]
+    public async Task Borrar_una_columna_en_la_base_se_avisa_y_no_rompe_el_mantenedor()
+    {
+        var d = Db.Provider.Dialect;
+        var name = N("diff_prueba");
+        var table = $"{d.Quote(Schema)}.{d.Quote(name)}";
+        string Q(string c) => d.Quote(N(c));
+        await Db.ScalarAsync($"CREATE TABLE {table} ({Q("id")} INT NOT NULL PRIMARY KEY, {Q("nombre")} VARCHAR(20), {Q("vieja")} INT)");
+        try
+        {
+            await Db.Schemas.RefreshAsync(Conn, default);
+            await Db.Schemas.AcceptSchemaAsync(Conn, "prueba", default); // referencia: con la tabla nueva
+            var raw = await Db.Schemas.GetRawSchemaAsync(Conn, default);
+            var info = raw.FindTable(Schema, name)!;
+            await Db.Overrides.SaveAsync(Conn, info.Schema, info.Name, new Core.Overrides.TableOverride
+            {
+                Columns = new Dictionary<string, Core.Overrides.ColumnOverride> { [N("vieja")] = new() { Label = "Vieja" } }
+            }, "prueba", default);
+
+            await Db.ScalarAsync($"ALTER TABLE {table} DROP COLUMN {Q("vieja")}");
+            await Db.ScalarAsync($"ALTER TABLE {table} ADD {Q("nueva")} INT");
+            await Db.Schemas.RefreshAsync(Conn, default);
+
+            var diff = await Db.Schemas.GetDiffAsync(Conn, default);
+            Assert.Equal(2, diff.Changes.Count);
+            Assert.Contains(diff.Changes, c => c.Kind == SchemaChangeKind.ColumnRemoved && string.Equals(c.Column, N("vieja"), StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(diff.Changes, c => c.Kind == SchemaChangeKind.ColumnAdded && string.Equals(c.Column, N("nueva"), StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(diff.OverrideWarnings, w => w.Contains(N("vieja"), StringComparison.OrdinalIgnoreCase));
+
+            // El mantenedor sigue funcionando con la columna nueva.
+            await Db.Crud.CreateAsync(Conn, Schema, name, Body((N("id"), 1), (N("nombre"), "x"), (N("nueva"), 5)), default);
+            var list = await Db.Crud.ListAsync(Conn, Schema, name, new ListRequest(), default);
+            Assert.Equal(5, Convert.ToInt32(Assert.Single(list.Rows)[N("nueva")]));
+
+            // Aceptar deja la nueva referencia: sin cambios pendientes.
+            Assert.Empty((await Db.Schemas.AcceptSchemaAsync(Conn, "prueba", default)).Changes);
+        }
+        finally
+        {
+            await Db.ScalarAsync($"DROP TABLE {table}");
+            await Db.Overrides.DeleteAllAsync(Conn, default);
+            await Db.Schemas.RefreshAsync(Conn, default);
+            await Db.Snapshots.DeleteAsync(Conn, default);
+        }
+    }
 }

@@ -68,6 +68,7 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
     qc.invalidateQueries({ queryKey: ['tables', conn] })
     qc.invalidateQueries({ queryKey: ['rows', conn] })
     qc.invalidateQueries({ queryKey: ['lookup', conn] })
+    qc.invalidateQueries({ queryKey: ['diff', conn] })
     navigate(back)
   }
 
@@ -81,6 +82,11 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
   })
   const saveErrors = save.error instanceof ApiError ? save.error.fieldErrors : {}
   const allErrors = { ...errors, ...saveErrors }
+
+  // Ajustes guardados para columnas que la base ya no tiene (P-013).
+  const orphans = Object.keys(doc.columns ?? {}).filter(n => !byName.has(n))
+  const removeCol = (col: string) =>
+    setDoc(d => ({ ...d, columns: Object.fromEntries(Object.entries(d.columns ?? {}).filter(([k]) => k !== col)) }))
 
   const setCol = (col: string, patch: Partial<ColumnOverride>) =>
     setDoc(d => ({ ...d, columns: { ...d.columns, [col]: { ...d.columns?.[col], ...patch } } }))
@@ -132,6 +138,17 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
                 ))}
                 {order.join() !== naturalOrder.join() && (
                   <button className="link" onClick={() => setOrder(naturalOrder)}>Volver al orden de la tabla</button>
+                )}
+                {orphans.length > 0 && (
+                  <div className="alert">
+                    <b>Ajustes de columnas que ya no existen en la base</b> (se ignoran; quítelos para poder guardar):
+                    {orphans.map(col => (
+                      <div key={col} className="row">
+                        <code>{col}</code>
+                        <button className="link danger" onClick={() => removeCol(col)}>Quitar</button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}

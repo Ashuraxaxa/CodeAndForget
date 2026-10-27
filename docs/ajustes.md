@@ -25,8 +25,27 @@ Un ajuste inválido se rechaza con `400` y un error por campo, con la ruta del J
 { "errors": { "columns.email.pattern": ["expresión regular inválida: …"], "displayColumn": ["la columna 'x' no existe"] } }
 ```
 
-Si un ajuste ya guardado deja de aplicar (p. ej. se borró una columna en la base), se omite esa parte, el resto
-sigue funcionando y `GET /api/meta/{conn}/tables` lo informa en `warnings`; la UI muestra el aviso en el menú.
+Si un ajuste ya guardado deja de aplicar (p. ej. se borró una columna en la base), se omite esa parte y el resto
+sigue funcionando. Se informa en `warnings` de `GET /api/meta/{conn}/tables` y en el aviso de cambios del esquema
+(ver abajo). En **⚙ Configurar → Columnas** aparecen los ajustes de columnas que ya no existen, con un botón para quitarlos.
+
+## Cambios en el esquema de la base
+
+La primera vez que se lee el esquema de una conexión se guarda una **foto de referencia** (`mnt_schema_snapshot`,
+o `data/snapshots/` con `Metadata:Provider=File`). Al refrescar (↻), la app compara el esquema leído con esa foto:
+
+- tablas y vistas nuevas o eliminadas;
+- columnas nuevas o eliminadas, cambios de tipo (incluido el largo) y de "acepta vacíos";
+- cambios de clave primaria y relaciones (FK) nuevas o eliminadas.
+
+La UI muestra un aviso arriba del mantenedor ("⚠ 2 cambios en el esquema · 1 ajuste sin efecto") con el detalle.
+Quien tiene el permiso `ConfigureTables` lo da por revisado con **Aceptar cambios**, que toma el esquema actual como
+nueva referencia. Los ajustes sin efecto siguen avisándose hasta que se corrigen.
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| GET | `/api/meta/{conn}/diff` | `{ since, acceptedBy, changes, overrideWarnings }`: cambios desde la referencia y ajustes sin efecto |
+| POST | `/api/meta/{conn}/diff/accept` | Toma el esquema actual como referencia. **ConfigureTables** |
 
 ## Documento de una tabla
 

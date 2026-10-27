@@ -253,6 +253,16 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Por qué:** cada driver usa tipos distintos (Npgsql 10: `DateOnly`/`TimeOnly`; SqlClient: `DateTime`/`TimeSpan`), y la API devolvía formatos diferentes según el motor. Lo detectó la batería común.
 - **Alternativa descartada:** dejar que cada proveedor devuelva lo que entrega su driver, y que el frontend lo corrija.
 
+### D-037 · La subruta se resuelve al servir el index.html, no al compilar
+- **Estado:** Vigente · 2026-10-27 (P-007)
+- **Qué:**
+  - El frontend se compila con `base: './'` y con `<base href="/" />` en `index.html`.
+  - La API sirve `index.html` reemplazando esa base por `Hosting:PathBase` (p. ej. `/mantenedores/`).
+  - Las llamadas a la API son relativas (`api/...`) y el router toma su `basename` de `document.baseURI`.
+- **Por qué:** **un mismo build** sirve en la raíz o en cualquier subruta, sin recompilar por entorno (D-022).
+- **Detalle técnico:** `app.UseRouting()` debe ir **después** de `UsePathBase`; si no, el enrutamiento implícito compara la ruta completa y todo cae en el `index.html`. Lo detectó `HostingTests`.
+- **Alternativa descartada:** fijar la base al compilar (`vite build --base=/mantenedores/`), que obliga a un build por instalación.
+
 ---
 
 ## Propuestas (aún no decididas)

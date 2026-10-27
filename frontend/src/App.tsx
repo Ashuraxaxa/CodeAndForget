@@ -20,10 +20,13 @@ function Shell() {
   )
 }
 
+/** Subruta donde está publicada la app, tomada de <base href> (p. ej. "/mantenedores"). */
+const basename = new URL(document.baseURI).pathname.replace(/\/$/, '')
+
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={basename}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<Shell />}>

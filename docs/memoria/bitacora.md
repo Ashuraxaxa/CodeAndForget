@@ -4,6 +4,13 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Cierre Fase 1: subruta, proxy y health checks
+- `Hosting:PathBase` y `Hosting:ForwardedHeaders`. El `index.html` se sirve con `<base href>` ajustada y el frontend usa rutas relativas (D-037).
+- Bug detectado por las pruebas: sin `UseRouting()` después de `UsePathBase`, todo caía en el `index.html`, incluso la API sin token.
+- Health checks `/api/health/live` y `/ready`. Nuevo `docs/configuracion.md` con todas las claves.
+- Probado en navegador bajo `/mantenedores` contra PostgreSQL 12.
+- **Siguiente:** P-003 (errores amigables) y P-004 (guía de despliegue).
+
 ## 2026-10-27 · Cierre Fase 1: pruebas de integración y versiones mínimas
 - El dueño confirmó las versiones mínimas (Q-008 → D-035) y pidió publicarlas en el README ("Requisitos de instalación").
 - Nuevo proyecto `Mantenedores.IntegrationTests`: batería común (`ProviderContractTests`) que hereda cada motor. Son 57 pruebas, en verde contra PG 12/16 y SQL Server 2017/2022.

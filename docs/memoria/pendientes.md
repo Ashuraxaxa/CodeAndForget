@@ -12,9 +12,7 @@ El detalle de cada bloque y su criterio de "listo" está en [../siguientes-pasos
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
 | P-003 | Mensajes amigables para errores del motor (único, FK, CHECK, nulo) en ambos motores | 🟡 | ⏳ |
-| P-004 | Guía de despliegue `docs/despliegue.md` con recetas (Docker, Kubernetes, IIS, servicio de Windows, systemd) + referencia `docs/configuracion.md` | 🟡 | ⏳ |
-| P-007 | Publicar bajo subruta y detrás de proxy: `PathBase`, `ForwardedHeaders`, frontend con base relativa | 🔴 | ⏳ |
-| P-008 | Health checks separados `/api/health/live` y `/api/health/ready` | 🟡 | ⏳ |
+| P-004 | Guía de despliegue `docs/despliegue.md` con recetas (Docker, Kubernetes, IIS, servicio de Windows, systemd) | 🟡 | ⏳ (`docs/configuracion.md` ya existe, PR #5) |
 | P-005 | Borrar la rama `feature/fase1-mantenedores` (ya fusionada) | ⚪ | ⏳ dueño, desde GitHub |
 
 ## M. Multi-motor: MySQL/MariaDB (D-034, antes de la Fase 2)
@@ -92,7 +90,6 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-034 | La búsqueda usa `CAST(... AS nvarchar(max))` / `CAST(... AS text)`, que no aprovecha índices; revisar en tablas grandes | ⚪ | ⏳ (con P-052) |
 | P-035 | `COUNT(*)` en cada página puede ser lento en tablas enormes | ⚪ | ⏳ (con P-052) |
 | P-036 | Credenciales de demo (`admin`/`admin`, hash y JwtKey) en `appsettings.Development.json` y `docker-compose.yml`: documentar que se cambian en producción | 🟡 | ⏳ (con P-004) |
-| P-038 | El frontend usa rutas absolutas (`/api`, `/c/...`): no funciona bajo una subruta | 🔴 | ⏳ (con P-007) |
 | P-039 | `Program.cs` falla al arrancar sin `Auth:JwtKey` aunque en el futuro el modo `Jwt` no la necesite | 🟡 | ⏳ (con P-041) |
 | P-037 | El `DisplayColumn` automático elige mal en algunos casos (p. ej. `ventas.Pedido` usa `Estado` en SQL Server) | ⚪ | ⏳ se resuelve con P-011 |
 
@@ -108,3 +105,6 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-002 | Batería común por proveedor (57 pruebas, Testcontainers) contra PG 12/16 y SQL Server 2017/2022 | ✅ 2026-10-27 · PR #4 |
 | P-070 | La base de ejemplo de PG no funcionaba en PG 12 (`pgcrypto`) y no tenía trigger como la de SQL Server | ✅ 2026-10-27 · PR #4 |
 | P-071 | Fechas y horas con formato distinto según el motor (D-036) | ✅ 2026-10-27 · PR #4 |
+| P-007 | Publicar bajo subruta (`Hosting:PathBase`) y detrás de proxy (`Hosting:ForwardedHeaders`) (D-037) | ✅ 2026-10-27 · PR #5 |
+| P-008 | Health checks `/api/health/live` y `/api/health/ready` | ✅ 2026-10-27 · PR #5 |
+| P-038 | Frontend con rutas relativas a `<base href>` (funciona bajo subruta) | ✅ 2026-10-27 · PR #5 |

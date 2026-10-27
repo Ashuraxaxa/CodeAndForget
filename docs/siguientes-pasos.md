@@ -3,6 +3,7 @@
 > Punto de partida: la Fase 1 está en `main` (PR #1). Hoy el servicio lee el esquema de
 > SQL Server y PostgreSQL, y genera grilla y formulario con combos de FK.
 > Este documento detalla qué sigue, en qué orden y cuándo se considera terminado cada paso.
+> El estado de cada tarea (IDs `P-xxx`) se lleva en [memoria/pendientes.md](memoria/pendientes.md).
 
 ## Resumen
 

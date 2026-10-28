@@ -208,6 +208,36 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
 
     // ---------- Escritura ----------
 
+    // ---------- Avisos por correo (D-073) ----------
+
+    [Fact]
+    public async Task Avisa_por_correo_solo_lo_configurado_en_la_tabla()
+    {
+        var before = Db.Notices.For(N("categoria")).Count;
+        await WithOverrideAsync("categoria", new Core.Overrides.TableOverride
+        {
+            Label = "Categorías",
+            Notify = new Core.Overrides.NotifyOverride { Emails = ["jefa@empresa.cl"], On = ["update", "delete"] }
+        }, async () =>
+        {
+            var created = await Db.Crud.CreateAsync(Conn, Schema, N("categoria"), Body((N("nombre"), "Avisada")), default);
+            var key = Key((N("id"), created[N("id")]!));
+            await Db.Crud.UpdateAsync(Conn, Schema, N("categoria"), key, Body((N("nombre"), "Avisada 2")), default);
+            await Db.Crud.DeleteAsync(Conn, Schema, N("categoria"), key, default);
+
+            var notices = Db.Notices.For(N("categoria")).Skip(before).ToList();
+            Assert.Equal([Core.Audit.AuditOperation.Update, Core.Audit.AuditOperation.Delete],
+                notices.Select(n => n.Entries.Single().Operation)); // el alta no estaba pedida
+            Assert.All(notices, n => Assert.Equal(["jefa@empresa.cl"], n.Notify.Emails));
+            Assert.Equal("Categorías", notices[0].TableLabel);
+            Assert.Contains("Avisada 2", notices[0].Entries[0].NewValues);
+        });
+
+        // Sin el ajuste, la tabla no avisa.
+        await Db.Crud.CreateAsync(Conn, Schema, N("etiqueta"), Body((N("nombre"), "Sin aviso " + UniqueCode())), default);
+        Assert.Empty(Db.Notices.For(N("etiqueta")));
+    }
+
     // ---------- Tablas grandes (D-072) ----------
 
     [Fact]

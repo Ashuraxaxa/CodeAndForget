@@ -4,7 +4,8 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api, ApiError } from '../api/client'
 import {
   WIDGETS, labelOf,
-  type Column, type ColumnOverride, type ForeignKey, type TableMeta, type TableOverride, type VirtualForeignKey,
+  type Column, type ColumnOverride, type ForeignKey, type NotifyOperation, type NotifyOverride, type TableMeta, type TableOverride,
+  type VirtualForeignKey,
 } from '../api/types'
 import { FieldControl } from '../components/FieldControl'
 import { useDebounce } from '../lib/useDebounce'
@@ -251,7 +252,56 @@ function TableTab({ conn, doc, setDoc, table, shown, errors }: {
 
       <VirtualForeignKeys conn={conn} table={table} value={doc.virtualForeignKeys ?? []} errors={errors}
         onChange={v => set({ virtualForeignKeys: v })} />
+
+      <NotifyEditor value={doc.notify} errors={errors} onChange={v => set({ notify: v })} />
     </div>
+  )
+}
+
+const NOTIFY_OPS: { op: NotifyOperation; label: string }[] = [
+  { op: 'create', label: 'Altas' }, { op: 'update', label: 'Ediciones' }, { op: 'delete', label: 'Bajas' },
+  { op: 'import', label: 'Importaciones' }, { op: 'links', label: 'Vínculos N:M' },
+]
+const DEFAULT_NOTIFY: NotifyOperation[] = ['create', 'update', 'delete']
+
+/** Avisos por correo para tablas críticas (D-073). Apagado mientras no haya destinatarios. */
+function NotifyEditor({ value, errors, onChange }: {
+  value: NotifyOverride | undefined
+  errors: Record<string, string>
+  onChange: (v: NotifyOverride | undefined) => void
+}) {
+  const status = useQuery({ queryKey: ['notifications-status'], queryFn: api.notificationsStatus, staleTime: 60_000 })
+  const [emails, setEmails] = useState((value?.emails ?? []).join(', '))
+  const on = value?.on?.length ? value.on : DEFAULT_NOTIFY
+  const update = (patch: Partial<NotifyOverride>) => {
+    const next = { ...value, ...patch }
+    onChange(next.emails?.length ? next : undefined)
+  }
+  return (
+    <Field label="Avisos por correo" span
+      hint="Para tablas críticas: a quién avisar cuando alguien cambia un registro. Vacío = sin avisos."
+      error={errors['notify.emails'] ?? errors['notify.on']}>
+      {status.data && !status.data.enabled && (
+        <div className="banner small">El envío de correos no está configurado en la app (sección Notifications): los avisos se guardan pero no se envían.</div>
+      )}
+      <input value={emails} placeholder="jefa@empresa.cl, ti@empresa.cl"
+        onChange={e => setEmails(e.target.value)}
+        onBlur={() => update({ emails: emails.split(/[,;\s]+/).map(x => x.trim()).filter(Boolean) })} />
+      <div className="checks">
+        {NOTIFY_OPS.map(({ op, label }) => (
+          <label key={op} className="check">
+            <input type="checkbox" checked={on.includes(op)} disabled={!value?.emails?.length}
+              onChange={e => update({ on: e.target.checked ? [...on, op] : on.filter(x => x !== op) })} />
+            {label}
+          </label>
+        ))}
+        <label className="check">
+          <input type="checkbox" checked={value?.includeValues !== false} disabled={!value?.emails?.length}
+            onChange={e => update({ includeValues: e.target.checked ? undefined : false })} />
+          Incluir los valores antes y después
+        </label>
+      </div>
+    </Field>
   )
 }
 

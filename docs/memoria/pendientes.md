@@ -67,7 +67,8 @@ Detalle técnico en [../motores.md](../motores.md).
 
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
-| P-060 | Hooks de negocio antes y después de guardar | ⚪ | ⏳ depende de Q-005 |
+| P-060 | Hooks de negocio antes y después de guardar | — | ⛔ descartado por el dueño (D-073) |
+| P-099 | Avisos por correo por tabla, apagados por defecto (D-073) | 🟡 | ✅ PR #27 |
 | P-061 | Procedimientos almacenados como acciones | ⚪ | ⏳ |
 | P-062 | Otros motores (Oracle, SQLite, Db2, Firebird…) solo si un equipo los pide | ⚪ | ⏳ |
 | P-063 | Guía "cómo agregar un motor" | ✅ 2026-10-27 · en `docs/motores.md` (la batería común pasó a P-002) |

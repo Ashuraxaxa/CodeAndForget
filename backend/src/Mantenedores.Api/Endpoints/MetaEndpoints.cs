@@ -23,6 +23,10 @@ public static class MetaEndpoints
 
     public static void MapMeta(this IEndpointRouteBuilder app)
     {
+        // ¿Se envían los avisos por correo? El editor lo muestra junto al ajuste "notify" (D-073).
+        app.MapGet("/api/meta/notifications", (Mantenedores.Core.Notifications.IChangeNotifier notifier) =>
+            new { enabled = notifier.Enabled }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
+
         var group = app.MapGroup("/api/meta/{conn}").RequireAuthorization();
 
         group.MapGet("/tables", async (string conn, SchemaService schemas, CancellationToken ct) =>

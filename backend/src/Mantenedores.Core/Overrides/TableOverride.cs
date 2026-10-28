@@ -38,6 +38,19 @@ public sealed record TableOverride
 
     /// <summary>Ajustes por columna, por nombre de columna.</summary>
     public IReadOnlyDictionary<string, ColumnOverride>? Columns { get; init; }
+
+    /// <summary>Avisar por correo cuando cambia (P-099, D-073). Solo se envían si la app tiene SMTP configurado.</summary>
+    public NotifyOverride? Notify { get; init; }
+}
+
+public sealed record NotifyOverride
+{
+    public IReadOnlyList<string>? Emails { get; init; }
+
+    /// <summary>"create", "update", "delete", "import", "links". Vacío o null = altas, ediciones y bajas.</summary>
+    public IReadOnlyList<string>? On { get; init; }
+
+    public bool? IncludeValues { get; init; }
 }
 
 public sealed record VirtualForeignKey(

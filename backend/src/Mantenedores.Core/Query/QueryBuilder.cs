@@ -72,6 +72,15 @@ public sealed class QueryBuilder(ISqlDialect dialect)
     public static bool IsUnfiltered(ListRequest r) =>
         string.IsNullOrWhiteSpace(r.Search) && r.Filters.All(f => string.IsNullOrEmpty(f.Value)) && r.Exact.Count == 0;
 
+    /// <summary>Bloqueo de la fila hasta el fin de la transacción (P-096).</summary>
+    public SqlQuery BuildLockRow(TableInfo table, IReadOnlyDictionary<string, object?> key)
+    {
+        RequireKey(table);
+        var p = new ParamBag(dialect.ParameterPrefix);
+        var where = KeyPredicate(table, key, p, $"{Base}.");
+        return new SqlQuery(dialect.LockRow(dialect.Table(table.Schema, table.Name), Base, where), p.Snapshot());
+    }
+
     public SqlQuery BuildGetByKey(DatabaseSchema schema, TableInfo table, IReadOnlyDictionary<string, object?> key)
     {
         RequireKey(table);
@@ -202,7 +211,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
 
         var where = "";
         if (!string.IsNullOrWhiteSpace(search))
-            where = $" WHERE {dialect.Contains(display, p.Add(LikePattern(search)))}";
+            where = $" WHERE {dialect.Contains(display, p.Add(LikePattern(search)), IsText(displayCol))}";
 
         // Se ordena por la columna a mostrar solo si el motor puede ordenarla.
         var orderBy = displayCol.IsSortable ? display : string.Join(", ", keyCols.Select(k => $"{Base}.{dialect.Quote(k.Name)}"));
@@ -392,7 +401,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
             var colExpr = $"{Base}.{dialect.Quote(col.Name)}";
             if (col.Type is LogicalType.String or LogicalType.Text)
             {
-                predicates.Add(dialect.Contains(colExpr, p.Add(LikePattern(raw))));
+                predicates.Add(dialect.Contains(colExpr, p.Add(LikePattern(raw)), IsText(col)));
                 continue;
             }
             // Una FK se filtra también por el texto que la UI muestra (P-032): "Bebidas" encuentra categoria_id = 1.
@@ -423,7 +432,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
             {
                 var param = p.Add(LikePattern(request.Search));
                 predicates.Add("(" + string.Join(" OR ",
-                    textCols.Select(c => dialect.Contains($"{Base}.{dialect.Quote(c.Name)}", param))) + ")");
+                    textCols.Select(c => dialect.Contains($"{Base}.{dialect.Quote(c.Name)}", param, IsText(c)))) + ")");
             }
         }
 
@@ -439,7 +448,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         if (LabelTarget(schema, table, col) is not var (fk, target, display)) return null;
         const string alias = "lf";
         return $"{colExpr} IN (SELECT {alias}.{dialect.Quote(fk.RefColumns[0])} FROM {dialect.Table(target.Schema, target.Name)} {alias} " +
-               $"WHERE {dialect.Contains($"{alias}.{dialect.Quote(display.Name)}", p.Add(LikePattern(raw)))})";
+               $"WHERE {dialect.Contains($"{alias}.{dialect.Quote(display.Name)}", p.Add(LikePattern(raw)), IsText(display))})";
     }
 
     private static bool CanFilterByLabel(DatabaseSchema schema, TableInfo table, ColumnInfo col) => LabelTarget(schema, table, col) is not null;
@@ -511,6 +520,8 @@ public sealed class QueryBuilder(ISqlDialect dialect)
     }
 
     /// <summary>Parámetros numerados (p0, p1…). En el SQL llevan el prefijo del dialecto; en el diccionario, no.</summary>
+    private static bool IsText(ColumnInfo c) => c.Type is LogicalType.String or LogicalType.Text && !c.TextCast;
+
     private sealed class ParamBag(string prefix)
     {
         private readonly Dictionary<string, object?> _values = new();

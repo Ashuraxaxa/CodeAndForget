@@ -36,7 +36,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-102 | Nombres visibles por idioma en los ajustes (`label`, `helpText`), si algún equipo los necesita | ⚪ | ⏳ |
 | P-089 | Árbol: ajuste `treeParent` y mover nodos arrastrando (D-082) | ⚪ | ✅ PR #33 |
 | P-090 | Archivos: vista previa de imágenes (grilla con `widget: image`, formulario); `geography`/`geometry` editables como WKT en SQL Server y MySQL/MariaDB (D-083) | ⚪ | ✅ PR #33 |
-| P-104 | WKT editable también en PostGIS (no hay PostGIS en la imagen de pruebas) y SRID por columna en MySQL 8 (hoy SRID 0) | ⚪ | ⏳ |
+| P-104 | WKT editable en PostGIS y SRID por columna en PostGIS y MySQL 8 (D-086) | ⚪ | ✅ PR #34 |
 | P-085 | Editor: FK virtuales compuestas desde la UI y arrastrar para ordenar columnas | ⚪ | ✅ PR #33 |
 | P-084 | UI: nombre visible de la tabla referenciada en "→ tabla", "Referenciada por", N:M y combos (D-074) | ⚪ | ✅ PR #28 |
 
@@ -54,8 +54,8 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-093 | Seguridad: tablas y columnas de una lista también con la regla `*`, y copiar un perfil | ⚪ | ✅ PR #32 |
 | P-094 | Auditoría: texto de FK y vínculos N:M ("Bebidas (1)") y exportar a CSV o Excel (D-081) | ⚪ | ✅ PR #32 |
 | P-095 | Auditoría con perfil: solo las tablas y columnas que el usuario ve (D-081) | ⚪ | ✅ PR #32 |
-| P-103 | Auditoría con perfil: una edición en la que solo cambiaron columnas ocultas se lista vacía (revela que algo cambió); evaluar ocultarla si algún equipo lo pide | ⚪ | ⏳ |
-| P-096 | Concurrencia: cerrar la ventana de milisegundos entre comparar y escribir con un bloqueo de fila por dialecto (`FOR UPDATE` / `UPDLOCK`), si algún equipo lo necesita | ⚪ | ⏳ |
+| P-103 | Auditoría con perfil: una edición en la que solo cambiaron columnas ocultas se omite (D-085) | ⚪ | ✅ PR #34 |
+| P-096 | Concurrencia: bloqueo de fila entre comparar la versión y escribir (`FOR UPDATE` / `UPDLOCK`) (D-085) | ⚪ | ✅ PR #34 |
 
 ## 3. Fase 4: escala y operación
 
@@ -86,14 +86,14 @@ Detalle técnico en [../motores.md](../motores.md).
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
 | P-030 | Etiquetas de FK, `/lookup` y combo del formulario con FK y PK de varias columnas (D-075) | 🟡 | ✅ PR #29 |
-| P-031 | No se detectan índices únicos que no son restricciones (`sys.indexes.is_unique`, `pg_index.indisunique`) | ⚪ | ⏳ |
+| P-031 | Índices únicos que no son restricciones, en SQL Server y PostgreSQL (D-084) | ⚪ | ✅ PR #34 |
 | P-032 | El filtro de una columna FK acepta el id o el texto que se muestra (D-074) | 🟡 | ✅ PR #28 |
 | P-033 | Fechas en formato día/mes/año fijo, sin depender del idioma del navegador (D-074) | ⚪ | ✅ PR #28 |
-| P-034 | La búsqueda usa `CAST(... AS nvarchar(max))` / `CAST(... AS text)`, que no aprovecha índices; revisar en tablas grandes | ⚪ | ⏳ (con P-052) |
+| P-034 | La búsqueda ya no envuelve en CAST las columnas de texto (D-084) | ⚪ | ✅ PR #34 |
 | P-035 | `COUNT(*)` en cada página puede ser lento en tablas enormes | ⚪ | ✅ PR #26 (total estimado y con tope, D-072) |
 | P-073 | Errores de permisos de la base traducidos (PG `42501`, SQL Server `229`/`230`, MySQL `1142`/`1143`) (D-074) | ⚪ | ✅ PR #28 |
 | P-074 | Health check del contenedor sin `curl`: subcomando `healthcheck` de la app y `HEALTHCHECK` en el Dockerfile | ⚪ | ✅ PR #31 |
-| P-075 | Revisar otros tipos definidos por el usuario en PG (compuestos, rangos) frente a la caché de tipos de Npgsql (D-041); hoy se marcan `Unsupported` | ⚪ | ⏳ |
+| P-075 | Tipos propios de PG (compuestos, rangos, inet, interval…) editables como texto (D-084) | ⚪ | ✅ PR #34 |
 
 ---
 

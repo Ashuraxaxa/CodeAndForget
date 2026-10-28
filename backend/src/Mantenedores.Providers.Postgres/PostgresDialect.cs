@@ -15,10 +15,18 @@ public sealed class PostgresDialect : ISqlDialect
 
     public string Paging(string offsetParam, string limitParam) => $"LIMIT {limitParam} OFFSET {offsetParam}";
 
-    public string Contains(string columnExpr, string param) =>
-        $"CAST({columnExpr} AS text) ILIKE {param} ESCAPE '{QueryBuilder.LikeEscape}'";
+    public string Contains(string columnExpr, string param, bool isText = false) =>
+        $"{(isText ? columnExpr : $"CAST({columnExpr} AS text)")} ILIKE {param} ESCAPE '{QueryBuilder.LikeEscape}'";
 
-    public string ParameterFor(ColumnInfo column, string param) => column.Type switch
+    public string ParameterFor(ColumnInfo column, string param) => column.TextCast
+        // Tipos propios (P-075): el texto se convierte al tipo de la columna (inet, int4range, un compuesto…).
+        ? $"CAST({param} AS {Quote(column.NativeTypeSchema ?? "pg_catalog")}.{Quote(column.NativeType)})"
+        // PostGIS (P-104): WKT con el SRID de la columna.
+        : column.Type == LogicalType.Spatial
+            ? column.NativeType == "geography"
+                ? $"CAST(ST_GeomFromText({param}, {column.Srid ?? 4326}) AS geography)"
+                : $"ST_GeomFromText({param}, {column.Srid ?? 0})"
+        : column.Type switch
     {
         // Números que no caben en decimal viajan como texto y se convierten aquí (P-023).
         LogicalType.Decimal when column.IsLargeNumber => $"CAST({param} AS numeric)",
@@ -37,8 +45,10 @@ public sealed class PostgresDialect : ISqlDialect
     /// </summary>
     public string SelectExpression(ColumnInfo column, string columnExpr) =>
         column.IsLargeNumber || column.Type == LogicalType.Enum ? $"CAST({columnExpr} AS text)"
+        // Tipos propios (P-075): con su salida normal ("10.0.0.1", no el "10.0.0.1/32" del CAST). Nunca es vacía.
+        : column.TextCast ? $"NULLIF(format('%s', {columnExpr}), '')"
         // PostGIS (P-018): geometry/geography como WKT, de solo lectura.
-        : column.Type == LogicalType.ReadOnlyText ? $"ST_AsText({columnExpr})"
+        : column.Type is LogicalType.ReadOnlyText or LogicalType.Spatial ? $"ST_AsText({columnExpr})"
         // Arreglos (P-018) como text[]: Npgsql no lee un int4[] con nulos como int[], y la UI edita cada elemento como texto.
         : column.Type == LogicalType.Array ? $"CAST({columnExpr} AS text[])"
         : columnExpr;

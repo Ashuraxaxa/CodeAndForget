@@ -24,10 +24,17 @@ public interface ISqlDialect
     /// Predicado "contiene" sin distinguir mayúsculas. El parámetro ya trae los % y usa
     /// <see cref="Query.QueryBuilder.LikeEscape"/> como carácter de escape.
     /// </summary>
-    string Contains(string columnExpr, string param);
+    /// <param name="isText">La columna ya es texto: sin CAST, la base puede usar un índice (p. ej. trigramas, P-034).</param>
+    string Contains(string columnExpr, string param, bool isText = false);
 
     /// <summary>Expresión para un parámetro de escritura o filtro (p. ej. CAST a jsonb o a un enum en Postgres).</summary>
     string ParameterFor(ColumnInfo column, string param) => param;
+
+    /// <summary>
+    /// Bloquea una fila hasta el fin de la transacción (P-096): entre comparar la versión y escribir, nadie más la cambia.
+    /// Por defecto <c>SELECT … FOR UPDATE</c> (PostgreSQL, MySQL, MariaDB).
+    /// </summary>
+    string LockRow(string table, string alias, string where) => $"SELECT 1 FROM {table} {alias} WHERE {where} FOR UPDATE";
 
     /// <summary>Expresión para leer una columna (p. ej. CAST a texto de números que no caben en decimal).</summary>
     string SelectExpression(ColumnInfo column, string columnExpr) => columnExpr;

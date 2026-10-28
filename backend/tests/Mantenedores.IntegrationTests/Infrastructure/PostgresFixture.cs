@@ -4,7 +4,7 @@ using Mantenedores.Providers.Postgres;
 
 namespace Mantenedores.IntegrationTests.Infrastructure;
 
-public sealed class PostgresFixture : DatabaseFixture
+public class PostgresFixture : DatabaseFixture
 {
     private const string Password = "Demo_Pass_123";
 
@@ -41,3 +41,26 @@ public sealed class PostgresFixture : DatabaseFixture
         await cmd.ExecuteNonQueryAsync();
     }
 }
+
+/// <summary>
+/// PostgreSQL con PostGIS (P-104): la base de ejemplo más columnas geography y geometry. Solo para las pruebas espaciales;
+/// la batería común corre en <see cref="PostgresFixture"/>.
+/// </summary>
+public sealed class PostgisFixture : PostgresFixture
+{
+    protected override string DefaultImage => "postgis/postgis:12-3.4";
+    protected override string ImageVariable => "MANTENEDORES_POSTGIS_IMAGE";
+
+    protected override async Task SeedAsync(DbConnection connection)
+    {
+        await base.SeedAsync(connection);
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = """
+            CREATE EXTENSION IF NOT EXISTS postgis;
+            ALTER TABLE ventas.cliente ADD COLUMN ubicacion geography(Point, 4326), ADD COLUMN zona geometry, ADD COLUMN plano geometry(Point, 32719);
+            UPDATE ventas.cliente SET ubicacion = ST_GeogFromText('POINT(-70.66 -33.45)') WHERE rut = '76.123.456-7';
+            """;
+        await cmd.ExecuteNonQueryAsync();
+    }
+}
+

@@ -15,8 +15,11 @@ public class TypeMapperTests
     [InlineData("uuid", "b", "U", LogicalType.Uuid)]
     [InlineData("estado", "e", "E", LogicalType.Enum)]
     [InlineData("_int4", "b", "A", LogicalType.Array)] // el elemento se resuelve aparte (P-018)
-    [InlineData("geometry", "b", "U", LogicalType.ReadOnlyText)] // PostGIS, como WKT
+    [InlineData("geometry", "b", "U", LogicalType.Spatial)] // PostGIS, como WKT editable (P-104)
     [InlineData("tsvector", "b", "U", LogicalType.Unsupported)]
+    [InlineData("inet", "b", "I", LogicalType.String)]
+    [InlineData("int4range", "r", "R", LogicalType.String)]
+    [InlineData("direccion", "c", "C", LogicalType.String)]
     public void Postgres(string type, string kind, string category, LogicalType expected) =>
         Assert.Equal(expected, PostgresTypeMapper.Map(type, kind, category).Type);
 
@@ -44,4 +47,18 @@ public class TypeMapperTests
         Assert.Equal(100, SqlServerTypeMapper.CharLength("varchar", 100));
         Assert.Null(SqlServerTypeMapper.CharLength("nvarchar", -1));
     }
+}
+
+public class PostgisSridTests
+{
+    [Theory]
+    [InlineData("geometry", "geometry(Point,4326)", 4326)]
+    [InlineData("geography", "geography(Point, 4326)", 4326)]
+    [InlineData("geography", "geography", 4326)]
+    [InlineData("geometry", "geometry", 0)]
+    public void Lee_el_srid_del_tipo(string type, string format, int expected) =>
+        Assert.Equal(expected, Mantenedores.Providers.Postgres.PostgresTypeMapper.Srid(type, format));
+
+    [Fact]
+    public void Otros_tipos_no_tienen_srid() => Assert.Null(Mantenedores.Providers.Postgres.PostgresTypeMapper.Srid("int4", "integer"));
 }

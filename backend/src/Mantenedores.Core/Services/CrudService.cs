@@ -187,15 +187,12 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         var keyValues = ParseKey(info, key);
         var values = ParseValues(info, body, MaxFileBytes);
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildUpdate(info, keyValues, values);
-        var before = TracksChanges(info) || expectedVersion is not null ? await GetByKeyAsync(ctx, info, keyValues, ct) : null;
-        CheckVersion(before, expectedVersion);
-
-        await using (var db = await OpenAsync(ctx, ct))
+        var before = await WriteAsync(ctx, info, keyValues, expectedVersion, TracksChanges(info), async (db, tx) =>
         {
-            await CheckNoCycleAsync(ctx, info, db, keyValues[info.PrimaryKey[0]], values, ct);
-            if (await Translated(ctx, info, DbOperation.Update, () => db.ExecuteAsync(Command(query, ct))) == 0)
+            await CheckNoCycleAsync(ctx, info, db, keyValues[info.PrimaryKey[0]], values, ct, tx);
+            if (await Translated(ctx, info, DbOperation.Update, () => db.ExecuteAsync(Command(query, ct, tx))) == 0)
                 throw new NotFoundException("El registro no existe.");
-        }
+        }, ct);
         var after = await GetByKeyAsync(ctx, info, keyValues, ct);
         if (before is not null && AuditValues.Diff(info, before.AsReadOnly(), after.AsReadOnly()) is var (oldV, newV))
             await AuditAsync(ctx, info, AuditOperation.Update, AuditValues.Key(info, after.AsReadOnly()), oldV, newV, ct);
@@ -209,12 +206,11 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         Require(info, DataOperation.Delete, "eliminar registros de");
         var keyValues = ParseKey(info, key);
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildDelete(info, keyValues);
-        var before = TracksChanges(info) || expectedVersion is not null ? await GetByKeyAsync(ctx, info, keyValues, ct) : null;
-        CheckVersion(before, expectedVersion);
-
-        await using (var db = await OpenAsync(ctx, ct))
-            if (await Translated(ctx, info, DbOperation.Delete, () => db.ExecuteAsync(Command(query, ct))) == 0)
+        var before = await WriteAsync(ctx, info, keyValues, expectedVersion, TracksChanges(info), async (db, tx) =>
+        {
+            if (await Translated(ctx, info, DbOperation.Delete, () => db.ExecuteAsync(Command(query, ct, tx))) == 0)
                 throw new NotFoundException("El registro no existe.");
+        }, ct);
 
         if (before is not null)
             await AuditAsync(ctx, info, AuditOperation.Delete, AuditValues.Key(info, before.AsReadOnly()),
@@ -316,7 +312,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
     /// si se llega al registro, se rechaza. Se usa SQL simple (sin CTE recursivo) para que sea igual en todos los motores.
     /// </summary>
     private async Task CheckNoCycleAsync(ConnectionContext ctx, TableInfo table, DbConnection db, object? self,
-        IReadOnlyDictionary<string, object?> values, CancellationToken ct)
+        IReadOnlyDictionary<string, object?> values, CancellationToken ct, DbTransaction? tx = null)
     {
         if (table.SelfReference is not { } fk) return;
         var parentName = fk.Columns[0];
@@ -332,7 +328,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
             if (K(current) == K(self))
                 throw new ValidationException(parentName, "crearía un ciclo: el registro quedaría como su propio ancestro");
             if (!seen.Add(K(current))) return; // ya hay un ciclo arriba, ajeno a este registro
-            current = await db.ExecuteScalarAsync<object?>(Command(qb.BuildParentOf(table, current), ct));
+            current = await db.ExecuteScalarAsync<object?>(Command(qb.BuildParentOf(table, current), ct, tx));
             if (current is DBNull) current = null;
         }
     }
@@ -469,12 +465,39 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         return result;
     }
 
+    /// <summary>
+    /// Escritura de un registro existente. Si el cliente dice qué versión editó (D-069), en una transacción: se bloquea la
+    /// fila, se compara la versión y se escribe, sin la ventana de milisegundos entre comparar y escribir (P-096).
+    /// Devuelve cómo estaba el registro antes, si se pidió (para la auditoría).
+    /// </summary>
+    private async Task<IDictionary<string, object?>?> WriteAsync(ConnectionContext ctx, TableInfo info,
+        IReadOnlyDictionary<string, object?> key, string? expectedVersion, bool needBefore,
+        Func<DbConnection, DbTransaction?, Task> write, CancellationToken ct)
+    {
+        await using var db = await OpenAsync(ctx, ct);
+        if (expectedVersion is null)
+        {
+            var before = needBefore ? await GetByKeyAsync(ctx, info, key, ct, db) : null;
+            await write(db, null);
+            return before;
+        }
+        await using var tx = await db.BeginTransactionAsync(ct);
+        await Translated(ctx, info, DbOperation.Read, () => db.ExecuteScalarAsync(Command(new QueryBuilder(ctx.Provider.Dialect).BuildLockRow(info, key), ct, tx)));
+        var current = await GetByKeyAsync(ctx, info, key, ct, db, tx);
+        CheckVersion(current, expectedVersion);
+        await write(db, tx);
+        await tx.CommitAsync(ct);
+        return current;
+    }
+
     private async Task<IDictionary<string, object?>> GetByKeyAsync(
-        ConnectionContext ctx, TableInfo info, IReadOnlyDictionary<string, object?> key, CancellationToken ct)
+        ConnectionContext ctx, TableInfo info, IReadOnlyDictionary<string, object?> key, CancellationToken ct,
+        DbConnection? open = null, DbTransaction? tx = null)
     {
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildGetByKey(ctx.Schema, info, key);
-        await using var db = await OpenAsync(ctx, ct);
-        var row = await Translated(ctx, info, DbOperation.Read, () => db.QuerySingleOrDefaultAsync(Command(query, ct)));
+        await using var own = open is null ? await OpenAsync(ctx, ct) : null;
+        var db = open ?? own!;
+        var row = await Translated(ctx, info, DbOperation.Read, () => db.QuerySingleOrDefaultAsync(Command(query, ct, tx)));
         return row is null
             ? throw new NotFoundException("El registro no existe.")
             : RowVersion.Stamp(info, Normalize(info, Rename(ToRow(row), query.Renames)));

@@ -18,7 +18,7 @@ public class DialectCapabilitiesTests
         public string Quote(string identifier) => "`" + identifier.Replace("`", "``") + "`";
         public string ParameterPrefix => ":";
         public string Paging(string offsetParam, string limitParam) => $"LIMIT {limitParam} OFFSET {offsetParam}";
-        public string Contains(string columnExpr, string param) => $"{columnExpr} LIKE {param} ESCAPE '!'";
+        public string Contains(string columnExpr, string param, bool isText = false) => $"{columnExpr} LIKE {param} ESCAPE '!'";
         public string? InsertReturningKeys(string table, IReadOnlyList<string> columns, IReadOnlyList<string> values,
             IReadOnlyList<ColumnInfo> keyColumns) => null;
         public string? LastInsertIdExpression => "LAST_INSERT_ID()";

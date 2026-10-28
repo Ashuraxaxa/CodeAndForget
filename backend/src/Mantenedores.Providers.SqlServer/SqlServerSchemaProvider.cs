@@ -46,7 +46,18 @@ public sealed class SqlServerSchemaProvider : ISchemaProvider
         JOIN sys.index_columns ic ON ic.object_id = kc.parent_object_id AND ic.index_id = kc.unique_index_id
         JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
         WHERE ic.key_ordinal > 0 AND t.is_ms_shipped = 0
-        ORDER BY s.name, t.name, kc.name, ic.key_ordinal
+        UNION ALL
+        -- Índices únicos que no son restricción (P-031): también impiden duplicados. Sin filtro, porque uno filtrado
+        -- solo vale para parte de las filas.
+        SELECT i.name, 'UQ', s.name, t.name, c.name, CAST(ic.key_ordinal AS int)
+        FROM sys.indexes i
+        JOIN sys.tables t ON t.object_id = i.object_id
+        JOIN sys.schemas s ON s.schema_id = t.schema_id
+        JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+        JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+        WHERE i.is_unique = 1 AND i.is_primary_key = 0 AND i.is_unique_constraint = 0 AND i.has_filter = 0
+          AND ic.key_ordinal > 0 AND t.is_ms_shipped = 0
+        ORDER BY 3, 4, 1, 6
         """;
 
     private const string ForeignKeysSql = """

@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Pendientes, lote A (P-031, P-034, P-075, P-096, P-103, P-104)
+- El dueño pidió seguir con los pendientes hasta el final. Se ordenaron en tres lotes; quedan fuera solo los que dependen del dueño o de un equipo que los pida.
+- Índices únicos sin restricción en SQL Server y PG; búsqueda sin CAST en columnas de texto (se actualizó el SQL esperado de 4 pruebas).
+- Tipos propios de PG como texto. Hallazgo: `CAST(inet AS text)` agrega la máscara ("10.0.0.1/32"); se usa `format('%s', …)`. `tsvector` sigue sin soporte (una prueba lo protegía).
+- Bloqueo de fila al guardar con versión: carrera de 4 ediciones, gana una, en los cuatro motores.
+- PostGIS con su propia imagen de pruebas; MySQL 8 con SRID 4326 respeta longitud latitud (comprobado con `ST_Latitude`).
+- 212 unitarias y 260 de integración en verde.
+
 ## 2026-10-28 · Tanda 3, parte B (P-085, P-087, P-089, P-090)
 - El dueño fusionó los PR #28 a #32.
 - Árbol: ajuste `treeParent` y arrastrar nodos; en el navegador, mover a "Rita" bajo "Luis" funcionó y el ciclo se rechazó mostrando el motivo (al principio salía "Hay datos inválidos": se corrigió).

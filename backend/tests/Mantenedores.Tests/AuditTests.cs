@@ -79,6 +79,10 @@ public sealed class AuditTests : IDisposable
         Assert.Equal(2, page.Total);
         Assert.Equal(["categoria", "producto"], page.Entries.Select(e => e.Table).Order().ToList());
         var producto = AuditAccess.Mask(page.Entries.Single(e => e.Table == "producto"), ana);
+        Assert.False(AuditAccess.IsEmptyForUser(producto));
+        // P-103: si solo cambió el costo, que ana no ve, la edición se omite.
+        Assert.True(AuditAccess.IsEmptyForUser(AuditAccess.Mask(page.Entries.Single(e => e.Table == "producto") with
+            { OldValues = "{\"costo\":2}", NewValues = "{\"costo\":3}" }, ana)));
         Assert.Equal("""{"precio":1}""", producto.OldValues);
 
         // Sin nada permitido, nada; sin restricciones, todo.

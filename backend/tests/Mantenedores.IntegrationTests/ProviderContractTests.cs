@@ -208,6 +208,50 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
 
     // ---------- Escritura ----------
 
+    // ---------- Auditoría (D-065) ----------
+
+    [Fact]
+    public async Task Registra_altas_ediciones_y_bajas_con_quien_y_los_valores()
+    {
+        Db.Access.Current = UserAccess.For("ana", [], isAdmin: false, []);
+        try
+        {
+            var code = UniqueCode();
+            var created = await Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
+                (N("codigo"), code), (N("nombre"), "Auditado"), (N("categoria_id"), 2), (N("precio"), 100)), default);
+            var id = Convert.ToString(created[N("id")], System.Globalization.CultureInfo.InvariantCulture)!;
+            var rowKey = Core.Audit.AuditValues.Key([new(N("id"), id)]);
+            var key = Key((N("id"), created[N("id")]!));
+
+            await Db.Crud.UpdateAsync(Conn, Schema, N("producto"), key, Body((N("precio"), 120)), default);
+            await Db.Crud.UpdateAsync(Conn, Schema, N("producto"), key, Body((N("precio"), 120)), default); // sin cambios: no se registra
+            await Db.Crud.DeleteAsync(Conn, Schema, N("producto"), key, default);
+
+            var history = Db.Audit.For(Schema, N("producto"), rowKey);
+            Assert.Equal([Core.Audit.AuditOperation.Create, Core.Audit.AuditOperation.Update, Core.Audit.AuditOperation.Delete],
+                history.Select(e => e.Operation));
+            Assert.All(history, e => Assert.Equal("ana", e.User));
+            Assert.All(history, e => Assert.Equal(Conn, e.Connection));
+
+            using var alta = JsonDocument.Parse(history[0].NewValues!);
+            Assert.Equal(code, alta.RootElement.GetProperty(N("codigo")).GetString());
+            Assert.Null(history[0].OldValues);
+
+            using var antes = JsonDocument.Parse(history[1].OldValues!);
+            using var despues = JsonDocument.Parse(history[1].NewValues!);
+            Assert.Equal(100m, antes.RootElement.GetProperty(N("precio")).GetDecimal());
+            Assert.Equal(120m, despues.RootElement.GetProperty(N("precio")).GetDecimal());
+            // Solo lo que cambió (en SQL Server también la columna calculada del precio con IVA).
+            Assert.False(despues.RootElement.TryGetProperty(N("codigo"), out _));
+            Assert.False(despues.RootElement.TryGetProperty(N("nombre"), out _));
+
+            using var baja = JsonDocument.Parse(history[2].OldValues!);
+            Assert.Equal("Auditado", baja.RootElement.GetProperty(N("nombre")).GetString());
+            Assert.Null(history[2].NewValues);
+        }
+        finally { Db.Access.Current = UserAccess.All; }
+    }
+
     // ---------- Permisos por perfil (D-063) ----------
 
     [Fact]

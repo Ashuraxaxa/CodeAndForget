@@ -1,4 +1,5 @@
 using System.Security.Cryptography.X509Certificates;
+using Mantenedores.Core.Audit;
 using Mantenedores.Core.Connections;
 using Mantenedores.Core.Overrides;
 using Mantenedores.Core.Schema;
@@ -39,6 +40,7 @@ public static class MetadataSetup
             services.AddSingleton<IOverrideStore>(new FileOverrideStore(Path.Combine(dataDirectory, "overrides.json")));
             services.AddSingleton<ISchemaSnapshotStore>(new FileSnapshotStore(Path.Combine(dataDirectory, "snapshots")));
             services.AddSingleton<ISecurityStore>(new FileSecurityStore(Path.Combine(dataDirectory, "security.json")));
+            services.AddSingleton<IAuditStore>(new FileAuditStore(Path.Combine(dataDirectory, "audit.jsonl")));
             return;
         }
 
@@ -48,6 +50,7 @@ public static class MetadataSetup
         services.AddSingleton<IOverrideStore, SqlOverrideStore>();
         services.AddSingleton<ISchemaSnapshotStore, SqlSnapshotStore>();
         services.AddSingleton<ISecurityStore, SqlSecurityStore>();
+        services.AddSingleton<IAuditStore, SqlAuditStore>();
 
         if (protection.KeyStore == KeyStore.Database)
             services.AddOptions<KeyManagementOptions>()

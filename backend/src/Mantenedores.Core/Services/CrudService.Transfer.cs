@@ -1,6 +1,7 @@
 using System.Data.Common;
 using System.Text.Json;
 using Dapper;
+using Mantenedores.Core.Audit;
 using Mantenedores.Core.Errors;
 using Mantenedores.Core.Query;
 using Mantenedores.Core.Schema;
@@ -177,6 +178,12 @@ public sealed partial class CrudService
             }
         }
         await tx.CommitAsync(ct);
+        // Una entrada por fila, con lo que venía en el archivo (la clave, si la genera la base, no se conoce aquí).
+        await AuditAsync(ctx, info, AuditOperation.Import, parsed.Select(p =>
+        {
+            var row = p.Values.AsReadOnly();
+            return (AuditValues.Key(info, row), (string?)null, (string?)AuditValues.Serialize(AuditValues.Columns(info, row)));
+        }), ct);
         return Result(parsed.Count, []);
     }
 

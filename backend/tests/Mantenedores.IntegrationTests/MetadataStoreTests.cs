@@ -65,6 +65,39 @@ public abstract class MetadataStoreContractTests<TFixture>(TFixture db) : IClass
     }
 
     [Fact]
+    public async Task La_auditoria_se_guarda_filtra_pagina_y_purga()
+    {
+        var database = Database();
+        await new MetadataMigrator(database).MigrateAsync();
+        var store = new Mantenedores.Metadata.SqlAuditStore(database);
+        var conn = "a" + Guid.NewGuid().ToString("N")[..8];
+        var now = DateTimeOffset.UtcNow;
+        Core.Audit.AuditEntry E(Core.Audit.AuditOperation op, string key, DateTimeOffset at) => new()
+        {
+            At = at, User = "ana", Connection = conn, Schema = "ventas", Table = "producto", Operation = op,
+            RowKey = key, OldValues = "{\"precio\":10}", NewValues = "{\"precio\":\"ñandú\"}"
+        };
+        await store.WriteAsync([
+            E(Core.Audit.AuditOperation.Create, "id=1", now.AddDays(-400)),
+            E(Core.Audit.AuditOperation.Update, "id=1", now.AddMinutes(-2)),
+            E(Core.Audit.AuditOperation.Create, "id=2", now.AddMinutes(-1))
+        ], default);
+
+        var history = await store.QueryAsync(new Core.Audit.AuditQuery { Connection = conn, RowKey = "id=1" }, default);
+        Assert.Equal(2, history.Total);
+        Assert.Equal(Core.Audit.AuditOperation.Update, history.Entries[0].Operation);
+        Assert.Equal("{\"precio\":\"ñandú\"}", history.Entries[0].NewValues);
+        Assert.True(Math.Abs((history.Entries[0].At - now.AddMinutes(-2)).TotalSeconds) < 1);
+
+        Assert.Equal(2, (await store.QueryAsync(new Core.Audit.AuditQuery { Connection = conn, From = now.AddHours(-1) }, default)).Total);
+        var page = await store.QueryAsync(new Core.Audit.AuditQuery { Connection = conn, Page = 2, PageSize = 2 }, default);
+        Assert.Single(page.Entries);
+
+        Assert.True(await store.PurgeAsync(now.AddDays(-365), default) >= 1);
+        Assert.Equal(2, (await store.QueryAsync(new Core.Audit.AuditQuery { Connection = conn }, default)).Total);
+    }
+
+    [Fact]
     public async Task Varias_instancias_migrando_a_la_vez_aplican_cada_script_una_vez()
     {
         // Base nueva: las cuatro "instancias" compiten por crear todo desde cero (P-081).

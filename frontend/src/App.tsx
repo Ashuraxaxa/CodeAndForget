@@ -8,11 +8,17 @@ import { RecordPage } from './pages/RecordPage'
 import { ConfigPage } from './pages/ConfigPage'
 import { ImportPage } from './pages/ImportPage'
 import { SecurityPage } from './pages/SecurityPage'
+import { AuditPage } from './pages/AuditPage'
 import { useCan } from './lib/useMe'
 
 /** Solo se monta con sesión iniciada: así /me no se pide sin token. */
-function SecurityLink() {
-  return useCan('ManageSecurity') ? <Link to="/seguridad">Seguridad</Link> : null
+function AdminLinks() {
+  const canAudit = useCan('ViewAudit')
+  const canSecure = useCan('ManageSecurity')
+  return <>
+    {canAudit && <Link to="/auditoria">Auditoría</Link>}
+    {canSecure && <Link to="/seguridad">Seguridad</Link>}
+  </>
 }
 
 function Shell() {
@@ -24,7 +30,7 @@ function Shell() {
       <header className="topbar">
         <Link to="/" className="brand">Mantenedores</Link>
         <nav className="topnav">
-          <SecurityLink />
+          <AdminLinks />
           {/* Con un proxy que maneja la sesión no hay "salir" desde la app. */}
           {!(config.mode === 'Jwt' && !config.clientId) && <button className="link" onClick={logout}>Salir</button>}
         </nav>
@@ -47,6 +53,7 @@ export default function App() {
           <Route element={<Shell />}>
             <Route index element={<ConnectionsPage />} />
             <Route path="seguridad" element={<SecurityPage />} />
+            <Route path="auditoria" element={<AuditPage />} />
             <Route path="c/:conn" element={<ConnectionLayout />}>
               <Route index element={<PickTable />} />
               <Route path="t/:schema/:table" element={<TablePage />} />

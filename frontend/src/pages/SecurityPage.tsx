@@ -14,6 +14,7 @@ const PERMISSION_LABELS: Record<string, string> = {
   ConfigureTables: 'Configurar mantenedores',
   ManageConnections: 'Administrar conexiones',
   ManageSecurity: 'Administrar seguridad',
+  ViewAudit: 'Ver la auditoría',
 }
 
 /** Apartado de seguridad (P-040, P-042): perfiles con permisos por conexión, tabla y columna, y usuarios propios. Requiere ManageSecurity (D-066). */

@@ -304,3 +304,29 @@ export interface SecurityInfo {
   adminRoles: string[]
   minPasswordLength: number
 }
+
+// ---------- Auditoría (P-044; D-065, D-068) ----------
+
+export type AuditOperation = 'Create' | 'Update' | 'Delete' | 'Import' | 'Links'
+
+export interface AuditEntry {
+  id: number
+  at: string
+  user: string | null
+  connection: string
+  schema: string
+  table: string
+  operation: AuditOperation
+  /** Clave del registro como "col=valor&col2=valor2"; null si no se conoce. */
+  rowKey: string | null
+  /** JSON con los valores antes y después (solo lo que cambió en una edición). */
+  oldValues: string | null
+  newValues: string | null
+}
+
+export interface AuditPage {
+  entries: AuditEntry[]
+  total: number
+  page: number
+  pageSize: number
+}

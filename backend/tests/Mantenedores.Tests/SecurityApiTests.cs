@@ -127,6 +127,20 @@ public sealed class SecurityApiTests : IDisposable
         Assert.Equal(HttpStatusCode.BadRequest, (await Send(HttpMethod.Put, "/api/security/users/con espacio", admin, new { password = "clave-segura-1" })).StatusCode);
     }
 
+    [Fact]
+    public async Task La_auditoria_exige_ViewAudit()
+    {
+        var admin = (await Login("admin", "admin"))!;
+        var res = await Send(HttpMethod.Get, "/api/audit?conn=demo&k.id=1&page=1", admin);
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        Assert.Contains("\"total\":0", await res.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.BadRequest, (await Send(HttpMethod.Get, "/api/audit?op=leer", admin)).StatusCode);
+
+        await Send(HttpMethod.Put, "/api/security/users/luis", admin, new { password = "clave-segura-1" });
+        var luis = (await Login("luis", "clave-segura-1"))!;
+        Assert.Equal(HttpStatusCode.Forbidden, (await Send(HttpMethod.Get, "/api/audit", luis)).StatusCode);
+    }
+
     private sealed record MeDto(string? Name, List<string> Permissions, bool SecurityOpen, List<string> Profiles);
     private sealed record UserDto(string Username, string? DisplayName, bool Active, string Source);
     private sealed record LoginDto(string Token);

@@ -18,14 +18,18 @@ public static class Permissions
     /// <summary>Administrar perfiles, usuarios propios y permisos (D-066).</summary>
     public const string ManageSecurity = "ManageSecurity";
 
-    public static readonly IReadOnlyList<string> All = [ConfigureTables, ManageConnections, ManageSecurity];
+    /// <summary>Consultar la auditoría de cambios (D-068).</summary>
+    public const string ViewAudit = "ViewAudit";
+
+    public static readonly IReadOnlyList<string> All = [ConfigureTables, ManageConnections, ManageSecurity, ViewAudit];
 
     /// <summary>Rol que recibe cada permiso si no se configura otro.</summary>
     public static readonly IReadOnlyDictionary<string, string> DefaultRoles = new Dictionary<string, string>
     {
         [ConfigureTables] = "mnt-configurador",
         [ManageConnections] = "mnt-conexiones",
-        [ManageSecurity] = "mnt-seguridad"
+        [ManageSecurity] = "mnt-seguridad",
+        [ViewAudit] = "mnt-auditor"
     };
 
     /// <summary>Nombre de la política de autorización de un permiso.</summary>

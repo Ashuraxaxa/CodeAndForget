@@ -1,6 +1,7 @@
 using System.Data.Common;
 using System.Text.Json;
 using Dapper;
+using Mantenedores.Core.Audit;
 using Mantenedores.Core.Errors;
 using Mantenedores.Core.Query;
 using Mantenedores.Core.Schema;
@@ -27,8 +28,25 @@ public sealed class CrudOptions
 }
 
 /// <summary>CRUD genérico sobre cualquier tabla descubierta.</summary>
-public sealed partial class CrudService(SchemaService schemas, CrudOptions options)
+public sealed partial class CrudService(SchemaService schemas, CrudOptions options, AuditService? audit = null)
 {
+    /// <summary>Registra un cambio ya confirmado (D-065). Sin auditoría configurada, no hace nada.</summary>
+    private async Task AuditAsync(ConnectionContext ctx, TableInfo info, AuditOperation op,
+        IEnumerable<(string? Key, string? Old, string? New)> changes, CancellationToken ct)
+    {
+        if (audit is not { Enabled: true }) return;
+        var user = (await schemas.AccessAsync(ct)).Username;
+        var entries = changes.Select(c => new AuditEntry
+        {
+            User = user, Connection = ctx.Definition.Id, Schema = info.Schema, Table = info.Name,
+            Operation = op, RowKey = c.Key, OldValues = c.Old, NewValues = c.New
+        }).ToList();
+        await audit.RecordAsync(entries, ct);
+    }
+
+    private Task AuditAsync(ConnectionContext ctx, TableInfo info, AuditOperation op, string? key, string? old, string? @new, CancellationToken ct) =>
+        AuditAsync(ctx, info, op, [(key, old, @new)], ct);
+
     public async Task<PagedResult> ListAsync(string conn, string schema, string table, ListRequest request, CancellationToken ct)
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
@@ -72,7 +90,11 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
                 keys = new Dictionary<string, object?>(ToRow(row));
             }
         }
-        return await GetByKeyAsync(ctx, info, keys, ct);
+        var created = await GetByKeyAsync(ctx, info, keys, ct);
+        var createdRow = created.AsReadOnly();
+        await AuditAsync(ctx, info, AuditOperation.Create, AuditValues.Key(info, createdRow), null,
+            AuditValues.Serialize(AuditValues.Columns(info, createdRow)), ct);
+        return created;
     }
 
     public async Task<IDictionary<string, object?>> UpdateAsync(
@@ -84,6 +106,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         var keyValues = ParseKey(info, key);
         var values = ParseValues(info, body, MaxFileBytes);
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildUpdate(info, keyValues, values);
+        var before = audit is { Enabled: true } ? await GetByKeyAsync(ctx, info, keyValues, ct) : null;
 
         await using (var db = await OpenAsync(ctx, ct))
         {
@@ -91,18 +114,27 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
             if (await Translated(ctx, info, DbOperation.Update, () => db.ExecuteAsync(Command(query, ct))) == 0)
                 throw new NotFoundException("El registro no existe.");
         }
-        return await GetByKeyAsync(ctx, info, keyValues, ct);
+        var after = await GetByKeyAsync(ctx, info, keyValues, ct);
+        if (before is not null && AuditValues.Diff(info, before.AsReadOnly(), after.AsReadOnly()) is var (oldV, newV))
+            await AuditAsync(ctx, info, AuditOperation.Update, AuditValues.Key(info, after.AsReadOnly()), oldV, newV, ct);
+        return after;
     }
 
     public async Task DeleteAsync(string conn, string schema, string table, IReadOnlyDictionary<string, string> key, CancellationToken ct)
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
         Require(info, DataOperation.Delete, "eliminar registros de");
-        var query = new QueryBuilder(ctx.Provider.Dialect).BuildDelete(info, ParseKey(info, key));
+        var keyValues = ParseKey(info, key);
+        var query = new QueryBuilder(ctx.Provider.Dialect).BuildDelete(info, keyValues);
+        var before = audit is { Enabled: true } ? await GetByKeyAsync(ctx, info, keyValues, ct) : null;
 
-        await using var db = await OpenAsync(ctx, ct);
-        if (await Translated(ctx, info, DbOperation.Delete, () => db.ExecuteAsync(Command(query, ct))) == 0)
-            throw new NotFoundException("El registro no existe.");
+        await using (var db = await OpenAsync(ctx, ct))
+            if (await Translated(ctx, info, DbOperation.Delete, () => db.ExecuteAsync(Command(query, ct))) == 0)
+                throw new NotFoundException("El registro no existe.");
+
+        if (before is not null)
+            await AuditAsync(ctx, info, AuditOperation.Delete, AuditValues.Key(info, before.AsReadOnly()),
+                AuditValues.Serialize(AuditValues.Columns(info, before.AsReadOnly())), null, ct);
     }
 
     /// <summary>
@@ -268,6 +300,14 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
                 await Translated(ctx, bridge, DbOperation.Insert, () => db.ExecuteAsync(Command(insert.Query, ct, tx)));
             }
             await tx.CommitAsync(ct);
+
+            var removed = current.Where(c => !wanted.ContainsKey(K(c))).ToList();
+            var added = wanted.Where(w => !currentKeys.Contains(w.Key)).Select(w => w.Value).ToList();
+            if (removed.Count > 0 || added.Count > 0)
+                await AuditAsync(ctx, owner, AuditOperation.Links,
+                    AuditValues.Key(owner, new Dictionary<string, object?> { [owner.PrimaryKey[0]] = localValue }.AsReadOnly()),
+                    AuditValues.Serialize(new Dictionary<string, object?> { [link.Name] = current }),
+                    AuditValues.Serialize(new Dictionary<string, object?> { [link.Name] = wanted.Values.ToList() }), ct);
         }
         return await GetLinksAsync(conn, schema, table, key, linkName, ct);
     }

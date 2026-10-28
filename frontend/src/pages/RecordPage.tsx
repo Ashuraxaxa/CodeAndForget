@@ -8,6 +8,7 @@ import { fromInputValue, keyQuery, parseRecordSearch, toInputValue } from '../li
 import { ChildTabs } from '../components/ChildTabs'
 import { ManyToManySelect } from '../components/ManyToManySelect'
 import { FileField } from '../components/FileField'
+import { useCan } from '../lib/useMe'
 
 /** Formulario de alta y edición generado desde la metadata de la tabla. */
 export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
@@ -68,10 +69,15 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
   const fields = meta.columns.filter(c => c.isSelectable && !c.hidden && (isEdit || !(c.isIdentity || c.isComputed || c.isRowVersion)))
   // Sin permiso para guardar (D-063), el formulario es solo de consulta.
   const viewOnly = isEdit ? !meta.canUpdate : !meta.canCreate
+  const canAudit = useCan('ViewAudit')
+  const historyParams = new URLSearchParams({ conn, schema: meta.schema, table: meta.name })
+  for (const [k, v] of new URLSearchParams(recordKey)) historyParams.set(`k.${k}`, v)
+  const historyUrl = `/auditoria?${historyParams}`
   const isLocked = (c: Column) => viewOnly || c.isReadOnly || (isEdit && c.isPrimaryKey) || c.name in fixed
 
-  const [values, setValues] = useState<Record<string, string | boolean>>(() =>
+  const [initialValues] = useState<Record<string, string | boolean>>(() =>
     Object.fromEntries(fields.map(c => [c.name, c.name in fixed && !isEdit ? fixed[c.name] : toInputValue(c, row?.[c.name])])))
+  const [values, setValues] = useState(initialValues)
   const [labels, setLabels] = useState<Record<string, string | null>>(() =>
     Object.fromEntries(fields.map(c => [c.name, (row?.[c.name + LABEL_SUFFIX] as string | null) ?? null])))
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -89,6 +95,9 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
         // Los valores fijos se envían aunque estén bloqueados: son la FK al registro padre.
         if (!isEdit && c.name in fixed) { body[c.name] = fromInputValue(c, fixed[c.name]); continue }
         if (isLocked(c)) continue
+        // Al editar se envía solo lo que cambió: un campo sin tocar no pierde precisión (p. ej. los segundos de
+        // una fecha, que el control no muestra) ni aparece como cambio en la auditoría.
+        if (isEdit && values[c.name] === initialValues[c.name]) continue
         const v = fromInputValue(c, values[c.name])
         // En alta, un vacío en columna con default se omite para que la BD ponga su valor.
         if (!isEdit && v === null && c.hasDefault) continue
@@ -98,9 +107,12 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
         if (c.isReadOnly || fileValues[c.name] === undefined) continue
         body[c.name] = fileValues[c.name]
       }
-      const saved = await (isEdit
-        ? api.update(conn, meta.schema, meta.name, recordKey, body)
-        : api.create(conn, meta.schema, meta.name, body))
+      // Si solo cambiaron vínculos N:M (o nada), el registro no se toca.
+      const saved = isEdit && Object.keys(body).length === 0
+        ? row
+        : await (isEdit
+          ? api.update(conn, meta.schema, meta.name, recordKey, body)
+          : api.create(conn, meta.schema, meta.name, body))
       // Después del registro, las relaciones N:M que cambiaron: cada una se sincroniza en una transacción (P-015).
       const key = isEdit ? recordKey : keyQuery(meta, saved)
       for (const l of meta.manyToMany) {
@@ -139,7 +151,10 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
     <div className="page">
       <div className="page-header">
         <h1>{viewOnly && isEdit ? `Registro · ${labelOf(meta)}` : isEdit ? `Editar registro · ${labelOf(meta)}` : `Nuevo registro · ${labelOf(meta)}`}</h1>
-        <Link to={back}>{returnTo ? '‹ Volver' : '‹ Volver a la lista'}</Link>
+        <div className="actions">
+          {isEdit && canAudit && <Link to={historyUrl}>Historial</Link>}
+          <Link to={back}>{returnTo ? '‹ Volver' : '‹ Volver a la lista'}</Link>
+        </div>
       </div>
 
       <form className="card form" onSubmit={submit}>

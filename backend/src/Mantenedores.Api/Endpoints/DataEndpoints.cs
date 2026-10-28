@@ -42,6 +42,16 @@ public static class DataEndpoints
             return Results.NoContent();
         });
 
+        // Acción de la tabla sobre un registro (P-061): body con los valores que se preguntan al usuario { "param": valor }.
+        group.MapPost("/row/actions/{action}", async (string conn, string schema, string table, string action, HttpRequest http,
+            CrudService crud, CancellationToken ct) =>
+        {
+            var asked = http.ContentLength is > 0
+                ? await http.ReadFromJsonAsync<Dictionary<string, System.Text.Json.JsonElement>>(ct)
+                : null;
+            return Results.Ok(await crud.ExecuteActionAsync(conn, schema, table, action, Key(http.Query), asked, ct));
+        });
+
         // Relación N:M (P-015): valores vinculados [{ value, label }] y reemplazo de la lista completa en una transacción.
         group.MapGet("/row/links/{link}", (string conn, string schema, string table, string link, HttpRequest http,
             CrudService crud, CancellationToken ct) =>
@@ -129,7 +139,8 @@ public static class DataEndpoints
             Filters = filters,
             Exact = q.Where(kv => kv.Key.StartsWith(ExactPrefix, StringComparison.Ordinal))
                 .ToDictionary(kv => kv.Key[ExactPrefix.Length..], kv => kv.Value.ToString()),
-            Search = q["q"].ToString()
+            Search = q["q"].ToString(),
+            After = q["after"].ToString() is { Length: > 0 } after ? after : null
         };
     }
 

@@ -39,6 +39,10 @@ public sealed record ColumnInfo
     public string? Label { get; init; }
     public string? HelpText { get; init; }
 
+    /// <summary>Etiqueta y ayuda por idioma (P-102).</summary>
+    public IReadOnlyDictionary<string, string>? Labels { get; init; }
+    public IReadOnlyDictionary<string, string>? HelpTexts { get; init; }
+
     /// <summary>Oculta por ajuste: no se lee ni se escribe (salvo si es PK).</summary>
     public bool Hidden { get; init; }
 

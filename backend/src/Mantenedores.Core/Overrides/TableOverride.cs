@@ -9,6 +9,9 @@ public sealed record TableOverride
     /// <summary>Nombre visible, p. ej. "Productos".</summary>
     public string? Label { get; init; }
 
+    /// <summary>Nombre visible en otros idiomas de la interfaz (P-102), p. ej. {"en": "Products", "ru": "Товары"}.</summary>
+    public IReadOnlyDictionary<string, string>? Labels { get; init; }
+
     /// <summary>No se muestra en el menú.</summary>
     public bool? Hidden { get; init; }
 
@@ -51,6 +54,34 @@ public sealed record TableOverride
     /// cantidad) o "none". Sin ajuste: selector.
     /// </summary>
     public IReadOnlyDictionary<string, string>? Links { get; init; }
+
+    /// <summary>Botones que llaman a un procedimiento o función del catálogo (P-061), en el formulario de un registro.</summary>
+    public IReadOnlyList<TableAction>? Actions { get; init; }
+}
+
+/// <summary>
+/// Acción de una tabla (P-061): llama a <c>Routine</c> ("esquema.nombre") con cada parámetro tomado de una columna del
+/// registro, de un valor fijo o de lo que escriba el usuario al ejecutar.
+/// </summary>
+public sealed record TableAction
+{
+    /// <summary>Identificador en la URL: minúsculas, números, - o _.</summary>
+    public string Name { get; init; } = "";
+    public string? Label { get; init; }
+    public IReadOnlyDictionary<string, string>? Labels { get; init; }
+    public string Routine { get; init; } = "";
+    public IReadOnlyDictionary<string, ActionParameter>? Parameters { get; init; }
+
+    /// <summary>Pregunta antes de ejecutar, p. ej. "¿Anular el pedido?". Vacío = sin confirmación.</summary>
+    public string? Confirm { get; init; }
+}
+
+/// <summary>De dónde sale un parámetro: una columna del registro, un valor fijo o lo que escriba el usuario (<c>Ask</c>).</summary>
+public sealed record ActionParameter
+{
+    public string? Column { get; init; }
+    public string? Value { get; init; }
+    public bool? Ask { get; init; }
 }
 
 public sealed record NotifyOverride
@@ -74,6 +105,10 @@ public sealed record ColumnOverride
 {
     public string? Label { get; init; }
     public string? HelpText { get; init; }
+
+    /// <summary>Etiqueta y ayuda en otros idiomas (P-102), por código de idioma ("en", "ru").</summary>
+    public IReadOnlyDictionary<string, string>? Labels { get; init; }
+    public IReadOnlyDictionary<string, string>? HelpTexts { get; init; }
 
     /// <summary>Oculta: no se lee ni se escribe por la API (salvo si es PK, que se usa como clave). Sirve para datos sensibles.</summary>
     public bool? Hidden { get; init; }

@@ -11,7 +11,8 @@ public static class MetaEndpoints
     public sealed record TableSummary(
         string Schema, string Name, TableKind Kind, bool Editable, bool HasPrimaryKey,
         string? DisplayColumn, int Columns, int ForeignKeys, int ReferencedBy,
-        string? Label, string? Group, bool Hidden, IReadOnlyList<string> Access);
+        string? Label, string? Group, bool Hidden, IReadOnlyList<string> Access,
+        IReadOnlyDictionary<string, string>? Labels = null);
 
     /// <summary><c>Warnings</c>: ajustes que no se pudieron aplicar (p. ej. una columna borrada de la base).</summary>
     public sealed record SchemaSummary(string Hash, DateTimeOffset ReadAt, IReadOnlyList<TableSummary> Tables, IReadOnlyList<string> Warnings);
@@ -49,6 +50,10 @@ public static class MetaEndpoints
         // --- Ajustes por tabla (P-011). Leer y cambiar: permiso ConfigureTables (D-053); nombran tablas y columnas
         // que un perfil puede ocultar (D-067). Lo que el usuario necesita ya viene aplicado en /tables. ---
 
+        // Procedimientos y funciones que pueden ser acciones (P-061).
+        group.MapGet("/routines", (string conn, SchemaService schemas, CancellationToken ct) => schemas.GetRoutinesAsync(conn, ct))
+            .RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
+
         group.MapGet("/overrides", async (string conn, SchemaService schemas, CancellationToken ct) =>
         {
             await schemas.GetRawSchemaAsync(conn, ct); // 404 si la conexión no existe
@@ -70,6 +75,9 @@ public static class MetaEndpoints
             var raw = await schemas.GetRawSchemaAsync(conn, ct);
             var info = await RawTableAsync(schemas, conn, schema, table, ct);
             OverrideApplier.Validate(raw, info.Schema, info.Name, body);
+            if (body.Actions is { Count: > 0 } &&
+                OverrideApplier.ValidateActions(body.Actions, await schemas.GetRoutinesAsync(conn, ct)) is { Count: > 0 } actionErrors)
+                throw new Core.Errors.ValidationException(actionErrors);
 
             await RemoveVariantsAsync(schemas, conn, info, ct);
             await schemas.Overrides.SaveAsync(conn, info.Schema, info.Name, body, user.Identity?.Name, ct);
@@ -92,6 +100,8 @@ public static class MetaEndpoints
             var errors = new Dictionary<string, string[]>();
             try { OverrideApplier.Validate(raw, info.Schema, info.Name, body); }
             catch (Core.Errors.ValidationException ex) { foreach (var (k, v) in ex.Errors) errors[k] = [v]; }
+            if (body.Actions is { Count: > 0 })
+                foreach (var (k, v) in OverrideApplier.ValidateActions(body.Actions, await schemas.GetRoutinesAsync(conn, ct))) errors[k] = [v];
 
             return new OverridePreview(OverrideApplier.Apply(raw, others).FindTable(info.Schema, info.Name)!, errors);
         }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
@@ -134,6 +144,6 @@ public static class MetaEndpoints
         s.Tables.Select(t => new TableSummary(
             t.Schema, t.Name, t.Kind, t.IsEditable, t.HasPrimaryKey, t.DisplayColumn,
             t.Columns.Count, t.ForeignKeys.Count, t.ReferencedBy.Count,
-            t.Label, t.Group, t.Hidden, Mantenedores.Core.Security.DataOperations.ToNames(t.Access))).ToList(),
+            t.Label, t.Group, t.Hidden, Mantenedores.Core.Security.DataOperations.ToNames(t.Access), t.Labels)).ToList(),
         s.OverrideWarnings);
 }

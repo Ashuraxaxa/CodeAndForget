@@ -89,13 +89,15 @@ Todo es opcional; lo que no se indica queda automático. Los nombres de columnas
 | `notify` | Avisos por correo cuando cambia un registro (D-073): `{"emails": ["jefa@empresa.cl"], "on": ["update", "delete"], "includeValues": true}`. `on` acepta `create`, `update`, `delete`, `import` y `links`; vacío = altas, ediciones y bajas. Solo se envían si la app tiene SMTP configurado (`Notifications`, ver `configuracion.md`). En el editor: *Tabla → Avisos por correo*. |
 | `virtualForeignKeys` | Relaciones que la base no declara: dan etiqueta, combo y "Referenciada por" como una FK real. La base no las hace cumplir. `name` es opcional. Pueden ser de varias columnas (`"columns": ["pais", "sucursal"]` con `"refColumns": ["pais", "codigo"]`); en el editor, *＋ Otra columna*. |
 | `treeParent` | Si la tabla tiene más de una relación consigo misma (p. ej. jefe y mentor), cuál arma la vista de árbol, por nombre de la FK. Sin definir = la primera. En el árbol, quien puede editar mueve un registro arrastrándolo sobre otro; un ciclo se rechaza. |
+| `labels` | El nombre visible en otros idiomas de la interfaz: `{"en": "Products", "ru": "Товары"}`. Sin traducción se usa `label`. En el editor, junto a *Nombre visible*. |
+| `actions` | Botones del formulario que llaman a un procedimiento o función de la base sobre el registro abierto: `[{"name": "subir", "label": "Subir precio", "routine": "ventas.subir_precio", "parameters": {"p_id": {"column": "id"}, "p_monto": {"ask": true}}, "confirm": "¿Seguro?"}]`. Cada parámetro sale de una columna (`column`), de un valor fijo (`value`) o de lo que escribe el usuario (`ask`). La rutina debe existir en el catálogo; no se ofrecen las sobrecargadas ni los procedimientos con parámetros de salida. Ejecutarlas exige la operación `execute` del perfil (D-088) y queda en la auditoría. |
 | `links` | Cómo se edita cada relación N:M, por su nombre: `selector` (por defecto: selector múltiple en el formulario), `tab` (pestaña con la tabla puente y su propio formulario, para puentes con columnas propias como `cantidad`) o `none`. |
 
 ### Columna
 
 | Ajuste | Qué hace |
 |---|---|
-| `label`, `helpText` | Nombre visible y ayuda bajo el campo. |
+| `label`, `helpText` | Nombre visible y ayuda bajo el campo. `labels` y `helpTexts`: los mismos textos en otros idiomas (`{"en": "Price"}`). |
 | `order` | Posición en grilla y formulario (menor primero). Por defecto, la posición en la tabla (1, 2, 3…). |
 | `hidden` | No se lee, no se escribe ni se busca por la API: sirve para datos sensibles. Excepción: si es PK, se sigue usando como clave pero la UI no la muestra. No se puede ocultar una columna obligatoria sin valor por defecto (no se podrían crear registros). |
 | `showInGrid` | `false`: solo en el formulario. |

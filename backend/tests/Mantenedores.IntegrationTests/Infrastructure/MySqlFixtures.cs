@@ -24,6 +24,15 @@ public abstract class MySqlFamilyFixture : DatabaseFixture
 
     public override string AnalyzeSql(string quotedTable) => "ANALYZE TABLE " + quotedTable;
 
+    public override string CreateActionRoutineSql => """
+        CREATE PROCEDURE subir_precio(IN p_id INT, IN p_monto DECIMAL(12,2))
+        BEGIN
+            UPDATE producto SET precio = precio + p_monto WHERE id = p_id;
+            SELECT precio FROM producto WHERE id = p_id;
+        END
+        """;
+    public override string DropActionRoutineSql => "DROP PROCEDURE subir_precio";
+
     protected override string MajorVersionSql => "SELECT CAST(SUBSTRING_INDEX(VERSION(), '.', 1) AS SIGNED)";
 
     // En MySQL el esquema es la base de datos: la cadena de conexión apunta a "ventas" (D-032).

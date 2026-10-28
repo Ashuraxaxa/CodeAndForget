@@ -27,6 +27,16 @@ public sealed partial class SqlServerFixture : DatabaseFixture
 
     // 13 = SQL Server 2016, 14 = 2017, 15 = 2019, 16 = 2022.
     public override int MinimumMajorVersion => 13;
+    public override string CreateActionRoutineSql => """
+        CREATE PROCEDURE ventas.subir_precio @id int, @monto decimal(12,2) AS
+        BEGIN
+            SET NOCOUNT ON;
+            UPDATE ventas.Producto SET Precio = Precio + @monto WHERE Id = @id;
+            SELECT Precio AS precio FROM ventas.Producto WHERE Id = @id;
+        END
+        """;
+    public override string DropActionRoutineSql => "DROP PROCEDURE ventas.subir_precio";
+
     public override IReadOnlyList<string> ReadOnlyUserSql(string user, string password) =>
         [$"CREATE LOGIN {user} WITH PASSWORD = '{password}', CHECK_POLICY = OFF", $"CREATE USER {user} FOR LOGIN {user}",
          $"GRANT SELECT ON SCHEMA::ventas TO {user}"];

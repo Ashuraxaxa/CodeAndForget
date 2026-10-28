@@ -292,6 +292,10 @@ Se configura **una** fuente de llaves: `Authority` (lo normal), `MetadataAddress
 | `Auth:Jwt:Scopes` | `openid profile` | Scopes que pide la UI. |
 | `Auth:Jwt:ProviderName` | `el proveedor de identidad` | Texto del botón "Ingresar con …". |
 
+La UI renueva el token antes de que venza: con refresh token si el proveedor lo entrega y, si no, en un iframe oculto
+que vuelve a `silent-renew.html` con la sesión del proveedor (D-087). Registre esa URL (p. ej.
+`https://app.empresa.cl/silent-renew.html`) entre las URI de redirección del cliente.
+
 En el proveedor, el cliente de la UI debe ser **público**, con PKCE y con estos valores:
 - *Redirect URI:* `https://<app>/<subruta>/auth/callback`.
 - *Post logout redirect URI:* `https://<app>/<subruta>/`.

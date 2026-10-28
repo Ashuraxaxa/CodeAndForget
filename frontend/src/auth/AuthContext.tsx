@@ -47,8 +47,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       post_logout_redirect_uri: appUrl(''),
       response_type: 'code',
       scope: config.scopes ?? 'openid profile',
-      // Renueva con refresh token si el proveedor lo entrega; si no, al vencer se vuelve a iniciar sesión.
+      // Renueva antes de vencer: con refresh token si el proveedor lo entrega; si no, en un iframe oculto que vuelve a
+      // silent-renew.html con la sesión del proveedor (P-079). Si el proveedor ya no tiene sesión, se vuelve a ingresar.
       automaticSilentRenew: true,
+      silent_redirect_uri: appUrl('silent-renew.html'),
     })
   }, [config])
 

@@ -247,3 +247,8 @@ select.export { width: auto; }
 .file-preview { max-width: 240px; max-height: 180px; object-fit: contain; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 6px; display: block; }
 .col-grip { cursor: grab; color: var(--muted, #888); padding: 0 4px; user-select: none; font-size: 1.1rem; }
 .col-editor.dragging { opacity: .5; }
+/* Textos en otros idiomas (P-102) */
+.lang-inputs { display: flex; gap: 6px; margin-top: 4px; }
+.lang-input { display: flex; align-items: center; gap: 4px; flex: 1; }
+.lang-input input { flex: 1; }
+

@@ -1,10 +1,11 @@
+using System.Text.RegularExpressions;
 using Mantenedores.Core.Providers;
 using Mantenedores.Core.Query;
 using Mantenedores.Core.Schema;
 
 namespace Mantenedores.Providers.SqlServer;
 
-public sealed class SqlServerDialect : ISqlDialect
+public sealed partial class SqlServerDialect : ISqlDialect
 {
     public string Quote(string identifier) => "[" + identifier.Replace("]", "]]") + "]";
 
@@ -32,6 +33,17 @@ public sealed class SqlServerDialect : ISqlDialect
         : columnExpr;
 
     public string ByteLength(string columnExpr) => $"DATALENGTH({columnExpr})";
+
+    /// <summary>Procedimiento con sus parámetros por nombre (P-061): <c>EXEC esquema.proc @id = @a0, …</c>.</summary>
+    /// Los parámetros no se pueden delimitar con corchetes: el nombre viene del catálogo y igual se valida.
+    public string CallRoutine(string routine, RoutineKind kind, IReadOnlyList<(RoutineParameter Parameter, string Placeholder)> args) =>
+        $"EXEC {routine} {string.Join(", ", args.Select(a => $"@{ParameterName(a.Parameter.Name)} = {a.Placeholder}"))}".TrimEnd();
+
+    private static string ParameterName(string name) => ParameterNamePattern().IsMatch(name)
+        ? name : throw new InvalidOperationException($"Nombre de parámetro inesperado: {name}");
+
+    [GeneratedRegex(@"^[\p{L}_#$][\p{L}\p{N}_#$@]*$")]
+    private static partial Regex ParameterNamePattern();
 
     /// <summary>SQL Server no tiene FOR UPDATE: el bloqueo de actualización se pide con una sugerencia de tabla (P-096).</summary>
     public string LockRow(string table, string alias, string where) =>

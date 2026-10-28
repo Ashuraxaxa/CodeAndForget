@@ -93,6 +93,51 @@ public sealed class PostgresSchemaProvider : ISchemaProvider
         ORDER BY t.oid, e.enumsortorder
         """;
 
+    // Procedimientos y funciones (P-061), sin los de extensiones (PostGIS trae miles) ni los de triggers. Los argumentos
+    // salen en orden; sin nombre de argumento se informa "" (la rutina no se ofrece). Un procedimiento con OUT/INOUT,
+    // tampoco. format_type da el tipo para el CAST de cada argumento.
+    private const string RoutinesSql = $"""
+        SELECT p.oid::text AS RoutineId, n.nspname AS SchemaName, p.proname AS RoutineName, p.prokind::text AS Kind,
+               CASE WHEN a.typ IS NULL THEN NULL ELSE COALESCE(a.name, '') END AS ParamName, COALESCE(a.ord, 0)::int AS Ordinal,
+               t.typname AS TypeName, t.typtype::text AS TypeKind, t.typcategory::text AS TypeCategory,
+               format_type(a.typ, NULL) AS TypeFormat,
+               CASE WHEN p.prokind = 'p' THEN COALESCE(a.mode, 'i') <> 'i' ELSE COALESCE(a.mode, 'i') IN ('o', 't') END AS IsOutput
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        LEFT JOIN LATERAL unnest(COALESCE(p.proallargtypes, p.proargtypes::oid[]), p.proargnames, p.proargmodes)
+             WITH ORDINALITY AS a(typ, name, mode, ord) ON true
+        LEFT JOIN pg_type t ON t.oid = a.typ
+        WHERE p.prokind IN ('f', 'p') AND {SchemaFilter}
+          AND p.prorettype NOT IN ('trigger'::regtype, 'event_trigger'::regtype)
+          AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.classid = 'pg_proc'::regclass AND d.objid = p.oid AND d.deptype = 'e')
+        ORDER BY 2, 3, 6
+        """;
+
+    public async Task<IReadOnlyList<RoutineInfo>> ReadRoutinesAsync(DbConnection connection, IReadOnlyCollection<string>? includeSchemas, CancellationToken ct)
+    {
+        var rows = await connection.QueryAsync<RoutineRow>(new CommandDefinition(RoutinesSql, cancellationToken: ct));
+        return RoutineAssembler.Assemble(rows.Select(r => new RawRoutineParameter(
+            r.RoutineId, r.SchemaName, r.RoutineName, r.Kind == "p" ? RoutineKind.Procedure : RoutineKind.Function,
+            r.ParamName, r.Ordinal, r.TypeFormat,
+            r.TypeName is null ? LogicalType.Unsupported : PostgresTypeMapper.Map(r.TypeName, r.TypeKind ?? "b", r.TypeCategory ?? "").Type,
+            r.IsOutput)), includeSchemas);
+    }
+
+    private sealed class RoutineRow
+    {
+        public string RoutineId { get; set; } = "";
+        public string SchemaName { get; set; } = "";
+        public string RoutineName { get; set; } = "";
+        public string Kind { get; set; } = "f";
+        public string? ParamName { get; set; }
+        public int Ordinal { get; set; }
+        public string? TypeName { get; set; }
+        public string? TypeKind { get; set; }
+        public string? TypeCategory { get; set; }
+        public string? TypeFormat { get; set; }
+        public bool IsOutput { get; set; }
+    }
+
     public async Task<DatabaseSchema> ReadAsync(DbConnection connection, IReadOnlyCollection<string>? includeSchemas, CancellationToken ct)
     {
         var tables = await connection.QueryAsync<TableRow>(new CommandDefinition(TablesSql, cancellationToken: ct));

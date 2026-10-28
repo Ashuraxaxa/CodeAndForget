@@ -76,6 +76,39 @@ public sealed class SqlServerSchemaProvider : ISchemaProvider
         ORDER BY s.name, t.name, fk.name, fkc.constraint_column_id
         """;
 
+    // Procedimientos (P-061). Las funciones de SQL Server no se ofrecen: escalares y de tabla se llaman distinto y casi
+    // nunca cambian datos.
+    private const string RoutinesSql = """
+        SELECT CAST(o.object_id AS varchar(20)) AS RoutineId, s.name AS SchemaName, o.name AS RoutineName,
+               p.name AS ParamName, ISNULL(p.parameter_id, 0) AS Ordinal, TYPE_NAME(p.user_type_id) AS TypeName,
+               CAST(p.max_length AS int) AS MaxLength, CAST(ISNULL(p.is_output, 0) AS bit) AS IsOutput
+        FROM sys.procedures o
+        JOIN sys.schemas s ON s.schema_id = o.schema_id
+        LEFT JOIN sys.parameters p ON p.object_id = o.object_id AND p.parameter_id > 0
+        WHERE o.is_ms_shipped = 0
+        ORDER BY s.name, o.name, p.parameter_id
+        """;
+
+    public async Task<IReadOnlyList<RoutineInfo>> ReadRoutinesAsync(DbConnection connection, IReadOnlyCollection<string>? includeSchemas, CancellationToken ct)
+    {
+        var rows = await connection.QueryAsync<RoutineRow>(new CommandDefinition(RoutinesSql, cancellationToken: ct));
+        return RoutineAssembler.Assemble(rows.Select(r => new RawRoutineParameter(
+            r.RoutineId, r.SchemaName, r.RoutineName, RoutineKind.Procedure, r.ParamName?.TrimStart('@'), r.Ordinal, r.TypeName,
+            r.TypeName is null ? LogicalType.Unsupported : SqlServerTypeMapper.Map(r.TypeName, r.MaxLength).Type, r.IsOutput)), includeSchemas);
+    }
+
+    private sealed class RoutineRow
+    {
+        public string RoutineId { get; set; } = "";
+        public string SchemaName { get; set; } = "";
+        public string RoutineName { get; set; } = "";
+        public string? ParamName { get; set; }
+        public int Ordinal { get; set; }
+        public string? TypeName { get; set; }
+        public int? MaxLength { get; set; }
+        public bool IsOutput { get; set; }
+    }
+
     public async Task<DatabaseSchema> ReadAsync(DbConnection connection, IReadOnlyCollection<string>? includeSchemas, CancellationToken ct)
     {
         var tables = await connection.QueryAsync<TableRow>(new CommandDefinition(TablesSql, cancellationToken: ct));

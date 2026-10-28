@@ -73,6 +73,13 @@ public abstract class DatabaseFixture : IAsyncLifetime
     /// <summary>Sentencias para crear un usuario de la base que solo puede leer el esquema de ejemplo (P-073).</summary>
     public abstract IReadOnlyList<string> ReadOnlyUserSql(string user, string password);
 
+    /// <summary>
+    /// Rutina para las acciones (P-061): sube el precio de un producto en un monto y devuelve el precio nuevo.
+    /// Cada motor con su sintaxis; en Postgres es una función (prueba el SELECT * FROM), en los demás un procedimiento.
+    /// </summary>
+    public abstract string CreateActionRoutineSql { get; }
+    public abstract string DropActionRoutineSql { get; }
+
     /// <summary>La cadena de conexión del fixture, con otro usuario.</summary>
     public string WithCredentials(string user, string password)
     {

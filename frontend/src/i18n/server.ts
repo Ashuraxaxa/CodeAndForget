@@ -149,12 +149,23 @@ export const SERVER: [es: string, en: string, ru: string][] = [
   ['exportar', 'export', 'экспортировать'],
   ['importar en', 'import into', 'импортировать в'],
   ['leer', 'read', 'читать'],
+  ['ejecutar acciones en', 'run actions in', 'выполнять действия в'],
   ['debe estar en formato WKT, p. ej. POINT (-70.66 -33.45)', 'must be in WKT format, e.g. POINT (-70.66 -33.45)', 'должно быть в формате WKT, напр. POINT (-70.66 -33.45)'],
   ['\'{name}\' no es una relación de la tabla consigo misma', '\'{name}\' is not a relation of the table to itself', '«{name}» — не связь таблицы с самой собой'],
   ['\'{mode}\' no es válido para \'{name}\'; use selector, tab o none', '\'{mode}\' is not valid for \'{name}\'; use selector, tab or none', '«{mode}» недопустимо для «{name}»; используйте selector, tab или none'],
   ['la relación N:M \'{name}\' no existe', 'the N:M relation \'{name}\' does not exist', 'связь N:M «{name}» не существует'],
   ['image solo se aplica a columnas de archivo', 'image only applies to file columns', 'image применяется только к файловым столбцам'],
+  ['\'{lang}\' no es un código de idioma (p. ej. en o ru)', '\'{lang}\' is not a language code (e.g. en or ru)', '«{lang}» — не код языка (напр. en или ru)'],
+  ['{table} no tiene la acción \'{name}\'.', '{table} has no action \'{name}\'.', 'У {table} нет действия «{name}».'],
+  ['La acción \'{name}\' no se puede ejecutar: {error}.', 'The action \'{name}\' cannot be run: {error}.', 'Действие «{name}» нельзя выполнить: {error}.'],
+  ['La acción usa {column}, una columna que usted no puede ver.', 'The action uses {column}, a column you cannot see.', 'Действие использует {column} — столбец, который вам не виден.'],
+  ['la rutina \'{name}\' no existe o no se puede llamar (sobrecargada o con parámetros de salida)', 'the routine \'{name}\' does not exist or cannot be called (overloaded or with output parameters)', 'подпрограмма «{name}» не существует или не может быть вызвана (перегружена или имеет выходные параметры)'],
+  ['falta indicar de dónde sale el parámetro \'{name}\'', 'you must say where the parameter \'{name}\' comes from', 'не указано, откуда берётся параметр «{name}»'],
+  ['\'{routine}\' no tiene el parámetro \'{name}\'', '\'{routine}\' has no parameter \'{name}\'', 'у «{routine}» нет параметра «{name}»'],
+  ['el nombre usa minúsculas, números, - o _', 'the name uses lowercase letters, digits, - or _', 'имя может содержать строчные буквы, цифры, - или _'],
+  ['la acción \'{name}\' está repetida', 'the action \'{name}\' is repeated', 'действие «{name}» повторяется'],
+  ['la rutina se escribe como esquema.nombre', 'the routine is written as schema.name', 'подпрограмма указывается как схема.имя'],
 ]
 
 /** Fragmentos que van en {verb}: se reconocen por la lista, porque van pegados a otra variable. */
-export const SERVER_VERBS = ['crear registros en', 'editar registros de', 'borrar registros de', 'eliminar registros de', 'exportar', 'importar en', 'leer']
+export const SERVER_VERBS = ['ejecutar acciones en', 'crear registros en', 'editar registros de', 'borrar registros de', 'eliminar registros de', 'exportar', 'importar en', 'leer']

@@ -55,6 +55,7 @@ public sealed record TableInfo
     public Security.DataOperation Access { get; init; } = Security.DataOperation.All;
 
     public bool CanCreate => IsEditable && Access.HasFlag(Security.DataOperation.Create);
+    public bool CanExecute => Actions.Count > 0 && HasPrimaryKey && Access.HasFlag(Security.DataOperation.Execute);
     public bool CanUpdate => IsEditable && Access.HasFlag(Security.DataOperation.Update);
     public bool CanDelete => IsEditable && Access.HasFlag(Security.DataOperation.Delete);
     public bool CanExport => Access.HasFlag(Security.DataOperation.Export);
@@ -66,6 +67,12 @@ public sealed record TableInfo
     // ----- Ajustes (overrides, P-011) -----
 
     public string? Label { get; init; }
+
+    /// <summary>Nombre visible por idioma (P-102). La UI usa el del idioma elegido, si hay.</summary>
+    public IReadOnlyDictionary<string, string>? Labels { get; init; }
+
+    /// <summary>Acciones configuradas (P-061). Se validan contra el catálogo de rutinas al guardar y al ejecutar.</summary>
+    public IReadOnlyList<Overrides.TableAction> Actions { get; init; } = [];
 
     /// <summary>No se muestra en el menú.</summary>
     public bool Hidden { get; init; }

@@ -71,6 +71,47 @@ public sealed class MySqlSchemaProvider : ISchemaProvider
         WHERE CHECK_CLAUSE LIKE 'json_valid(%' AND {Filter("CONSTRAINT_SCHEMA")}
         """;
 
+    // Procedimientos y funciones (P-061). La posición 0 de PARAMETERS es el valor que devuelve una función.
+    private static readonly string RoutinesSql = $"""
+        SELECT CONCAT(r.ROUTINE_TYPE, ':', r.ROUTINE_SCHEMA, '.', r.ROUTINE_NAME) AS RoutineId, r.ROUTINE_SCHEMA AS SchemaName,
+               r.ROUTINE_NAME AS RoutineName, r.ROUTINE_TYPE AS Kind, p.PARAMETER_NAME AS ParamName,
+               CAST(COALESCE(p.ORDINAL_POSITION, 0) AS SIGNED) AS Ordinal, p.DATA_TYPE AS DataType, p.DTD_IDENTIFIER AS ColumnType,
+               p.CHARACTER_MAXIMUM_LENGTH AS MaxLength, p.PARAMETER_MODE AS Mode
+        FROM information_schema.ROUTINES r
+        LEFT JOIN information_schema.PARAMETERS p ON p.SPECIFIC_SCHEMA = r.ROUTINE_SCHEMA AND p.SPECIFIC_NAME = r.ROUTINE_NAME
+             AND p.ROUTINE_TYPE = r.ROUTINE_TYPE AND p.ORDINAL_POSITION > 0
+        WHERE {Filter("r.ROUTINE_SCHEMA")}
+        ORDER BY 2, 3, 6
+        """;
+
+    public async Task<IReadOnlyList<RoutineInfo>> ReadRoutinesAsync(DbConnection connection, IReadOnlyCollection<string>? includeSchemas, CancellationToken ct)
+    {
+        var args = new { all = includeSchemas is { Count: > 0 } ? 1 : 0, schemas = includeSchemas?.ToArray() ?? ["-"] };
+        var rows = await connection.QueryAsync<RoutineRow>(new CommandDefinition(RoutinesSql, args, cancellationToken: ct));
+        // En MySQL un procedimiento y una función pueden llamarse igual: van separados por tipo en RoutineId, pero para
+        // el usuario serían el mismo nombre; RoutineAssembler los descarta como sobrecarga.
+        return RoutineAssembler.Assemble(rows.Select(r => new RawRoutineParameter(
+            r.RoutineId, r.SchemaName, r.RoutineName, r.Kind == "PROCEDURE" ? RoutineKind.Procedure : RoutineKind.Function,
+            r.ParamName, (int)r.Ordinal, r.ColumnType,
+            r.DataType is null ? LogicalType.Unsupported
+                : MySqlTypeMapper.Map(r.DataType, r.ColumnType ?? r.DataType, r.MaxLength is > int.MaxValue ? null : (int?)r.MaxLength),
+            r.Mode is "OUT" or "INOUT")), includeSchemas);
+    }
+
+    private sealed class RoutineRow
+    {
+        public string RoutineId { get; set; } = "";
+        public string SchemaName { get; set; } = "";
+        public string RoutineName { get; set; } = "";
+        public string Kind { get; set; } = "";
+        public string? ParamName { get; set; }
+        public long Ordinal { get; set; }
+        public string? DataType { get; set; }
+        public string? ColumnType { get; set; }
+        public long? MaxLength { get; set; }
+        public string? Mode { get; set; }
+    }
+
     public async Task<DatabaseSchema> ReadAsync(DbConnection connection, IReadOnlyCollection<string>? includeSchemas, CancellationToken ct)
     {
         var args = new { all = includeSchemas is { Count: > 0 } ? 1 : 0, schemas = includeSchemas?.ToArray() ?? ["-"] };

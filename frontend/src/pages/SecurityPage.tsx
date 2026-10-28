@@ -7,8 +7,9 @@ import { useT, type Translate } from '../i18n'
 
 const opLabels = (t: Translate): Record<DataOperation, string> => ({
   view: t('Ver'), create: t('Crear'), update: t('Editar'), delete: t('Borrar'), export: t('Exportar'), import: t('Importar'),
+  execute: t('Ejecutar acciones'),
 })
-const TABLE_OPS: DataOperation[] = ['view', 'create', 'update', 'delete', 'export', 'import']
+const TABLE_OPS: DataOperation[] = ['view', 'create', 'update', 'delete', 'export', 'import', 'execute']
 const COLUMN_OPS: DataOperation[] = ['view', 'update']
 
 const permissionLabels = (t: Translate): Record<string, string> => ({

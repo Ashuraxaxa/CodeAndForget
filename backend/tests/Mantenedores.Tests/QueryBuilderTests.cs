@@ -195,3 +195,21 @@ public class QueryBuilderTests
         return t;
     }
 }
+
+public class KeysetTests
+{
+    [Fact]
+    public void Con_after_y_el_orden_de_la_pk_no_usa_offset_y_filtra_por_clave()
+    {
+        var schema = TestSchema.Build();
+        var producto = schema.FindTable("ventas", "producto")!;
+        var qb = new Mantenedores.Core.Query.QueryBuilder(new Mantenedores.Providers.Postgres.PostgresDialect());
+        var (data, count) = qb.BuildList(schema, producto, new Mantenedores.Core.Query.ListRequest { Page = 50, PageSize = 10, After = "490" });
+        Assert.Contains("WHERE t0.\"id\" > @p0", data.Sql);
+        Assert.Equal(490, data.Parameters["p0"]);
+        Assert.Equal(0L, data.Parameters["p1"]); // OFFSET 0
+        Assert.DoesNotContain("\"id\" >", count.Sql);
+        Assert.Null(Mantenedores.Core.Query.QueryBuilder.KeysetColumn(producto, [new("precio")], "490"));
+        Assert.Null(Mantenedores.Core.Query.QueryBuilder.KeysetColumn(producto, [new("id", Descending: true)], "490"));
+    }
+}

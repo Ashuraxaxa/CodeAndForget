@@ -1,3 +1,4 @@
+import { currentLocale } from '../i18n'
 // Tipos que espejan las respuestas de la API (.NET).
 
 export type Engine = 'SqlServer' | 'Postgres' | 'MySql'
@@ -34,6 +35,8 @@ export interface TableSummary {
   foreignKeys: number
   referencedBy: number
   label: string | null
+  /** Nombre visible por idioma (P-102). */
+  labels?: Record<string, string> | null
   group: string | null
   hidden: boolean
   /** Operaciones que el usuario puede hacer (D-063): view, create, update, delete, export, import. */
@@ -77,7 +80,10 @@ export interface Column {
   elementType: LogicalType | null
   // Ajustes (P-011)
   label: string | null
+  /** Nombre visible por idioma (P-102). */
+  labels?: Record<string, string> | null
   helpText: string | null
+  helpTexts?: Record<string, string> | null
   hidden: boolean
   showInGrid: boolean
   order: number
@@ -115,6 +121,8 @@ export interface TableMeta {
   children: ForeignKey[] | null
   /** Relaciones N:M (P-015): se editan con un selector múltiple en el formulario. */
   manyToMany: ManyToManyLink[]
+  /** Acciones que llaman a un procedimiento (P-061). */
+  actions?: TableAction[]
   /** Es la tabla puente de una relación N:M. */
   isBridge: boolean
   /** FK hacia sí misma (p. ej. jefe_id): habilita la vista de árbol (P-016). */
@@ -123,6 +131,8 @@ export interface TableMeta {
   isEditable: boolean
   /** Lo que el usuario puede hacer según sus perfiles (D-063). La UI solo oculta: el servidor rechaza igual. */
   canCreate: boolean
+  /** Puede ejecutar las acciones (permiso execute). */
+  canExecute?: boolean
   canUpdate: boolean
   canDelete: boolean
   canExport: boolean
@@ -130,6 +140,8 @@ export interface TableMeta {
   hasPrimaryKey: boolean
   // Ajustes (P-011)
   label: string | null
+  /** Nombre visible por idioma (P-102). */
+  labels?: Record<string, string> | null
   group: string | null
   hidden: boolean
   forcedReadOnly: boolean
@@ -138,7 +150,13 @@ export interface TableMeta {
 }
 
 /** Nombre visible: el del ajuste o, si no hay, el de la base. */
-export const labelOf = (x: { name: string; label: string | null }) => x.label ?? x.name
+/** Nombre visible: el del idioma elegido (P-102), el del ajuste o el de la base. */
+export const labelOf = (x: { name: string; label: string | null; labels?: Record<string, string> | null }) =>
+  x.labels?.[currentLocale()] ?? x.label ?? x.name
+
+/** Ayuda bajo el campo, en el idioma elegido si hay. */
+export const helpTextOf = (c: { helpText: string | null; helpTexts?: Record<string, string> | null }) =>
+  c.helpTexts?.[currentLocale()] ?? c.helpText
 
 export type Row = Record<string, unknown>
 
@@ -156,6 +174,8 @@ export interface PagedResult {
 export interface LookupItem {
   value: unknown
   label: string | null
+  /** Nombre visible por idioma (P-102). */
+  labels?: Record<string, string> | null
 }
 
 export const LABEL_SUFFIX = '__label'
@@ -169,6 +189,9 @@ export const VERSION_FIELD = '__version'
 export interface ColumnOverride {
   label?: string
   helpText?: string
+  /** En otros idiomas (P-102), por código: { en: 'Price' }. */
+  labels?: Record<string, string>
+  helpTexts?: Record<string, string>
   hidden?: boolean
   showInGrid?: boolean
   order?: number
@@ -192,6 +215,7 @@ export interface VirtualForeignKey {
 
 export interface TableOverride {
   label?: string
+  labels?: Record<string, string>
   hidden?: boolean
   readOnly?: boolean
   displayColumn?: string
@@ -208,7 +232,26 @@ export interface TableOverride {
   treeParent?: string
   /** Cómo se edita cada relación N:M (P-087), por su nombre. */
   links?: Record<string, LinkDisplay>
+  actions?: TableAction[]
 }
+
+// ----- Acciones con procedimientos (P-061) -----
+
+/** De dónde sale un parámetro: una columna del registro, un valor fijo o lo que escriba el usuario. */
+export interface ActionParameter { column?: string; value?: string; ask?: boolean }
+
+export interface TableAction {
+  name: string
+  label?: string | null
+  labels?: Record<string, string> | null
+  routine: string
+  parameters?: Record<string, ActionParameter>
+  confirm?: string | null
+}
+
+export interface RoutineParameter { name: string; ordinal: number; nativeType: string; type: LogicalType }
+export interface Routine { schema: string; name: string; kind: 'Procedure' | 'Function'; parameters: RoutineParameter[]; fullName: string }
+export interface ActionResult { rows: Row[]; truncated: boolean }
 
 export type NotifyOperation = 'create' | 'update' | 'delete' | 'import' | 'links'
 
@@ -304,13 +347,15 @@ export type ImportMode = 'insert' | 'upsert'
 export interface TreeNode {
   value: unknown
   label: string | null
+  /** Nombre visible por idioma (P-102). */
+  labels?: Record<string, string> | null
   hasChildren: boolean
 }
 
 // ---------- Seguridad (P-040, P-042; D-062, D-063) ----------
 
 /** Operaciones sobre los datos. En las columnas solo cuentan "view" y "update". */
-export type DataOperation = 'view' | 'create' | 'update' | 'delete' | 'export' | 'import'
+export type DataOperation = 'view' | 'create' | 'update' | 'delete' | 'export' | 'import' | 'execute'
 
 export interface ColumnRule { operations: DataOperation[] }
 export interface TableRule { operations: DataOperation[]; columns: Record<string, ColumnRule> }
@@ -345,7 +390,7 @@ export interface SecurityInfo {
 
 // ---------- Auditoría (P-044; D-065, D-068) ----------
 
-export type AuditOperation = 'Create' | 'Update' | 'Delete' | 'Import' | 'Links'
+export type AuditOperation = 'Create' | 'Update' | 'Delete' | 'Import' | 'Links' | 'Action'
 
 export interface AuditEntry {
   id: number

@@ -158,6 +158,22 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
     }
 
     [Fact]
+    public async Task La_pagina_siguiente_por_clave_es_la_misma_que_por_desplazamiento()
+    {
+        // P-098: con el orden de la PK, "after" da la misma página 2 sin OFFSET; con otro orden se ignora.
+        var p1 = await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { Page = 1, PageSize = 2 }, default);
+        var p2 = await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { Page = 2, PageSize = 2 }, default);
+        var last = Convert.ToString(p1.Rows[^1][N("id")], System.Globalization.CultureInfo.InvariantCulture)!;
+        var byKey = await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { Page = 2, PageSize = 2, After = last }, default);
+        Assert.Equal(p2.Rows.Select(r => r[N("id")]), byKey.Rows.Select(r => r[N("id")]));
+        Assert.Equal(p2.Total, byKey.Total);
+
+        var sorted = new ListRequest { Page = 2, PageSize = 2, Sort = [new SortSpec(N("nombre"))] };
+        Assert.Equal((await Db.Crud.ListAsync(Conn, Schema, N("producto"), sorted, default)).Rows.Select(r => r[N("id")]),
+            (await Db.Crud.ListAsync(Conn, Schema, N("producto"), sorted with { After = last }, default)).Rows.Select(r => r[N("id")]));
+    }
+
+    [Fact]
     public async Task Pagina_sin_repetir_filas()
     {
         var p1 = await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { Page = 1, PageSize = 2 }, default);
@@ -361,6 +377,57 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
     }
 
     // ---------- Concurrencia optimista (D-069) ----------
+
+    // ---------- Acciones con procedimientos (P-061) ----------
+
+    [Fact]
+    public async Task Una_accion_llama_a_la_rutina_con_la_columna_y_lo_que_pregunta()
+    {
+        await Db.ScalarAsync(Db.CreateActionRoutineSql);
+        var created = await Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
+            (N("codigo"), UniqueCode()), (N("nombre"), "Acción"), (N("categoria_id"), 1), (N("precio"), 10)), default);
+        var key = Key((N("id"), created[N("id")]!));
+        try
+        {
+            await Db.Schemas.RefreshAsync(Conn, default);
+            var routine = Assert.Single(await Db.Schemas.GetRoutinesAsync(Conn, default), r => r.Name == "subir_precio");
+            Assert.Equal(2, routine.Parameters.Count);
+            var (idParam, montoParam) = (routine.Parameters[0].Name, routine.Parameters[1].Name);
+
+            var action = new Core.Overrides.TableAction
+            {
+                Name = "subir", Label = "Subir precio", Routine = routine.FullName,
+                Parameters = new Dictionary<string, Core.Overrides.ActionParameter>
+                {
+                    [idParam] = new() { Column = N("id") },
+                    [montoParam] = new() { Ask = true }
+                }
+            };
+            Assert.Empty(Core.Overrides.OverrideApplier.ValidateActions([action], await Db.Schemas.GetRoutinesAsync(Conn, default)));
+            var info = await TableAsync("producto");
+            await Db.Overrides.SaveAsync(Conn, info.Schema, info.Name, new Core.Overrides.TableOverride { Actions = [action] }, "prueba", default);
+            Db.Schemas.InvalidateOverrides(Conn);
+
+            var result = await Db.Crud.ExecuteActionAsync(Conn, Schema, N("producto"), "subir", key,
+                new Dictionary<string, JsonElement> { [montoParam] = JsonSerializer.SerializeToElement(5.5) }, default);
+            Assert.Equal(15.5m, Convert.ToDecimal(Assert.Single(result.Rows).Values.First()));
+            Assert.Equal(15.5m, Convert.ToDecimal((await Db.Crud.GetAsync(Conn, Schema, N("producto"), key, default))[N("precio")]));
+            Assert.Contains(Db.Audit.For(Schema, N("producto")), e => e.Operation == Core.Audit.AuditOperation.Action && e.NewValues!.Contains("subir_precio"));
+
+            // Un valor que no calza con el tipo del parámetro se rechaza antes de llamar a la base.
+            var ex = await Assert.ThrowsAsync<ValidationException>(() => Db.Crud.ExecuteActionAsync(Conn, Schema, N("producto"), "subir", key,
+                new Dictionary<string, JsonElement> { [montoParam] = JsonSerializer.SerializeToElement("mucho") }, default));
+            Assert.Contains(montoParam, ex.Errors.Keys);
+            await Assert.ThrowsAsync<NotFoundException>(() => Db.Crud.ExecuteActionAsync(Conn, Schema, N("producto"), "otra", key, null, default));
+        }
+        finally
+        {
+            await Db.Overrides.DeleteAllAsync(Conn, default);
+            await Db.ScalarAsync(Db.DropActionRoutineSql);
+            await Db.Crud.DeleteAsync(Conn, Schema, N("producto"), key, default);
+            await Db.Schemas.RefreshAsync(Conn, default);
+        }
+    }
 
     [Fact]
     public async Task Dos_ediciones_a_la_vez_con_la_misma_version_solo_una_gana()

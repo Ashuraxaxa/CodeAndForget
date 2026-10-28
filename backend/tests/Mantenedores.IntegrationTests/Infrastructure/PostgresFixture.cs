@@ -29,6 +29,12 @@ public class PostgresFixture : DatabaseFixture
 
     public override string AnalyzeSql(string quotedTable) => "ANALYZE " + quotedTable;
 
+    public override string CreateActionRoutineSql => """
+        CREATE FUNCTION ventas.subir_precio(p_id int, p_monto numeric) RETURNS TABLE (precio numeric) LANGUAGE sql AS
+        $$ UPDATE ventas.producto SET precio = producto.precio + p_monto WHERE id = p_id RETURNING producto.precio $$
+        """;
+    public override string DropActionRoutineSql => "DROP FUNCTION ventas.subir_precio(int, numeric)";
+
     protected override string MajorVersionSql => "SELECT current_setting('server_version_num')::int / 10000";
 
     protected override string BuildConnectionString(string host, int port, bool forSeed) =>

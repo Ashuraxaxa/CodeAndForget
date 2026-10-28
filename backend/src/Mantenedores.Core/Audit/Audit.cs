@@ -5,7 +5,7 @@ using Mantenedores.Core.Schema;
 namespace Mantenedores.Core.Audit;
 
 /// <summary>Qué cambió (D-065). Las lecturas no se registran.</summary>
-public enum AuditOperation { Create, Update, Delete, Import, Links }
+public enum AuditOperation { Create, Update, Delete, Import, Links, Action }
 
 /// <summary>
 /// Un cambio en los datos: quién, cuándo, dónde, la clave del registro y los valores antes y después

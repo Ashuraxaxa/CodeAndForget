@@ -11,7 +11,10 @@ public enum DataOperation
     Delete = 8,
     Export = 16,
     Import = 32,
-    All = View | Create | Update | Delete | Export | Import
+
+    /// <summary>Ejecutar las acciones de la tabla (procedimientos almacenados, P-061).</summary>
+    Execute = 64,
+    All = View | Create | Update | Delete | Export | Import | Execute
 }
 
 public static class DataOperations
@@ -23,7 +26,8 @@ public static class DataOperations
         ["update"] = DataOperation.Update,
         ["delete"] = DataOperation.Delete,
         ["export"] = DataOperation.Export,
-        ["import"] = DataOperation.Import
+        ["import"] = DataOperation.Import,
+        ["execute"] = DataOperation.Execute
     };
 
     public static DataOperation Parse(IEnumerable<string>? names) =>

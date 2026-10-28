@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError, isConcurrencyError } from '../api/client'
-import { LABEL_SUFFIX, SIZE_SUFFIX, VERSION_FIELD, labelOf, selectorLinks, type Column, type LookupItem, type Row, type TableMeta } from '../api/types'
+import { LABEL_SUFFIX, SIZE_SUFFIX, VERSION_FIELD, helpTextOf, labelOf, selectorLinks, type Column, type LookupItem, type Row, type TableMeta } from '../api/types'
 import { FieldControl } from '../components/FieldControl'
 import { CompositeForeignKeySelect } from '../components/ForeignKeySelect'
 import { fromInputValue, keyQuery, parseRecordSearch, toInputValue } from '../lib/format'
@@ -11,6 +11,7 @@ import { ManyToManySelect } from '../components/ManyToManySelect'
 import { FileField } from '../components/FileField'
 import { useCan } from '../lib/useMe'
 import { useTableLabels } from '../lib/useTableLabels'
+import { ActionResultCard, RecordActions, type ActionRun } from '../components/RecordActions'
 import { useT } from '../i18n'
 
 /** Formulario de alta y edición generado desde la metadata de la tabla. */
@@ -22,6 +23,8 @@ export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
   const { key, fixed, returnTo } = parseRecordSearch(location.search)
 
   const meta = useQuery({ queryKey: ['meta', conn, schema, table], queryFn: () => api.table(conn, schema, table) })
+  const [reloads, setReloads] = useState(0)
+  const [actionRun, setActionRun] = useState<ActionRun | null>(null)
   const row = useQuery({
     queryKey: ['row', conn, schema, table, key],
     queryFn: () => api.get(conn, schema, table, key),
@@ -44,14 +47,19 @@ export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
   if (error) return <div className="alert">{(error as Error).message}</div>
   const initialLinks = Object.fromEntries(selectorLinks(meta.data!).map((l, i) => [l.name, links[i]?.data ?? []]))
 
+  // Una acción (P-061) puede cambiar el registro: se vuelve a leer y el formulario se rearma con lo actual.
+  const reload = () => { row.refetch().then(() => setReloads(n => n + 1)) }
   return (
-    <RecordForm key={location.search} conn={conn} meta={meta.data!} row={mode === 'edit' ? row.data! : null}
+    <RecordForm key={`${location.search}#${reloads}`} conn={conn} onReload={reload} actionRun={actionRun} setActionRun={setActionRun} meta={meta.data!} row={mode === 'edit' ? row.data! : null}
       recordKey={key} fixed={fixed} returnTo={returnTo} initialLinks={initialLinks} />
   )
 }
 
-function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks }: {
+function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks, onReload, actionRun, setActionRun }: {
   conn: string
+  onReload: () => void
+  actionRun: ActionRun | null
+  setActionRun: (r: ActionRun | null) => void
   meta: TableMeta
   row: Row | null
   recordKey: string
@@ -174,10 +182,13 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
       <div className="page-header">
         <h1>{viewOnly && isEdit ? t('Registro · {table}', { table: labelOf(meta) }) : isEdit ? t('Editar registro · {table}', { table: labelOf(meta) }) : t('Nuevo registro · {table}', { table: labelOf(meta) })}</h1>
         <div className="actions">
+          {isEdit && <RecordActions conn={conn} meta={meta} recordKey={recordKey} onDone={onReload} setResult={setActionRun} />}
           {isEdit && canAudit && <Link to={historyUrl}>{t('Historial')}</Link>}
           <Link to={back}>{returnTo ? '‹ ' + t('Volver') : '‹ ' + t('Volver a la lista')}</Link>
         </div>
       </div>
+
+      <ActionResultCard result={actionRun} onClose={() => setActionRun(null)} />
 
       <form className="card form" onSubmit={submit}>
         <div className="grid-2">
@@ -226,7 +237,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
                     if (l !== undefined) setLabels(s => ({ ...s, [c.name]: l }))
                   }}
                 />
-                {c.helpText && <span className="hint">{c.helpText}</span>}
+                {helpTextOf(c) && <span className="hint">{helpTextOf(c)}</span>}
                 {c.isComputed && <span className="hint">{t('Calculada por la base de datos')}</span>}
                 {errors[c.name] && <span className="field-error">{errors[c.name]}</span>}
               </label>
@@ -243,7 +254,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
                 <FileField conn={conn} schema={meta.schema} table={meta.name} recordKey={isEdit ? recordKey : ''} column={c}
                   size={row?.[c.name + SIZE_SUFFIX]} value={fileValues[c.name]} disabled={viewOnly || c.isReadOnly}
                   onChange={v => setFileValues(s => ({ ...s, [c.name]: v }))} />
-                {c.helpText && <span className="hint">{c.helpText}</span>}
+                {helpTextOf(c) && <span className="hint">{helpTextOf(c)}</span>}
                 {errors[c.name] && <span className="field-error">{errors[c.name]}</span>}
               </div>
             )

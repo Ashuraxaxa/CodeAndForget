@@ -36,6 +36,16 @@ public interface ISqlDialect
     /// </summary>
     string LockRow(string table, string alias, string where) => $"SELECT 1 FROM {table} {alias} WHERE {where} FOR UPDATE";
 
+    /// <summary>
+    /// Llamada a una rutina del catálogo (P-061) con sus parámetros en orden. Por defecto, por posición:
+    /// <c>CALL esquema.proc(@a0, …)</c> o <c>SELECT * FROM esquema.func(…)</c>.
+    /// </summary>
+    string CallRoutine(string routine, RoutineKind kind, IReadOnlyList<(RoutineParameter Parameter, string Placeholder)> args)
+    {
+        var list = string.Join(", ", args.Select(a => a.Placeholder));
+        return kind == RoutineKind.Procedure ? $"CALL {routine}({list})" : $"SELECT * FROM {routine}({list})";
+    }
+
     /// <summary>Expresión para leer una columna (p. ej. CAST a texto de números que no caben en decimal).</summary>
     string SelectExpression(ColumnInfo column, string columnExpr) => columnExpr;
 

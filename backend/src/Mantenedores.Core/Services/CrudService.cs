@@ -225,7 +225,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
     /// Ejecuta una escritura y, si la BD la rechaza por una restricción, la traduce a un mensaje
     /// entendible (P-003). Los errores que no se reconocen se propagan tal cual.
     /// </summary>
-    private static async Task<T> Translated<T>(ConnectionContext ctx, TableInfo table, DbOperation op, Func<Task<T>> action)
+    private async Task<T> Translated<T>(ConnectionContext ctx, TableInfo table, DbOperation op, Func<Task<T>> action)
     {
         try
         {
@@ -233,6 +233,10 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         }
         catch (DbException ex) when (DbErrorTranslator.Translate(ctx.Provider.ClassifyError(ex), table, op) is { } friendly)
         {
+            // Una tabla o columna que ya no existe (P-086): se descarta el esquema en memoria, aquí y en las demás
+            // instancias, para que el próximo intento use el actual y aparezca el aviso de cambios.
+            if (friendly is SchemaChangedException)
+                await schemas.SchemaChangedAsync(ctx.Definition.Id, CancellationToken.None);
             throw friendly;
         }
     }

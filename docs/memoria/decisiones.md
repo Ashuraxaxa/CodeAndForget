@@ -687,6 +687,33 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **i18next / react-intl:** agregan dependencias y un formato de mensajes propio para unas 300 frases; con `Intl` del navegador alcanza.
   - **Claves abstractas** (`table.save`): obligan a mirar otro archivo para saber qué dice la pantalla, y el español ya es el idioma base del proyecto.
 
+### D-077 · Avisos de cambios entre instancias, sin Redis
+- **Estado:** Vigente · 2026-10-28 (P-082, P-092)
+- **Qué:**
+  - Tabla `mnt_change_stamp` (migración 006): un contador por ámbito, `overrides:<conexión>`, `schema:<conexión>` y `security`.
+  - Quien guarda o borra un ajuste, pulsa ↻, edita o borra una conexión, o cambia un perfil o un usuario, sube el contador (`ChangeStamps.PublishAsync`).
+  - Cada instancia revisa todos los contadores cada `Metadata:SyncSeconds` (5 s) con una sola consulta y descarta de su memoria lo que otra cambió. Lo propio no vuelve como aviso.
+  - Si subir el contador falla, el cambio ya está guardado: se registra en el log y las demás lo ven al refrescar o al vencer sus cachés (perfiles: 30 s).
+  - Usuarios propios: `IsActiveAsync` guarda la respuesta 10 s; al crear, editar o borrar un usuario se limpia aquí y, por el aviso `security`, en las demás.
+  - Con metadata en archivo (`File`, una sola instancia) no hay contadores y nada cambia.
+- **Descartado:**
+  - **Redis o caché compartida** (P-050): una dependencia más para algo que la base de metadata ya resuelve con una consulta cada 5 s.
+  - **TTL corto del esquema combinado:** obliga a recombinar todo cada pocos segundos aunque nada cambie, y sigue mostrando lo viejo hasta que vence.
+  - **LISTEN/NOTIFY o Service Broker:** distinto en cada motor y no existe en SQLite.
+
+### D-078 · Cambios de esquema detectados solos
+- **Estado:** Vigente · 2026-10-28 (P-086)
+- **Qué:**
+  - Cada `Schema:RefreshMinutes` (60) se vuelve a leer el catálogo de las conexiones que están en memoria. Si la foto (tablas, columnas, tipos, claves) es igual, no se toca nada; si cambió, se reemplaza el esquema y aparece el aviso de cambios.
+  - Error de "tabla o columna inexistente" (`DbErrorKind.SchemaMismatch`): PostgreSQL 42703/42P01, SQL Server 207/208, MySQL/MariaDB 1054/1146. Se descarta el esquema en memoria (aquí y en las demás instancias) y se responde 409 `mantenedores:esquema`; la UI vuelve a pedir la definición.
+  - Los códigos se leen en cada proveedor; Core solo conoce el tipo de error (D-031).
+- **Descartado:** releer el catálogo en cada solicitud o con un TTL corto: es la consulta más cara de la app y los cambios de esquema son raros.
+
+### D-079 · Health check del contenedor con la propia app
+- **Estado:** Vigente · 2026-10-28 (P-074)
+- **Qué:** `dotnet Mantenedores.Api.dll healthcheck [url]` consulta `/api/health/ready` (de `ASPNETCORE_URLS` y `Hosting__PathBase`) y sale con 0 o 1. El `Dockerfile` lo usa como `HEALTHCHECK`.
+- **Descartado:** instalar `curl` en la imagen: suma un paquete y superficie de ataque solo para esto.
+
 ---
 
 ## Propuestas (aún no decididas)

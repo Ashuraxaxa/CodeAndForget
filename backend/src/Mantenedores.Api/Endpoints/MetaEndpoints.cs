@@ -73,7 +73,7 @@ public static class MetaEndpoints
 
             await RemoveVariantsAsync(schemas, conn, info, ct);
             await schemas.Overrides.SaveAsync(conn, info.Schema, info.Name, body, user.Identity?.Name, ct);
-            schemas.InvalidateOverrides(conn);
+            await schemas.OverridesChangedAsync(conn, ct);
             return (await schemas.GetTableAsync(conn, info.Schema, info.Name, ct)).Table;
         }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
 
@@ -100,7 +100,7 @@ public static class MetaEndpoints
         {
             var info = await RawTableAsync(schemas, conn, schema, table, ct);
             var removed = await RemoveVariantsAsync(schemas, conn, info, ct);
-            schemas.InvalidateOverrides(conn);
+            await schemas.OverridesChangedAsync(conn, ct);
             return removed ? Results.NoContent() : Results.NotFound();
         }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
     }

@@ -23,12 +23,15 @@ public sealed record SchemaDiffResult(
 /// <summary>
 /// Lee el esquema de cada conexión, le aplica los ajustes (P-011) y guarda ambos en memoria:
 /// el leído del catálogo (caro: va a la base) y el combinado (barato: se rehace al cambiar un ajuste,
-/// sin volver a leer la base). En Fase 4 esta caché pasa a Redis para compartirla entre instancias.
+/// sin volver a leer la base). Con varias instancias, cada una tiene su caché y se avisan los cambios con
+/// <see cref="ChangeStamps"/> (D-077).
 /// </summary>
 public sealed class SchemaService(
     IConnectionStore store, ProviderRegistry providers, IOverrideStore? overrides = null, ISchemaSnapshotStore? snapshots = null,
-    SecretResolver? secrets = null, IAccessContext? access = null, PoolOptions? pool = null)
+    SecretResolver? secrets = null, IAccessContext? access = null, PoolOptions? pool = null, ChangeStamps? stamps = null)
 {
+    private readonly ChangeStamps _stamps = stamps ?? new ChangeStamps();
+
     private readonly SecretResolver _secrets = secrets ?? new SecretResolver();
     private readonly PoolOptions _pool = pool ?? new PoolOptions();
     private readonly IAccessContext _access = access ?? new UnrestrictedAccess();
@@ -161,18 +164,64 @@ public sealed class SchemaService(
 
     public async Task<DatabaseSchema> RefreshAsync(string connectionId, CancellationToken ct)
     {
-        Invalidate(connectionId);
+        await SchemaChangedAsync(connectionId, ct);
         return (await GetContextAsync(connectionId, ct)).Schema;
     }
 
+    /// <summary>Solo en esta instancia. Para avisar a las demás, <see cref="SchemaChangedAsync"/>.</summary>
     public void Invalidate(string connectionId)
     {
         _raw.TryRemove(connectionId, out _);
         _applied.TryRemove(connectionId, out _);
     }
 
-    /// <summary>Tras guardar o borrar un ajuste: se rehace el combinado sin volver a leer la base.</summary>
+    /// <summary>Solo en esta instancia: se rehace el combinado sin volver a leer la base.</summary>
     public void InvalidateOverrides(string connectionId) => _applied.TryRemove(connectionId, out _);
+
+    /// <summary>La conexión o su esquema cambió: se vuelve a leer aquí y en las demás instancias.</summary>
+    public async Task SchemaChangedAsync(string connectionId, CancellationToken ct)
+    {
+        Invalidate(connectionId);
+        await _stamps.PublishAsync(ChangeStamps.Schema(connectionId), ct);
+    }
+
+    /// <summary>Tras guardar o borrar un ajuste: se rehace el combinado aquí y en las demás instancias.</summary>
+    public async Task OverridesChangedAsync(string connectionId, CancellationToken ct)
+    {
+        InvalidateOverrides(connectionId);
+        await _stamps.PublishAsync(ChangeStamps.Overrides(connectionId), ct);
+    }
+
+    /// <summary>Conexiones cuyo esquema ya está en memoria (las que alguien abrió).</summary>
+    public IReadOnlyList<string> LoadedConnections =>
+        _raw.Where(kv => kv.Value.IsValueCreated && kv.Value.Value.IsCompletedSuccessfully).Select(kv => kv.Key).ToList();
+
+    /// <summary>
+    /// Relectura periódica (P-086): vuelve a leer el catálogo y, solo si algo cambió (tablas, columnas, tipos, claves),
+    /// reemplaza el esquema en memoria. Así el aviso de cambios aparece sin que nadie pulse ↻.
+    /// Devuelve los cambios encontrados (vacío si no hubo o si la conexión no estaba en memoria).
+    /// </summary>
+    public async Task<IReadOnlyList<SchemaChange>> ReloadIfChangedAsync(string connectionId, CancellationToken ct)
+    {
+        if (!_raw.TryGetValue(connectionId, out var lazy) || !lazy.IsValueCreated || !lazy.Value.IsCompletedSuccessfully) return [];
+        var before = await lazy.Value;
+        var (def, provider) = await DefinitionAsync(connectionId, ct);
+        var fresh = await ReadAsync(def, provider, ct);
+        var changes = SchemaDiff.Compare(SchemaSnapshot.From(before), SchemaSnapshot.From(fresh));
+        if (changes.Count == 0) return [];
+        _raw[connectionId] = new Lazy<Task<DatabaseSchema>>(Task.FromResult(fresh));
+        _applied.TryRemove(connectionId, out _);
+        await _stamps.PublishAsync(ChangeStamps.Schema(connectionId), ct);
+        return changes;
+    }
+
+    /// <summary>Aviso de otra instancia (ver <see cref="ChangeStamps"/>). Devuelve si el ámbito era de esquema o ajustes.</summary>
+    public bool ApplyRemoteChange(string scope)
+    {
+        if (scope.StartsWith("schema:", StringComparison.Ordinal)) { Invalidate(scope["schema:".Length..]); return true; }
+        if (scope.StartsWith("overrides:", StringComparison.Ordinal)) { InvalidateOverrides(scope["overrides:".Length..]); return true; }
+        return false;
+    }
 
     /// <summary>
     /// Prueba una conexión sin guardarla: abre, verifica la versión y lee el catálogo.

@@ -19,4 +19,7 @@ ENV ASPNETCORE_URLS=http://+:8080 \
     Storage__DataDirectory=/app/data
 VOLUME /app/data
 EXPOSE 8080
+# La imagen no trae curl: la propia app consulta /api/health/ready (P-074).
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD ["dotnet", "Mantenedores.Api.dll", "healthcheck"]
 ENTRYPOINT ["dotnet", "Mantenedores.Api.dll"]

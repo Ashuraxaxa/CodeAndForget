@@ -94,6 +94,7 @@ public sealed partial class MySqlProvider : IDatabaseProvider
             // 1048: Column 'x' cannot be null; 1364: Field 'x' doesn't have a default value.
             1048 or 1364 => new(DbErrorKind.NotNull, Column: FirstQuoted(msg)),
             1142 or 1143 => new(DbErrorKind.PermissionDenied), // comando o columna denegados al usuario
+            1054 or 1146 => new(DbErrorKind.SchemaMismatch),   // columna o tabla inexistente
             _ => DbErrorInfo.Unknown
         };
     }

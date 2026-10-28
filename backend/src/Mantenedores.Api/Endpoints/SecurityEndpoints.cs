@@ -46,14 +46,14 @@ public static partial class SecurityEndpoints
         {
             var profile = Normalize(id, body);
             await security.Store.SaveProfileAsync(profile, user.Identity?.Name, ct);
-            security.Invalidate();
+            await security.ChangedAsync(ct);
             return Results.Ok(profile);
         });
 
         group.MapDelete("/profiles/{id}", async (string id, SecurityService security, CancellationToken ct) =>
         {
             var removed = await security.Store.DeleteProfileAsync(id, ct);
-            security.Invalidate();
+            await security.ChangedAsync(ct);
             return removed ? Results.NoContent() : Results.NotFound();
         });
 
@@ -64,7 +64,7 @@ public static partial class SecurityEndpoints
                 .ToList());
 
         group.MapPut("/users/{username}", async (string username, UserRequest body, ISecurityStore store, TokenService tokens,
-            IOptions<AuthOptions> auth, CancellationToken ct) =>
+            SecurityService security, IOptions<AuthOptions> auth, CancellationToken ct) =>
         {
             if (auth.Value.Mode != AuthMode.Local)
                 throw new OperationNotAllowedException("Los usuarios propios solo inician sesión en modo Local; en modo Jwt asocie a los perfiles los usuarios o roles del proveedor.");
@@ -94,11 +94,19 @@ public static partial class SecurityEndpoints
                 Active = body.Active ?? existing?.Active ?? true
             };
             await store.SaveUserAsync(user, ct);
+            tokens.InvalidateUsers();
+            await security.ChangedAsync(ct);
             return Results.Ok(new UserResponse(user.Username, user.DisplayName, user.Active, "local"));
         });
 
-        group.MapDelete("/users/{username}", async (string username, ISecurityStore store, CancellationToken ct) =>
-            await store.DeleteUserAsync(username, ct) ? Results.NoContent() : Results.NotFound());
+        group.MapDelete("/users/{username}", async (string username, ISecurityStore store, TokenService tokens,
+            SecurityService security, CancellationToken ct) =>
+        {
+            var removed = await store.DeleteUserAsync(username, ct);
+            tokens.InvalidateUsers();
+            await security.ChangedAsync(ct);
+            return removed ? Results.NoContent() : Results.NotFound();
+        });
     }
 
     /// <summary>Valida y limpia un perfil: id, nombres de permisos y operaciones, y claves de conexión y tabla.</summary>

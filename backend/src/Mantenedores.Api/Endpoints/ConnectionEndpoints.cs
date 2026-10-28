@@ -45,17 +45,17 @@ public static partial class ConnectionEndpoints
         {
             var def = await BuildDefinitionAsync(id, req, store, ct);
             await store.SaveAsync(def, ct);
-            schemas.Invalidate(def.Id);
+            await schemas.SchemaChangedAsync(def.Id, ct);
             return Results.Ok(ToResponse(def));
         }).RequireAuthorization(ManageConnectionsPolicy);
 
         group.MapDelete("/{id}", async (string id, IConnectionStore store, SchemaService schemas, CancellationToken ct) =>
         {
-            schemas.Invalidate(id);
             if (!await store.DeleteAsync(id, ct)) return Results.NotFound();
             // Sus ajustes se van con ella: una conexión nueva con el mismo id no los hereda.
             await schemas.Overrides.DeleteAllAsync(id, ct);
             await schemas.Snapshots.DeleteAsync(id, ct);
+            await schemas.SchemaChangedAsync(id, ct);
             return Results.NoContent();
         }).RequireAuthorization(ManageConnectionsPolicy);
 

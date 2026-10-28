@@ -789,6 +789,39 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
             await Db.Snapshots.DeleteAsync(Conn, default);
         }
     }
+    [Fact]
+    public async Task Detecta_solo_un_cambio_de_esquema_sin_pulsar_refrescar()
+    {
+        var d = Db.Provider.Dialect;
+        var name = N("auto_prueba");
+        var table = $"{d.Quote(Schema)}.{d.Quote(name)}";
+        string Q(string c) => d.Quote(N(c));
+        await Db.ScalarAsync($"CREATE TABLE {table} ({Q("id")} INT NOT NULL PRIMARY KEY, {Q("vieja")} INT)");
+        try
+        {
+            await Db.Schemas.RefreshAsync(Conn, default);
+            await Db.Crud.ListAsync(Conn, Schema, name, new ListRequest(), default);
+
+            // Relectura periódica (P-086): sin cambios no reemplaza nada; con una columna nueva, sí.
+            Assert.Empty(await Db.Schemas.ReloadIfChangedAsync(Conn, default));
+            await Db.ScalarAsync($"ALTER TABLE {table} ADD {Q("nueva")} INT");
+            var changes = await Db.Schemas.ReloadIfChangedAsync(Conn, default);
+            Assert.Contains(changes, c => c.Kind == SchemaChangeKind.ColumnAdded && string.Equals(c.Column, N("nueva"), StringComparison.OrdinalIgnoreCase));
+            Assert.Contains((await TableAsync("auto_prueba")).Columns, c => string.Equals(c.Name, N("nueva"), StringComparison.OrdinalIgnoreCase));
+
+            // Una columna borrada con el esquema viejo en memoria: mensaje claro, y el siguiente intento ya funciona.
+            await Db.ScalarAsync($"ALTER TABLE {table} DROP COLUMN {Q("vieja")}");
+            var ex = await Assert.ThrowsAsync<SchemaChangedException>(() => Db.Crud.ListAsync(Conn, Schema, name, new ListRequest(), default));
+            Assert.Contains("cambió", ex.Message);
+            Assert.Empty((await Db.Crud.ListAsync(Conn, Schema, name, new ListRequest(), default)).Rows);
+        }
+        finally
+        {
+            await Db.ScalarAsync($"DROP TABLE {table}");
+            await Db.Schemas.RefreshAsync(Conn, default);
+        }
+    }
+
     // ---------- Maestro-detalle (P-014) ----------
 
     [Fact]

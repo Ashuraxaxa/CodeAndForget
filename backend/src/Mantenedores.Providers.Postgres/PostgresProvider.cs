@@ -51,6 +51,7 @@ public sealed class PostgresProvider : IDatabaseProvider
             PostgresErrorCodes.CheckViolation => new(DbErrorKind.Check, pg.ConstraintName),
             PostgresErrorCodes.NotNullViolation => new(DbErrorKind.NotNull, Column: pg.ColumnName),
             PostgresErrorCodes.InsufficientPrivilege => new(DbErrorKind.PermissionDenied),
+            PostgresErrorCodes.UndefinedColumn or PostgresErrorCodes.UndefinedTable => new(DbErrorKind.SchemaMismatch),
             _ => DbErrorInfo.Unknown
         };
 }

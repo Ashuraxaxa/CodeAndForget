@@ -27,8 +27,8 @@ Detalle técnico en [../motores.md](../motores.md).
 |---|---|---|---|
 | P-078 | Prueba en vivo con Duende IdentityServer (requiere un host .NET de prueba con Duende; la config está documentada) | 🟡 | ⏳ |
 | P-079 | Renovación silenciosa sin refresh token (iframe `silent_redirect_uri`); hoy, sin refresh token, al vencer se vuelve a iniciar sesión | ⚪ | ⏳ |
-| P-082 | Ajustes con varias instancias: un ajuste guardado en una instancia solo se ve en las otras al refrescar o reiniciar (caché en memoria). Opciones: TTL corto del esquema combinado o caché compartida (P-050) | 🟡 | ⏳ |
-| P-086 | Detectar cambios de esquema sin que nadie pulse ↻ (p. ej. relectura periódica configurable o al fallar una consulta por columna inexistente) | ⚪ | ⏳ |
+| P-082 | Ajustes con varias instancias: lo que cambia una instancia (ajustes, ↻, perfiles, usuarios) lo ven las demás en segundos (D-077) | 🟡 | ✅ PR #31 |
+| P-086 | Detectar cambios de esquema sin que nadie pulse ↻: relectura periódica y al fallar por tabla o columna inexistente (D-078) | ⚪ | ✅ PR #31 |
 | P-087 | N:M: ajuste para desactivar el selector de un puente o mostrarlo como pestaña; puentes con columnas extra (p. ej. `cantidad`) como hijas con su propio formulario | ⚪ | ⏳ |
 | P-088 | Importar actualizando por clave (upsert) además de insertar (D-075) | 🟡 | ✅ PR #29 |
 | P-100 | Interfaz en español, inglés y ruso, con selector y formato de fechas y números por idioma (D-076) | 🟡 | ✅ PR #30 |
@@ -49,7 +49,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-044 | Auditoría de cambios (quién, cuándo, valor anterior y nuevo), 1 año configurable, con vista en la UI (D-065, D-068) | 🟡 | ✅ PR #22 |
 | P-046 | Concurrencia optimista: no pisar un registro que otro cambió (D-069) | 🟡 | ✅ PR #23 |
 | P-091 | Login: limitar intentos por IP (D-070) | 🟡 | ✅ PR #24 |
-| P-092 | Usuarios propios: cachear unos segundos si siguen activos (hoy se consulta la metadata en cada solicitud del modo Local) | ⚪ | ⏳ |
+| P-092 | Usuarios propios: si siguen activos se guarda 10 s; desactivar corta la sesión al instante (D-077) | ⚪ | ✅ PR #31 |
 | P-093 | Seguridad: elegir tablas y columnas de una lista también con la regla `*` (hoy se escriben a mano) y copiar un perfil | ⚪ | ⏳ |
 | P-094 | Auditoría: mostrar etiquetas (no solo ids) en FK y vínculos N:M, y exportarla a CSV o Excel | ⚪ | ⏳ |
 | P-095 | Auditoría: con `ViewAudit` restringido por perfil, mostrar solo las conexiones y tablas que el usuario ve | ⚪ | ⏳ |
@@ -90,7 +90,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-034 | La búsqueda usa `CAST(... AS nvarchar(max))` / `CAST(... AS text)`, que no aprovecha índices; revisar en tablas grandes | ⚪ | ⏳ (con P-052) |
 | P-035 | `COUNT(*)` en cada página puede ser lento en tablas enormes | ⚪ | ✅ PR #26 (total estimado y con tope, D-072) |
 | P-073 | Errores de permisos de la base traducidos (PG `42501`, SQL Server `229`/`230`, MySQL `1142`/`1143`) (D-074) | ⚪ | ✅ PR #28 |
-| P-074 | Health check del contenedor sin `curl`/`wget` en la imagen (p. ej. subcomando `healthcheck` de la propia app) | ⚪ | ⏳ |
+| P-074 | Health check del contenedor sin `curl`: subcomando `healthcheck` de la app y `HEALTHCHECK` en el Dockerfile | ⚪ | ✅ PR #31 |
 | P-075 | Revisar otros tipos definidos por el usuario en PG (compuestos, rangos) frente a la caché de tipos de Npgsql (D-041); hoy se marcan `Unsupported` | ⚪ | ⏳ |
 
 ---

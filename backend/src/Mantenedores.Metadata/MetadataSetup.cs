@@ -4,6 +4,7 @@ using Mantenedores.Core.Connections;
 using Mantenedores.Core.Overrides;
 using Mantenedores.Core.Schema;
 using Mantenedores.Core.Security;
+using Mantenedores.Core.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Configuration;
@@ -51,6 +52,8 @@ public static class MetadataSetup
         services.AddSingleton<ISchemaSnapshotStore, SqlSnapshotStore>();
         services.AddSingleton<ISecurityStore, SqlSecurityStore>();
         services.AddSingleton<IAuditStore, SqlAuditStore>();
+        // Con metadata compartida, las instancias se avisan los cambios de ajustes, esquema y seguridad (D-077).
+        services.AddSingleton<IChangeStampStore, SqlChangeStampStore>();
 
         if (protection.KeyStore == KeyStore.Database)
             services.AddOptions<KeyManagementOptions>()

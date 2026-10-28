@@ -70,6 +70,19 @@ public abstract class DatabaseFixture : IAsyncLifetime
     /// <summary>Traduce un nombre lógico (snake_case, como en la base de Postgres) al nombre real del motor.</summary>
     public virtual string Name(string logical) => logical;
 
+    /// <summary>Sentencias para crear un usuario de la base que solo puede leer el esquema de ejemplo (P-073).</summary>
+    public abstract IReadOnlyList<string> ReadOnlyUserSql(string user, string password);
+
+    /// <summary>La cadena de conexión del fixture, con otro usuario.</summary>
+    public string WithCredentials(string user, string password)
+    {
+        var b = new System.Data.Common.DbConnectionStringBuilder { ConnectionString = ConnectionString };
+        var userKey = new[] { "Username", "User Id", "User ID", "UserID", "Uid" }.First(b.ContainsKey);
+        b[userKey] = user;
+        b["Password"] = password;
+        return b.ConnectionString;
+    }
+
     /// <summary>Actualiza las estadísticas de una tabla (ya delimitada), para probar el total estimado (D-072).</summary>
     public abstract string AnalyzeSql(string quotedTable);
 

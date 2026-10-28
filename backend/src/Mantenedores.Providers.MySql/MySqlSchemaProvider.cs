@@ -34,17 +34,20 @@ public sealed class MySqlSchemaProvider : ISchemaProvider
         ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION
         """;
 
+    // Solo KEY_COLUMN_USAGE (P-073): MariaDB no muestra TABLE_CONSTRAINTS a un usuario con solo SELECT, y esta vista
+    // ya trae lo necesario. En MySQL y MariaDB la PK se llama siempre PRIMARY, una FK tiene tabla referenciada y lo
+    // demás son UNIQUE (los índices comunes no aparecen aquí).
     private static readonly string KeysSql = $"""
-        SELECT tc.CONSTRAINT_NAME AS ConstraintName, tc.CONSTRAINT_TYPE AS ConstraintType,
+        SELECT k.CONSTRAINT_NAME AS ConstraintName,
+               CASE WHEN k.CONSTRAINT_NAME = 'PRIMARY' THEN 'PRIMARY KEY'
+                    WHEN k.REFERENCED_TABLE_NAME IS NOT NULL THEN 'FOREIGN KEY'
+                    ELSE 'UNIQUE' END AS ConstraintType,
                k.TABLE_SCHEMA AS SchemaName, k.TABLE_NAME AS TableName, k.COLUMN_NAME AS ColumnName,
                CAST(k.ORDINAL_POSITION AS SIGNED) AS Position,
                k.REFERENCED_TABLE_SCHEMA AS RefSchema, k.REFERENCED_TABLE_NAME AS RefTable, k.REFERENCED_COLUMN_NAME AS RefColumn
-        FROM information_schema.TABLE_CONSTRAINTS tc
-        JOIN information_schema.KEY_COLUMN_USAGE k
-          ON k.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA AND k.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
-         AND k.TABLE_SCHEMA = tc.TABLE_SCHEMA AND k.TABLE_NAME = tc.TABLE_NAME
-        WHERE tc.CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE', 'FOREIGN KEY') AND {Filter("tc.TABLE_SCHEMA")}
-        ORDER BY k.TABLE_SCHEMA, k.TABLE_NAME, tc.CONSTRAINT_NAME, k.ORDINAL_POSITION
+        FROM information_schema.KEY_COLUMN_USAGE k
+        WHERE {Filter("k.TABLE_SCHEMA")}
+        ORDER BY k.TABLE_SCHEMA, k.TABLE_NAME, k.CONSTRAINT_NAME, k.ORDINAL_POSITION
         """;
 
     // MariaDB guarda JSON como LONGTEXT con un CHECK json_valid(`columna`): así se detecta.

@@ -4,6 +4,15 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Tanda 1 de mejoras, parte A (P-032, P-033, P-073, P-084)
+- El dueño fusionó los PR #23 a #27.
+- Filtro de una FK por el texto que se muestra o por el id.
+- Errores de permisos de la base traducidos en los cuatro motores, también al leer.
+- Fechas día/mes/año fijas y nombres visibles de las tablas en las relaciones.
+- La prueba con un usuario de base de solo lectura destapó que **MariaDB oculta `TABLE_CONSTRAINTS`** a ese usuario: la app no veía las PK y dejaba las tablas de solo lectura. Las claves se leen ahora de `KEY_COLUMN_USAGE`.
+- 197 unitarias y 231 de integración en verde (mínimas y actuales).
+- **Siguiente:** parte B, importar con actualización (P-088) y FK compuestas (P-030).
+
 ## 2026-10-28 · Fase 5: avisos por correo (Q-005 → D-073)
 - El dueño respondió que no habrá lógica propia al guardar (P-060 descartado), y que sí quiere correos, apagados por defecto y habilitables por tabla.
 - Ajuste `notify` por tabla (destinatarios, operaciones, valores) y envío SMTP en segundo plano, a partir de las mismas entradas de la auditoría.

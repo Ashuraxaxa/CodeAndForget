@@ -34,7 +34,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-089 | Árbol: elegir la FK cuando hay más de una autorreferencia (hoy se usa la primera) y mover nodos arrastrando | ⚪ | ⏳ |
 | P-090 | Archivos: vista previa de imágenes en la grilla y en el formulario; editar `geography`/`geometry` como WKT | ⚪ | ⏳ |
 | P-085 | Editor: FK virtuales compuestas desde la UI (hoy solo por la API) y arrastrar para ordenar columnas (hoy, botones ↑ ↓) | ⚪ | ⏳ |
-| P-084 | UI: usar la etiqueta de la tabla referenciada (no su nombre) en "→ categoria" y en "Referenciada por" | ⚪ | ⏳ |
+| P-084 | UI: nombre visible de la tabla referenciada en "→ tabla", "Referenciada por", N:M y combos (D-074) | ⚪ | ✅ PR #28 |
 
 ## 2. Fase 3: seguridad
 
@@ -82,11 +82,11 @@ Detalle técnico en [../motores.md](../motores.md).
 |---|---|---|---|
 | P-030 | Etiquetas de FK y `/lookup` solo funcionan con FK y PK de una columna; extender a compuestas (el filtro de hijas por FK compuesta ya funciona, PR #15) | 🟡 | ⏳ |
 | P-031 | No se detectan índices únicos que no son restricciones (`sys.indexes.is_unique`, `pg_index.indisunique`) | ⚪ | ⏳ |
-| P-032 | El filtro de una columna FK en la grilla pide el id, no permite buscar por la etiqueta | 🟡 | ⏳ |
-| P-033 | Las fechas se muestran con el formato del navegador (en inglés si el navegador está en inglés); fijar `es` | ⚪ | ⏳ |
+| P-032 | El filtro de una columna FK acepta el id o el texto que se muestra (D-074) | 🟡 | ✅ PR #28 |
+| P-033 | Fechas en formato día/mes/año fijo, sin depender del idioma del navegador (D-074) | ⚪ | ✅ PR #28 |
 | P-034 | La búsqueda usa `CAST(... AS nvarchar(max))` / `CAST(... AS text)`, que no aprovecha índices; revisar en tablas grandes | ⚪ | ⏳ (con P-052) |
-| P-035 | `COUNT(*)` en cada página puede ser lento en tablas enormes | ⚪ | ⏳ (con P-052) |
-| P-073 | Traducir también errores de permisos (PG `42501`, SQL Server `229`/`230`) a "el usuario de la base no tiene permiso para …" | ⚪ | ⏳ |
+| P-035 | `COUNT(*)` en cada página puede ser lento en tablas enormes | ⚪ | ✅ PR #26 (total estimado y con tope, D-072) |
+| P-073 | Errores de permisos de la base traducidos (PG `42501`, SQL Server `229`/`230`, MySQL `1142`/`1143`) (D-074) | ⚪ | ✅ PR #28 |
 | P-074 | Health check del contenedor sin `curl`/`wget` en la imagen (p. ej. subcomando `healthcheck` de la propia app) | ⚪ | ⏳ |
 | P-075 | Revisar otros tipos definidos por el usuario en PG (compuestos, rangos) frente a la caché de tipos de Npgsql (D-041); hoy se marcan `Unsupported` | ⚪ | ⏳ |
 

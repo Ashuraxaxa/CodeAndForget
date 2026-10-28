@@ -96,7 +96,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         try
         {
             await using var db = await OpenAsync(ctx, ct);
-            var rows = (await db.QueryAsync(Command(data, ct))).Cast<object>()
+            var rows = (await Translated(ctx, info, DbOperation.Read, () => db.QueryAsync(Command(data, ct)))).Cast<object>()
                 .Select(r => RowVersion.Stamp(info, Normalize(info, Rename(ToRow(r), data.Renames)))).ToList();
 
             var pageSize = Math.Clamp(request.PageSize, 1, ListRequest.MaxPageSize);
@@ -110,7 +110,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
             if (QueryBuilder.IsUnfiltered(request)) return new PagedResult(rows, estimate!.Value, page, pageSize, TotalIsEstimate: true);
             if (options.FilteredCountCap <= 0)
                 return new PagedResult(rows, await db.ExecuteScalarAsync<long>(Command(count, ct)), page, pageSize);
-            var found = await db.ExecuteScalarAsync<long>(Command(qb.BuildCappedCount(info, request, options.FilteredCountCap), ct));
+            var found = await db.ExecuteScalarAsync<long>(Command(qb.BuildCappedCount(ctx.Schema, info, request, options.FilteredCountCap), ct));
             return found > options.FilteredCountCap
                 ? new PagedResult(rows, options.FilteredCountCap, page, pageSize, TotalIsCapped: true)
                 : new PagedResult(rows, found, page, pageSize);
@@ -441,7 +441,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
     {
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildGetByKey(ctx.Schema, info, key);
         await using var db = await OpenAsync(ctx, ct);
-        var row = await db.QuerySingleOrDefaultAsync(Command(query, ct));
+        var row = await Translated(ctx, info, DbOperation.Read, () => db.QuerySingleOrDefaultAsync(Command(query, ct)));
         return row is null
             ? throw new NotFoundException("El registro no existe.")
             : RowVersion.Stamp(info, Normalize(info, Rename(ToRow(row), query.Renames)));

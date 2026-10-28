@@ -19,6 +19,9 @@ public abstract class MySqlFamilyFixture : DatabaseFixture
         ["MARIADB_ROOT_PASSWORD"] = Password
     };
 
+    public override IReadOnlyList<string> ReadOnlyUserSql(string user, string password) =>
+        [$"CREATE USER '{user}'@'%' IDENTIFIED BY '{password}'", $"GRANT SELECT ON ventas.* TO '{user}'@'%'"];
+
     public override string AnalyzeSql(string quotedTable) => "ANALYZE TABLE " + quotedTable;
 
     protected override string MajorVersionSql => "SELECT CAST(SUBSTRING_INDEX(VERSION(), '.', 1) AS SIGNED)";

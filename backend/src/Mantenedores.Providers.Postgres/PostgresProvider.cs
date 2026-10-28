@@ -50,6 +50,7 @@ public sealed class PostgresProvider : IDatabaseProvider
             PostgresErrorCodes.ForeignKeyViolation => new(DbErrorKind.ForeignKey, pg.ConstraintName),
             PostgresErrorCodes.CheckViolation => new(DbErrorKind.Check, pg.ConstraintName),
             PostgresErrorCodes.NotNullViolation => new(DbErrorKind.NotNull, Column: pg.ColumnName),
+            PostgresErrorCodes.InsufficientPrivilege => new(DbErrorKind.PermissionDenied),
             _ => DbErrorInfo.Unknown
         };
 }

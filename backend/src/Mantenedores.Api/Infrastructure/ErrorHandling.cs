@@ -14,6 +14,7 @@ public sealed class ErrorHandler(ILogger<ErrorHandler> logger) : IExceptionHandl
             ValidationException v => Results.ValidationProblem(
                 v.Errors.ToDictionary(e => e.Key, e => new[] { e.Value }), title: v.Message),
             BusyException b => Busy(http, b),
+            DbPermissionDeniedException d => Results.Problem(d.Message, statusCode: 403, title: "La base de datos no lo permite"),
             ForbiddenException f => Results.Problem(f.Message, statusCode: 403, title: "Sin permiso"),
             // Concurrencia optimista (D-069): se devuelve cómo está ahora, para comparar y decidir.
             ConcurrencyException c => Results.Problem(c.Message, statusCode: 409, title: "El registro cambió",

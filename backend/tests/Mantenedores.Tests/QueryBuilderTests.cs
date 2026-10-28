@@ -26,14 +26,16 @@ public class QueryBuilderTests
             "SELECT t0.\"id\", t0.\"codigo\", t0.\"categoria_id\", t0.\"precio\", t0.\"notas\", j0.\"nombre\" AS \"__lbl0\", " +
             "OCTET_LENGTH(t0.\"foto\") AS \"__sz1\" " +
             "FROM \"ventas\".\"producto\" t0 LEFT JOIN \"ventas\".\"categoria\" j0 ON j0.\"id\" = t0.\"categoria_id\" " +
-            "WHERE CAST(t0.\"codigo\" AS text) ILIKE @p0 ESCAPE '!' AND t0.\"categoria_id\" = @p1 " +
-            "ORDER BY t0.\"precio\" DESC, t0.\"id\" ASC LIMIT @p3 OFFSET @p2",
+            "WHERE CAST(t0.\"codigo\" AS text) ILIKE @p0 ESCAPE '!' AND (t0.\"categoria_id\" = @p1 OR " +
+            "t0.\"categoria_id\" IN (SELECT lf.\"id\" FROM \"ventas\".\"categoria\" lf WHERE CAST(lf.\"nombre\" AS text) ILIKE @p2 ESCAPE '!')) " +
+            "ORDER BY t0.\"precio\" DESC, t0.\"id\" ASC LIMIT @p4 OFFSET @p3",
             data.Sql);
         Assert.Equal("%be!_%", data.Parameters["p0"]);
         Assert.Equal("categoria_id__label", data.Renames!["__lbl0"]); // alias corto → nombre final (P-021)
         Assert.Equal(2, data.Parameters["p1"]); // int4 → int
-        Assert.Equal(20L, data.Parameters["p2"]);
-        Assert.Equal(10L, data.Parameters["p3"]);
+        Assert.Equal("%2%", data.Parameters["p2"]); // el mismo texto, buscado en la etiqueta (P-032)
+        Assert.Equal(20L, data.Parameters["p3"]);
+        Assert.Equal(10L, data.Parameters["p4"]);
         Assert.StartsWith("SELECT COUNT(*) FROM \"ventas\".\"producto\" t0 WHERE", count.Sql);
     }
 

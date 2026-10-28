@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { formatInstant } from '../lib/format'
 import { api } from '../api/client'
 import type { SchemaChange } from '../api/types'
 import { useCan } from '../lib/useMe'
@@ -37,7 +38,7 @@ export function SchemaChangesBanner({ conn }: { conn: string }) {
   return (
     <div className="banner">
       <div className="banner-head">
-        <span>⚠ {parts.join(' · ')} desde el {new Date(d.since).toLocaleString('es')}</span>
+        <span>⚠ {parts.join(' · ')} desde el {formatInstant(d.since)}</span>
         <button className="link" onClick={() => setOpen(o => !o)}>{open ? 'Ocultar' : 'Ver detalle'}</button>
         {canConfigure && d.changes.length > 0 && (
           <button disabled={accept.isPending} onClick={() => accept.mutate()}

@@ -23,6 +23,10 @@ public sealed class PostgresFixture : DatabaseFixture
     };
 
     public override int MinimumMajorVersion => 12;
+    public override IReadOnlyList<string> ReadOnlyUserSql(string user, string password) =>
+        [$"CREATE ROLE {user} LOGIN PASSWORD '{password}'", $"GRANT USAGE ON SCHEMA ventas TO {user}",
+         $"GRANT SELECT ON ALL TABLES IN SCHEMA ventas TO {user}"];
+
     public override string AnalyzeSql(string quotedTable) => "ANALYZE " + quotedTable;
 
     protected override string MajorVersionSql => "SELECT current_setting('server_version_num')::int / 10000";

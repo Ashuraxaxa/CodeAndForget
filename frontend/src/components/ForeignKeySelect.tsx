@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
+import { useTableLabels } from '../lib/useTableLabels'
 import type { ForeignKey } from '../api/types'
 import { useDebounce } from '../lib/useDebounce'
 
@@ -24,6 +25,7 @@ export function ForeignKeySelect({ conn, fk, value, label, nullable, disabled, i
   const [search, setSearch] = useState('')
   const debounced = useDebounce(search, 250)
 
+  const tableLabel = useTableLabels(conn)
   const { data, isFetching, error } = useQuery({
     queryKey: ['lookup', conn, fk.refSchema, fk.refTable, debounced],
     queryFn: () => api.lookup(conn, fk.refSchema, fk.refTable, debounced),
@@ -50,7 +52,7 @@ export function ForeignKeySelect({ conn, fk, value, label, nullable, disabled, i
       <input
         id={id}
         value={open ? search : current}
-        placeholder={open ? 'Escribe para buscar…' : `Seleccionar ${fk.refTable}…`}
+        placeholder={open ? 'Escribe para buscar…' : `Seleccionar ${tableLabel(fk.refSchema, fk.refTable)}…`}
         disabled={disabled}
         onFocus={() => { setSearch(''); setOpen(true) }}
         onBlur={() => setTimeout(() => setOpen(false), 150)}

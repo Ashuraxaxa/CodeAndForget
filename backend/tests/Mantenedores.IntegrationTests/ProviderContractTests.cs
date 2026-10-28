@@ -208,6 +208,45 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
 
     // ---------- Escritura ----------
 
+    // ---------- Filtro de una FK por su etiqueta (P-032) ----------
+
+    [Fact]
+    public async Task El_filtro_de_una_fk_acepta_el_id_o_el_texto_que_se_muestra()
+    {
+        async Task<List<object?>> Categorias(string filter) =>
+            (await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest
+            {
+                PageSize = 200, Filters = new Dictionary<string, string> { [N("categoria_id")] = filter }
+            }, default)).Rows.Select(r => r[N("categoria_id") + QueryBuilder.LabelSuffix]).Distinct().ToList();
+
+        Assert.Equal(["Snacks"], await Categorias("snack")); // por la etiqueta, sin distinguir mayúsculas
+        Assert.Equal(["Snacks"], await Categorias("2"));     // por el id, como antes
+        Assert.Empty(await Categorias("no existe"));
+        await Assert.ThrowsAsync<ValidationException>(() => Db.Crud.ListAsync(Conn, Schema, N("producto"),
+            new ListRequest { Filters = new Dictionary<string, string> { [N("precio")] = "caro" } }, default)); // sin FK: valor inválido
+    }
+
+    // ---------- Permisos del usuario de la base (P-073) ----------
+
+    [Fact]
+    public async Task Si_el_usuario_de_la_base_no_puede_escribir_lo_dice_claro()
+    {
+        const string user = "mnt_solo_lectura", password = "Lectura.2026!x";
+        foreach (var sql in Db.ReadOnlyUserSql(user, password)) await Db.ExecuteAsync(sql);
+
+        var def = new Core.Connections.ConnectionDefinition
+        {
+            Id = "lectura", Name = "Solo lectura", Engine = Db.Engine, ConnectionString = Db.WithCredentials(user, password), Schemas = [Schema]
+        };
+        var schemas = new Core.Services.SchemaService(new InMemoryConnectionStore(def), new Core.Providers.ProviderRegistry([Db.Provider]));
+        var crud = new Core.Services.CrudService(schemas, new Core.Services.CrudOptions());
+
+        Assert.NotEmpty((await crud.ListAsync("lectura", Schema, N("categoria"), new ListRequest(), default)).Rows); // leer, sí
+        var ex = await Assert.ThrowsAsync<DbPermissionDeniedException>(() =>
+            crud.CreateAsync("lectura", Schema, N("categoria"), Body((N("nombre"), "No entra")), default));
+        Assert.Contains("no tiene permiso para crear registros en", ex.Message);
+    }
+
     // ---------- Avisos por correo (D-073) ----------
 
     [Fact]

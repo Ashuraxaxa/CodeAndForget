@@ -7,6 +7,27 @@ export function keyQuery(meta: TableMeta, row: Row): string {
   return qs.toString()
 }
 
+/** Fechas siempre en formato día/mes/año (P-033), aunque el navegador esté en otro idioma. */
+/** "2026-10-28" → "28/10/2026", sin pasar por zonas horarias (una fecha no tiene hora). */
+function formatDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso
+}
+
+/** "2026-10-28T14:05:09" → "28/10/2026 14:05:09", sin convertir: la base no dice en qué zona está. */
+function formatNaive(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}:\d{2}(:\d{2})?)/.exec(iso)
+  return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}` : iso.replace('T', ' ').slice(0, 19)
+}
+
+/** Fecha y hora con zona, en la hora local del usuario: "28/10/2026 14:05:09". */
+export function formatInstant(value: string | Date): string {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return String(value)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}
+
 /** Texto de una celda en la grilla. */
 export function displayValue(col: Column, value: unknown): string {
   if (value === null || value === undefined) return ''
@@ -14,11 +35,12 @@ export function displayValue(col: Column, value: unknown): string {
     case 'Boolean':
       return value ? 'Sí' : 'No'
     case 'Date':
-      return String(value).slice(0, 10)
+      return formatDate(String(value))
     case 'DateTime':
+      // Con zona: la hora local del usuario. Sin zona: tal cual la guarda la base (no se convierte).
       return col.hasTimeZone
-        ? new Date(String(value)).toLocaleString()
-        : String(value).replace('T', ' ').slice(0, 19)
+        ? formatInstant(String(value))
+        : formatNaive(String(value))
     case 'Json':
       return typeof value === 'string' ? value : JSON.stringify(value)
     case 'Array':

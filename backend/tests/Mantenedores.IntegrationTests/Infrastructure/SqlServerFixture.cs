@@ -27,6 +27,10 @@ public sealed partial class SqlServerFixture : DatabaseFixture
 
     // 13 = SQL Server 2016, 14 = 2017, 15 = 2019, 16 = 2022.
     public override int MinimumMajorVersion => 13;
+    public override IReadOnlyList<string> ReadOnlyUserSql(string user, string password) =>
+        [$"CREATE LOGIN {user} WITH PASSWORD = '{password}', CHECK_POLICY = OFF", $"CREATE USER {user} FOR LOGIN {user}",
+         $"GRANT SELECT ON SCHEMA::ventas TO {user}"];
+
     public override string AnalyzeSql(string quotedTable) => "UPDATE STATISTICS " + quotedTable;
 
     protected override string MajorVersionSql => "SELECT CAST(SERVERPROPERTY('ProductMajorVersion') AS int)";

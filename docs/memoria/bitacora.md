@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Fase 4: observabilidad y pruebas de carga (P-053)
+- OpenTelemetry 1.19 solo con `Telemetry:OtlpEndpoint`; trazas y métricas de ASP.NET Core, runtime y los drivers de PostgreSQL y MySQL (D-071). La 1.9 tenía una vulnerabilidad conocida y la 1.20 tiene menos de dos semanas.
+- Log de solicitudes lentas sin la query.
+- Prueba con un receptor OTLP falso: llegan trazas y métricas a su ruta. Una versión que dependía del vaciado al apagar fallaba de vez en cuando: ahora exporta cada 100 ms y espera.
+- Script k6 en `tests/load/crud.js`. No se pudo bajar k6 en el entorno, así que se midió con Node: 200 usuarios, 2.255 solicitudes/s, p95 83 ms.
+- 190 unitarias en verde.
+- **Siguiente:** P-052, tablas grandes (pregunta Q-004 al dueño).
+
 ## 2026-10-28 · Fase 4: tope del pool y límites de uso (P-051, P-091)
 - Cada proveedor agrega a la cadena el máximo de conexiones y el cierre de inactivas con los nombres de su driver, sin pisar lo que trae la cadena (D-070).
 - Límites con el limitador de ASP.NET Core: por usuario, para exportar e importar, y para el login por IP. Los health checks quedan fuera.

@@ -59,7 +59,8 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-050 | Caché del esquema y contadores de límites de uso en Redis, opcional por configuración (D-026, D-070) | ⚪ | ⏳ solo si hay varias instancias |
 | P-051 | Pools con tope por conexión, cierre de inactivos y rate limit (D-070) | 🟡 | ✅ PR #24 |
 | P-052 | Paginación por clave y conteo estimado para tablas grandes | 🟡 | ⏳ depende de Q-004 |
-| P-053 | Observabilidad (OpenTelemetry, consultas lentas) y pruebas de carga con k6 | 🟡 | ⏳ |
+| P-053 | Observabilidad (OpenTelemetry, solicitudes lentas) y pruebas de carga con k6 (D-071, `docs/carga.md`) | 🟡 | ✅ PR #25 |
+| P-097 | Correr la prueba de k6 contra una tabla de 10 millones de filas (junto con P-052) y anotar el resultado en `docs/carga.md` | 🟡 | ⏳ |
 
 ## 4. Fase 5: extensiones
 

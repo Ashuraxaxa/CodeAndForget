@@ -104,6 +104,31 @@ trae**: si la cadena dice `Max Pool Size=50`, manda la cadena (D-070).
 
 Con varias instancias, el máximo hacia una base es `MaxSize × instancias`.
 
+## Observabilidad (`Telemetry`)
+
+Trazas y métricas con OpenTelemetry, **apagadas mientras no se configure un destino** (D-071). Con `OtlpEndpoint` se
+envían por OTLP a lo que use el entorno: OpenTelemetry Collector, Jaeger, Grafana (Tempo, Mimir), Azure Monitor,
+Datadog, etc.
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `Telemetry:OtlpEndpoint` | — (apagado) | Destino OTLP, p. ej. `http://otel-collector:4317`. |
+| `Telemetry:OtlpProtocol` | `Grpc` | `Grpc` (4317) o `HttpProtobuf` (4318; se agrega `/v1/traces` y `/v1/metrics`). |
+| `Telemetry:OtlpHeaders` | — | Encabezados para el destino, p. ej. `api-key=…`. |
+| `Telemetry:ServiceName` | `mantenedores` | Nombre del servicio en las trazas y métricas. |
+| `Telemetry:SlowRequestMilliseconds` | `2000` | Las solicitudes a la API más lentas que esto se anotan en el log como advertencia, con método, ruta (sin la query), estado, usuario y duración. Funciona sin OpenTelemetry. `0` = no se anotan. |
+
+Qué se envía:
+- **Trazas:** cada solicitud HTTP (sin los health checks) y, dentro, las consultas de PostgreSQL y MySQL/MariaDB, que publican sus propios drivers.
+- **Métricas:** duración y cantidad de solicitudes, rechazos por límites de uso, runtime de .NET (memoria, GC, hilos) y uso del pool de PostgreSQL y MySQL/MariaDB.
+
+Las consultas de SQL Server no aparecen como trazas propias: SqlClient no publica en el formato estándar sin un paquete
+aparte. Su tiempo queda dentro de la traza de la solicitud.
+
+**Logs en JSON** (para Loki, Elastic, CloudWatch…), sin nada extra: `Logging__Console__FormatterName=json`.
+
+**Pruebas de carga:** ver [`carga.md`](carga.md).
+
 ## Límites de uso (`RateLimit`)
 
 Protegen a las bases de un uso excesivo y el login de intentos repetidos (P-051, P-091). Al pasarse, la API responde

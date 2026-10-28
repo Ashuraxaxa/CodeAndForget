@@ -5,19 +5,15 @@
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Fase 3 decidida con el dueño (D-062 a D-066) y en curso: migraciones con bloqueo y secretos (PR #20), perfiles y permisos (PR #21) y auditoría de cambios (PR #22). Siguiente: concurrencia optimista (P-046).
+**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Fase 3 decidida con el dueño (D-062 a D-066) y en curso: migraciones con bloqueo y secretos (PR #20), perfiles y permisos (PR #21) auditoría de cambios (PR #22) y concurrencia optimista (PR #23). **Fase 3 completa.** Siguiente: Fase 4 (escala y operación).
 
 ## Ramas y PR
 
 | Rama | Estado |
 |---|---|
-| `main` | Rama por defecto. Fase 1, bloque M y Fase 2 hasta exportar/importar: PR #1 a #17. |
-| `feature/f2-arboles` | PR #18: árboles por autorreferencia. |
-| `feature/f2-tipos` | PR #19 (sale de la rama del #18): archivos, arreglos y tipos que solo se muestran. |
-| `feature/f3-infra` | PR #20 (sale de la rama del #19): bloqueo de migraciones y secretos en las cadenas. |
-| `feature/f3-seguridad` | PR #21 (sale de la rama del #20): perfiles, usuarios propios y permisos por conexión, tabla y columna. |
-| `feature/f3-auditoria` | PR #22 (sale de la rama del #21): auditoría de cambios. |
-| `feature/fase1-*`, `feature/m1-*`, `feature/m3-*` | Ya fusionadas en `main`; se pueden borrar (P-005). |
+| `main` | Rama por defecto. Fase 1, bloque M, Fase 2 y Fase 3 hasta la auditoría: PR #1 a #22. |
+| `feature/f3-concurrencia` | PR #23: concurrencia optimista. |
+| `feature/fase1-*`, `feature/m1-*`, `feature/m3-*`, `feature/f2-*`, `feature/f3-infra`, `-seguridad`, `-auditoria` | Ya fusionadas en `main`; se pueden borrar (P-005). |
 
 ## Qué funciona hoy
 
@@ -37,6 +33,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 - **Ajustes sin tocar código** (D-049, `docs/ajustes.md`): etiquetas, grupos del menú, columnas ocultas, orden, solo lectura, obligatorias, patrón, rango, lista de opciones, control de la UI, columna a mostrar, orden por defecto, PK y FK virtuales. Se aplican al instante, los cambia quien tiene el permiso `ConfigureTables` (D-053) y lo que deja de aplicar se avisa en el menú. Se editan con **⚙ Configurar** (pestañas Tabla y Columnas, vista previa en vivo, restablecer) o por la API.
 - **SQL Server:** la inserción funciona también en tablas con triggers (D-010).
 - **Seguridad propia** (D-062 a D-067, `docs/seguridad.md`): perfiles con roles y usuarios, permisos de la app y permisos sobre los datos por conexión, tabla y columna (ver, crear, editar, borrar, exportar, importar). Usuarios propios con contraseña en hash. Sin perfiles, todo sigue abierto. Pantalla **Seguridad** con el permiso `ManageSecurity`.
+- **Edición simultánea** (D-069): si otra persona guardó el registro mientras se editaba, no se pisa. El formulario muestra qué cambió y deja ver lo actual o guardar igual; borrar desde una lista vieja también se rechaza.
 - **Auditoría** (D-065, D-068): cada alta, edición (solo lo que cambió), baja, fila importada y cambio N:M con quién y cuándo; 1 año configurable con limpieza automática. Página **Auditoría** con filtros y **Historial** desde cada registro, con el permiso `ViewAudit`.
 - **Permisos por acción** (D-053, D-066): `ConfigureTables`, `ManageConnections`, `ManageSecurity` y `ViewAudit`, cada uno otorgado a roles por configuración (por defecto `mnt-configurador`, `mnt-conexiones`, `mnt-seguridad` y `mnt-auditor`; los administradores tienen todos) o a perfiles. La UI oculta lo que el usuario no puede hacer.
 - **Tipos especiales** (D-059): archivos (subir, descargar, tamaño y tope), arreglos de PostgreSQL como lista, y `geography`/`geometry`/`hierarchyid` y tipos espaciales de MySQL como texto de solo lectura.
@@ -61,8 +58,9 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 
 - 158 pruebas unitarias (`backend/tests/Mantenedores.Tests`): núcleo (incluidos los ajustes, el traductor de errores y las capacidades del dialecto), API en memoria (`HostingTests`, `AuthTests`, con el permiso de administrador para los ajustes) y metadata en SQLite y archivo (`MetadataStoreTests`), entre ellas dos instancias de la API que comparten base y llaves.
 - Recorrido en navegador con la app publicada en `/mantenedores` contra PostgreSQL 12: login, conexión, alta con FK, recarga directa y salida. Ninguna petición sale de la subruta.
-- 211 pruebas de integración (incluye ajustes, CRUD con un perfil restringido, auditoría del CRUD y su almacén en PG y SQL Server, cambios de esquema, filtro exacto, N:M, exportar/importar, árboles y archivos en la batería común; arreglos, geografía y jerarquía en las pruebas propias de cada motor y el almacén de metadata en PG 12/16 y SQL Server 2017/2022) (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
+- 215 pruebas de integración (incluye ajustes, CRUD con un perfil restringido, concurrencia optimista, auditoría del CRUD y su almacén en PG y SQL Server, cambios de esquema, filtro exacto, N:M, exportar/importar, árboles y archivos en la batería común; arreglos, geografía y jerarquía en las pruebas propias de cada motor y el almacén de metadata en PG 12/16 y SQL Server 2017/2022) (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
 - Login con **Keycloak 26** en el navegador: PKCE, vuelta a la app, API con el token, roles anidados (`realm_access.roles`), cierre de sesión sin confirmación; el token no queda en `localStorage`.
+- Concurrencia en navegador contra PostgreSQL 16, con dos sesiones: el segundo en guardar ve el aviso con lo que cambió el otro y guarda igual solo sus campos; un borrado desde una lista vieja se rechaza.
 - Auditoría en navegador contra PostgreSQL 16: editar un precio y verlo en "Historial" del registro; cambiar solo una etiqueta N:M; filtros y vista en teléfono.
 - Seguridad en navegador contra PostgreSQL 16: alta de un usuario propio y de un perfil con regla de conexión, tabla y columna; ese usuario ve solo lo permitido (sin Nuevo ni Eliminar, precio bloqueado, "Ver" en tablas de consulta) y no entra a Seguridad.
 - Tipos en navegador contra PostgreSQL 16: teléfonos de un cliente como lista y un ícono subido, guardado y descargado.

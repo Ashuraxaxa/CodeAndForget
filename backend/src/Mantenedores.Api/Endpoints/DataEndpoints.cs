@@ -34,11 +34,11 @@ public static class DataEndpoints
             Results.Ok(await crud.CreateAsync(conn, schema, table, body, ct)));
 
         group.MapPut("/row", (string conn, string schema, string table, HttpRequest http, Dictionary<string, JsonElement> body, CrudService crud, CancellationToken ct) =>
-            crud.UpdateAsync(conn, schema, table, Key(http.Query), body, ct));
+            crud.UpdateAsync(conn, schema, table, Key(http.Query), body, ct, IfMatch(http)));
 
         group.MapDelete("/row", async (string conn, string schema, string table, HttpRequest http, CrudService crud, CancellationToken ct) =>
         {
-            await crud.DeleteAsync(conn, schema, table, Key(http.Query), ct);
+            await crud.DeleteAsync(conn, schema, table, Key(http.Query), ct, IfMatch(http));
             return Results.NoContent();
         });
 
@@ -158,4 +158,16 @@ public static class DataEndpoints
 
     private static Dictionary<string, string> Key(IQueryCollection q) =>
         q.ToDictionary(kv => kv.Key, kv => kv.Value.ToString(), StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Versión que el cliente editó (concurrencia optimista, D-069): encabezado <c>If-Match</c> con el <c>__version</c>
+    /// de la fila. Sin él no se verifica (importaciones, scripts).
+    /// </summary>
+    private static string? IfMatch(HttpRequest http)
+    {
+        var value = http.Headers.IfMatch.ToString().Trim();
+        if (value.StartsWith("W/", StringComparison.Ordinal)) value = value[2..];
+        value = value.Trim('"');
+        return value.Length == 0 || value == "*" ? null : value;
+    }
 }

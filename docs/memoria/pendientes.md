@@ -44,12 +44,13 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-042 | Permisos por conexión, tabla y columna (ver, crear, editar, borrar, exportar, importar) con herencia, aplicados en el servidor; pantalla "Seguridad" con el permiso `ManageSecurity` (D-063, D-066, D-067) | 🔴 | ✅ PR #21 |
 | P-043 | Filtros de fila por rol | — | ⛔ descartado por el dueño (D-064) |
 | P-044 | Auditoría de cambios (quién, cuándo, valor anterior y nuevo), 1 año configurable, con vista en la UI (D-065, D-068) | 🟡 | ✅ PR #22 |
-| P-046 | Concurrencia optimista (`rowversion` / `xmin`) | 🟡 | ⏳ |
+| P-046 | Concurrencia optimista: no pisar un registro que otro cambió (D-069) | 🟡 | ✅ PR #23 |
 | P-091 | Login: limitar intentos fallidos por usuario e IP (hoy no hay tope) | 🟡 | ⏳ |
 | P-092 | Usuarios propios: cachear unos segundos si siguen activos (hoy se consulta la metadata en cada solicitud del modo Local) | ⚪ | ⏳ |
 | P-093 | Seguridad: elegir tablas y columnas de una lista también con la regla `*` (hoy se escriben a mano) y copiar un perfil | ⚪ | ⏳ |
 | P-094 | Auditoría: mostrar etiquetas (no solo ids) en FK y vínculos N:M, y exportarla a CSV o Excel | ⚪ | ⏳ |
 | P-095 | Auditoría: con `ViewAudit` restringido por perfil, mostrar solo las conexiones y tablas que el usuario ve | ⚪ | ⏳ |
+| P-096 | Concurrencia: cerrar la ventana de milisegundos entre comparar y escribir con un bloqueo de fila por dialecto (`FOR UPDATE` / `UPDLOCK`), si algún equipo lo necesita | ⚪ | ⏳ |
 
 ## 3. Fase 4: escala y operación
 

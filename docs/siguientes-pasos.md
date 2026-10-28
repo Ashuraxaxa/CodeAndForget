@@ -277,7 +277,7 @@ administrar la seguridad. Los puntos de abajo se ajustan a eso.
 3. ✅ PR #21 · **Permisos sobre los datos** por conexión, tabla y columna (ver, crear, editar, borrar, exportar, importar), con herencia. Se aplican en el servidor recortando el esquema de cada usuario; la UI solo oculta (`docs/seguridad.md`).
 4. ~~**Filtros de fila por rol**~~: descartado por el dueño (D-064).
 5. ✅ PR #22 · **Auditoría:** quién, cuándo, tabla, clave, valor anterior y nuevo; 1 año configurable con limpieza automática. Se guarda en el metadata store y se consulta desde la UI con el permiso `ViewAudit` (D-065, D-068).
-6. **Concurrencia optimista** con `rowversion` (SQL Server) o `xmin` (Postgres). Si otro usuario cambió el registro, avisar en vez de pisarlo.
+6. ✅ PR #23 · **Concurrencia optimista:** si otro usuario cambió el registro, se avisa en vez de pisarlo. Se usa un hash de la fila, igual en todos los motores (D-069).
 7. ✅ PR #20 · **Secretos externos opcionales:** `${env:VAR}` o `${file:/run/secrets/x}` dentro de una cadena de conexión, para usar los secretos que ya tenga el entorno (Docker/Kubernetes secrets, variables). Los adaptadores para vaults específicos (Azure Key Vault, HashiCorp Vault) van como paquetes opcionales, nunca como requisito.
 
 ## 3. Fase 4: escala y operación (3 semanas)

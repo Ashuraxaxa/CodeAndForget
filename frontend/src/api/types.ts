@@ -155,6 +155,8 @@ export interface LookupItem {
 export const LABEL_SUFFIX = '__label'
 /** Tamaño en bytes de un archivo en las filas (P-018). */
 export const SIZE_SUFFIX = '__size'
+/** Versión de la fila (concurrencia optimista, D-069): se devuelve en If-Match al editar o borrar. */
+export const VERSION_FIELD = '__version'
 
 // ----- Ajustes (overrides, P-011): mismo JSON que guarda la API -----
 

@@ -208,6 +208,40 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
 
     // ---------- Escritura ----------
 
+    // ---------- Concurrencia optimista (D-069) ----------
+
+    [Fact]
+    public async Task No_pisa_un_registro_que_otro_cambio_despues_de_leerlo()
+    {
+        const string V = Core.Concurrency.RowVersion.Field;
+        var code = UniqueCode();
+        var created = await Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
+            (N("codigo"), code), (N("nombre"), "Concurrencia"), (N("categoria_id"), 1), (N("precio"), 50)), default);
+        var key = Key((N("id"), created[N("id")]!));
+
+        // La versión del listado y la del detalle son la misma (el borrado desde la grilla usa la del listado).
+        var listed = (await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { Search = code }, default)).Rows.Single();
+        var read = await Db.Crud.GetAsync(Conn, Schema, N("producto"), key, default);
+        Assert.Equal(read[V], listed[V]);
+        Assert.Equal(created[V], read[V]);
+        var version = (string)read[V]!;
+
+        // Otra persona guarda primero; quien tenía la versión anterior no la pisa y recibe cómo quedó.
+        var other = await Db.Crud.UpdateAsync(Conn, Schema, N("producto"), key, Body((N("precio"), 60)), default, version);
+        Assert.NotEqual(version, other[V]);
+        var ex = await Assert.ThrowsAsync<ConcurrencyException>(() =>
+            Db.Crud.UpdateAsync(Conn, Schema, N("producto"), key, Body((N("precio"), 70)), default, version));
+        Assert.Equal(60m, Convert.ToDecimal(ex.Current[N("precio")]));
+        await Assert.ThrowsAsync<ConcurrencyException>(() => Db.Crud.DeleteAsync(Conn, Schema, N("producto"), key, default, version));
+
+        // Con la versión al día, o sin versión (importaciones, scripts), se guarda.
+        var mine = await Db.Crud.UpdateAsync(Conn, Schema, N("producto"), key, Body((N("precio"), 70)), default, (string)other[V]!);
+        Assert.Equal(70m, Convert.ToDecimal(mine[N("precio")]));
+        await Db.Crud.UpdateAsync(Conn, Schema, N("producto"), key, Body((N("precio"), 71)), default);
+        await Db.Crud.DeleteAsync(Conn, Schema, N("producto"), key, default,
+            (string)(await Db.Crud.GetAsync(Conn, Schema, N("producto"), key, default))[V]!);
+    }
+
     // ---------- Auditoría (D-065) ----------
 
     [Fact]

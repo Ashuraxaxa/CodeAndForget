@@ -575,6 +575,18 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Triggers en las bases de los clientes: exigen permisos de DDL y no saben quién es el usuario de la app.
   - Que la auditoría la vea cualquiera que vea la tabla: muestra valores anteriores de columnas que un perfil puede ocultar.
 
+### D-069 · Concurrencia optimista por hash de la fila
+- **Estado:** Vigente · 2026-10-28 (P-046)
+- **Qué:**
+  - Cada fila de un listado o detalle trae `__version`: un hash de los valores de las columnas que el usuario ve (el tamaño, en los archivos).
+  - Al editar o borrar, la UI lo devuelve en el encabezado `If-Match`. Si la fila cambió, el servidor responde **409** con cómo quedó (`type: mantenedores:concurrencia`, `current`) y no la toca. Sin `If-Match` no se verifica (importaciones, scripts).
+  - El formulario muestra qué cambió la otra persona y deja elegir entre ver lo actual o guardar igual (solo los campos propios, así no pisa lo demás).
+  - La comparación y la escritura no van bajo un bloqueo: la ventana es de milisegundos, frente a los minutos que un formulario puede estar abierto.
+- **Descartado:**
+  - `rowversion` / `xmin`: no existen en MySQL ni MariaDB, ni en tablas de SQL Server sin esa columna. Habría una diferencia entre motores para cubrir un caso que el hash ya cubre.
+  - Agregar una columna de versión a las tablas del cliente: la app no modifica su estructura.
+  - Comparar en el `WHERE` del `UPDATE` los valores originales: varios tipos no se comparan con `=` (`xml`, `ntext`, `json`).
+
 ---
 
 ## Propuestas (aún no decididas)

@@ -23,3 +23,13 @@ public sealed class ValidationException : MantenedorException
 
 /// <summary>El servidor está por debajo de la versión mínima soportada (D-035).</summary>
 public sealed class UnsupportedServerException(string message) : MantenedorException(message);
+
+/// <summary>
+/// El registro cambió desde que el usuario lo leyó (concurrencia optimista, D-069). <c>Current</c> es como está ahora,
+/// para que la UI muestre la diferencia y ofrezca recargar o guardar igual.
+/// </summary>
+public sealed class ConcurrencyException(IDictionary<string, object?> current)
+    : MantenedorException("Otra persona cambió este registro desde que lo abrió.")
+{
+    public IDictionary<string, object?> Current { get; } = current;
+}

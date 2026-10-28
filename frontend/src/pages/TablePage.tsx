@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from '../api/client'
-import { LABEL_SUFFIX, labelOf, type Column, type Row, type TableMeta, type TransferFormat } from '../api/types'
+import { api, isConcurrencyError } from '../api/client'
+import { LABEL_SUFFIX, VERSION_FIELD, labelOf, type Column, type Row, type TableMeta, type TransferFormat } from '../api/types'
 import { FIXED_PREFIX, RETURN_PARAM, displayValue, keyQuery } from '../lib/format'
 import { useDebounce } from '../lib/useDebounce'
 import { useCan } from '../lib/useMe'
@@ -76,9 +76,15 @@ export function Grid({ conn, meta, fixed, returnTo }: {
   })
 
   const remove = useMutation({
-    mutationFn: (row: Row) => api.remove(conn, meta.schema, meta.name, keyQuery(meta, row)),
+    mutationFn: (row: Row) => api.remove(conn, meta.schema, meta.name, keyQuery(meta, row), row[VERSION_FIELD]),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rows', conn, meta.schema, meta.name] }),
-    onError: err => alert((err as Error).message),
+    onError: err => {
+      // Otra persona lo cambió (D-069): se recarga la grilla para que decida con los datos al día.
+      if (isConcurrencyError(err)) {
+        qc.invalidateQueries({ queryKey: ['rows', conn, meta.schema, meta.name] })
+        alert('Otra persona cambió este registro mientras lo veía. La lista se actualizó: revíselo y vuelva a intentar.')
+      } else alert((err as Error).message)
+    },
   })
 
   const [exporting, setExporting] = useState(false)

@@ -4,7 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api, ApiError } from '../api/client'
 import {
   WIDGETS, labelOf,
-  type Column, type ColumnOverride, type ForeignKey, type NotifyOperation, type NotifyOverride, type TableMeta, type TableOverride,
+  type Column, type ColumnOverride, type ForeignKey, type LinkDisplay, type NotifyOperation, type NotifyOverride, type TableMeta, type TableOverride,
   type VirtualForeignKey,
 } from '../api/types'
 import { FieldControl } from '../components/FieldControl'
@@ -95,6 +95,16 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
   const setCol = (col: string, patch: Partial<ColumnOverride>) =>
     setDoc(d => ({ ...d, columns: { ...d.columns, [col]: { ...d.columns?.[col], ...patch } } }))
 
+  // Arrastrar para ordenar (P-085): se suelta una columna sobre otra y toma su lugar.
+  const [dragging, setDragging] = useState<string | null>(null)
+  function moveTo(col: string, target: string) {
+    setOrder(o => {
+      const n = o.filter(x => x !== col)
+      n.splice(o.indexOf(target), 0, col)
+      return n
+    })
+  }
+
   function move(col: string, delta: number) {
     setOrder(o => {
       const i = o.indexOf(col), j = i + delta
@@ -138,6 +148,10 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
                     last={i === order.length - 1}
                     onMove={d => move(col, d)}
                     onChange={p => setCol(col, p)}
+                    dragging={dragging}
+                    onDragStart={() => setDragging(col)}
+                    onDragEnd={() => setDragging(null)}
+                    onDropOn={() => { if (dragging && dragging !== col) moveTo(dragging, col); setDragging(null) }}
                   />
                 ))}
                 {order.join() !== naturalOrder.join() && (
@@ -203,6 +217,15 @@ function TableTab({ conn, doc, setDoc, table, shown, errors }: {
   const [sortCol, sortDesc] = parseSort(doc.defaultSort)
   const declaredPk = table.hasPrimaryKey && !table.hasVirtualPrimaryKey
   const vpk = doc.virtualPrimaryKey ?? []
+  // Relaciones de la tabla consigo misma que pueden armar el árbol (P-089).
+  const selfRefs = table.primaryKey.length === 1
+    ? table.foreignKeys.filter(f => f.columns.length === 1 && f.refSchema === table.schema && f.refTable === table.name)
+    : []
+  const setLink = (name: string, v: LinkDisplay) => {
+    const next = { ...doc.links, [name]: v }
+    if (v === 'selector') delete next[name]
+    set({ links: Object.keys(next).length ? next : undefined })
+  }
 
   return (
     <div className="grid-2">
@@ -252,6 +275,31 @@ function TableTab({ conn, doc, setDoc, table, shown, errors }: {
 
       {shown.referencedBy.length > 0 && (
         <ChildrenPicker all={shown.referencedBy} value={doc.children} error={errors.children} onChange={v => set({ children: v })} />
+      )}
+
+      {selfRefs.length > 1 && (
+        <Field label={t('Relación del árbol')} hint={t('Cuál de las relaciones de la tabla consigo misma arma la vista de árbol')} error={errors.treeParent}>
+          <select value={doc.treeParent ?? ''} onChange={e => set({ treeParent: e.target.value || undefined })}>
+            <option value="">({t('automática')}: {selfRefs[0].columns.join(', ')})</option>
+            {selfRefs.map(f => <option key={f.name} value={f.name}>{f.columns.join(', ')} ({f.name})</option>)}
+          </select>
+        </Field>
+      )}
+
+      {shown.manyToMany.length > 0 && (
+        <Field label={t('Relaciones N:M')} span error={errors.links}
+          hint={t('Selector: se eligen varios en el formulario. Pestaña: la tabla puente con su propio formulario, útil si tiene columnas propias (p. ej. cantidad).')}>
+          {shown.manyToMany.map(l => (
+            <div key={l.name} className="row">
+              <span>{l.targetSchema}.{l.targetTable} <span className="muted small">· {t('vía {bridge}', { bridge: l.bridgeTable })}</span></span>
+              <select value={doc.links?.[l.name] ?? 'selector'} onChange={e => setLink(l.name, e.target.value as LinkDisplay)}>
+                <option value="selector">{t('Selector múltiple')}</option>
+                <option value="tab">{t('Pestaña')}</option>
+                <option value="none">{t('No mostrar')}</option>
+              </select>
+            </div>
+          ))}
+        </Field>
       )}
 
       <VirtualForeignKeys conn={conn} table={table} value={doc.virtualForeignKeys ?? []} errors={errors}
@@ -318,9 +366,9 @@ function VirtualForeignKeys({ conn, table, value, errors, onChange }: {
   onChange: (v: VirtualForeignKey[]) => void
 }) {
   const t = useT()
-  const [col, setCol] = useState('')
+  // Una o más parejas columna local → columna referenciada (P-085: también compuestas, p. ej. país + código).
+  const [pairs, setPairs] = useState<{ col: string; refCol: string }[]>([{ col: '', refCol: '' }])
   const [ref, setRef] = useState('') // "esquema.tabla"
-  const [refCol, setRefCol] = useState('')
   const tables = useQuery({ queryKey: ['tables', conn], queryFn: () => api.tables(conn) })
   const [refSchema, refTable] = splitRef(ref, tables.data?.tables)
   const target = useQuery({
@@ -329,10 +377,22 @@ function VirtualForeignKeys({ conn, table, value, errors, onChange }: {
     enabled: !!refTable,
   })
   const declared = new Set(table.foreignKeys.filter(f => !value.some(v => v.columns.join() === f.columns.join())).flatMap(f => f.columns))
+  const setPair = (i: number, p: Partial<{ col: string; refCol: string }>) => setPairs(s => s.map((x, j) => (j === i ? { ...x, ...p } : x)))
+  const complete = refTable !== '' && pairs.every(p => p.col && p.refCol) && new Set(pairs.map(p => p.col)).size === pairs.length
+
+  function chooseTable(key: string) {
+    setRef(key)
+    // Con una tabla elegida, se proponen sus columnas de PK (una pareja por cada una).
+    setPairs([{ col: '', refCol: '' }])
+  }
+  // Al cargar la tabla elegida, una pareja por columna de su PK.
+  const pk = target.data?.primaryKey ?? []
+  if (target.data && pairs.length === 1 && !pairs[0].refCol && pk.length > 0)
+    setPairs(pk.map(k => ({ col: '', refCol: k })))
 
   function add() {
-    onChange([...value, { columns: [col], refSchema, refTable, refColumns: [refCol] }])
-    setCol(''); setRef(''); setRefCol('')
+    onChange([...value, { columns: pairs.map(p => p.col), refSchema, refTable, refColumns: pairs.map(p => p.refCol) }])
+    setRef(''); setPairs([{ col: '', refCol: '' }])
   }
 
   return (
@@ -345,20 +405,28 @@ function VirtualForeignKeys({ conn, table, value, errors, onChange }: {
         </div>
       ))}
       <div className="row">
-        <select value={col} onChange={e => setCol(e.target.value)}>
-          <option value="">{t('Columna…')}</option>
-          {table.columns.filter(c => !declared.has(c.name)).map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-        </select>
-        <span>→</span>
-        <select value={ref} onChange={e => { setRef(e.target.value); setRefCol('') }}>
+        <select value={ref} onChange={e => chooseTable(e.target.value)}>
           <option value="">{t('Tabla…')}</option>
           {tables.data?.tables.map(x => <option key={`${x.schema}.${x.name}`} value={`${x.schema}.${x.name}`}>{x.schema}.{x.name}</option>)}
         </select>
-        <select value={refCol} disabled={!target.data} onChange={e => setRefCol(e.target.value)}>
-          <option value="">{t('Columna…')}</option>
-          {target.data?.columns.map(c => <option key={c.name} value={c.name}>{c.name}{c.isPrimaryKey ? ' (PK)' : ''}</option>)}
-        </select>
-        <button disabled={!col || !refTable || !refCol} onClick={add}>{t('Agregar')}</button>
+      </div>
+      {pairs.map((p, i) => (
+        <div key={i} className="row">
+          <select value={p.col} onChange={e => setPair(i, { col: e.target.value })}>
+            <option value="">{t('Columna…')}</option>
+            {table.columns.filter(c => !declared.has(c.name)).map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+          </select>
+          <span>→</span>
+          <select value={p.refCol} disabled={!target.data} onChange={e => setPair(i, { refCol: e.target.value })}>
+            <option value="">{t('Columna…')}</option>
+            {target.data?.columns.map(c => <option key={c.name} value={c.name}>{c.name}{c.isPrimaryKey ? ' (PK)' : ''}</option>)}
+          </select>
+          {pairs.length > 1 && <button className="link danger" onClick={() => setPairs(s => s.filter((_, j) => j !== i))}>{t('Quitar')}</button>}
+        </div>
+      ))}
+      <div className="row">
+        <button className="link" disabled={!target.data} onClick={() => setPairs(s => [...s, { col: '', refCol: '' }])}>＋ {t('Otra columna (relación compuesta)')}</button>
+        <button disabled={!complete} onClick={add}>{t('Agregar')}</button>
       </div>
     </Field>
   )
@@ -414,7 +482,7 @@ function ChildrenPicker({ all, value, error, onChange }: {
 
 // ---------- Pestaña "Columnas" ----------
 
-function ColumnEditor({ column: c, value: v, errors, first, last, onMove, onChange }: {
+function ColumnEditor({ column: c, value: v, errors, first, last, onMove, onChange, dragging, onDragStart, onDragEnd, onDropOn }: {
   column: Column
   value: ColumnOverride
   errors: Record<string, string>
@@ -422,6 +490,10 @@ function ColumnEditor({ column: c, value: v, errors, first, last, onMove, onChan
   last: boolean
   onMove: (delta: number) => void
   onChange: (patch: Partial<ColumnOverride>) => void
+  dragging: string | null
+  onDragStart: () => void
+  onDragEnd: () => void
+  onDropOn: () => void
 }) {
   const t = useT()
   const isText = c.type === 'String' || c.type === 'Text'
@@ -432,8 +504,12 @@ function ColumnEditor({ column: c, value: v, errors, first, last, onMove, onChan
   const hidden = v.hidden === true
 
   return (
-    <div className={`col-editor${hidden ? ' is-hidden' : ''}`}>
+    <div className={`col-editor${hidden ? ' is-hidden' : ''}${dragging === c.name ? ' dragging' : ''}`}
+      onDragOver={e => { if (dragging) e.preventDefault() }} onDrop={e => { e.preventDefault(); onDropOn() }}>
       <div className="col-head">
+        <span className="col-grip" draggable title={t('Arrastrar para ordenar')}
+          onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', c.name); onDragStart() }}
+          onDragEnd={onDragEnd}>⠿</span>
         <div className="col-move">
           <button title={t('Subir')} disabled={first} onClick={() => onMove(-1)}>↑</button>
           <button title={t('Bajar')} disabled={last} onClick={() => onMove(1)}>↓</button>
@@ -456,6 +532,13 @@ function ColumnEditor({ column: c, value: v, errors, first, last, onMove, onChan
           <input value={v.label ?? ''} placeholder={t('Etiqueta ({name})', { name: c.name })} onChange={e => onChange({ label: e.target.value })} />
           <input value={v.helpText ?? ''} placeholder={t('Ayuda bajo el campo')} onChange={e => onChange({ helpText: e.target.value })} />
         </div>
+      )}
+
+      {!hidden && c.isFile && (
+        <label className="check">
+          <input type="checkbox" checked={v.widget === 'image'} onChange={e => onChange({ widget: e.target.checked ? 'image' : undefined })} />
+          {t('Es una imagen: miniatura en la grilla')}
+        </label>
       )}
 
       {!hidden && !c.isReadOnly && (isText || isNumber) && (

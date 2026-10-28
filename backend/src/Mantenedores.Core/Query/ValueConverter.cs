@@ -157,10 +157,25 @@ public static partial class ValueConverter
                     throw Invalid(column, $"valor permitido: {string.Join(", ", values)}");
                 return raw;
 
+            case LogicalType.Spatial:
+            {
+                // WKT (P-090): la base valida la geometría; aquí solo la forma general, para dar un mensaje claro.
+                var wkt = raw.Trim();
+                if (wkt.Length == 0) return CheckNull(column);
+                if (!Wkt().IsMatch(wkt))
+                    throw Invalid(column, "debe estar en formato WKT, p. ej. POINT (-70.66 -33.45)");
+                return wkt;
+            }
+
             default:
                 throw Invalid(column, "tipo de columna no editable");
         }
     }
+
+    [System.Text.RegularExpressions.GeneratedRegex(
+        @"^(POINT|LINESTRING|POLYGON|MULTIPOINT|MULTILINESTRING|MULTIPOLYGON|GEOMETRYCOLLECTION|CIRCULARSTRING|COMPOUNDCURVE|CURVEPOLYGON)\s*(Z|M|ZM)?\s*(\(.*\)|EMPTY)$",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline)]
+    private static partial System.Text.RegularExpressions.Regex Wkt();
 
     /// <summary>
     /// Arreglo (P-018): cada elemento se valida con el tipo del elemento y viaja como texto normalizado;

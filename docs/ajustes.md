@@ -87,7 +87,9 @@ Todo es opcional; lo que no se indica queda automático. Los nombres de columnas
 | `virtualPrimaryKey` | Clave para tablas **sin PK declarada**: habilita editar y borrar. En una vista permite leer por clave y usarla en combos, pero sigue siendo de solo lectura. Las columnas deben identificar una sola fila: si no, una edición afectaría varias. |
 | `children` | Tablas hijas que se muestran en pestañas al editar un registro, por nombre de la FK y en ese orden. Sin definir = todas; `[]` = ninguna. En el editor: *Tabla → Tablas hijas*. |
 | `notify` | Avisos por correo cuando cambia un registro (D-073): `{"emails": ["jefa@empresa.cl"], "on": ["update", "delete"], "includeValues": true}`. `on` acepta `create`, `update`, `delete`, `import` y `links`; vacío = altas, ediciones y bajas. Solo se envían si la app tiene SMTP configurado (`Notifications`, ver `configuracion.md`). En el editor: *Tabla → Avisos por correo*. |
-| `virtualForeignKeys` | Relaciones que la base no declara: dan etiqueta, combo y "Referenciada por" como una FK real. La base no las hace cumplir. `name` es opcional. |
+| `virtualForeignKeys` | Relaciones que la base no declara: dan etiqueta, combo y "Referenciada por" como una FK real. La base no las hace cumplir. `name` es opcional. Pueden ser de varias columnas (`"columns": ["pais", "sucursal"]` con `"refColumns": ["pais", "codigo"]`); en el editor, *＋ Otra columna*. |
+| `treeParent` | Si la tabla tiene más de una relación consigo misma (p. ej. jefe y mentor), cuál arma la vista de árbol, por nombre de la FK. Sin definir = la primera. En el árbol, quien puede editar mueve un registro arrastrándolo sobre otro; un ciclo se rechaza. |
+| `links` | Cómo se edita cada relación N:M, por su nombre: `selector` (por defecto: selector múltiple en el formulario), `tab` (pestaña con la tabla puente y su propio formulario, para puentes con columnas propias como `cantidad`) o `none`. |
 
 ### Columna
 
@@ -99,7 +101,7 @@ Todo es opcional; lo que no se indica queda automático. Los nombres de columnas
 | `showInGrid` | `false`: solo en el formulario. |
 | `readOnly` | No se escribe aunque la base lo permita. |
 | `required` | Obligatoria aunque la base acepte nulos; un texto vacío cuenta como faltante. |
-| `widget` | Control de la UI: `textarea`, `email`, `url`, `color`, `money`, `password`. |
+| `widget` | Control de la UI: `textarea`, `email`, `url`, `color`, `money`, `password`; `image` en columnas de archivo: miniatura en la grilla (el formulario muestra la vista previa de cualquier imagen de hasta 5 MB). |
 | `pattern` | Expresión regular (.NET) que debe cumplir **el texto completo**. Se evalúa con un tiempo máximo de 100 ms. |
 | `maxLength` | Largo máximo de un texto; nunca más que lo que acepta la base. |
 | `min`, `max` | Rango de un número. |
@@ -122,4 +124,4 @@ curl -X PUT http://localhost:5080/api/meta/demo/overrides/ventas/producto \
 ## Varias instancias
 
 Cada instancia guarda en memoria el esquema combinado. Un ajuste se ve al instante en la instancia que lo
-guardó; en las demás, al refrescar el esquema (↻) o al reiniciar. La caché compartida llega con P-050 (ver P-082).
+guardó y, con metadata compartida, en las demás en `Metadata:SyncSeconds` (5 s) (D-077).

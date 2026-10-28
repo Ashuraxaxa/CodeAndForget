@@ -29,14 +29,15 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-079 | Renovación silenciosa sin refresh token (iframe `silent_redirect_uri`); hoy, sin refresh token, al vencer se vuelve a iniciar sesión | ⚪ | ⏳ |
 | P-082 | Ajustes con varias instancias: lo que cambia una instancia (ajustes, ↻, perfiles, usuarios) lo ven las demás en segundos (D-077) | 🟡 | ✅ PR #31 |
 | P-086 | Detectar cambios de esquema sin que nadie pulse ↻: relectura periódica y al fallar por tabla o columna inexistente (D-078) | ⚪ | ✅ PR #31 |
-| P-087 | N:M: ajuste para desactivar el selector de un puente o mostrarlo como pestaña; puentes con columnas extra (p. ej. `cantidad`) como hijas con su propio formulario | ⚪ | ⏳ |
+| P-087 | N:M: ajuste `links` para usar selector, pestaña con el puente (su propio formulario) o nada (D-082) | ⚪ | ✅ PR #33 |
 | P-088 | Importar actualizando por clave (upsert) además de insertar (D-075) | 🟡 | ✅ PR #29 |
 | P-100 | Interfaz en español, inglés y ruso, con selector y formato de fechas y números por idioma (D-076) | 🟡 | ✅ PR #30 |
 | P-101 | Mensajes del servidor en el idioma elegido: plantillas en el frontend sobre el español del servidor (D-080) | ⚪ | ✅ PR #32 |
 | P-102 | Nombres visibles por idioma en los ajustes (`label`, `helpText`), si algún equipo los necesita | ⚪ | ⏳ |
-| P-089 | Árbol: elegir la FK cuando hay más de una autorreferencia (hoy se usa la primera) y mover nodos arrastrando | ⚪ | ⏳ |
-| P-090 | Archivos: vista previa de imágenes en la grilla y en el formulario; editar `geography`/`geometry` como WKT | ⚪ | ⏳ |
-| P-085 | Editor: FK virtuales compuestas desde la UI (hoy solo por la API) y arrastrar para ordenar columnas (hoy, botones ↑ ↓) | ⚪ | ⏳ |
+| P-089 | Árbol: ajuste `treeParent` y mover nodos arrastrando (D-082) | ⚪ | ✅ PR #33 |
+| P-090 | Archivos: vista previa de imágenes (grilla con `widget: image`, formulario); `geography`/`geometry` editables como WKT en SQL Server y MySQL/MariaDB (D-083) | ⚪ | ✅ PR #33 |
+| P-104 | WKT editable también en PostGIS (no hay PostGIS en la imagen de pruebas) y SRID por columna en MySQL 8 (hoy SRID 0) | ⚪ | ⏳ |
+| P-085 | Editor: FK virtuales compuestas desde la UI y arrastrar para ordenar columnas | ⚪ | ✅ PR #33 |
 | P-084 | UI: nombre visible de la tabla referenciada en "→ tabla", "Referenciada por", N:M y combos (D-074) | ⚪ | ✅ PR #28 |
 
 ## 2. Fase 3: seguridad

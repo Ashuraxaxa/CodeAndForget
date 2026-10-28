@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import type { Column } from '../api/types'
 import { fileSize } from '../lib/format'
 import { useT } from '../i18n'
+import { ChosenImage, StoredImage } from './ImagePreview'
 
 /**
  * Columna de archivo (P-018): muestra el tamaño, permite descargar el guardado, elegir otro o quitarlo.
@@ -40,8 +41,12 @@ export function FileField({ conn, schema, table, recordKey, column: c, size, val
     finally { setBusy(false) }
   }
 
+  // Vista previa (P-090): la guardada si es una imagen de hasta 5 MB; la elegida, al momento.
+  const preview = stored && recordKey && Number(size) <= 5 * 1024 * 1024
   return (
     <div className="file-field">
+      {value && chosen ? <ChosenImage file={chosen} className="file-preview" />
+        : preview && <StoredImage conn={conn} schema={schema} table={table} recordKey={recordKey} column={c.name} className="file-preview" />}
       <div className="row">
         {stored && <span>{t('Guardado')} · {fileSize(size)}</span>}
         {stored && recordKey && (

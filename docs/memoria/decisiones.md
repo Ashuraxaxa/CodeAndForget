@@ -735,6 +735,22 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **Exportar:** `GET /api/audit/export?format=csv|xlsx` con los mismos filtros, hasta `Audit:ExportMaxRows` (100.000), recorriendo páginas sin contar el total.
 - **Descartado:** guardar la etiqueta en la entrada al registrar: el texto cambia (se renombra la categoría) y agranda cada entrada; la etiqueta actual es lo que el usuario reconoce.
 
+### D-082 · Relaciones N:M en pestaña y árbol con relación elegida
+- **Estado:** Vigente · 2026-10-28 (P-087, P-089)
+- **Qué:**
+  - Ajuste `links` por relación N:M: `selector` (por defecto), `tab` (el puente sale en las pestañas de hijas con su propio formulario) o `none`. `ManyToManyLink.Display` lo informa; el formulario solo muestra los de `selector`.
+  - Ajuste `treeParent`: cuál autorreferencia usa el árbol cuando hay más de una. En el árbol, arrastrar un nodo sobre otro cambia su padre (con `jefe_id` nulo, también al primer nivel); el servidor sigue rechazando un ciclo.
+- **Descartado:** pasar a pestaña por defecto los puentes con columnas extra: cambiaría instalaciones existentes cuyo puente tiene, p. ej., una fecha opcional.
+
+### D-083 · Geometrías editables como WKT
+- **Estado:** Vigente · 2026-10-28 (P-090)
+- **Qué:**
+  - `LogicalType.Spatial`: se lee como WKT y se escribe desde WKT con `ISqlDialect.ParameterFor`. SQL Server: `geography` en SRID 4326 y `geometry` en 0. MySQL/MariaDB: `ST_GeomFromText`, SRID 0.
+  - `ValueConverter` revisa la forma general del WKT para dar un mensaje claro; la base valida la geometría.
+  - No se ordena ni se filtra por estas columnas.
+  - PostGIS y `hierarchyid` siguen de solo lectura (`ReadOnlyText`): sin PostGIS en la imagen de pruebas no se puede pasar la batería común (D-033). Queda P-104.
+- **Descartado:** un control de mapa: suma una librería y un proveedor de mapas (D-022), y el WKT ya se puede copiar de cualquier GIS.
+
 ---
 
 ## Propuestas (aún no decididas)

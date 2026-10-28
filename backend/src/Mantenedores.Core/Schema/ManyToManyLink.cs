@@ -8,7 +8,19 @@ public sealed record ManyToManyLink(
     string Name,
     string BridgeSchema, string BridgeTable,
     string LocalColumn, string ForeignColumn,
-    string TargetSchema, string TargetTable, string TargetColumn);
+    string TargetSchema, string TargetTable, string TargetColumn)
+{
+    /// <summary>Cómo se edita (P-087): <see cref="LinkDisplay.Selector"/>, <see cref="LinkDisplay.Tab"/> o <see cref="LinkDisplay.None"/>.</summary>
+    public string Display { get; init; } = LinkDisplay.Selector;
+}
+
+public static class LinkDisplay
+{
+    public const string Selector = "selector";
+    public const string Tab = "tab";
+    public const string None = "none";
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { Selector, Tab, None };
+}
 
 public static class ManyToManyDetector
 {

@@ -4,7 +4,7 @@ export type Engine = 'SqlServer' | 'Postgres' | 'MySql'
 
 export type LogicalType =
   | 'String' | 'Text' | 'Integer' | 'Decimal' | 'Boolean' | 'Date' | 'DateTime'
-  | 'Time' | 'Uuid' | 'Json' | 'Enum' | 'Binary' | 'Array' | 'ReadOnlyText' | 'Unsupported'
+  | 'Time' | 'Uuid' | 'Json' | 'Enum' | 'Binary' | 'Array' | 'ReadOnlyText' | 'Spatial' | 'Unsupported'
 
 export interface Connection {
   id: string
@@ -204,6 +204,10 @@ export interface TableOverride {
   columns?: Record<string, ColumnOverride>
   /** Avisar por correo cuando cambia (D-073). Solo se envía si la app tiene SMTP configurado. */
   notify?: NotifyOverride
+  /** Autorreferencia que usa el árbol (P-089), por nombre de FK. */
+  treeParent?: string
+  /** Cómo se edita cada relación N:M (P-087), por su nombre. */
+  links?: Record<string, LinkDisplay>
 }
 
 export type NotifyOperation = 'create' | 'update' | 'delete' | 'import' | 'links'
@@ -255,7 +259,15 @@ export interface ManyToManyLink {
   targetSchema: string
   targetTable: string
   targetColumn: string
+  /** Cómo se edita (P-087): selector múltiple, pestaña con el puente o nada. */
+  display?: LinkDisplay
 }
+
+export type LinkDisplay = 'selector' | 'tab' | 'none'
+
+/** Las relaciones N:M que se editan con el selector múltiple del formulario. */
+export const selectorLinks = (meta: { manyToMany: ManyToManyLink[] }) =>
+  meta.manyToMany.filter(l => (l.display ?? 'selector') === 'selector')
 
 // ----- Exportar e importar (P-017) -----
 

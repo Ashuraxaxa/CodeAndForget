@@ -28,14 +28,22 @@ public sealed class SqlServerDialect : ISqlDialect
         // Tipos CLR de SQL Server (P-018): geography/geometry como WKT y hierarchyid como ruta ("/1/2/").
         : column.Type == LogicalType.ReadOnlyText && column.NativeType.Equals("hierarchyid", StringComparison.OrdinalIgnoreCase)
             ? $"{columnExpr}.ToString()"
-        : column.Type == LogicalType.ReadOnlyText ? $"{columnExpr}.STAsText()"
+        : column.Type is LogicalType.ReadOnlyText or LogicalType.Spatial ? $"{columnExpr}.STAsText()"
         : columnExpr;
 
     public string ByteLength(string columnExpr) => $"DATALENGTH({columnExpr})";
 
     /// <summary>Un nulo sin tipo llega como nvarchar, que SQL Server no convierte a varbinary: se fija el tipo (P-018).</summary>
+    /// <summary>
+    /// Geography/geometry desde WKT (P-090): geography en WGS 84 (SRID 4326, el de los GPS), geometry sin sistema (0).
+    /// </summary>
     public string ParameterFor(ColumnInfo column, string param) =>
-        column.Type == LogicalType.Binary ? $"CAST({param} AS varbinary(max))" : param;
+        column.Type == LogicalType.Binary ? $"CAST({param} AS varbinary(max))"
+        : column.Type == LogicalType.Spatial
+            ? column.NativeType.Equals("geography", StringComparison.OrdinalIgnoreCase)
+                ? $"geography::STGeomFromText(CAST({param} AS nvarchar(max)), 4326)"
+                : $"geometry::STGeomFromText(CAST({param} AS nvarchar(max)), 0)"
+        : param;
 
     /// <summary>
     /// Usa OUTPUT ... INTO una variable de tabla: un OUTPUT directo falla si la tabla tiene triggers,

@@ -4,6 +4,19 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Fase 3: decisiones de seguridad, migraciones y secretos
+- El dueño respondió el apartado de seguridad:
+  - usuarios propios y del proveedor de identidad;
+  - permisos por conexión, tabla y columna;
+  - sin filtros de fila;
+  - auditoría solo de cambios por 1 año;
+  - permiso propio para administrar la seguridad.
+  - Quedó en D-062 a D-066; Q-007 queda respondida y P-043 descartado.
+- P-081: bloqueo de sesión al migrar (D-060). La prueba con cuatro "instancias" falla sin el bloqueo (verificado) y pasa con él.
+- P-045: `${env:MNT_…}` y `${file:…}` en las cadenas de conexión, con prefijo y carpeta permitidos (D-061).
+- 158 unitarias y 201 de integración en verde.
+- **Siguiente:** P-040/P-042, perfiles y permisos.
+
 ## 2026-10-27 · Fase 2: tipos pendientes (Fase 2 completa)
 - Archivos: tamaño en el listado, descarga con tipo deducido, subida en base64 con tope `Crud:FileMaxMegabytes`.
 - Arreglos de PostgreSQL editables como lista; `geography`/`geometry`/`hierarchyid` y espaciales de MySQL como texto de solo lectura (D-059).

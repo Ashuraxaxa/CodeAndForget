@@ -501,6 +501,50 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Un endpoint aparte para subir archivos: un archivo obligatorio exigiría dos pasos.
   - Editar `geography` como WKT: requiere validación espacial propia de cada motor.
 
+### D-060 · Migraciones con bloqueo de sesión
+- **Estado:** Vigente · 2026-10-28 (P-081)
+- **Qué:**
+  - Antes de migrar se toma un bloqueo de sesión: `pg_advisory_lock` en Postgres y `sp_getapplock` en SQL Server. Se libera al terminar o al cortarse la conexión.
+  - Dentro de cada transacción se revisa otra vez si el script ya se aplicó. Eso cubre también a SQLite, donde la transacción de escritura bloquea el archivo.
+- **Por qué:** varias réplicas que arrancan juntas chocaban creando las mismas tablas. La prueba lo reproduce sin el bloqueo (clave duplicada en `pg_type`).
+- **Alternativa descartada:** una tabla de "candado" propia, que queda tomada si el proceso muere.
+
+### D-061 · Referencias a secretos en las cadenas de conexión
+- **Estado:** Vigente · 2026-10-28 (P-045, completa D-025)
+- **Qué:**
+  - `${env:NOMBRE}` y `${file:nombre}` se reemplazan al conectar (`SchemaService.ConnectionStringFor`). En la metadata queda la referencia.
+  - Solo se aceptan variables con prefijo `Secrets:EnvPrefix` (`MNT_`) y archivos dentro de `Secrets:FilesDirectory` (`/run/secrets`).
+  - Los errores nombran la referencia, nunca el valor.
+- **Por qué:** quien gestiona conexiones no debe poder leer cualquier variable (p. ej. la llave JWT) ni cualquier archivo del servidor.
+- **Alternativa descartada:** resolver al guardar, que dejaría el secreto en la metadata.
+
+### D-062 · Usuarios: del proveedor de identidad y propios
+- **Estado:** Vigente · 2026-10-28 (responde a la pregunta del dueño sobre el apartado de seguridad; P-040)
+- **Qué:**
+  - La app tiene **perfiles** propios.
+  - A un perfil se le asocian roles del proveedor de identidad (modo `Jwt`) y usuarios propios guardados en la metadata (modo `Local`). Las dos fuentes conviven según la configuración.
+
+### D-063 · Permisos por conexión, tabla y columna
+- **Estado:** Vigente · 2026-10-28 (P-042)
+- **Qué:**
+  - Las operaciones son ver, crear, editar, borrar, exportar e importar.
+  - Se definen en tres niveles con herencia: lo de la conexión vale para sus tablas, salvo que la tabla lo cambie, y lo mismo de la tabla a sus columnas.
+  - Se aplican en el servidor; la UI solo oculta.
+
+### D-064 · Sin filtros de fila por perfil
+- **Estado:** Vigente · 2026-10-28 (el dueño: "no es necesario ese nivel")
+- **Qué:** P-043 queda descartado. Restringir qué filas ve cada perfil no forma parte del alcance.
+
+### D-065 · Auditoría solo de cambios, por 1 año
+- **Estado:** Vigente · 2026-10-28 (responde Q-007; P-044)
+- **Qué:**
+  - Se registran altas, ediciones y borrados: quién, cuándo, tabla, clave, valor anterior y nuevo. No se registran las lecturas.
+  - Se guarda 1 año por defecto, configurable, con limpieza automática.
+
+### D-066 · Permiso para administrar la seguridad
+- **Estado:** Vigente · 2026-10-28
+- **Qué:** un permiso nuevo, `ManageSecurity`, que se otorga a roles como los de D-053. Permite administrar perfiles, usuarios y permisos. Los `AdminRoles` lo tienen.
+
 ---
 
 ## Propuestas (aún no decididas)

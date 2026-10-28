@@ -25,8 +25,14 @@ public sealed record SchemaDiffResult(
 /// sin volver a leer la base). En Fase 4 esta caché pasa a Redis para compartirla entre instancias.
 /// </summary>
 public sealed class SchemaService(
-    IConnectionStore store, ProviderRegistry providers, IOverrideStore? overrides = null, ISchemaSnapshotStore? snapshots = null)
+    IConnectionStore store, ProviderRegistry providers, IOverrideStore? overrides = null, ISchemaSnapshotStore? snapshots = null,
+    SecretResolver? secrets = null)
 {
+    private readonly SecretResolver _secrets = secrets ?? new SecretResolver();
+
+    /// <summary>Cadena de conexión con las referencias a secretos ya reemplazadas (P-045). Solo se usa para conectar.</summary>
+    public string ConnectionStringFor(ConnectionDefinition def) => _secrets.Resolve(def.ConnectionString);
+
     private readonly IOverrideStore _overrides = overrides ?? new NoOverrideStore();
     private readonly ISchemaSnapshotStore _snapshots = snapshots ?? new NoSnapshotStore();
     private readonly ConcurrentDictionary<string, Lazy<Task<DatabaseSchema>>> _raw = new(StringComparer.OrdinalIgnoreCase);
@@ -140,7 +146,7 @@ public sealed class SchemaService(
         return new ConnectionTestResult(schema.Tables.Count, server);
     }
 
-    private static async Task<DatabaseSchema> ReadAsync(ConnectionDefinition def, IDatabaseProvider provider, CancellationToken ct)
+    private async Task<DatabaseSchema> ReadAsync(ConnectionDefinition def, IDatabaseProvider provider, CancellationToken ct)
     {
         await using var conn = await OpenAsync(def, provider, ct);
         var server = await provider.GetServerInfoAsync(conn, ct);
@@ -153,9 +159,9 @@ public sealed class SchemaService(
         $"{server.Description} no está soportado: la versión mínima es {server.Product} {server.MinimumVersion} " +
         "(ver \"Requisitos de instalación\" en el README).";
 
-    private static async Task<System.Data.Common.DbConnection> OpenAsync(ConnectionDefinition def, IDatabaseProvider provider, CancellationToken ct)
+    private async Task<System.Data.Common.DbConnection> OpenAsync(ConnectionDefinition def, IDatabaseProvider provider, CancellationToken ct)
     {
-        var conn = provider.CreateConnection(def.ConnectionString);
+        var conn = provider.CreateConnection(ConnectionStringFor(def));
         await conn.OpenAsync(ct);
         await provider.InitializeSessionAsync(conn, ct);
         return conn;

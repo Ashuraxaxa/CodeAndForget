@@ -18,6 +18,9 @@ public abstract class MetadataStoreContractTests<TFixture>(TFixture db) : IClass
 {
     protected abstract MetadataProvider Provider { get; }
 
+    /// <summary>Cadena de conexión a otra base del mismo servidor (para migrar desde cero).</summary>
+    protected abstract string WithDatabase(string connectionString, string database);
+
     private MetadataDatabase Database() =>
         new(new MetadataOptions { Provider = Provider, ConnectionString = db.ConnectionString }, Path.GetTempPath());
 
@@ -59,6 +62,20 @@ public abstract class MetadataStoreContractTests<TFixture>(TFixture db) : IClass
 
         Assert.True(await a.DeleteAsync(id, default));
         Assert.Null(await b.GetAsync(id, default));
+    }
+
+    [Fact]
+    public async Task Varias_instancias_migrando_a_la_vez_aplican_cada_script_una_vez()
+    {
+        // Base nueva: las cuatro "instancias" compiten por crear todo desde cero (P-081).
+        var name = "mnt_" + Guid.NewGuid().ToString("N")[..8];
+        await db.ScalarAsync($"CREATE DATABASE {name}");
+        var options = new MetadataOptions { Provider = Provider, ConnectionString = WithDatabase(db.ConnectionString, name) };
+        var runs = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ =>
+            Task.Run(() => new MetadataMigrator(new MetadataDatabase(options, Path.GetTempPath())).MigrateAsync())));
+        var all = runs.SelectMany(r => r).ToList();
+        Assert.Equal(MetadataMigrator.Scripts(Provider.ToString()).Count, all.Count);
+        Assert.Equal(all.Count, all.Distinct().Count());
     }
 
     [Fact]
@@ -116,9 +133,13 @@ public abstract class MetadataStoreContractTests<TFixture>(TFixture db) : IClass
 public sealed class PostgresMetadataStoreTests(PostgresFixture db) : MetadataStoreContractTests<PostgresFixture>(db)
 {
     protected override MetadataProvider Provider => MetadataProvider.Postgres;
+    protected override string WithDatabase(string cs, string database) =>
+        new Npgsql.NpgsqlConnectionStringBuilder(cs) { Database = database }.ConnectionString;
 }
 
 public sealed class SqlServerMetadataStoreTests(SqlServerFixture db) : MetadataStoreContractTests<SqlServerFixture>(db)
 {
     protected override MetadataProvider Provider => MetadataProvider.SqlServer;
+    protected override string WithDatabase(string cs, string database) =>
+        new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(cs) { InitialCatalog = database }.ConnectionString;
 }

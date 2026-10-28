@@ -346,9 +346,9 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         return values;
     }
 
-    private static async Task<DbConnection> OpenAsync(ConnectionContext ctx, CancellationToken ct)
+    private async Task<DbConnection> OpenAsync(ConnectionContext ctx, CancellationToken ct)
     {
-        var db = ctx.Provider.CreateConnection(ctx.Definition.ConnectionString);
+        var db = ctx.Provider.CreateConnection(schemas.ConnectionStringFor(ctx.Definition));
         await db.OpenAsync(ct);
         await ctx.Provider.InitializeSessionAsync(db, ct);
         return db;

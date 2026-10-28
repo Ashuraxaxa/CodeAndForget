@@ -64,6 +64,24 @@ para que todas compartan conexiones y llaves sin un volumen común.
 Si al arrancar existe `data/connections.json` (Fase 1) y la base está vacía, sus conexiones se importan una sola vez
 y el archivo se renombra a `connections.json.importado`.
 
+Con varias instancias arrancando a la vez, solo una aplica las migraciones: Postgres usa `pg_advisory_lock` y SQL Server
+`sp_getapplock`; las demás esperan y encuentran todo aplicado (P-081).
+
+## Secretos en las cadenas de conexión (`Secrets`)
+
+Una cadena de conexión puede referirse a secretos del entorno en vez de guardar la contraseña (P-045). En la metadata
+queda la referencia; el valor se lee recién al conectar y nunca se muestra en un error.
+
+```
+Host=db;Database=ventas;Username=app;Password=${env:MNT_VENTAS_PASSWORD}
+Server=sql;Database=rrhh;User Id=app;Password=${file:rrhh-password}
+```
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `Secrets:EnvPrefix` | `MNT_` | Solo se leen variables de entorno con este prefijo, para que nadie pueda pedir, p. ej., la llave de la app. Vacío = cualquiera (no recomendado). |
+| `Secrets:FilesDirectory` | `/run/secrets` | Carpeta de los archivos de secretos (la de Docker y Kubernetes). `${file:x}` lee `<carpeta>/x`, nunca fuera de ella. Vacío = desactivado. El salto de línea final se quita. |
+
 ## Llaves de cifrado (`DataProtection`)
 
 Las cadenas de conexión se guardan cifradas. Estas llaves son las que permiten leerlas: **si se pierden, hay que volver a ingresar las conexiones** (D-025).

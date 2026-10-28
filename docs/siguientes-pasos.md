@@ -268,15 +268,19 @@ Guía de uso: [ajustes.md](ajustes.md). Decisiones: D-049 a D-051.
 
 ## 2. Fase 3: seguridad (3 semanas)
 
+**Decidido por el dueño (2026-10-28, D-062 a D-066):** usuarios propios **y** del proveedor de identidad; permisos por
+conexión, tabla y columna; **sin** filtros de fila; auditoría solo de cambios, por 1 año; permiso específico para
+administrar la seguridad. Los puntos de abajo se ajustan a eso.
+
 1. **Roles desde el token:**
    - En modo `Jwt`, los roles salen del claim configurado (1.0). La app no administra usuarios: eso lo hace el proveedor de identidad.
    - En modo `Local`, los usuarios y sus roles pasan de `appsettings` al metadata store.
 2. **Permisos asociados a nombres de rol:** las reglas se guardan en el metadata store y apuntan a nombres de rol, así funcionan igual con cualquier proveedor de identidad.
 3. **Permisos (RBAC)** por conexión, tabla, columna y operación (ver, crear, editar, eliminar, exportar, configurar). Se aplican en `QueryBuilder`; la UI solo oculta lo que no corresponde.
-4. **Filtros de fila por rol**, p. ej. `sucursal_id = {usuario.sucursal}`. Se agregan siempre al WHERE.
+4. ~~**Filtros de fila por rol**~~: descartado por el dueño (D-064).
 5. **Auditoría:** quién, cuándo, tabla, clave, valor anterior y nuevo. Se guarda en el metadata store y se consulta desde la UI.
 6. **Concurrencia optimista** con `rowversion` (SQL Server) o `xmin` (Postgres). Si otro usuario cambió el registro, avisar en vez de pisarlo.
-7. **Secretos externos opcionales:** `${env:VAR}` o `${file:/run/secrets/x}` dentro de una cadena de conexión, para usar los secretos que ya tenga el entorno (Docker/Kubernetes secrets, variables). Los adaptadores para vaults específicos (Azure Key Vault, HashiCorp Vault) van como paquetes opcionales, nunca como requisito.
+7. ✅ PR #20 · **Secretos externos opcionales:** `${env:VAR}` o `${file:/run/secrets/x}` dentro de una cadena de conexión, para usar los secretos que ya tenga el entorno (Docker/Kubernetes secrets, variables). Los adaptadores para vaults específicos (Azure Key Vault, HashiCorp Vault) van como paquetes opcionales, nunca como requisito.
 
 ## 3. Fase 4: escala y operación (3 semanas)
 

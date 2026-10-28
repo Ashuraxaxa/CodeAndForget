@@ -47,6 +47,27 @@ public sealed class MetadataDatabase
         return conn;
     }
 
+    /// <summary>
+    /// Bloqueo para que dos instancias que arrancan a la vez no migren en paralelo (P-081). Es de sesión:
+    /// se libera al cerrar la conexión aunque el proceso muera. SQLite no lo necesita (una transacción de escritura
+    /// ya bloquea el archivo) y se apoya en volver a revisar dentro de cada transacción.
+    /// </summary>
+    internal string? AcquireMigrationLockSql => Provider switch
+    {
+        MetadataProvider.Postgres => "SELECT pg_advisory_lock(7246001)",
+        MetadataProvider.SqlServer =>
+            "DECLARE @r int; EXEC @r = sp_getapplock @Resource = 'mantenedores-migraciones', @LockMode = 'Exclusive', " +
+            "@LockOwner = 'Session', @LockTimeout = 120000; IF @r < 0 THROW 50001, 'No se obtuvo el bloqueo de migraciones', 1;",
+        _ => null
+    };
+
+    internal string? ReleaseMigrationLockSql => Provider switch
+    {
+        MetadataProvider.Postgres => "SELECT pg_advisory_unlock(7246001)",
+        MetadataProvider.SqlServer => "EXEC sp_releaseapplock @Resource = 'mantenedores-migraciones', @LockOwner = 'Session'",
+        _ => null
+    };
+
     /// <summary>Carpeta de scripts de este motor.</summary>
     internal string MigrationsFolder => Provider.ToString();
 

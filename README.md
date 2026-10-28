@@ -1,102 +1,66 @@
+<div align="center">
+
 # Mantenedores dinámicos
 
-Servicio que se conecta a una base **SQL Server**, **PostgreSQL**, **MySQL** o **MariaDB**, lee su catálogo
-(tablas, columnas, PK, FK, únicos) y genera en tiempo real el **mantenedor** de cada
-tabla: listado con filtros, alta, edición y borrado, con combos para las claves foráneas.
+**Conecta una base de datos y obtén al instante el mantenedor de cada tabla.**
+Sin escribir pantallas ni consultas: la app lee el esquema y genera listado, filtros, formulario y permisos.
 
-> Estado: **Fase 1 (MVP)**. La memoria del proyecto (estado, decisiones, pendientes) está en
-> [docs/memoria/](docs/memoria/README.md) y la hoja de ruta en [docs/siguientes-pasos.md](docs/siguientes-pasos.md).
+[![CI](https://github.com/Ashuraxaxa/CodeAndForget/actions/workflows/ci.yml/badge.svg)](https://github.com/Ashuraxaxa/CodeAndForget/actions/workflows/ci.yml)
+![.NET 8](https://img.shields.io/badge/.NET-8-512BD4?logo=dotnet&logoColor=white)
+![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
+![SQL Server · PostgreSQL · MySQL · MariaDB](https://img.shields.io/badge/motores-SQL%20Server%20·%20PostgreSQL%20·%20MySQL%20·%20MariaDB-2f6feb)
 
-## Cómo funciona
+**Español** · [English](README.en.md)
 
-```
-React (grilla + formulario dinámicos)
-        │  /api
-        ▼
-API .NET 8 ──► SchemaService ──► IDatabaseProvider (SqlServer | Postgres)
-        │            │ caché en memoria del esquema
-        ▼            ▼
-   CrudService ──► QueryBuilder + ISqlDialect ──► BD destino
-        │
-   Metadata store: SQLite · Postgres · SQL Server (conexiones con secreto cifrado)
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/mantenedor-oscuro.png">
+  <img alt="Listado de productos con filtros, búsqueda y menú de tablas" src="docs/img/mantenedor-claro.png" width="900">
+</picture>
 
-1. **Lectura del esquema**: cada proveedor consulta su catálogo (`sys.*` o `pg_catalog`)
-   y entrega filas crudas. `SchemaAssembler` las une en un modelo común: tipo lógico
-   por columna, PK, FK salientes y entrantes, y la columna a mostrar en los combos.
-2. **SQL seguro**: `QueryBuilder` solo acepta tablas y columnas que existan en esa
-   metadata, delimita todo identificador (`[x]` / `"x"`) y envía los valores siempre
-   como parámetros.
-3. **UI generada**: el frontend pide la definición de la tabla y dibuja el control de
-   cada columna según su tipo (texto, número, fecha, enum, JSON, FK con búsqueda…).
+</div>
 
-## Estructura
+## Qué hace
 
-```
-backend/
-  src/Mantenedores.Core                  Modelo de esquema, QueryBuilder, servicios CRUD (sin dependencia de motor)
-  src/Mantenedores.Providers.SqlServer   Lectura de catálogo + dialecto SQL Server
-  src/Mantenedores.Providers.Postgres    Lectura de catálogo + dialecto PostgreSQL
-  src/Mantenedores.Providers.MySql       Lectura de catálogo + dialecto MySQL / MariaDB
-  src/Mantenedores.Metadata              Metadata del servicio (conexiones, llaves) y sus migraciones
-  src/Mantenedores.Api                   API minimal, autenticación, endpoints
-  tests/Mantenedores.Tests               Pruebas unitarias (xUnit)
-  tests/Mantenedores.IntegrationTests    Batería común por motor contra bases reales (Testcontainers)
-frontend/                                React + Vite + TanStack Query
-samples/                                 Bases de ejemplo (mismo modelo en ambos motores)
-docs/plan.md                             Viabilidad, escalabilidad y plan por fases
-```
+1. **Te conectas** a una base SQL Server, PostgreSQL, MySQL o MariaDB.
+2. **La app lee el catálogo:** tablas, vistas, columnas, tipos, claves primarias, únicas y foráneas.
+3. **Cada tabla tiene su mantenedor:** listado con orden, filtros y búsqueda; alta, edición y borrado; combos con
+   búsqueda para las claves foráneas.
 
-## Requisitos de instalación
+Todo lo demás se ajusta desde la interfaz, sin tocar código ni reiniciar.
 
-> **Antes de instalar o de conectar una base nueva, verifica esta sección.**
-> Las versiones mínimas son una decisión del proyecto (D-035): por debajo de ellas el servicio
-> no se prueba y la conexión no está soportada.
+## Funciones
 
-### Bases de datos que se pueden administrar
+| | |
+|---|---|
+| 🧩 **Mantenedores generados** | Grilla, formulario y validaciones a partir del esquema. PK compuestas, vistas y tablas sin PK (solo lectura), identity, columnas calculadas. |
+| 🔗 **Relaciones** | Combos de FK con búsqueda (también FK de varias columnas), maestro-detalle en pestañas, N:M con selector múltiple y árboles con arrastre para tablas con autorreferencia. |
+| ⚙️ **Ajustes sin código** | Nombres visibles por idioma, columnas ocultas u obligatorias, orden, controles, FK y PK virtuales, y botones que llaman a procedimientos almacenados. [ajustes.md](docs/ajustes.md) |
+| 🗂️ **Tipos especiales** | JSON, enums, arreglos, archivos con vista previa de imágenes, datos geográficos en WKT (PostGIS incluido) y números de más de 28 dígitos. |
+| 📤 **Exportar e importar** | CSV, Excel, JSON y XML del listado filtrado; importación con vista previa, errores por fila y actualización por clave. |
+| 🔐 **Seguridad** | Login local o cualquier proveedor OIDC (Keycloak, Duende, Entra ID…). Perfiles con permisos por conexión, tabla, columna y acción. [seguridad.md](docs/seguridad.md) |
+| 🕵️ **Auditoría** | Quién cambió qué y cuándo, con historial por registro y exportación. Edición simultánea sin pisar cambios ajenos. |
+| 🌐 **Idiomas y tema** | Interfaz en español, inglés y ruso, con fechas y números en el formato de cada uno. Modo día, noche o el del sistema. |
+| 🚀 **Listo para producción** | Health checks, OpenTelemetry, límites de uso, tablas de millones de filas, varias instancias (Redis opcional) y motores extra como plugins. |
 
-| Motor | Versión mínima | Estado | Cómo ver la versión |
-|---|---|---|---|
-| SQL Server | **2016** (13.x) | ✅ Soportado | `SELECT SERVERPROPERTY('ProductVersion');` |
-| PostgreSQL | **12** | ✅ Soportado | `SHOW server_version;` |
-| MySQL | **8.0** | ✅ Soportado | `SELECT VERSION();` |
-| MariaDB | **10.6** | ✅ Soportado | `SELECT VERSION();` (el texto incluye `MariaDB`) |
+<details>
+<summary>Más capturas: formulario con maestro-detalle</summary>
 
-Oracle no está soportado (D-034).
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/formulario-oscuro.png">
+  <img alt="Formulario de edición con combos de FK, N:M y pestañas hijas" src="docs/img/formulario-claro.png" width="900">
+</picture>
 
-**Si la versión es menor**, actualiza el motor antes de conectarlo. No hay modo de compatibilidad para versiones
-fuera de soporte del fabricante, porque cada una agrega casos especiales que nadie prueba.
+</details>
 
-Las pruebas automáticas corren contra la **versión mínima** y contra una **actual** de cada motor:
-- PostgreSQL 12 y 16.
-- SQL Server 2017 y 2022. SQL Server 2016 no tiene imagen para contenedores: su compatibilidad se cuida no usando T-SQL posterior a 2016.
-- MySQL 8.0 y 8.4; MariaDB 10.6 y 11.4.
+## Inicio rápido
 
-La **prueba de conexión** muestra el producto y la versión del servidor, y avisa si está por debajo del mínimo.
-
-Detalle técnico por motor: [docs/motores.md](docs/motores.md).
-
-### Usuario de base de datos
-
-Crea un usuario dedicado para el servicio, nunca `sa`, `postgres` ni `root`. Necesita:
-- Lectura del catálogo (`sys.*` / `pg_catalog` / `information_schema`).
-- `SELECT`, `INSERT`, `UPDATE` y `DELETE` sobre los esquemas que quieras exponer.
-
-### Para ejecutar el servicio
-
-- **Con Docker:** Docker 20+ (o cualquier entorno de contenedores).
-- **Sin Docker:** el runtime de ASP.NET Core 8.
-- **Para desarrollar:** .NET 8 SDK y Node 20+. Para las pruebas de integración, además, Docker.
-
-## Ejecutar
-
-### Opción A: Docker (todo incluido)
+Con Docker, la app y tres bases de ejemplo:
 
 ```bash
 docker compose up --build
 ```
 
-Abre http://localhost:8080, entra con `admin` / `admin` y crea las conexiones:
+Abre <http://localhost:8080>, entra con `admin` / `admin` (solo de demo) y crea una conexión:
 
 | Motor | Cadena de conexión |
 |---|---|
@@ -104,103 +68,117 @@ Abre http://localhost:8080, entra con `admin` / `admin` y crea las conexiones:
 | SQL Server | `Server=mssql-demo,1433;Database=Demo;User Id=sa;Password=Demo_Pass_123!;TrustServerCertificate=True` |
 | MySQL | `Server=mysql-demo;Port=3306;Database=ventas;User ID=root;Password=demo` |
 
-### Opción B: desarrollo local
+Para instalarla en serio (Docker, Kubernetes, IIS, servicio de Windows o systemd): [docs/despliegue.md](docs/despliegue.md).
 
-Requisitos: ver [Requisitos de instalación](#requisitos-de-instalación).
+## Requisitos de instalación
 
-```bash
-# API en http://localhost:5080 (usa appsettings.Development.json: admin / admin)
-cd backend && dotnet run --project src/Mantenedores.Api
+> **Antes de instalar o de conectar una base nueva, verifica esta sección.**
+> Las versiones mínimas son una decisión del proyecto (D-035): por debajo de ellas el servicio
+> no se prueba y la conexión no está soportada.
 
-# Frontend en http://localhost:5173 (redirige /api a la API)
-cd frontend && npm install && npm run dev
+| Motor | Versión mínima | Probado en la CI | Cómo ver la versión |
+|---|---|---|---|
+| SQL Server | **2016** (13.x) | 2017 y 2022 | `SELECT SERVERPROPERTY('ProductVersion');` |
+| PostgreSQL | **12** | 12 y 16 (también con PostGIS) | `SHOW server_version;` |
+| MySQL | **8.0** | 8.0 y 8.4 | `SELECT VERSION();` |
+| MariaDB | **10.6** | 10.6 y 11.4 | `SELECT VERSION();` (el texto incluye `MariaDB`) |
+
+- SQL Server 2016 no tiene imagen para contenedores: su compatibilidad se cuida no usando T-SQL posterior a 2016.
+- Oracle no está soportado (D-034). Otros motores pueden agregarse como plugin ([motores.md](docs/motores.md#motores-como-plugins)).
+- La **prueba de conexión** muestra el producto y la versión del servidor, y rechaza los que están por debajo del mínimo.
+  No hay modo de compatibilidad para versiones sin soporte del fabricante.
+
+**Usuario de la base:** uno dedicado para el servicio, nunca `sa`, `postgres` ni `root`, con lectura del catálogo y
+`SELECT`, `INSERT`, `UPDATE` y `DELETE` sobre los esquemas a exponer. Si a la base le falta un permiso, la app lo
+dice y explica qué pedirle al DBA.
+
+**Para ejecutar el servicio:** Docker 20+, o el runtime de ASP.NET Core 8 sin Docker.
+
+## Cómo funciona
+
+```mermaid
+flowchart LR
+    UI["React + Vite<br/>grilla y formulario dinámicos"] -->|/api| API["API .NET 8"]
+    API --> Schema["SchemaService<br/>esquema en caché"]
+    API --> Crud["CrudService"]
+    Crud --> QB["QueryBuilder + dialecto"]
+    Schema --> Prov["Proveedor del motor<br/>SQL Server · PostgreSQL · MySQL/MariaDB · plugins"]
+    QB --> DB[("Base de datos<br/>de la empresa")]
+    Prov --> DB
+    API --> Meta[("Metadata del servicio<br/>SQLite · PostgreSQL · SQL Server")]
 ```
 
-Pruebas:
-
-```bash
-cd backend
-dotnet test tests/Mantenedores.Tests              # unitarias, sin dependencias
-dotnet test tests/Mantenedores.IntegrationTests   # contra bases reales en contenedores (requiere Docker)
-
-# Por defecto usan las versiones mínimas; para probar otra:
-MANTENEDORES_PG_IMAGE=postgres:16 MANTENEDORES_MSSQL_IMAGE=mcr.microsoft.com/mssql/server:2022-latest \
-MANTENEDORES_MYSQL_IMAGE=mysql:8.4 MANTENEDORES_MARIADB_IMAGE=mariadb:11.4 \
-  dotnet test tests/Mantenedores.IntegrationTests
-```
+- **SQL seguro:** tablas y columnas solo desde el catálogo leído, siempre delimitadas; los valores, siempre como parámetros.
+- **Las diferencias entre motores** viven solo en cada proveedor; todos pasan la misma batería de pruebas contra bases reales.
+- **Todo por configuración:** cada pieza tiene un valor por defecto que funciona sin servicios externos (sin nube, sin
+  Redis, sin proveedor de identidad obligatorio).
 
 ## Configuración
 
+Lo más usado (como variables de entorno):
+
 | Clave | Para qué |
 |---|---|
-| `Auth__Mode` | `Local` (usuarios en la configuración, por defecto) o `Jwt` (Duende IdentityServer, Keycloak, Entra ID u otro emisor). |
-| `Auth__JwtKey` | Clave para firmar tokens del modo `Local` (mín. 32 caracteres). **Obligatoria en ese modo**. |
-| `Auth__Jwt__Authority` / `Auth__Jwt__ClientId` | Emisor OIDC y cliente público para el login con PKCE desde la UI (modo `Jwt`). |
-| `Auth__Users__0__Username` / `Auth__Users__0__PasswordHash` / `Auth__Users__0__Roles__0` | Usuarios del modo `Local`. El hash se genera con `dotnet run --project backend/src/Mantenedores.Api -- hash-password "clave"`. |
-| `Storage__DataDirectory` | Carpeta de datos (metadata SQLite y llaves de cifrado por defecto). Por defecto `data/`. |
-| `Metadata__Provider` | Dónde guarda la app sus conexiones: `Sqlite` (por defecto), `Postgres` o `SqlServer` (con `Metadata__ConnectionString`). |
-| `DataProtection__KeyStore` | Llaves de cifrado en `FileSystem` (por defecto) o en la base de metadata (`Database`), necesario para varias instancias. |
-| `Crud__CommandTimeoutSeconds` | Tiempo máximo por consulta. Por defecto 30. |
-| `Hosting__PathBase` | Subruta de publicación, p. ej. `/mantenedores`. Por defecto la raíz. |
-| `Hosting__ForwardedHeaders__Enabled` | Activa `X-Forwarded-*` detrás de un proxy (HTTPS terminado en nginx, IIS, Traefik…). |
+| `Auth__Mode` | `Local` (usuarios en la configuración, por defecto) o `Jwt` (cualquier emisor OIDC). |
+| `Auth__JwtKey` | Clave para firmar los tokens del modo `Local` (mín. 32 caracteres). |
+| `Metadata__Provider` | Dónde guarda la app sus conexiones y ajustes: `Sqlite` (por defecto), `Postgres` o `SqlServer`. |
+| `Hosting__PathBase` | Subruta de publicación, p. ej. `/mantenedores`. |
+| `Cache__Provider` | `Memory` (por defecto) o `Redis`, para varias instancias. |
 
-Referencia completa, con todas las claves y sus valores por defecto: [docs/configuracion.md](docs/configuracion.md).
-Cómo instalar en Docker, Kubernetes, IIS, servicio de Windows o systemd: [docs/despliegue.md](docs/despliegue.md).
+Todas las claves y sus valores por defecto: [docs/configuracion.md](docs/configuracion.md).
 
-Health checks sin autenticación: `/api/health/live` (proceso vivo) y `/api/health/ready` (listo para atender).
+> La carpeta de datos (`Storage__DataDirectory`) guarda las llaves que descifran las cadenas de conexión:
+> respáldala y protégela.
 
-> La carpeta de datos contiene las llaves que descifran las cadenas de conexión: respáldala
-> y protégela. Si se pierde, hay que volver a ingresar las conexiones.
+## Desarrollo
 
-## API
+Requisitos: .NET 8 SDK, Node 20+ y Docker (para las pruebas de integración).
 
-Todas las rutas (salvo `auth/config`, `auth/login` y health) requieren `Authorization: Bearer <token>`: del login local o del proveedor de identidad.
+```bash
+cd backend && dotnet run --project src/Mantenedores.Api   # API en :5080 (admin / admin en Development)
+cd frontend && npm install && npm run dev                 # UI en :5173 (redirige /api a la API)
+```
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| GET | `/api/auth/config` | Modo de autenticación y datos públicos para el login (sin secretos) |
-| POST | `/api/auth/login` | Solo modo `Local`: `{ username, password }` → `{ token }` |
-| GET | `/api/auth/me` | Nombre, roles, si es administrador y permisos |
-| GET | `/api/connections` | Lista conexiones (sin la cadena de conexión) |
-| PUT | `/api/connections/{id}` | Crea o edita. Si `connectionString` va vacío, se conserva la anterior. Permiso `ManageConnections` |
-| POST | `/api/connections/test` | Prueba sin guardar. Permiso `ManageConnections` |
-| DELETE | `/api/connections/{id}` | Elimina la conexión (no toca la base). Permiso `ManageConnections` |
-| GET | `/api/meta/{conn}/tables` | Tablas y vistas descubiertas |
-| GET | `/api/meta/{conn}/tables/{schema}/{table}` | Definición completa (columnas, PK, FK) |
-| POST | `/api/meta/{conn}/refresh` | Vuelve a leer el esquema |
-| GET | `/api/meta/{conn}/diff` | Cambios del esquema desde la referencia y ajustes sin efecto |
-| POST | `/api/meta/{conn}/diff/accept` | Toma el esquema actual como referencia. Permiso `ConfigureTables` |
-| GET | `/api/meta/{conn}/overrides[/{schema}/{table}]` | Ajustes de los mantenedores ([docs/ajustes.md](docs/ajustes.md)) |
-| PUT / DELETE | `/api/meta/{conn}/overrides/{schema}/{table}` | Guarda o quita el ajuste de una tabla. Permiso `ConfigureTables` |
-| POST | `/api/meta/{conn}/overrides/{schema}/{table}/preview` | Vista previa de un ajuste sin guardarlo. Permiso `ConfigureTables` |
-| GET | `/api/data/{conn}/{schema}/{table}` | Lista. `?page=1&pageSize=25&sort=nombre,-precio&q=texto&f.categoria_id=2`. `f.` = contiene (textos) o igual; `e.` = igual exacto, también en textos (`e.pedido_id=5`) |
-| GET | `/api/data/{conn}/{schema}/{table}/row?{pk}=…` | Un registro. PK compuesta: `?PedidoId=1&Linea=2` |
-| POST | `/api/data/{conn}/{schema}/{table}` | Crea. Devuelve la fila creada |
-| PUT | `/api/data/{conn}/{schema}/{table}/row?{pk}=…` | Actualiza |
-| DELETE | `/api/data/{conn}/{schema}/{table}/row?{pk}=…` | Elimina |
-| GET | `/api/data/{conn}/{schema}/{table}/lookup?q=…` | `[{ value, label }]` para combos de FK |
-| GET | `/api/data/{conn}/{schema}/{table}/tree?parent=…` | Árbol de una tabla con autorreferencia, un nivel por llamada (`[{ value, label, hasChildren }]`); sin `parent`, las raíces |
-| GET | `/api/data/{conn}/{schema}/{table}/export?format=csv\|xlsx\|json\|xml` | Exporta el listado con los mismos filtros, búsqueda y orden, sin paginar (tope `Crud:ExportMaxRows`) |
-| POST | `/api/data/{conn}/{schema}/{table}/import/preview` | Multipart `file` (+ `mapping` opcional): asociación de columnas y errores por fila, sin grabar |
-| POST | `/api/data/{conn}/{schema}/{table}/import` | Igual, y si no hay errores inserta todo en una transacción |
-| GET | `/api/data/{conn}/{schema}/{table}/row/links/{relación}?{pk}=…` | Valores vinculados por una relación N:M (`[{ value, label }]`) |
-| PUT | `/api/data/{conn}/{schema}/{table}/row/links/{relación}?{pk}=…` | Reemplaza la lista completa (`[1, 2, 3]`) en una transacción |
-| GET | `/api/data/{conn}/{schema}/{table}/row/file/{columna}?{pk}=…` | Descarga el archivo de una columna binaria (imágenes y PDF se ven en el navegador; `&download=1` fuerza la descarga) |
+Pruebas y chequeos:
 
-En los listados, cada FK de una columna trae además `<columna>__label` con el texto de la tabla referenciada, y cada
-columna de archivo, `<columna>__size` con su tamaño en bytes (el contenido no viaja en el listado). Un archivo se
-guarda enviando su contenido en base64 (admite `data:…;base64,`) en el alta o la edición; `null` lo quita.
-Los arreglos de PostgreSQL viajan como listas JSON (`["a", "b"]`).
+```bash
+cd backend && dotnet test tests/Mantenedores.Tests              # unitarias
+cd backend && dotnet test tests/Mantenedores.IntegrationTests   # los cuatro motores en contenedores
+cd frontend && npm run lint && npm run build                    # incluye el chequeo de traducciones
+```
 
-## Qué cubre la Fase 1
+Las pruebas de integración usan las versiones mínimas; para otra, `MANTENEDORES_PG_IMAGE=postgres:16` y similares
+([configuracion.md](docs/configuracion.md#pruebas-de-integración)).
 
-- Lectura de tablas, vistas, columnas, PK (simples y compuestas), únicos y FK en ambos motores.
-- Tipos: texto, números, booleanos, fechas (con y sin zona), hora, UUID, JSON y enums de Postgres.
-- Identity, serial, columnas calculadas y `rowversion` se detectan como solo lectura.
-- Inserción en SQL Server compatible con tablas que tienen triggers (`OUTPUT … INTO`).
-- Vistas y tablas sin PK: solo lectura.
-- Errores del motor (FK, únicos, CHECK) se muestran al usuario.
+<details>
+<summary>Estructura del repositorio</summary>
 
-**Pendiente para fases siguientes**: personalización (etiquetas, campos ocultos, columna a mostrar),
-maestro-detalle, N:M con selección múltiple, permisos por rol, auditoría, concurrencia optimista,
-SSO, caché distribuida. (Los tipos especiales ya están: arreglos, archivos, `geography`/`geometry` y `hierarchyid` como texto, P-018.)
+```
+backend/
+  src/Mantenedores.Core                  Modelo de esquema, QueryBuilder y servicios (sin dependencia de motor)
+  src/Mantenedores.Providers.SqlServer   Catálogo y dialecto de SQL Server
+  src/Mantenedores.Providers.Postgres    Catálogo y dialecto de PostgreSQL
+  src/Mantenedores.Providers.MySql       Catálogo y dialecto de MySQL / MariaDB
+  src/Mantenedores.Metadata              Metadata del servicio y sus migraciones
+  src/Mantenedores.Api                   API, autenticación e infraestructura
+  tests/                                 Unitarias, integración (Testcontainers) y plugin de prueba
+frontend/                                React + Vite + TanStack Query
+samples/                                 Bases de ejemplo por motor, Keycloak y Duende de prueba
+tests/load/                              Prueba de carga con k6
+docs/                                    Documentación y memoria del proyecto
+```
+
+</details>
+
+## Documentación
+
+| Documento | Contenido |
+|---|---|
+| [configuracion.md](docs/configuracion.md) | Todas las claves de configuración |
+| [despliegue.md](docs/despliegue.md) | Docker, Kubernetes, nginx, IIS, servicio de Windows, systemd |
+| [ajustes.md](docs/ajustes.md) | Qué se puede ajustar por tabla y columna |
+| [seguridad.md](docs/seguridad.md) | Perfiles, permisos y auditoría |
+| [api.md](docs/api.md) | Rutas de la API |
+| [motores.md](docs/motores.md) | Diferencias entre motores y cómo agregar uno |
+| [carga.md](docs/carga.md) | Pruebas de carga y resultados |
+| [memoria/](docs/memoria/README.md) | Estado, decisiones y pendientes del proyecto |

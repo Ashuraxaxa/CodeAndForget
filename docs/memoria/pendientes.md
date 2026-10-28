@@ -5,9 +5,8 @@
 
 El detalle de cada bloque y su criterio de "listo" está en [../siguientes-pasos.md](../siguientes-pasos.md).
 
-**Al 2026-10-28 (PR #36) no queda trabajo de código pendiente.** Quedan tres puntos que no se pueden hacer desde aquí:
-- **P-005:** borrar ramas ya fusionadas, desde GitHub (dueño).
-- **P-097:** k6 contra un servidor como el de producción (dueño).
+**Al 2026-10-28 no queda trabajo de código pendiente.** Quedan dos puntos que no se pueden hacer desde aquí:
+- **P-097:** k6 contra un servidor como el de producción (el dueño lo hará más adelante).
 - **P-062:** otros motores, solo si un equipo los pide (ahora como plugin, D-092).
 
 ---
@@ -16,7 +15,7 @@ El detalle de cada bloque y su criterio de "listo" está en [../siguientes-pasos
 
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
-| P-005 | Borrar la rama `feature/fase1-mantenedores` (ya fusionada) | ⚪ | ⏳ dueño, desde GitHub |
+| P-005 | Borrar la rama `feature/fase1-mantenedores` (ya fusionada) | ⚪ | ✅ 2026-10-28 · el dueño borró las ramas fusionadas |
 
 ## M. Multi-motor: MySQL/MariaDB (D-034, antes de la Fase 2) · ✅ completo (PR #7 y #8)
 
@@ -82,6 +81,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-061 | Procedimientos almacenados y funciones como acciones de una tabla, con permiso `execute` (D-088) | ⚪ | ✅ PR #35 |
 | P-062 | Otros motores (Oracle, SQLite, Db2, Firebird…) solo si un equipo los pide; ahora pueden ir como plugin (D-092) | ⚪ | ⏳ a pedido |
 | P-063 | Guía "cómo agregar un motor" | ✅ 2026-10-27 · en `docs/motores.md` (la batería común pasó a P-002) |
+| P-105 | Interfaz renovada: tema día/noche con selector, íconos, fuente propia, README nuevo en español e inglés (D-093) | 🟡 | ✅ PR #37 |
 | P-064 | Cargar proveedores como plugins desde una carpeta, sin recompilar; nombre de motor abierto (D-092) | ⚪ | ✅ PR #36 |
 
 ---

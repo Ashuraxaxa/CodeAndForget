@@ -6,6 +6,17 @@
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mantenedores</title>
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <!-- Tema guardado (Auto / Día / Noche) antes de dibujar, para que no parpadee. Igual que src/theme/theme.ts. -->
+    <script>
+      (function () {
+        var t = null
+        try { t = localStorage.getItem('mantenedores.theme') } catch (e) {}
+        var dark = t === 'dark' || (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

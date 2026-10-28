@@ -37,7 +37,7 @@ export const ru: Messages = {
   'Aceptando…': 'Принятие…',
   'Aceptar cambios': 'Принять изменения',
   'Ajustes sin efecto': 'Недействующие настройки',
-  '(se ignoran; corríjalos en ⚙ Configurar)': '(игнорируются; исправьте их в ⚙ Настроить)',
+  '(se ignoran; corríjalos en Configurar)': '(игнорируются; исправьте их в Настроить)',
   'Sin registros': 'Нет записей',
   'Contraer': 'Свернуть',
   'Expandir': 'Развернуть',
@@ -338,4 +338,11 @@ export const ru: Messages = {
   'Columna {name}': 'Столбец {name}',
   'Pregunta antes de ejecutar (opcional), p. ej. ¿Anular el pedido?': 'Вопрос перед запуском (необязательно), напр. «Отменить заказ?»',
   'Ejecutar acciones': 'Запуск действий',
+  // Interfaz renovada (D-093)
+  'Tema automático (el del sistema)': 'Автоматическая тема (как в системе)',
+  'Tema de día': 'Светлая тема',
+  'Tema de noche': 'Тёмная тема',
+  'Tema': 'Тема',
+  'Bienvenido': 'Добро пожаловать',
+  'Clave primaria': 'Первичный ключ',
 }

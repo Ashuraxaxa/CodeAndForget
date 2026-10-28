@@ -819,6 +819,19 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Recarga en caliente: obliga a descargar contextos con conexiones abiertas; reiniciar es simple y raro.
   - Dejar el enum y mapear los plugins a un valor "Otro": varios plugins no se podrían distinguir.
 
+### D-093 · Interfaz renovada con tema día y noche
+- **Estado:** Vigente · 2026-10-28 (P-105)
+- **Qué:**
+  - **Tema:** Auto (el del sistema), Día o Noche, con selector en la barra superior y en el login. Se recuerda en `localStorage` (`mantenedores.theme`). Un script en `index.html` lo aplica antes de dibujar, para que no parpadee. `src/theme/theme.ts` pone `data-theme` en `<html>`.
+  - **Estilos:** todos los colores salen de variables en `index.css` (`:root` y `[data-theme='dark']`); ningún componente usa colores fijos.
+  - **Íconos:** `lucide-react` (SVG, solo los usados entran al build) en lugar de símbolos de texto; los botones de solo ícono llevan `aria-label` y `title` traducidos.
+  - **Fuente:** Inter empaquetada con la app (`@fontsource-variable/inter`), sin pedirla a Google Fonts (D-022).
+  - Grilla con encabezado fijo, acciones con ícono, barra superior con usuario, y login renovado.
+  - En teléfono, la barra se compacta a íconos.
+- **Descartado:**
+  - Una librería de componentes (Tailwind + shadcn/ui, Mantine): obligaba a rehacer casi todas las pantallas y sumaba peso y dependencias para un resultado parecido.
+  - Seguir solo a `prefers-color-scheme` como antes: no dejaba elegir.
+
 ---
 
 ## Propuestas (aún no decididas)

@@ -37,7 +37,7 @@ export const en: Messages = {
   'Aceptando…': 'Accepting…',
   'Aceptar cambios': 'Accept changes',
   'Ajustes sin efecto': 'Settings with no effect',
-  '(se ignoran; corríjalos en ⚙ Configurar)': '(ignored; fix them in ⚙ Configure)',
+  '(se ignoran; corríjalos en Configurar)': '(ignored; fix them in Configure)',
   'Sin registros': 'No records',
   'Contraer': 'Collapse',
   'Expandir': 'Expand',
@@ -338,4 +338,11 @@ export const en: Messages = {
   'Columna {name}': 'Column {name}',
   'Pregunta antes de ejecutar (opcional), p. ej. ¿Anular el pedido?': 'Question before running (optional), e.g. Void the order?',
   'Ejecutar acciones': 'Run actions',
+  // Interfaz renovada (D-093)
+  'Tema automático (el del sistema)': 'Automatic theme (follows the system)',
+  'Tema de día': 'Light theme',
+  'Tema de noche': 'Dark theme',
+  'Tema': 'Theme',
+  'Bienvenido': 'Welcome',
+  'Clave primaria': 'Primary key',
 }

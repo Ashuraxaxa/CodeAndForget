@@ -4,6 +4,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · README nuevo e interfaz renovada (P-105)
+- El dueño fusionó los PR #33 a #36 y borró las ramas viejas (P-005). Pidió un README moderno, que se eligió bilingüe (español e inglés), y una interfaz con modo día/noche, con CSS propio y sin librería de componentes.
+- README con capturas que cambian con el tema de GitHub, inicio rápido y funciones. La tabla de rutas pasó a `docs/api.md`, con las rutas nuevas.
+- Tema Auto/Día/Noche sin parpadeo al cargar. Probado en el navegador: se recuerda, en Auto sigue al sistema y queda marcado el elegido.
+- Íconos lucide en lugar de símbolos; Inter empaquetada; grilla con encabezado fijo; barra que en teléfono se compacta. Hallazgo: en 390 px la barra se salía de la pantalla; se resolvió ocultando textos.
+
 ## 2026-10-28 · Pendientes, lote C (P-050, P-064, P-078) y cierre
 - **Redis opcional:** dos APIs reales con un Redis compartido sumaron el límite de login entre las dos (la cuarta respuesta fue 429). Con Redis apagado siguieron respondiendo en milisegundos. Probado con Redis 6.2 y Valkey 8.
 - **Plugins:** hizo falta que `DatabaseEngine` dejara de ser enum. Hallazgo: el archivo de conexiones y el `connections.json` de la Fase 1 guardaban el motor como número; se siguen leyendo. En el navegador, el motor del plugin apareció en el selector, la conexión se probó (13 tablas) y se listaron sus tablas.

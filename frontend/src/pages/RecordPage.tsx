@@ -1,3 +1,4 @@
+import { ArrowLeft, History } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -183,8 +184,8 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks,
         <h1>{viewOnly && isEdit ? t('Registro · {table}', { table: labelOf(meta) }) : isEdit ? t('Editar registro · {table}', { table: labelOf(meta) }) : t('Nuevo registro · {table}', { table: labelOf(meta) })}</h1>
         <div className="actions">
           {isEdit && <RecordActions conn={conn} meta={meta} recordKey={recordKey} onDone={onReload} setResult={setActionRun} />}
-          {isEdit && canAudit && <Link to={historyUrl}>{t('Historial')}</Link>}
-          <Link to={back}>{returnTo ? '‹ ' + t('Volver') : '‹ ' + t('Volver a la lista')}</Link>
+          {isEdit && canAudit && <Link className="back-link" to={historyUrl}><History size={16} aria-hidden />{t('Historial')}</Link>}
+          <Link className="back-link" to={back}><ArrowLeft size={16} aria-hidden />{returnTo ? t('Volver') : t('Volver a la lista')}</Link>
         </div>
       </div>
 

@@ -395,6 +395,11 @@ Auth__Jwt__Scopes="openid profile api://<client-id-de-la-api>/acceso"
 
 `GET /api/auth/config` (anónimo) devuelve a la UI el modo, el `authority`, el `clientId`, los scopes y el nombre del proveedor; **nunca** devuelve llaves. `GET /api/auth/me` devuelve el nombre, los roles, si es administrador y sus permisos (`permissions`).
 
+## Tema de la interfaz
+
+No tiene claves en el servidor (D-093). Cada usuario elige **Auto** (el del sistema), **Día** o **Noche** en la barra
+superior o en el login, y se recuerda en su navegador. En Auto, la app cambia sola si el sistema cambia.
+
 ## Idioma de la interfaz
 
 No tiene claves en el servidor (D-076). Cada usuario elige español, inglés o ruso en la barra superior o en el

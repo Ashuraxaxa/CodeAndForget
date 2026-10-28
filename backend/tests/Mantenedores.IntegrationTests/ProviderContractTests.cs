@@ -229,7 +229,8 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
     [Fact]
     public async Task Lookup_para_combos_de_fk()
     {
-        var items = await Db.Crud.LookupAsync(Conn, Schema, N("categoria"), "beb", 20, default);
+        // "bebi" y no "beb": otras pruebas crean categorías con códigos hexadecimales (UniqueCode), que pueden traer "BEB".
+        var items = await Db.Crud.LookupAsync(Conn, Schema, N("categoria"), "bebi", 20, default);
         var item = Assert.Single(items);
         Assert.Equal("Bebidas", item.Label);
         Assert.Equal(1L, Convert.ToInt64(item.Value));

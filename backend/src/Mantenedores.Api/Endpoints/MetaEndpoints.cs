@@ -11,7 +11,7 @@ public static class MetaEndpoints
     public sealed record TableSummary(
         string Schema, string Name, TableKind Kind, bool Editable, bool HasPrimaryKey,
         string? DisplayColumn, int Columns, int ForeignKeys, int ReferencedBy,
-        string? Label, string? Group, bool Hidden);
+        string? Label, string? Group, bool Hidden, IReadOnlyList<string> Access);
 
     /// <summary><c>Warnings</c>: ajustes que no se pudieron aplicar (p. ej. una columna borrada de la base).</summary>
     public sealed record SchemaSummary(string Hash, DateTimeOffset ReadAt, IReadOnlyList<TableSummary> Tables, IReadOnlyList<string> Warnings);
@@ -42,7 +42,8 @@ public static class MetaEndpoints
             schemas.AcceptSchemaAsync(conn, user.Identity?.Name, ct))
             .RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
 
-        // --- Ajustes por tabla (P-011). Leer: cualquier usuario; cambiar: permiso ConfigureTables (D-053). ---
+        // --- Ajustes por tabla (P-011). Leer y cambiar: permiso ConfigureTables (D-053); nombran tablas y columnas
+        // que un perfil puede ocultar (D-067). Lo que el usuario necesita ya viene aplicado en /tables. ---
 
         group.MapGet("/overrides", async (string conn, SchemaService schemas, CancellationToken ct) =>
         {
@@ -50,13 +51,13 @@ public static class MetaEndpoints
             var all = await schemas.Overrides.ListAsync(conn, ct);
             return all.Select(kv => new OverrideEntry(kv.Key.Schema, kv.Key.Table, kv.Value))
                 .OrderBy(e => e.Schema).ThenBy(e => e.Table).ToList();
-        });
+        }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
 
         group.MapGet("/overrides/{schema}/{table}", async (string conn, string schema, string table, SchemaService schemas, CancellationToken ct) =>
         {
             var info = await RawTableAsync(schemas, conn, schema, table, ct);
             return await FindAsync(schemas, conn, info, ct) ?? new TableOverride();
-        });
+        }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
 
         // Reemplaza el ajuste completo de la tabla y devuelve la tabla ya combinada (sirve de vista previa).
         group.MapPut("/overrides/{schema}/{table}", async (string conn, string schema, string table, TableOverride body,
@@ -129,6 +130,6 @@ public static class MetaEndpoints
         s.Tables.Select(t => new TableSummary(
             t.Schema, t.Name, t.Kind, t.IsEditable, t.HasPrimaryKey, t.DisplayColumn,
             t.Columns.Count, t.ForeignKeys.Count, t.ReferencedBy.Count,
-            t.Label, t.Group, t.Hidden)).ToList(),
+            t.Label, t.Group, t.Hidden, Mantenedores.Core.Security.DataOperations.ToNames(t.Access))).ToList(),
         s.OverrideWarnings);
 }

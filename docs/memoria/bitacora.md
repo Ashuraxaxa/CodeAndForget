@@ -4,6 +4,15 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Fase 3: perfiles y permisos (P-040, P-042)
+- Perfiles en la metadata (`mnt_profile`, `mnt_user`, migración `004_security`), con roles, usuarios, permisos de la app y permisos por conexión, tabla y columna.
+- Se aplican recortando el esquema por usuario y con 403 en las operaciones (D-067). Sin perfiles, todo sigue abierto.
+- Login de usuarios propios; desactivarlos corta su sesión. Nuevo permiso `ManageSecurity` (rol `mnt-seguridad`).
+- Pantalla **Seguridad**; la UI oculta Nuevo, Editar, Eliminar, Exportar e Importar según el perfil.
+- Las pruebas encontraron un bug: editar un usuario sin mandar el nombre lo borraba. Corregido.
+- 172 unitarias y 205 de integración en verde; recorrido en navegador.
+- **Siguiente:** P-044, auditoría de cambios.
+
 ## 2026-10-28 · Fase 3: decisiones de seguridad, migraciones y secretos
 - El dueño respondió el apartado de seguridad:
   - usuarios propios y del proveedor de identidad;

@@ -117,7 +117,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
           <div className="muted small">{total} registros</div>
           <div className="actions">
             <input className="search" placeholder="Buscar en textos…" value={search} onChange={e => setSearch(e.target.value)} />
-            {meta.isEditable && <Link className="button primary" to={newUrl}>Nuevo</Link>}
+            {meta.canCreate && <Link className="button primary" to={newUrl}>Nuevo</Link>}
           </div>
         </div>
       ) : (
@@ -129,21 +129,22 @@ export function Grid({ conn, meta, fixed, returnTo }: {
             {meta.kind === 'View' && <span className="tag">vista · solo lectura</span>}
             {meta.kind === 'Table' && !meta.hasPrimaryKey && <span className="tag">sin PK · solo lectura</span>}
             {meta.kind === 'Table' && meta.hasPrimaryKey && meta.forcedReadOnly && <span className="tag">solo lectura</span>}
+            {meta.isEditable && !meta.canCreate && !meta.canUpdate && !meta.canDelete && <span className="tag">solo consulta</span>}
           </div>
         </div>
         <div className="actions">
           <input className="search" placeholder="Buscar en textos…" value={search} onChange={e => setSearch(e.target.value)} />
-          <select className="export" value="" title="Exportar lo que muestra la grilla (filtros, búsqueda y orden)"
+          {meta.canExport && <select className="export" value="" title="Exportar lo que muestra la grilla (filtros, búsqueda y orden)"
             disabled={exporting} onChange={e => e.target.value && exportAs(e.target.value as TransferFormat)}>
             <option value="">{exporting ? 'Exportando…' : '⤓ Exportar'}</option>
             <option value="csv">CSV</option>
             <option value="xlsx">Excel</option>
             <option value="json">JSON</option>
             <option value="xml">XML</option>
-          </select>
-          {meta.isEditable && <Link className="button" to={`${base}/import`}>⤒ Importar</Link>}
+          </select>}
+          {meta.canImport && <Link className="button" to={`${base}/import`}>⤒ Importar</Link>}
           {canConfigure && <Link className="button" to={`${base}/config`} title="Ajustar etiquetas, columnas y validaciones">⚙ Configurar</Link>}
-          {meta.isEditable && <Link className="button primary" to={newUrl}>Nuevo</Link>}
+          {meta.canCreate && <Link className="button primary" to={newUrl}>Nuevo</Link>}
         </div>
       </div>
       )}
@@ -219,13 +220,16 @@ export function Grid({ conn, meta, fixed, returnTo }: {
                 })}
                 {meta.isEditable && (
                   <td className="actions-col">
-                    <Link to={editUrl(row)}>Editar</Link>
-                    <button
-                      className="link danger"
-                      onClick={() => confirm('¿Eliminar este registro?') && remove.mutate(row)}
-                    >
-                      Eliminar
-                    </button>
+                    {/* Sin permiso de edición el formulario se abre de solo lectura (y muestra las pestañas hijas). */}
+                    <Link to={editUrl(row)}>{meta.canUpdate ? 'Editar' : 'Ver'}</Link>
+                    {meta.canDelete && (
+                      <button
+                        className="link danger"
+                        onClick={() => confirm('¿Eliminar este registro?') && remove.mutate(row)}
+                      >
+                        Eliminar
+                      </button>
+                    )}
                   </td>
                 )}
               </tr>

@@ -13,8 +13,12 @@ public static class AuthEndpoints
     public sealed record AuthConfigResponse(
         AuthMode Mode, string? Authority, string? ClientId, string? Scopes, string? ProviderName);
 
-    /// <summary><c>Permissions</c>: lo que puede hacer el usuario (D-053), para que la UI muestre u oculte acciones.</summary>
-    public sealed record MeResponse(string? Name, IReadOnlyList<string> Roles, bool IsAdmin, IReadOnlyList<string> Permissions);
+    /// <summary>
+    /// <c>Permissions</c>: lo que puede hacer el usuario (D-053), para que la UI muestre u oculte acciones.
+    /// <c>SecurityOpen</c>: no hay perfiles, así que cualquiera ve y edita todos los datos (D-062).
+    /// </summary>
+    public sealed record MeResponse(string? Name, IReadOnlyList<string> Roles, bool IsAdmin, IReadOnlyList<string> Permissions,
+        bool SecurityOpen, IReadOnlyList<string> Profiles);
 
     public static void MapAuth(this IEndpointRouteBuilder app)
     {
@@ -29,13 +33,13 @@ public static class AuthEndpoints
                     o.Jwt.Scopes, o.Jwt.ProviderName);
         }).AllowAnonymous();
 
-        app.MapPost("/api/auth/login", (LoginRequest req, TokenService tokens, IOptions<AuthOptions> options) =>
+        app.MapPost("/api/auth/login", async (LoginRequest req, TokenService tokens, IOptions<AuthOptions> options, CancellationToken ct) =>
         {
             if (options.Value.Mode != AuthMode.Local)
                 return Results.Problem("El inicio de sesión lo hace el proveedor de identidad configurado.",
                     statusCode: 404, title: "Login local desactivado");
 
-            var user = string.IsNullOrWhiteSpace(req.Username) ? null : tokens.Validate(req.Username, req.Password ?? "");
+            var user = string.IsNullOrWhiteSpace(req.Username) ? null : await tokens.ValidateAsync(req.Username, req.Password ?? "", ct);
             if (user is null)
                 return Results.Problem("Usuario o contraseña incorrectos.", statusCode: 401, title: "No autorizado");
 
@@ -44,11 +48,12 @@ public static class AuthEndpoints
         }).AllowAnonymous();
 
         // Quién soy: nombre y roles ya normalizados desde los claims del emisor.
-        app.MapGet("/api/auth/me", (ClaimsPrincipal user, IOptions<AuthOptions> options) =>
+        app.MapGet("/api/auth/me", async (ClaimsPrincipal user, HttpContext http, HttpAccessContext access, IOptions<AuthOptions> options, CancellationToken ct) =>
         {
-            var roles = user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+            var roles = Permissions.Roles(user);
+            var mine = await access.ForAsync(user, http, ct);
             return new MeResponse(user.Identity?.Name, roles, ClaimsMapper.IsAdmin(roles, options.Value.AdminRoles),
-                Permissions.Granted(options.Value, roles));
+                await access.PermissionsAsync(user, http, ct), mine.IsOpen, mine.ProfileNames);
         }).RequireAuthorization();
     }
 }

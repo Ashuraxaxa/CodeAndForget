@@ -2,6 +2,7 @@ using System.Security.Cryptography.X509Certificates;
 using Mantenedores.Core.Connections;
 using Mantenedores.Core.Overrides;
 using Mantenedores.Core.Schema;
+using Mantenedores.Core.Security;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Configuration;
@@ -37,6 +38,7 @@ public static class MetadataSetup
                 Path.Combine(dataDirectory, "connections.json"), sp.GetRequiredService<IDataProtectionProvider>()));
             services.AddSingleton<IOverrideStore>(new FileOverrideStore(Path.Combine(dataDirectory, "overrides.json")));
             services.AddSingleton<ISchemaSnapshotStore>(new FileSnapshotStore(Path.Combine(dataDirectory, "snapshots")));
+            services.AddSingleton<ISecurityStore>(new FileSecurityStore(Path.Combine(dataDirectory, "security.json")));
             return;
         }
 
@@ -45,6 +47,7 @@ public static class MetadataSetup
         services.AddSingleton<IConnectionStore>(sp => sp.GetRequiredService<SqlConnectionStore>());
         services.AddSingleton<IOverrideStore, SqlOverrideStore>();
         services.AddSingleton<ISchemaSnapshotStore, SqlSnapshotStore>();
+        services.AddSingleton<ISecurityStore, SqlSecurityStore>();
 
         if (protection.KeyStore == KeyStore.Database)
             services.AddOptions<KeyManagementOptions>()

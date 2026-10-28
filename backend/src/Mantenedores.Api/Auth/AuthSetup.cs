@@ -73,15 +73,25 @@ public static class AuthSetup
                 if (j.SigningKey.Length > 0) p.IssuerSigningKey = TokenService.SigningKey(j.SigningKey);
             }
 
-            o.Events = new JwtBearerEvents { OnTokenValidated = ctx => Normalize(ctx, auth) };
+            o.Events = new JwtBearerEvents { OnTokenValidated = async ctx =>
+            {
+                await Normalize(ctx, auth);
+                if (auth.Mode == AuthMode.Local && ctx.Result is null && ctx.Principal?.Identity?.Name is { } name &&
+                    !await ctx.HttpContext.RequestServices.GetRequiredService<TokenService>().IsActiveAsync(name, ctx.HttpContext.RequestAborted))
+                    ctx.Fail("El usuario fue desactivado.");
+            } };
         });
 
+        services.AddHttpContextAccessor();
+        services.AddSingleton<HttpAccessContext>();
+        services.AddSingleton<Mantenedores.Core.Security.IAccessContext>(sp => sp.GetRequiredService<HttpAccessContext>());
+        services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, PermissionHandler>();
         services.AddAuthorization(o =>
         {
             o.AddPolicy(AdminPolicy, p => p.RequireAssertion(ctx =>
                 ClaimsMapper.IsAdmin(ctx.User.FindAll(ClaimTypes.Role).Select(c => c.Value), auth.AdminRoles)));
             foreach (var permission in Permissions.All)
-                o.AddPolicy(Permissions.Policy(permission), p => p.RequireAssertion(ctx => Permissions.Has(auth, ctx.User, permission)));
+                o.AddPolicy(Permissions.Policy(permission), p => p.RequireAuthenticatedUser().AddRequirements(new PermissionRequirement(permission)));
         });
     }
 

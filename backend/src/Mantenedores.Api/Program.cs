@@ -4,6 +4,7 @@ using Mantenedores.Api.Endpoints;
 using Mantenedores.Api.Infrastructure;
 using Mantenedores.Core.Connections;
 using Mantenedores.Core.Providers;
+using Mantenedores.Core.Security;
 using Mantenedores.Core.Services;
 using Mantenedores.Metadata;
 using Mantenedores.Providers.MySql;
@@ -49,6 +50,7 @@ builder.Services.AddSingleton<ProviderRegistry>();
 
 builder.Services.AddSingleton(builder.Configuration.GetSection("Crud").Get<CrudOptions>() ?? new CrudOptions());
 builder.Services.AddSingleton(new SecretResolver(builder.Configuration.GetSection(SecretOptions.Section).Get<SecretOptions>() ?? new SecretOptions()));
+builder.Services.AddSingleton<SecurityService>();
 builder.Services.AddSingleton<SchemaService>();
 builder.Services.AddSingleton<CrudService>();
 
@@ -73,6 +75,7 @@ app.MapAuth();
 app.MapConnections();
 app.MapMeta();
 app.MapData();
+app.MapSecurity();
 // Una ruta /api desconocida es 404; cualquier otra ruta la resuelve el router del frontend.
 app.Map("/api/{**rest}", () => Results.NotFound()).AllowAnonymous();
 app.MapSpaIndex();

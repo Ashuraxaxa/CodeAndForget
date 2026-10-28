@@ -42,7 +42,7 @@ public sealed class MetadataStoreTests : IDisposable
         var first = await new MetadataMigrator(db).MigrateAsync();
         var second = await new MetadataMigrator(db).MigrateAsync();
 
-        Assert.Equal(["001_conexiones", "002_overrides", "003_schema_snapshot"], first);
+        Assert.Equal(["001_conexiones", "002_overrides", "003_schema_snapshot", "004_security"], first);
         Assert.Empty(second);
         Assert.True(File.Exists(Path.Combine(_root, "mantenedores.db")));
     }

@@ -112,6 +112,7 @@ Dos modos (D-024). El mismo build sirve para cualquiera: solo cambia la configur
 | `Auth:AdminRoles` | `["admin"]` | Roles de administrador: tienen **todos** los permisos. Se comparan sin distinguir mayúsculas. |
 | `Auth:Permissions:ConfigureTables` | `["mnt-configurador"]` | Roles que pueden **configurar mantenedores** (ajustes por tabla y columna, botón ⚙ Configurar). |
 | `Auth:Permissions:ManageConnections` | `["mnt-conexiones"]` | Roles que pueden **crear, editar, probar y borrar conexiones**. Ver y abrir conexiones no exige permiso. |
+| `Auth:Permissions:ManageSecurity` | `["mnt-seguridad"]` | Roles que pueden **administrar la seguridad**: perfiles, usuarios propios y permisos (D-066). |
 
 **Permisos (D-053).** Cada acción sensible tiene su propio permiso, y cada permiso se otorga a uno o más roles.
 Así se le puede dar a una persona solo lo que necesita, asignándole el rol en el proveedor de identidad (modo `Jwt`)
@@ -122,8 +123,9 @@ o en `Auth:Users:N:Roles` (modo `Local`). Por ejemplo, para que el rol `analista
 ```
 
 o, por variable de entorno, `Auth__Permissions__ConfigureTables__0=analista-datos`. Un nombre de permiso que no existe
-detiene el arranque con un mensaje. Cuando exista el apartado de seguridad propio (perfiles y usuarios, P-040/P-042),
-estos mismos permisos se asignarán a perfiles desde ahí.
+detiene el arranque con un mensaje. Los perfiles del apartado **Seguridad** también otorgan estos permisos, además de
+los permisos sobre los datos por conexión, tabla y columna: ver [`seguridad.md`](seguridad.md). Mientras no exista
+ningún perfil, la seguridad de datos queda abierta (todos ven y editan todo).
 
 ### Modo `Local`
 
@@ -135,6 +137,9 @@ estos mismos permisos se asignarán a perfiles desde ahí.
 | `Auth:Users:N:Username` | — | Usuario N. |
 | `Auth:Users:N:PasswordHash` | — | Hash PBKDF2 de su contraseña (ver abajo). |
 | `Auth:Users:N:Roles:M` | — | Roles del usuario, p. ej. `admin`. |
+
+Además de estos, se pueden crear **usuarios propios** desde **Seguridad → Usuarios** (guardados en la metadata,
+D-062). Si un nombre existe en los dos lados, manda la configuración.
 
 Generar un hash:
 

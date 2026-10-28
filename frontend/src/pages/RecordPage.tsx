@@ -66,7 +66,9 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
   // En alta se ocultan las columnas que genera la BD; en edición se muestran deshabilitadas.
   // Las ocultas por ajuste no se muestran (la PK oculta viaja igual en la clave de la URL).
   const fields = meta.columns.filter(c => c.isSelectable && !c.hidden && (isEdit || !(c.isIdentity || c.isComputed || c.isRowVersion)))
-  const isLocked = (c: Column) => c.isReadOnly || (isEdit && c.isPrimaryKey) || c.name in fixed
+  // Sin permiso para guardar (D-063), el formulario es solo de consulta.
+  const viewOnly = isEdit ? !meta.canUpdate : !meta.canCreate
+  const isLocked = (c: Column) => viewOnly || c.isReadOnly || (isEdit && c.isPrimaryKey) || c.name in fixed
 
   const [values, setValues] = useState<Record<string, string | boolean>>(() =>
     Object.fromEntries(fields.map(c => [c.name, c.name in fixed && !isEdit ? fixed[c.name] : toInputValue(c, row?.[c.name])])))
@@ -126,6 +128,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
 
   function submit(e: FormEvent) {
     e.preventDefault()
+    if (viewOnly) return
     setErrors({})
     save.mutate()
   }
@@ -135,7 +138,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
   return (
     <div className="page">
       <div className="page-header">
-        <h1>{isEdit ? `Editar registro · ${labelOf(meta)}` : `Nuevo registro · ${labelOf(meta)}`}</h1>
+        <h1>{viewOnly && isEdit ? `Registro · ${labelOf(meta)}` : isEdit ? `Editar registro · ${labelOf(meta)}` : `Nuevo registro · ${labelOf(meta)}`}</h1>
         <Link to={back}>{returnTo ? '‹ Volver' : '‹ Volver a la lista'}</Link>
       </div>
 
@@ -178,7 +181,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
                   <span className="muted small"> archivo · {c.nativeType}</span>
                 </span>
                 <FileField conn={conn} schema={meta.schema} table={meta.name} recordKey={isEdit ? recordKey : ''} column={c}
-                  size={row?.[c.name + SIZE_SUFFIX]} value={fileValues[c.name]} disabled={c.isReadOnly}
+                  size={row?.[c.name + SIZE_SUFFIX]} value={fileValues[c.name]} disabled={viewOnly || c.isReadOnly}
                   onChange={v => setFileValues(s => ({ ...s, [c.name]: v }))} />
                 {c.helpText && <span className="hint">{c.helpText}</span>}
                 {errors[c.name] && <span className="field-error">{errors[c.name]}</span>}
@@ -190,7 +193,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
               <span className="field-label">
                 {l.targetTable}<span className="muted small"> · varios, vía {l.bridgeTable}</span>
               </span>
-              <ManyToManySelect id={`m2m-${l.name}`} conn={conn} link={l} value={links[l.name] ?? []}
+              <ManyToManySelect id={`m2m-${l.name}`} conn={conn} link={l} value={links[l.name] ?? []} disabled={viewOnly}
                 onChange={v => setLinks(s => ({ ...s, [l.name]: v }))} />
               {errors[l.name] && <span className="field-error">{errors[l.name]}</span>}
             </label>
@@ -200,8 +203,8 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
         {(generalError || errors._) && <div className="alert">{generalError ?? errors._}</div>}
 
         <div className="actions">
-          <button className="primary" disabled={save.isPending}>{save.isPending ? 'Guardando…' : 'Guardar'}</button>
-          <Link to={back} className="button">Cancelar</Link>
+          {!viewOnly && <button className="primary" disabled={save.isPending}>{save.isPending ? 'Guardando…' : 'Guardar'}</button>}
+          <Link to={back} className="button">{viewOnly ? 'Volver' : 'Cancelar'}</Link>
         </div>
       </form>
 

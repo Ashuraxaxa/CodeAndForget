@@ -272,11 +272,9 @@ Guía de uso: [ajustes.md](ajustes.md). Decisiones: D-049 a D-051.
 conexión, tabla y columna; **sin** filtros de fila; auditoría solo de cambios, por 1 año; permiso específico para
 administrar la seguridad. Los puntos de abajo se ajustan a eso.
 
-1. **Roles desde el token:**
-   - En modo `Jwt`, los roles salen del claim configurado (1.0). La app no administra usuarios: eso lo hace el proveedor de identidad.
-   - En modo `Local`, los usuarios y sus roles pasan de `appsettings` al metadata store.
-2. **Permisos asociados a nombres de rol:** las reglas se guardan en el metadata store y apuntan a nombres de rol, así funcionan igual con cualquier proveedor de identidad.
-3. **Permisos (RBAC)** por conexión, tabla, columna y operación (ver, crear, editar, eliminar, exportar, configurar). Se aplican en `QueryBuilder`; la UI solo oculta lo que no corresponde.
+1. ✅ PR #21 · **Perfiles y usuarios** (D-062, D-067): un perfil reúne roles del token y usuarios (propios o del proveedor); los usuarios propios del modo `Local` viven en el metadata store con su contraseña en hash.
+2. ✅ PR #21 · **Permisos de la app en perfiles:** `ConfigureTables`, `ManageConnections` y el nuevo `ManageSecurity` (D-066), sumados a los de `Auth:Permissions`.
+3. ✅ PR #21 · **Permisos sobre los datos** por conexión, tabla y columna (ver, crear, editar, borrar, exportar, importar), con herencia. Se aplican en el servidor recortando el esquema de cada usuario; la UI solo oculta (`docs/seguridad.md`).
 4. ~~**Filtros de fila por rol**~~: descartado por el dueño (D-064).
 5. **Auditoría:** quién, cuándo, tabla, clave, valor anterior y nuevo. Se guarda en el metadata store y se consulta desde la UI.
 6. **Concurrencia optimista** con `rowversion` (SQL Server) o `xmin` (Postgres). Si otro usuario cambió el registro, avisar en vez de pisarlo.

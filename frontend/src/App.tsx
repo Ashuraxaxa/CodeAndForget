@@ -7,6 +7,13 @@ import { TablePage } from './pages/TablePage'
 import { RecordPage } from './pages/RecordPage'
 import { ConfigPage } from './pages/ConfigPage'
 import { ImportPage } from './pages/ImportPage'
+import { SecurityPage } from './pages/SecurityPage'
+import { useCan } from './lib/useMe'
+
+/** Solo se monta con sesión iniciada: así /me no se pide sin token. */
+function SecurityLink() {
+  return useCan('ManageSecurity') ? <Link to="/seguridad">Seguridad</Link> : null
+}
 
 function Shell() {
   const { config, isAuthenticated, logout } = useAuth()
@@ -16,8 +23,11 @@ function Shell() {
     <div className="app">
       <header className="topbar">
         <Link to="/" className="brand">Mantenedores</Link>
-        {/* Con un proxy que maneja la sesión no hay "salir" desde la app. */}
-        {!(config.mode === 'Jwt' && !config.clientId) && <button className="link" onClick={logout}>Salir</button>}
+        <nav className="topnav">
+          <SecurityLink />
+          {/* Con un proxy que maneja la sesión no hay "salir" desde la app. */}
+          {!(config.mode === 'Jwt' && !config.clientId) && <button className="link" onClick={logout}>Salir</button>}
+        </nav>
       </header>
       <Outlet />
     </div>
@@ -36,6 +46,7 @@ export default function App() {
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route element={<Shell />}>
             <Route index element={<ConnectionsPage />} />
+            <Route path="seguridad" element={<SecurityPage />} />
             <Route path="c/:conn" element={<ConnectionLayout />}>
               <Route index element={<PickTable />} />
               <Route path="t/:schema/:table" element={<TablePage />} />

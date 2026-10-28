@@ -613,6 +613,20 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Un endpoint Prometheus propio: su paquete de OpenTelemetry sigue en prerelease. El Collector convierte OTLP a Prometheus si hace falta.
   - Instrumentar SqlClient: requiere otro paquete y su tiempo ya está en la traza de la solicitud.
 
+### D-072 · Tablas grandes: total estimado, conteo con tope y turno para consultas pesadas
+- **Estado:** Vigente · 2026-10-28 (responde Q-004; P-052)
+- **Contexto:** el dueño indicó tablas de hasta ~1 millón de filas, en general no transaccionales, y pidió "tenerlo cubierto". Medido con 1 millón de filas en PostgreSQL 16 (`docs/carga.md`):
+  - paginar por número va bien: la última página tarda 0,2 s;
+  - el costo está en la búsqueda de texto sin índice, que recorre la tabla.
+- **Qué:**
+  - Una tabla es **grande** si la estimación del motor llega a `Crud:EstimateCountAbove` (500.000). La estimación sale de `pg_class.reltuples`, `sys.partitions` o `information_schema.TABLES`, vía `ISqlDialect.EstimatedRowCount`, y se guarda en caché 5 minutos.
+  - Sin filtros, el total de una tabla grande es la estimación ("≈"). Con filtros, se cuenta con tope (`FilteredCountCap`, 1.000, vía `ISqlDialect.CappedCount`): "más de 1.000".
+  - En todas las tablas: si la página llega incompleta, el total se calcula sin contar.
+  - En tablas grandes, las búsquedas, los filtros y los órdenes por otra columna corren de a 4 por conexión (`MaxConcurrentHeavyQueries`). Las demás esperan sin tomar conexión del pool, y a los 30 s responden 503.
+- **Descartado:**
+  - Paginación por clave (sin `OFFSET`): con 1 millón de filas no hace falta, y quitaría el "ir a la página N" y el orden libre. Queda en P-098 por si aparecen tablas de decenas de millones.
+  - Crear índices desde la app: la app no modifica la estructura de las bases (D-069). Se documenta qué índice pedir al DBA.
+
 ---
 
 ## Propuestas (aún no decididas)

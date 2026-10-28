@@ -31,10 +31,14 @@ public sealed record ListRequest
     public string? Search { get; init; }
 }
 
+/// <param name="TotalIsEstimate">El total viene de las estadísticas del motor, no de contar (tablas grandes, D-072).</param>
+/// <param name="TotalIsCapped">Hay al menos <c>Total</c> filas; se dejó de contar ahí (tabla grande con filtros, D-072).</param>
 public sealed record PagedResult(
     IReadOnlyList<IDictionary<string, object?>> Rows,
     long Total,
     int Page,
-    int PageSize);
+    int PageSize,
+    bool TotalIsEstimate = false,
+    bool TotalIsCapped = false);
 
 public sealed record LookupItem(object? Value, string? Label);

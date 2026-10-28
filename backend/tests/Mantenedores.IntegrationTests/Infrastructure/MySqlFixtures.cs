@@ -19,6 +19,8 @@ public abstract class MySqlFamilyFixture : DatabaseFixture
         ["MARIADB_ROOT_PASSWORD"] = Password
     };
 
+    public override string AnalyzeSql(string quotedTable) => "ANALYZE TABLE " + quotedTable;
+
     protected override string MajorVersionSql => "SELECT CAST(SUBSTRING_INDEX(VERSION(), '.', 1) AS SIGNED)";
 
     // En MySQL el esquema es la base de datos: la cadena de conexión apunta a "ventas" (D-032).

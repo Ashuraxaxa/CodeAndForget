@@ -23,6 +23,8 @@ public sealed class PostgresFixture : DatabaseFixture
     };
 
     public override int MinimumMajorVersion => 12;
+    public override string AnalyzeSql(string quotedTable) => "ANALYZE " + quotedTable;
+
     protected override string MajorVersionSql => "SELECT current_setting('server_version_num')::int / 10000";
 
     protected override string BuildConnectionString(string host, int port, bool forSeed) =>

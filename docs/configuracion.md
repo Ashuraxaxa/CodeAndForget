@@ -152,6 +152,15 @@ Detrás de un proxy, la IP es la del cliente solo si el proxy está configurado 
 | `Crud:FileMaxMegabytes` | `10` | Tamaño máximo de un archivo guardado en una columna binaria. Viaja en base64 dentro del JSON (≈ 1,35 veces su tamaño): por encima de ~20 MB hay que subir también el límite de la solicitud (`Kestrel__Limits__MaxRequestBodySize`) y el del proxy. |
 | `Crud:ImportMaxRows` | `10000` | Máximo de filas por archivo importado. |
 | `Crud:ImportMaxMegabytes` | `20` | Tamaño máximo del archivo a importar. Si se sube, revisar también el límite del proxy (p. ej. `client_max_body_size` en nginx, `maxAllowedContentLength` en IIS). |
+| `Crud:EstimateCountAbove` | `500000` | Desde cuántas filas (según las estadísticas del motor) una tabla es **grande**. Sin filtros, su total es la estimación ("≈ 1.000.000 registros") en vez de contar (D-072). `0` = contar siempre. |
+| `Crud:FilteredCountCap` | `1000` | En tablas grandes con búsqueda o filtros se cuenta hasta este número ("más de 1.000 registros"). `0` = contar todo. |
+| `Crud:MaxConcurrentHeavyQueries` | `4` | En tablas grandes, cuántas búsquedas, filtros u órdenes por otra columna corren a la vez por conexión. Las demás esperan sin ocupar el pool, así abrir o paginar no se traba. `0` = sin tope. |
+| `Crud:HeavyQueueSeconds` | `30` | Cuánto espera su turno una de esas consultas antes de responder `503` ("intente de nuevo"). |
+
+**Búsquedas en tablas grandes.** La búsqueda de texto es "contiene" (`LIKE '%texto%'`): sin un índice adecuado,
+recorre la tabla. Con tablas de millones de filas donde se busca seguido, conviene que el DBA cree un índice que acelere
+ese tipo de búsqueda; por ejemplo, en PostgreSQL, `CREATE EXTENSION pg_trgm` y un índice GIN `gin_trgm_ops` sobre las
+columnas de texto. La app lo aprovecha sin cambios.
 
 ## Auditoría (`Audit`)
 

@@ -114,13 +114,21 @@ export function Grid({ conn, meta, fixed, returnTo }: {
   }
 
   const total = rows.data?.total ?? 0
-  const pages = Math.max(1, Math.ceil(total / pageSize))
+  // En tablas grandes sin filtros el total es una estimación del motor (D-072).
+  const totalText = rows.data?.totalIsCapped
+    ? `más de ${total.toLocaleString('es')} registros`
+    : `${rows.data?.totalIsEstimate ? '≈ ' : ''}${total.toLocaleString('es')} registros`
+  const capped = rows.data?.totalIsCapped === true
+  // Con el total cortado no se sabe cuál es la última página: se puede seguir mientras la página venga llena.
+  const pages = capped
+    ? Math.max(page + ((rows.data?.rows.length ?? 0) === pageSize ? 1 : 0), Math.ceil(total / pageSize))
+    : Math.max(1, Math.ceil(total / pageSize))
 
   return (
     <div className={embedded ? 'embedded-grid' : 'page'}>
       {embedded ? (
         <div className="page-header">
-          <div className="muted small">{total} registros</div>
+          <div className="muted small">{totalText}</div>
           <div className="actions">
             <input className="search" placeholder="Buscar en textos…" value={search} onChange={e => setSearch(e.target.value)} />
             {meta.canCreate && <Link className="button primary" to={newUrl}>Nuevo</Link>}
@@ -131,7 +139,8 @@ export function Grid({ conn, meta, fixed, returnTo }: {
         <div>
           <h1>{labelOf(meta)}</h1>
           <div className="muted small">
-            {meta.schema} · {total} registros
+            {meta.schema} · <span title={rows.data?.totalIsEstimate ? 'Estimado por la base de datos: la tabla es grande y contar todas sus filas sería lento'
+              : capped ? 'La tabla es grande: se deja de contar en este número. Afine la búsqueda o los filtros.' : undefined}>{totalText}</span>
             {meta.kind === 'View' && <span className="tag">vista · solo lectura</span>}
             {meta.kind === 'Table' && !meta.hasPrimaryKey && <span className="tag">sin PK · solo lectura</span>}
             {meta.kind === 'Table' && meta.hasPrimaryKey && meta.forcedReadOnly && <span className="tag">solo lectura</span>}
@@ -249,7 +258,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
 
       <div className="pager">
         <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>‹ Anterior</button>
-        <span>Página {page} de {pages}</span>
+        <span>Página {page} {capped ? `de ${pages}+` : `de ${pages}`}</span>
         <button disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Siguiente ›</button>
         <select value={pageSize} onChange={e => setPageSize(Number(e.target.value))}>
           {PAGE_SIZES.map(s => <option key={s} value={s}>{s} por página</option>)}

@@ -24,6 +24,28 @@ public sealed class CrudOptions
     /// <summary>Tamaño máximo de un archivo guardado en una columna binaria, en MB (P-018).</summary>
     public int FileMaxMegabytes { get; set; } = 10;
 
+    /// <summary>
+    /// Sin filtros, si la tabla tiene al menos estas filas según las estadísticas del motor, el total del listado es esa
+    /// estimación en vez de un COUNT(*) (D-072). 0 = contar siempre.
+    /// </summary>
+    public long EstimateCountAbove { get; set; } = 500_000;
+
+    /// <summary>
+    /// En esas mismas tablas grandes, con filtros o búsqueda se cuenta solo hasta este número ("más de 1.000"): contar
+    /// todas las coincidencias recorrería la tabla entera en cada página (D-072). 0 = contar todo.
+    /// </summary>
+    public long FilteredCountCap { get; set; } = 1_000;
+
+    /// <summary>
+    /// En tablas grandes, cuántas consultas pesadas (búsqueda, filtros u orden por otra columna) corren a la vez por
+    /// conexión; las demás esperan su turno sin tomar una conexión del pool, así abrir o paginar no se traba (D-072).
+    /// 0 = sin tope.
+    /// </summary>
+    public int MaxConcurrentHeavyQueries { get; set; } = 4;
+
+    /// <summary>Segundos que una consulta pesada espera su turno antes de responder "intente de nuevo".</summary>
+    public int HeavyQueueSeconds { get; set; } = 30;
+
     /// <summary>Tamaño máximo del archivo a importar, en MB.</summary>
     public int ImportMaxMegabytes { get; set; } = 20;
 }
@@ -51,15 +73,61 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
     public async Task<PagedResult> ListAsync(string conn, string schema, string table, ListRequest request, CancellationToken ct)
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
-        var (data, count) = new QueryBuilder(ctx.Provider.Dialect).BuildList(ctx.Schema, info, request);
+        var qb = new QueryBuilder(ctx.Provider.Dialect);
+        var (data, count) = qb.BuildList(ctx.Schema, info, request);
 
-        await using var db = await OpenAsync(ctx, ct);
-        var total = await db.ExecuteScalarAsync<long>(Command(count, ct));
-        var rows = await db.QueryAsync(Command(data, ct));
+        var estimate = await EstimateAsync(ctx, info, ct);
+        var large = options.EstimateCountAbove > 0 && estimate >= options.EstimateCountAbove;
+        var heavy = large && options.MaxConcurrentHeavyQueries > 0 && (!QueryBuilder.IsUnfiltered(request) || request.Sort.Count > 0);
+        var gate = heavy ? _heavy.GetOrAdd(ctx.Definition.Id, _ => new SemaphoreSlim(options.MaxConcurrentHeavyQueries)) : null;
+        if (gate is not null && !await gate.WaitAsync(TimeSpan.FromSeconds(Math.Max(1, options.HeavyQueueSeconds)), ct))
+            throw new BusyException($"Hay muchas búsquedas en curso en {info.FullName}, que es una tabla grande. Intente de nuevo en unos segundos o afine los filtros.");
+        try
+        {
+            await using var db = await OpenAsync(ctx, ct);
+            var rows = (await db.QueryAsync(Command(data, ct))).Cast<object>()
+                .Select(r => RowVersion.Stamp(info, Normalize(info, Rename(ToRow(r), data.Renames)))).ToList();
 
-        var pageSize = Math.Clamp(request.PageSize, 1, ListRequest.MaxPageSize);
-        return new PagedResult(rows.Cast<object>().Select(r => RowVersion.Stamp(info, Normalize(info, Rename(ToRow(r), data.Renames)))).ToList(),
-            total, Math.Max(request.Page, 1), pageSize);
+            var pageSize = Math.Clamp(request.PageSize, 1, ListRequest.MaxPageSize);
+            var page = Math.Max(request.Page, 1);
+            // Si la página vino incompleta, el total ya se sabe (lo saltado + lo que llegó): no hace falta contar.
+            // En una tabla grande, una búsqueda con pocas coincidencias se ahorra así un segundo recorrido (D-072).
+            if (rows.Count < pageSize && (rows.Count > 0 || page == 1))
+                return new PagedResult(rows, (long)(page - 1) * pageSize + rows.Count, page, pageSize);
+
+            if (!large) return new PagedResult(rows, await db.ExecuteScalarAsync<long>(Command(count, ct)), page, pageSize);
+            if (QueryBuilder.IsUnfiltered(request)) return new PagedResult(rows, estimate!.Value, page, pageSize, TotalIsEstimate: true);
+            if (options.FilteredCountCap <= 0)
+                return new PagedResult(rows, await db.ExecuteScalarAsync<long>(Command(count, ct)), page, pageSize);
+            var found = await db.ExecuteScalarAsync<long>(Command(qb.BuildCappedCount(info, request, options.FilteredCountCap), ct));
+            return found > options.FilteredCountCap
+                ? new PagedResult(rows, options.FilteredCountCap, page, pageSize, TotalIsCapped: true)
+                : new PagedResult(rows, found, page, pageSize);
+        }
+        finally { gate?.Release(); }
+    }
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _heavy = new(StringComparer.OrdinalIgnoreCase);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(string, string, string), (long? Rows, DateTimeOffset At)> _estimates = new();
+    private static readonly TimeSpan EstimateTtl = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Filas estimadas de la tabla (D-072), guardadas unos minutos: decide si la tabla es "grande" antes de tomar una
+    /// conexión para la consulta. Null si el motor no estima, es una vista o la tabla nunca se analizó.
+    /// </summary>
+    private async Task<long?> EstimateAsync(ConnectionContext ctx, TableInfo info, CancellationToken ct)
+    {
+        if (options.EstimateCountAbove <= 0) return null;
+        var key = (ctx.Definition.Id, info.Schema, info.Name);
+        if (_estimates.TryGetValue(key, out var cached) && DateTimeOffset.UtcNow - cached.At < EstimateTtl) return cached.Rows;
+        long? rows = null;
+        if (new QueryBuilder(ctx.Provider.Dialect).BuildEstimatedCount(info) is { } q)
+        {
+            await using var db = await OpenAsync(ctx, ct);
+            rows = await db.ExecuteScalarAsync<long?>(Command(q, ct));
+        }
+        _estimates[key] = (rows, DateTimeOffset.UtcNow);
+        return rows;
     }
 
     public async Task<IDictionary<string, object?>> GetAsync(

@@ -4,6 +4,17 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Fase 4: tablas grandes (P-052)
+- El dueño respondió Q-004: tablas de hasta ~1 millón de filas, en general no transaccionales, "pero tengámoslo cubierto" → D-072.
+- Se midió con una tabla de 1 millón en PostgreSQL 16. Paginar por número va bien (la última página tarda 0,2 s), así que no hace falta la paginación por clave (queda en P-098).
+- Con carga apareció el problema real: las búsquedas de texto recorren la tabla, ocupan el pool y traban lo demás (abrir un registro llegaba a 5 s).
+- Se agregó:
+  - total estimado del catálogo y conteo con tope, por dialecto;
+  - el total sin contar cuando la página llega incompleta;
+  - un turno de 4 consultas pesadas por conexión, con 503 a los 30 s.
+  - Con eso, abrir un registro queda en p95 13 ms con 50 usuarios buscando.
+- 190 unitarias y 219 de integración en verde.
+
 ## 2026-10-28 · Fase 4: observabilidad y pruebas de carga (P-053)
 - OpenTelemetry 1.19 solo con `Telemetry:OtlpEndpoint`; trazas y métricas de ASP.NET Core, runtime y los drivers de PostgreSQL y MySQL (D-071). La 1.9 tenía una vulnerabilidad conocida y la 1.20 tiene menos de dos semanas.
 - Log de solicitudes lentas sin la query.

@@ -58,9 +58,10 @@ Detalle técnico en [../motores.md](../motores.md).
 |---|---|---|---|
 | P-050 | Caché del esquema y contadores de límites de uso en Redis, opcional por configuración (D-026, D-070) | ⚪ | ⏳ solo si hay varias instancias |
 | P-051 | Pools con tope por conexión, cierre de inactivos y rate limit (D-070) | 🟡 | ✅ PR #24 |
-| P-052 | Paginación por clave y conteo estimado para tablas grandes | 🟡 | ⏳ depende de Q-004 |
+| P-052 | Tablas grandes: total estimado, conteo con tope y turno para consultas pesadas (D-072) | 🟡 | ✅ PR #26 |
+| P-098 | Paginación por clave (sin OFFSET), solo si aparecen tablas de decenas de millones de filas | ⚪ | ⏳ |
 | P-053 | Observabilidad (OpenTelemetry, solicitudes lentas) y pruebas de carga con k6 (D-071, `docs/carga.md`) | 🟡 | ✅ PR #25 |
-| P-097 | Correr la prueba de k6 contra una tabla de 10 millones de filas (junto con P-052) y anotar el resultado en `docs/carga.md` | 🟡 | ⏳ |
+| P-097 | Correr el script de k6 (hasta ahora se midió con Node) contra una tabla grande en un servidor como el de producción, y anotar el resultado en `docs/carga.md` | ⚪ | ⏳ |
 
 ## 4. Fase 5: extensiones
 

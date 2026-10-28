@@ -771,6 +771,29 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Qué:** PostGIS pasa a `Spatial`. El SRID se lee de `format_type` (`geometry(Point,4326)`); sin SRID declarado, geography usa 4326 y geometry 0. MySQL 8 informa `SRS_ID`; con SRID se usa `axis-order=long-lat` al leer y escribir, para que el WKT vaya en longitud latitud como en los demás motores. MariaDB no informa SRID (0). Las pruebas de PostGIS usan su propia imagen (`postgis/postgis:12-3.4`, variable `MANTENEDORES_POSTGIS_IMAGE`).
 - **Descartado:** pedir el SRID al usuario en cada valor (EWKT): solo PostgreSQL lo entiende.
 
+### D-087 · Renovación silenciosa en un iframe
+- **Estado:** Vigente · 2026-10-28 (P-079)
+- **Qué:** `silent_redirect_uri` apunta a `silent-renew.html` (estática, sin dependencias), que le pasa la URL a la app con el mismo mensaje que `IFrameWindow.notifyParent` de oidc-client-ts. Con refresh token, oidc-client-ts lo sigue usando; sin él, renueva en el iframe con la sesión del proveedor. Probado con Keycloak sin refresh tokens y tokens de 70 s: la sesión siguió más allá del vencimiento.
+- **Descartado:** importar oidc-client-ts en una segunda entrada de Vite solo para esa página: más peso para lo que hace un `postMessage`.
+
+### D-088 · Acciones con procedimientos almacenados
+- **Estado:** Vigente · 2026-10-28 (P-061)
+- **Qué:**
+  - Ajuste `actions` por tabla; cada parámetro sale de una columna del registro, un valor fijo o lo que escriba el usuario.
+  - Las rutinas se leen del catálogo (`ISchemaProvider.ReadRoutinesAsync`), en caché como el esquema. No se ofrecen: las de sistema o de extensiones; las sobrecargadas; los procedimientos con parámetros de salida; los parámetros sin nombre; las funciones de SQL Server.
+  - La llamada la arma el dialecto (`CallRoutine`): SQL Server `EXEC … @p = …`; PostgreSQL por nombre con `CAST` al tipo declarado (`CALL` o `SELECT * FROM`); MySQL por posición (`CALL` o `SELECT f(…)`). Los valores van siempre como parámetros.
+  - Operación nueva de perfil `execute` (incluida en "todo"). Cada ejecución queda en la auditoría (operación `Action`, con los valores), y se muestra el primer conjunto de filas que devuelve (hasta 200).
+- **Descartado:** escribir el SQL de la acción en el ajuste: rompe la regla de nombres solo desde el catálogo y valores como parámetros (D-004).
+
+### D-089 · Paginación por clave
+- **Estado:** Vigente · 2026-10-28 (P-098)
+- **Qué:** con PK de una columna y el orden de la PK (sin orden elegido ni `defaultSort`), "Siguiente" manda `after` = la PK de la última fila y el servidor pide `pk > after` sin OFFSET. Con otro orden se ignora. La grilla recuerda el `after` de cada página para volver atrás; cambiar filtros, orden o tamaño lo reinicia. En 1 millón de filas (PG 16), la página 39.999 bajó de 8,5 s en frío a ~180 ms.
+- **Descartado:** cursores para cualquier orden: necesitan los valores de todas las columnas del orden y la comparación de filas, distinta en cada motor.
+
+### D-090 · Nombres y ayudas por idioma
+- **Estado:** Vigente · 2026-10-28 (P-102)
+- **Qué:** ajustes `labels` (tabla y columna) y `helpTexts` (columna) por código de idioma; la UI usa el del idioma elegido y, si falta, `label`. También para el texto de las acciones.
+
 ---
 
 ## Propuestas (aún no decididas)

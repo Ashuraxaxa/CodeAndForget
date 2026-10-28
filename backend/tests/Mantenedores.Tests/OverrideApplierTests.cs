@@ -318,3 +318,31 @@ public class OverrideApplierTests
         return Raw with { Tables = [.. Raw.Tables, extra] };
     }
 }
+
+public class OverrideLanguageTests
+{
+    [Fact]
+    public void Nombres_y_ayudas_por_idioma()
+    {
+        // P-102: textos en otros idiomas para la tabla y sus columnas; los vacíos se descartan.
+        var raw = TestSchema.Build();
+        var o = new Mantenedores.Core.Overrides.TableOverride
+        {
+            Label = "Productos",
+            Labels = new Dictionary<string, string> { ["en"] = "Products", ["RU"] = "Товары", ["fr"] = " " },
+            Columns = new Dictionary<string, Mantenedores.Core.Overrides.ColumnOverride>
+            {
+                ["precio"] = new() { Labels = new Dictionary<string, string> { ["en"] = "Price" }, HelpTexts = new Dictionary<string, string> { ["en"] = "With VAT" } }
+            }
+        };
+        var t = Mantenedores.Core.Overrides.OverrideApplier.Apply(raw, new Dictionary<(string, string), Mantenedores.Core.Overrides.TableOverride> { [("ventas", "producto")] = o })
+            .FindTable("ventas", "producto")!;
+        Assert.Equal(new Dictionary<string, string> { ["en"] = "Products", ["ru"] = "Товары" }, t.Labels);
+        Assert.Equal("Price", t.FindColumn("precio")!.Labels!["en"]);
+        Assert.Equal("With VAT", t.FindColumn("precio")!.HelpTexts!["en"]);
+
+        var ex = Assert.Throws<Mantenedores.Core.Errors.ValidationException>(() => Mantenedores.Core.Overrides.OverrideApplier.Validate(raw, "ventas", "producto",
+            new Mantenedores.Core.Overrides.TableOverride { Labels = new Dictionary<string, string> { ["inglés"] = "x" } }));
+        Assert.Contains("labels", ex.Errors.Keys);
+    }
+}

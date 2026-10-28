@@ -26,14 +26,14 @@ Detalle técnico en [../motores.md](../motores.md).
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
 | P-078 | Prueba en vivo con Duende IdentityServer (requiere un host .NET de prueba con Duende; la config está documentada) | 🟡 | ⏳ |
-| P-079 | Renovación silenciosa sin refresh token (iframe `silent_redirect_uri`); hoy, sin refresh token, al vencer se vuelve a iniciar sesión | ⚪ | ⏳ |
+| P-079 | Renovación silenciosa sin refresh token, en un iframe con `silent-renew.html` (D-087) | ⚪ | ✅ PR #35 |
 | P-082 | Ajustes con varias instancias: lo que cambia una instancia (ajustes, ↻, perfiles, usuarios) lo ven las demás en segundos (D-077) | 🟡 | ✅ PR #31 |
 | P-086 | Detectar cambios de esquema sin que nadie pulse ↻: relectura periódica y al fallar por tabla o columna inexistente (D-078) | ⚪ | ✅ PR #31 |
 | P-087 | N:M: ajuste `links` para usar selector, pestaña con el puente (su propio formulario) o nada (D-082) | ⚪ | ✅ PR #33 |
 | P-088 | Importar actualizando por clave (upsert) además de insertar (D-075) | 🟡 | ✅ PR #29 |
 | P-100 | Interfaz en español, inglés y ruso, con selector y formato de fechas y números por idioma (D-076) | 🟡 | ✅ PR #30 |
 | P-101 | Mensajes del servidor en el idioma elegido: plantillas en el frontend sobre el español del servidor (D-080) | ⚪ | ✅ PR #32 |
-| P-102 | Nombres visibles por idioma en los ajustes (`label`, `helpText`), si algún equipo los necesita | ⚪ | ⏳ |
+| P-102 | Nombres y ayudas por idioma en los ajustes (`labels`, `helpTexts`) (D-090) | ⚪ | ✅ PR #35 |
 | P-089 | Árbol: ajuste `treeParent` y mover nodos arrastrando (D-082) | ⚪ | ✅ PR #33 |
 | P-090 | Archivos: vista previa de imágenes (grilla con `widget: image`, formulario); `geography`/`geometry` editables como WKT en SQL Server y MySQL/MariaDB (D-083) | ⚪ | ✅ PR #33 |
 | P-104 | WKT editable en PostGIS y SRID por columna en PostGIS y MySQL 8 (D-086) | ⚪ | ✅ PR #34 |
@@ -64,7 +64,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-050 | Caché del esquema y contadores de límites de uso en Redis, opcional por configuración (D-026, D-070) | ⚪ | ⏳ solo si hay varias instancias |
 | P-051 | Pools con tope por conexión, cierre de inactivos y rate limit (D-070) | 🟡 | ✅ PR #24 |
 | P-052 | Tablas grandes: total estimado, conteo con tope y turno para consultas pesadas (D-072) | 🟡 | ✅ PR #26 |
-| P-098 | Paginación por clave (sin OFFSET), solo si aparecen tablas de decenas de millones de filas | ⚪ | ⏳ |
+| P-098 | Paginación por clave (`after`) con el orden de la PK (D-089) | ⚪ | ✅ PR #35 |
 | P-053 | Observabilidad (OpenTelemetry, solicitudes lentas) y pruebas de carga con k6 (D-071, `docs/carga.md`) | 🟡 | ✅ PR #25 |
 | P-097 | Correr el script de k6 (hasta ahora se midió con Node) contra una tabla grande en un servidor como el de producción, y anotar el resultado en `docs/carga.md` | ⚪ | ⏳ |
 
@@ -74,7 +74,7 @@ Detalle técnico en [../motores.md](../motores.md).
 |---|---|---|---|
 | P-060 | Hooks de negocio antes y después de guardar | — | ⛔ descartado por el dueño (D-073) |
 | P-099 | Avisos por correo por tabla, apagados por defecto (D-073) | 🟡 | ✅ PR #27 |
-| P-061 | Procedimientos almacenados como acciones | ⚪ | ⏳ |
+| P-061 | Procedimientos almacenados y funciones como acciones de una tabla, con permiso `execute` (D-088) | ⚪ | ✅ PR #35 |
 | P-062 | Otros motores (Oracle, SQLite, Db2, Firebird…) solo si un equipo los pide | ⚪ | ⏳ |
 | P-063 | Guía "cómo agregar un motor" | ✅ 2026-10-27 · en `docs/motores.md` (la batería común pasó a P-002) |
 | P-064 | Cargar proveedores como plugins desde una carpeta, sin recompilar | ⚪ | ⏳ |

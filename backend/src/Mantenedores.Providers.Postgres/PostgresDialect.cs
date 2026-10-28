@@ -53,6 +53,16 @@ public sealed class PostgresDialect : ISqlDialect
         : column.Type == LogicalType.Array ? $"CAST({columnExpr} AS text[])"
         : columnExpr;
 
+    /// <summary>
+    /// Rutina por nombre de argumento (P-061), con cada valor convertido al tipo declarado: así Postgres elige la rutina
+    /// aunque el valor llegue como texto. <c>CALL</c> para procedimientos, <c>SELECT * FROM</c> para funciones.
+    /// </summary>
+    public string CallRoutine(string routine, RoutineKind kind, IReadOnlyList<(RoutineParameter Parameter, string Placeholder)> args)
+    {
+        var list = string.Join(", ", args.Select(a => $"{Quote(a.Parameter.Name)} => CAST({a.Placeholder} AS {a.Parameter.NativeType})"));
+        return kind == RoutineKind.Procedure ? $"CALL {routine}({list})" : $"SELECT * FROM {routine}({list})";
+    }
+
     public string? InsertReturningKeys(string table, IReadOnlyList<string> columns, IReadOnlyList<string> values, IReadOnlyList<ColumnInfo> keyColumns)
     {
         var returning = string.Join(", ", keyColumns.Select(k => Quote(k.Name)));

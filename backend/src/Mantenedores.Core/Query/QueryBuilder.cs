@@ -42,11 +42,28 @@ public sealed class QueryBuilder(ISqlDialect dialect)
 
         var pageSize = Math.Clamp(request.PageSize, 1, maxPageSize ?? ListRequest.MaxPageSize);
         var page = Math.Max(request.Page, 1);
+        // Por clave (P-098): solo con PK de una columna y el orden de la PK, que es lo que da la página "siguiente".
+        if (KeysetColumn(table, sort, request.After) is { } pk)
+        {
+            var after = $"{Base}.{dialect.Quote(pk.Name)} > {dialect.ParameterFor(pk, p.Add(ValueConverter.FromString(pk, request.After)))}";
+            where = where.Length == 0 ? $" WHERE {after}" : $"{where} AND {after}";
+            page = 1;
+        }
         var offset = p.Add((long)(page - 1) * pageSize);
         var limit = p.Add((long)pageSize);
 
         var sql = $"SELECT {select} FROM {from}{joins}{where} ORDER BY {orderBy} {dialect.Paging(offset, limit)}";
         return (new SqlQuery(sql, p.Snapshot(), renames), count);
+    }
+
+    /// <summary>La PK si la página se puede pedir por clave (P-098); null si no.</summary>
+    public static ColumnInfo? KeysetColumn(TableInfo table, IReadOnlyList<SortSpec> sort, string? after)
+    {
+        if (string.IsNullOrEmpty(after) || table.PrimaryKey.Count != 1) return null;
+        var pk = table.FindColumn(table.PrimaryKey[0]);
+        if (pk is null || !pk.IsSortable) return null;
+        var byPk = sort.Count == 0 || (sort.Count == 1 && !sort[0].Descending && string.Equals(sort[0].Column, pk.Name, StringComparison.OrdinalIgnoreCase));
+        return byPk ? pk : null;
     }
 
     /// <summary>Filas estimadas de la tabla según el catálogo (D-072); null si el motor no estima o es una vista.</summary>
@@ -71,6 +88,14 @@ public sealed class QueryBuilder(ISqlDialect dialect)
     /// <summary>¿El listado no filtra nada? Solo entonces sirve el total estimado de la tabla.</summary>
     public static bool IsUnfiltered(ListRequest r) =>
         string.IsNullOrWhiteSpace(r.Search) && r.Filters.All(f => string.IsNullOrEmpty(f.Value)) && r.Exact.Count == 0;
+
+    /// <summary>Llamada a una rutina del catálogo (P-061) con sus valores, como parámetros.</summary>
+    public SqlQuery BuildCall(RoutineInfo routine, IReadOnlyList<object?> values)
+    {
+        var p = new ParamBag(dialect.ParameterPrefix);
+        var args = routine.Parameters.Select((param, i) => (param, p.Add(values[i]))).ToList();
+        return new SqlQuery(dialect.CallRoutine(dialect.Table(routine.Schema, routine.Name), routine.Kind, args), p.Snapshot());
+    }
 
     /// <summary>Bloqueo de la fila hasta el fin de la transacción (P-096).</summary>
     public SqlQuery BuildLockRow(TableInfo table, IReadOnlyDictionary<string, object?> key)

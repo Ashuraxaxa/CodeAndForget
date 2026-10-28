@@ -89,6 +89,48 @@ public static partial class OverrideApplier
         return raw with { Tables = tables, OverrideWarnings = issues.Select(i => i.ToString()).ToList() };
     }
 
+    /// <summary>
+    /// Textos por idioma (P-102): clave "en", "ru" o con región ("en-US"); los vacíos se descartan. Null si no queda ninguno.
+    /// </summary>
+    private static IReadOnlyDictionary<string, string>? Languages(IReadOnlyDictionary<string, string>? values, string field, Action<string, string> issue)
+    {
+        if (values is null) return null;
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (lang, text) in values)
+        {
+            if (!LanguageCode().IsMatch(lang ?? "")) { issue(field, $"'{lang}' no es un código de idioma (p. ej. en o ru)"); continue; }
+            if (Blank(text) is { } t) result[lang!.ToLowerInvariant()] = t;
+        }
+        return result.Count > 0 ? result : null;
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex("^[a-z0-9_-]{1,50}$")]
+    private static partial System.Text.RegularExpressions.Regex ActionName();
+
+    /// <summary>
+    /// Las acciones contra el catálogo de rutinas (P-061): que la rutina exista y que cada parámetro esté asociado a algo.
+    /// Devuelve un error por acción.
+    /// </summary>
+    public static Dictionary<string, string> ValidateActions(IReadOnlyList<TableAction>? actions, IReadOnlyList<RoutineInfo> routines)
+    {
+        var errors = new Dictionary<string, string>();
+        for (var n = 0; n < (actions?.Count ?? 0); n++)
+        {
+            var a = actions![n];
+            var r = routines.FirstOrDefault(x => Same(x.FullName, a.Routine));
+            if (r is null) { errors[$"actions.{n}"] = $"la rutina '{a.Routine}' no existe o no se puede llamar (sobrecargada o con parámetros de salida)"; continue; }
+            var given = a.Parameters ?? new Dictionary<string, ActionParameter>();
+            if (r.Parameters.FirstOrDefault(p => !given.Any(kv => Same(kv.Key, p.Name) && (kv.Value.Column is { Length: > 0 } || kv.Value.Value is not null || kv.Value.Ask == true))) is { } missing)
+                errors[$"actions.{n}"] = $"falta indicar de dónde sale el parámetro '{missing.Name}'";
+            else if (given.Keys.FirstOrDefault(k => !r.Parameters.Any(p => Same(p.Name, k))) is { } extra)
+                errors[$"actions.{n}"] = $"'{r.FullName}' no tiene el parámetro '{extra}'";
+        }
+        return errors;
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex("^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$")]
+    private static partial System.Text.RegularExpressions.Regex LanguageCode();
+
     /// <summary>FK de una columna de la tabla hacia su propia PK (p. ej. empleado → jefe): las que puede usar el árbol.</summary>
     public static IReadOnlyList<ForeignKeyInfo> SelfReferences(TableInfo t) => t.PrimaryKey.Count != 1 ? [] :
         t.ForeignKeys.Where(f => f.IsSingleColumn && Same(f.RefSchema, t.Schema) && Same(f.RefTable, t.Name) && Same(f.RefColumns[0], t.PrimaryKey[0]))
@@ -187,6 +229,20 @@ public static partial class OverrideApplier
             if (!LinkDisplay.All.Contains(mode ?? ""))
                 Issue("links", $"'{mode}' no es válido para '{name}'; use selector, tab o none");
 
+        // --- Acciones (P-061): nombre y columnas; la rutina y sus parámetros se validan contra el catálogo al guardar ---
+        var actions = new List<TableAction>();
+        foreach (var (a, n) in (o.Actions ?? []).Select((a, n) => (a, n)))
+        {
+            var field = $"actions.{n}";
+            if (!ActionName().IsMatch(a.Name ?? "")) { Issue(field, "el nombre usa minúsculas, números, - o _"); continue; }
+            if (actions.Any(x => Same(x.Name, a.Name!))) { Issue(field, $"la acción '{a.Name}' está repetida"); continue; }
+            if ((a.Routine ?? "").Split('.') is not [{ Length: > 0 }, { Length: > 0 }]) { Issue(field, "la rutina se escribe como esquema.nombre"); continue; }
+            var bad = (a.Parameters ?? new Dictionary<string, ActionParameter>()).FirstOrDefault(kv =>
+                kv.Value.Column is { Length: > 0 } col && !columns.Any(c => Same(c.Name, col)));
+            if (bad.Key is not null) { Issue(field, $"la columna '{bad.Value.Column}' no existe"); continue; }
+            actions.Add(a with { Labels = Languages(a.Labels, $"{field}.labels", Issue) });
+        }
+
         // --- Avisos por correo (D-073) ---
         Notifications.TableNotify? notify = null;
         if (o.Notify is { } no)
@@ -216,6 +272,8 @@ public static partial class OverrideApplier
             DisplayColumn = display,
             DefaultSort = defaultSort,
             Label = Blank(o.Label),
+            Labels = Languages(o.Labels, "labels", Issue),
+            Actions = actions,
             Group = Blank(o.Group),
             Hidden = o.Hidden ?? false,
             ForcedReadOnly = o.ReadOnly ?? false
@@ -241,6 +299,8 @@ public static partial class OverrideApplier
         {
             Label = Blank(o.Label) ?? c.Label,
             HelpText = Blank(o.HelpText) ?? c.HelpText,
+            Labels = Languages(o.Labels, $"{field}.labels", issue) ?? c.Labels,
+            HelpTexts = Languages(o.HelpTexts, $"{field}.helpTexts", issue) ?? c.HelpTexts,
             Hidden = o.Hidden ?? c.Hidden,
             ShowInGrid = o.ShowInGrid ?? c.ShowInGrid,
             Order = o.Order ?? c.Order,

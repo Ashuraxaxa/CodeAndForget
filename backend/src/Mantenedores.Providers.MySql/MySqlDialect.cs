@@ -43,6 +43,13 @@ public sealed class MySqlDialect : ISqlDialect
         : column.Type is LogicalType.ReadOnlyText or LogicalType.Spatial ? $"ST_AsText({columnExpr})"
         : columnExpr;
 
+    /// <summary>MySQL no admite argumentos por nombre (P-061): van por posición. Una función se llama con SELECT.</summary>
+    public string CallRoutine(string routine, RoutineKind kind, IReadOnlyList<(RoutineParameter Parameter, string Placeholder)> args)
+    {
+        var list = string.Join(", ", args.Select(a => a.Placeholder));
+        return kind == RoutineKind.Procedure ? $"CALL {routine}({list})" : $"SELECT {routine}({list}) AS {Quote("resultado")}";
+    }
+
     /// <summary>MySQL no tiene RETURNING (MariaDB sí, pero se usa LAST_INSERT_ID() en ambos, D-040).</summary>
     public string? InsertReturningKeys(string table, IReadOnlyList<string> columns, IReadOnlyList<string> values,
         IReadOnlyList<ColumnInfo> keyColumns) => null;

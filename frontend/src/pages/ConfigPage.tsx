@@ -3,14 +3,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
 import {
-  WIDGETS, labelOf,
-  type Column, type ColumnOverride, type ForeignKey, type LinkDisplay, type NotifyOperation, type NotifyOverride, type TableMeta, type TableOverride,
+  WIDGETS, helpTextOf, labelOf,
+  type ActionParameter, type Column, type ColumnOverride, type ForeignKey, type LinkDisplay, type TableAction, type NotifyOperation, type NotifyOverride, type TableMeta, type TableOverride,
   type VirtualForeignKey,
 } from '../api/types'
 import { FieldControl } from '../components/FieldControl'
 import { useDebounce } from '../lib/useDebounce'
 import { useMe } from '../lib/useMe'
-import { useT, type Translate } from '../i18n'
+import { LOCALES, useT, type Translate } from '../i18n'
 
 /** Editor de ajustes de un mantenedor (P-012): sin editar JSON, con vista previa en vivo. Requiere el permiso ConfigureTables (D-053). */
 export function ConfigPage() {
@@ -231,6 +231,7 @@ function TableTab({ conn, doc, setDoc, table, shown, errors }: {
     <div className="grid-2">
       <Field label={t('Nombre visible')} hint={t('Por defecto: {value}', { value: table.name })} error={errors.label}>
         <input value={doc.label ?? ''} placeholder={table.name} onChange={e => set({ label: e.target.value })} />
+        <LangInputs value={doc.labels} placeholder={doc.label || table.name} onChange={labels => set({ labels })} />
       </Field>
       <Field label={t('Grupo del menú')} hint={t('Por defecto: {value}', { value: table.schema })} error={errors.group}>
         <input value={doc.group ?? ''} placeholder={table.schema} onChange={e => set({ group: e.target.value })} />
@@ -306,6 +307,9 @@ function TableTab({ conn, doc, setDoc, table, shown, errors }: {
         onChange={v => set({ virtualForeignKeys: v })} />
 
       <NotifyEditor value={doc.notify} errors={errors} onChange={v => set({ notify: v })} />
+
+      <ActionsEditor conn={conn} table={table} value={doc.actions ?? []} errors={errors}
+        onChange={v => set({ actions: v.length ? v : undefined })} />
     </div>
   )
 }
@@ -354,6 +358,81 @@ function NotifyEditor({ value, errors, onChange }: {
           {t('Incluir los valores antes y después')}
         </label>
       </div>
+    </Field>
+  )
+}
+
+/** Acciones que llaman a un procedimiento o función (P-061): de dónde sale cada parámetro. */
+function ActionsEditor({ conn, table, value, errors, onChange }: {
+  conn: string; table: TableMeta; value: TableAction[]; errors: Record<string, string>; onChange: (v: TableAction[]) => void
+}) {
+  const t = useT()
+  const routines = useQuery({ queryKey: ['routines', conn], queryFn: () => api.routines(conn), staleTime: 60_000 })
+  const [routine, setRoutine] = useState('')
+  const [label, setLabel] = useState('')
+  const [confirmText, setConfirmText] = useState('')
+  const [params, setParams] = useState<Record<string, ActionParameter>>({})
+  const r = routines.data?.find(x => x.fullName === routine)
+  const complete = r !== undefined && label.trim() !== '' &&
+    r.parameters.every(p => params[p.name]?.column || params[p.name]?.ask || (params[p.name]?.value ?? '') !== '')
+
+  function choose(full: string) {
+    setRoutine(full)
+    const found = routines.data?.find(x => x.fullName === full)
+    // Si un parámetro se llama como una columna (con o sin p_ / @), se propone esa columna; si no, se pregunta.
+    const guess = (name: string) => table.columns.find(c => [name, name.replace(/^p_/, '')].some(n => n.toLowerCase() === c.name.toLowerCase()))
+    setParams(Object.fromEntries((found?.parameters ?? []).map(p => [p.name, guess(p.name) ? { column: guess(p.name)!.name } : { ask: true }])))
+    if (found && !label) setLabel(found.name.replace(/_/g, ' '))
+  }
+
+  function add() {
+    const base = label.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'accion'
+    let name = base
+    for (let i = 2; value.some(a => a.name === name); i++) name = `${base}-${i}`
+    onChange([...value, { name, label: label.trim(), routine, parameters: params, confirm: confirmText.trim() || null }])
+    setRoutine(''); setLabel(''); setConfirmText(''); setParams({})
+  }
+
+  const source = (p: ActionParameter | undefined) => p?.column ? `col:${p.column}` : p?.ask ? 'ask' : 'value'
+  return (
+    <Field label={t('Acciones')} span hint={t('Botones del formulario que llaman a un procedimiento o función de la base, sobre el registro abierto.')}>
+      {value.map((a, i) => (
+        <div key={a.name} className="row">
+          <span className="chip">▶ {a.label ?? a.name} → {a.routine}({Object.entries(a.parameters ?? {}).map(([k, p]) =>
+            `${k} = ${p.column ?? (p.ask ? '?' : JSON.stringify(p.value))}`).join(', ')})</span>
+          <button className="link danger" onClick={() => onChange(value.filter((_, j) => j !== i))}>{t('Quitar')}</button>
+          {errors[`actions.${i}`] && <span className="field-error">{errors[`actions.${i}`]}</span>}
+        </div>
+      ))}
+      <div className="row">
+        <select value={routine} onChange={e => choose(e.target.value)} disabled={!routines.data?.length}>
+          <option value="">{routines.data?.length === 0 ? t('La base no tiene procedimientos disponibles') : t('Procedimiento o función…')}</option>
+          {routines.data?.map(x => <option key={x.fullName} value={x.fullName}>{x.fullName} ({x.parameters.map(p => p.name).join(', ')})</option>)}
+        </select>
+        <input value={label} placeholder={t('Texto del botón')} onChange={e => setLabel(e.target.value)} />
+      </div>
+      {r?.parameters.map(p => (
+        <div key={p.name} className="row">
+          <code>{p.name}</code> <span className="muted small">{p.nativeType}</span> <span>←</span>
+          <select value={source(params[p.name])} onChange={e => {
+            const v = e.target.value
+            setParams(s => ({ ...s, [p.name]: v === 'ask' ? { ask: true } : v === 'value' ? { value: '' } : { column: v.slice(4) } }))
+          }}>
+            <option value="ask">{t('Preguntar al ejecutar')}</option>
+            <option value="value">{t('Valor fijo')}</option>
+            {table.columns.filter(c => c.isSelectable).map(c => <option key={c.name} value={`col:${c.name}`}>{t('Columna {name}', { name: c.name })}</option>)}
+          </select>
+          {source(params[p.name]) === 'value' && (
+            <input value={params[p.name]?.value ?? ''} onChange={e => setParams(s => ({ ...s, [p.name]: { value: e.target.value } }))} />
+          )}
+        </div>
+      ))}
+      {r && (
+        <div className="row">
+          <input value={confirmText} placeholder={t('Pregunta antes de ejecutar (opcional), p. ej. ¿Anular el pedido?')} onChange={e => setConfirmText(e.target.value)} />
+          <button disabled={!complete} onClick={add}>{t('Agregar')}</button>
+        </div>
+      )}
     </Field>
   )
 }
@@ -531,6 +610,8 @@ function ColumnEditor({ column: c, value: v, errors, first, last, onMove, onChan
         <div className="grid-2">
           <input value={v.label ?? ''} placeholder={t('Etiqueta ({name})', { name: c.name })} onChange={e => onChange({ label: e.target.value })} />
           <input value={v.helpText ?? ''} placeholder={t('Ayuda bajo el campo')} onChange={e => onChange({ helpText: e.target.value })} />
+          <LangInputs value={v.labels} placeholder={v.label || c.name} onChange={labels => onChange({ labels })} />
+          <LangInputs value={v.helpTexts} placeholder={v.helpText || t('Ayuda bajo el campo')} onChange={helpTexts => onChange({ helpTexts })} />
         </div>
       )}
 
@@ -635,7 +716,7 @@ function Preview({ conn, table, loading }: { conn: string; table: TableMeta; loa
               <span className="field-label">{labelOf(c)}{required && <span className="req"> *</span>}</span>
               <FieldControl conn={conn} column={c} fk={fkByColumn.get(c.name)} value={c.type === 'Boolean' && !c.isNullable ? false : ''}
                 disabled required={required} onChange={() => {}} />
-              {c.helpText && <span className="hint">{c.helpText}</span>}
+              {helpTextOf(c) && <span className="hint">{helpTextOf(c)}</span>}
             </label>
           )
         })}
@@ -645,6 +726,27 @@ function Preview({ conn, table, loading }: { conn: string; table: TableMeta; loa
 }
 
 // ---------- Utilidades ----------
+
+/** Un texto en los otros idiomas de la interfaz (P-102). Vacío = el texto en español. */
+function LangInputs({ value, placeholder, onChange }: {
+  value?: Record<string, string>; placeholder: string; onChange: (v: Record<string, string> | undefined) => void
+}) {
+  const others = LOCALES.filter(l => l.id !== 'es')
+  return (
+    <div className="lang-inputs">
+      {others.map(l => (
+        <label key={l.id} className="lang-input">
+          <span className="muted small">{l.id.toUpperCase()}</span>
+          <input value={value?.[l.id] ?? ''} placeholder={placeholder} aria-label={l.name} onChange={e => {
+            const next = { ...value, [l.id]: e.target.value }
+            if (!e.target.value) delete next[l.id]
+            onChange(Object.keys(next).length ? next : undefined)
+          }} />
+        </label>
+      ))}
+    </div>
+  )
+}
 
 function Field({ label, hint, error, span, children }: {
   label: string; hint?: string; error?: string; span?: boolean; children: ReactNode

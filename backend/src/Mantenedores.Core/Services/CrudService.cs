@@ -5,6 +5,7 @@ using Mantenedores.Core.Audit;
 using Mantenedores.Core.Concurrency;
 using Mantenedores.Core.Errors;
 using Mantenedores.Core.Notifications;
+using Mantenedores.Core.Overrides;
 using Mantenedores.Core.Query;
 using Mantenedores.Core.Schema;
 using Mantenedores.Core.Security;
@@ -331,6 +332,70 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
             current = await db.ExecuteScalarAsync<object?>(Command(qb.BuildParentOf(table, current), ct, tx));
             if (current is DBNull) current = null;
         }
+    }
+
+    // ---------- Acciones (P-061) ----------
+
+    /// <summary>Lo que devolvió la rutina: su primer conjunto de filas (hasta 200).</summary>
+    public sealed record ActionResult(IReadOnlyList<IDictionary<string, object?>> Rows, bool Truncated);
+
+    /// <summary>
+    /// Ejecuta una acción de la tabla sobre un registro: arma los parámetros (columna del registro, valor fijo o lo que
+    /// escribió el usuario) y llama a la rutina, que debe existir en el catálogo. Exige el permiso de ejecutar (D-088).
+    /// </summary>
+    public async Task<ActionResult> ExecuteActionAsync(string conn, string schema, string table, string actionName,
+        IReadOnlyDictionary<string, string> key, IReadOnlyDictionary<string, JsonElement>? asked, CancellationToken ct)
+    {
+        var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
+        Require(info, DataOperation.Execute, "ejecutar acciones en");
+        var action = info.Actions.FirstOrDefault(a => string.Equals(a.Name, actionName, StringComparison.OrdinalIgnoreCase))
+                     ?? throw new NotFoundException($"{info.FullName} no tiene la acción '{actionName}'.");
+        var routines = await schemas.GetRoutinesAsync(conn, ct);
+        if (OverrideApplier.ValidateActions([action], routines).Values.FirstOrDefault() is { } problem)
+            throw new OperationNotAllowedException($"La acción '{action.Name}' no se puede ejecutar: {problem}.");
+        var routine = routines.First(r => string.Equals(r.FullName, action.Routine, StringComparison.OrdinalIgnoreCase));
+
+        var keyValues = ParseKey(info, key);
+        IReadOnlyDictionary<string, ActionParameter> given = action.Parameters ?? new Dictionary<string, ActionParameter>();
+        IDictionary<string, object?>? row = null;
+        var values = new List<object?>();
+        var errors = new Dictionary<string, string>();
+        foreach (var p in routine.Parameters)
+        {
+            var source = given.First(kv => string.Equals(kv.Key, p.Name, StringComparison.OrdinalIgnoreCase)).Value;
+            try
+            {
+                if (source.Column is { Length: > 0 } col)
+                {
+                    var column = info.FindColumn(col) ?? throw new NotFoundException($"La columna '{col}' no existe.");
+                    // Una columna que el usuario no puede ver tampoco se usa por él (D-067).
+                    if (column.Hidden && !column.IsPrimaryKey)
+                        throw new ForbiddenException($"La acción usa {col}, una columna que usted no puede ver.");
+                    row ??= await GetByKeyAsync(ctx, info, keyValues, ct);
+                    values.Add(row.TryGetValue(column.Name, out var v) ? v : null);
+                }
+                else if (source.Ask == true)
+                    values.Add(asked is not null && asked.TryGetValue(p.Name, out var el) ? ValueConverter.FromJson(p.AsColumn(), el) : null);
+                else
+                    values.Add(ValueConverter.FromString(p.AsColumn(), source.Value));
+            }
+            catch (ValidationException ex) { errors[p.Name] = string.Join(" ", ex.Errors.Values); }
+        }
+        if (errors.Count > 0) throw new ValidationException(errors);
+
+        var call = new QueryBuilder(ctx.Provider.Dialect).BuildCall(routine, values);
+        List<IDictionary<string, object?>> rows;
+        await using (var db = await OpenAsync(ctx, ct))
+            rows = (await Translated(ctx, info, DbOperation.Update, () => db.QueryAsync(Command(call, ct))))
+                .Cast<IDictionary<string, object?>>().Take(201).Select(r => (IDictionary<string, object?>)new Dictionary<string, object?>(r)).ToList();
+
+        await AuditAsync(ctx, info, AuditOperation.Action, AuditValues.Key(info, keyValues.AsReadOnly()), null,
+            AuditValues.Serialize(new Dictionary<string, object?>
+            {
+                ["action"] = action.Name, ["routine"] = routine.FullName,
+                ["parameters"] = routine.Parameters.Select((p, i) => (p.Name, values[i])).ToDictionary(x => x.Name, x => x.Item2)
+            }), ct);
+        return new ActionResult(rows.Take(200).ToList(), rows.Count > 200);
     }
 
     // ---------- Relaciones N:M (P-015) ----------

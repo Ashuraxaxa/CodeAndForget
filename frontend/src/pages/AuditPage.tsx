@@ -8,7 +8,7 @@ import { useMe } from '../lib/useMe'
 import { useT, type Translate } from '../i18n'
 
 const opLabels = (t: Translate): Record<AuditOperation, string> => ({
-  Create: t('Alta'), Update: t('Edición'), Delete: t('Baja'), Import: t('Importación'), Links: t('Vínculos N:M'),
+  Create: t('Alta'), Update: t('Edición'), Delete: t('Baja'), Import: t('Importación'), Links: t('Vínculos N:M'), Action: t('Acción'),
 })
 const PAGE_SIZE = 50
 

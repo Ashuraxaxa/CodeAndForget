@@ -173,6 +173,26 @@ public sealed class SchemaService(
     {
         _raw.TryRemove(connectionId, out _);
         _applied.TryRemove(connectionId, out _);
+        _routines.TryRemove(connectionId, out _);
+    }
+
+    private readonly ConcurrentDictionary<string, Lazy<Task<IReadOnlyList<RoutineInfo>>>> _routines = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Procedimientos y funciones de la conexión (P-061), en caché como el esquema; ↻ los vuelve a leer.</summary>
+    public async Task<IReadOnlyList<RoutineInfo>> GetRoutinesAsync(string connectionId, CancellationToken ct)
+    {
+        var (def, provider) = await DefinitionAsync(connectionId, ct);
+        var lazy = _routines.GetOrAdd(def.Id, _ => new Lazy<Task<IReadOnlyList<RoutineInfo>>>(async () =>
+        {
+            await using var conn = await OpenAsync(def, provider, CancellationToken.None);
+            return await provider.Schema.ReadRoutinesAsync(conn, def.Schemas, CancellationToken.None);
+        }));
+        try { return await lazy.Value.WaitAsync(ct); }
+        catch when (lazy.Value.IsFaulted)
+        {
+            _routines.TryRemove(new KeyValuePair<string, Lazy<Task<IReadOnlyList<RoutineInfo>>>>(def.Id, lazy));
+            throw;
+        }
     }
 
     /// <summary>Solo en esta instancia: se rehace el combinado sin volver a leer la base.</summary>

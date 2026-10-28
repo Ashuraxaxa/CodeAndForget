@@ -1,6 +1,6 @@
 import type {
   ImportMode, ImportResult, TransferFormat, TreeNode,
-  AuditPage, SecurityInfo, SecurityProfile, SecurityUser,
+  AuditPage, SecurityInfo, SecurityProfile, SecurityUser, ActionResult, Routine,
   Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride,
 } from './types'
 import { t, translateServer } from '../i18n'
@@ -131,6 +131,8 @@ export interface ListParams {
   filters?: Record<string, string>
   /** Igualdad exacta (maestro-detalle): `?e.pedido_id=5`. */
   exact?: Record<string, string>
+  /** Paginación por clave (P-098): la PK de la última fila de la página anterior. */
+  after?: string
 }
 
 /** Permisos de la app (D-053, D-066): se otorgan a roles por configuración o a perfiles. */
@@ -213,6 +215,7 @@ export const api = {
     if (p.q) qs.set('q', p.q)
     for (const [k, v] of Object.entries(p.filters ?? {})) if (v) qs.set(`f.${k}`, v)
     for (const [k, v] of Object.entries(p.exact ?? {})) qs.set(`e.${k}`, v)
+    if (p.after) qs.set('after', p.after)
     return request<PagedResult>('GET', `${tablePath(conn, schema, table)}?${qs}`)
   },
   get: (conn: string, schema: string, table: string, key: string) =>
@@ -224,6 +227,9 @@ export const api = {
     request<Row>('PUT', `${tablePath(conn, schema, table)}/row?${key}`, body, ifMatch(version)),
   remove: (conn: string, schema: string, table: string, key: string, version?: unknown) =>
     request<void>('DELETE', `${tablePath(conn, schema, table)}/row?${key}`, undefined, ifMatch(version)),
+  routines: (conn: string) => request<Routine[]>('GET', `api/meta/${enc(conn)}/routines`),
+  runAction: (conn: string, schema: string, table: string, key: string, action: string, asked: Record<string, unknown>) =>
+    request<ActionResult>('POST', `${tablePath(conn, schema, table)}/row/actions/${enc(action)}?${key}`, asked),
   links: (conn: string, schema: string, table: string, key: string, link: string) =>
     request<LookupItem[]>('GET', `${tablePath(conn, schema, table)}/row/links/${enc(link)}?${key}`),
   setLinks: (conn: string, schema: string, table: string, key: string, link: string, values: unknown[]) =>

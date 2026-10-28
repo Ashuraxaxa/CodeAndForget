@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><title>Renovando sesión</title></head>
+<body>
+<!--
+  Renovación silenciosa de la sesión OIDC sin refresh token (P-079, D-087): el proveedor vuelve aquí, dentro de un
+  iframe oculto, con el código nuevo. Se le pasa la URL a la app (oidc-client-ts), que completa el canje.
+  Mismo formato que IFrameWindow.notifyParent de oidc-client-ts.
+-->
+<script>
+  (window.parent !== window ? window.parent : window.opener)
+    ?.postMessage({ source: 'oidc-client', url: window.location.href, keepOpen: false }, window.location.origin)
+</script>
+</body>
+</html>

@@ -4,6 +4,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Pendientes, lote B (P-102, P-079, P-061, P-098)
+- Nombres y ayudas por idioma en los ajustes; en el navegador, "Products" en inglés en título y menú.
+- Renovación silenciosa con Keycloak sin refresh tokens (tokens de 70 s): siguió en la app pasados los 95 s. Lo que parecían dos pedidos por renovación era el `redirect_uri` dentro de la URL de autorización.
+- Acciones con procedimientos en los cuatro motores al primer intento; en el navegador el editor propuso los parámetros solo (`p_id` → id) y el precio subió 710 → 712,5, con su entrada en la auditoría.
+- Paginación por clave: misma página que con OFFSET; en 1 millón de filas, 8,5 s en frío → ~180 ms.
+
 ## 2026-10-28 · Pendientes, lote A (P-031, P-034, P-075, P-096, P-103, P-104)
 - El dueño pidió seguir con los pendientes hasta el final. Se ordenaron en tres lotes; quedan fuera solo los que dependen del dueño o de un equipo que los pida.
 - Índices únicos sin restricción en SQL Server y PG; búsqueda sin CAST en columnas de texto (se actualizó el SQL esperado de 4 pruebas).

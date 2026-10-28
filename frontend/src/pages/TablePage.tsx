@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, isConcurrencyError } from '../api/client'
-import { LABEL_SUFFIX, SIZE_SUFFIX, VERSION_FIELD, labelOf, type Column, type Row, type TableMeta, type TransferFormat } from '../api/types'
+import { LABEL_SUFFIX, SIZE_SUFFIX, VERSION_FIELD, helpTextOf, labelOf, type Column, type Row, type TableMeta, type TransferFormat } from '../api/types'
 import { FIXED_PREFIX, RETURN_PARAM, displayValue, keyQuery } from '../lib/format'
 import { useDebounce } from '../lib/useDebounce'
 import { useCan } from '../lib/useMe'
@@ -51,7 +51,11 @@ export function Grid({ conn, meta, fixed, returnTo }: {
 
   const debouncedSearch = useDebounce(search)
   const debouncedFilters = useDebounce(filters)
-  useEffect(() => setPage(1), [debouncedSearch, debouncedFilters, pageSize])
+  // Paginación por clave (P-098): con el orden de la PK, la página siguiente se pide desde la última fila de la actual.
+  // Se guarda el "desde" de cada página para volver atrás; cambiar filtros, orden o tamaño lo reinicia.
+  const [cursors, setCursors] = useState<Record<number, string>>({})
+  useEffect(() => { setPage(1); setCursors({}) }, [debouncedSearch, debouncedFilters, pageSize, sort])
+  const keyset = !sort && !meta.defaultSort && meta.primaryKey.length === 1
 
   // El orden viene del servidor (ajuste Order); las ocultas y las que van solo en el formulario no se muestran.
   const columns = meta.columns.filter(c => c.isSelectable && !c.hidden && c.showInGrid && !(fixed && c.name in fixed))
@@ -78,6 +82,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
     q: debouncedSearch || undefined,
     filters: debouncedFilters,
     exact: fixed,
+    after: keyset && page > 1 ? cursors[page] : undefined,
   }
   const rows = useQuery({
     queryKey: ['rows', conn, meta.schema, meta.name, listParams],
@@ -206,7 +211,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
                   key={c.name}
                   onClick={() => c.isSortable && toggleSort(c.name)}
                   className={c.isSortable ? undefined : 'no-sort'}
-                  title={`${c.label ? c.name + ' · ' : ''}${c.nativeType}${c.isNullable ? '' : ' · ' + t('obligatorio')}${c.isSortable ? '' : ' · ' + t('no se puede ordenar')}${c.helpText ? '\n' + c.helpText : ''}`}
+                  title={`${c.label ? c.name + ' · ' : ''}${c.nativeType}${c.isNullable ? '' : ' · ' + t('obligatorio')}${c.isSortable ? '' : ' · ' + t('no se puede ordenar')}${helpTextOf(c) ? '\n' + helpTextOf(c) : ''}`}
                 >
                   {c.isPrimaryKey && <span className="pk">🔑</span>}
                   {labelOf(c)}
@@ -277,7 +282,12 @@ export function Grid({ conn, meta, fixed, returnTo }: {
       <div className="pager">
         <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>‹ {t('Anterior')}</button>
         <span>{capped ? t('Página {page} de {pages}+', { page, pages }) : t('Página {page} de {pages}', { page, pages })}</span>
-        <button disabled={page >= pages} onClick={() => setPage(p => p + 1)}>{t('Siguiente')} ›</button>
+        <button disabled={page >= pages} onClick={() => {
+          const list = rows.data?.rows ?? []
+          const last = list[list.length - 1]
+          if (keyset && last) setCursors(c => ({ ...c, [page + 1]: String(last[meta.primaryKey[0]]) }))
+          setPage(p => p + 1)
+        }}>{t('Siguiente')} ›</button>
         <select value={pageSize} onChange={e => setPageSize(Number(e.target.value))}>
           {PAGE_SIZES.map(s => <option key={s} value={s}>{t('{n} por página', { n: s })}</option>)}
         </select>

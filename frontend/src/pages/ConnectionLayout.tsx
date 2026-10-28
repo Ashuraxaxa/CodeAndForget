@@ -29,7 +29,7 @@ export function ConnectionLayout() {
     const map = new Map<string, NonNullable<typeof data>['tables']>()
     for (const tb of data?.tables ?? []) {
       if (tb.hidden) continue
-      if (f && !`${tb.schema}.${tb.name} ${tb.label ?? ''}`.toLowerCase().includes(f)) continue
+      if (f && !`${tb.schema}.${tb.name} ${labelOf(tb)}`.toLowerCase().includes(f)) continue
       // El grupo del ajuste reemplaza al esquema en el menú.
       const g = tb.group ?? tb.schema
       map.set(g, [...(map.get(g) ?? []), tb])

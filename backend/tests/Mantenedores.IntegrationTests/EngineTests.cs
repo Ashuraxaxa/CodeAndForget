@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Mantenedores.Core.Query;
 using Mantenedores.Core.Errors;
 using Mantenedores.Core.Schema;
@@ -8,6 +9,46 @@ namespace Mantenedores.IntegrationTests;
 /// <summary>PostgreSQL: batería común + casos propios del motor (enum, jsonb).</summary>
 public sealed class PostgresTests(PostgresFixture db) : ProviderContractTests<PostgresFixture>(db)
 {
+    [Fact]
+    public async Task Tipos_propios_se_leen_y_se_escriben_como_texto()
+    {
+        // P-075: compuesto, rango, red e intervalo, que antes quedaban sin soporte. El compuesto se crea después de
+        // abrir conexiones: igual se lee, porque viaja como texto y no depende de la caché de tipos de Npgsql.
+        await Db.ScalarAsync("CREATE TYPE ventas.direccion_prueba AS (calle text, numero int)");
+        await Db.ScalarAsync("""
+            CREATE TABLE ventas.tipos_prueba (id int PRIMARY KEY, dir ventas.direccion_prueba, vigencia daterange,
+                                              ip inet, plazo interval)
+            """);
+        try
+        {
+            await Db.Schemas.RefreshAsync("demo", default);
+            var info = (await Db.Schemas.GetTableAsync("demo", Schema, "tipos_prueba", default)).Table;
+            Assert.All(new[] { "dir", "vigencia", "ip", "plazo" }, n => Assert.True(info.FindColumn(n)!.TextCast && !info.FindColumn(n)!.IsReadOnly, n));
+
+            await Db.Crud.CreateAsync("demo", Schema, "tipos_prueba", Body(("id", 1), ("dir", "(\"Av. Siempre Viva\",742)"),
+                ("vigencia", "[2026-01-01,2027-01-01)"), ("ip", "10.0.0.1"), ("plazo", "3 days")), default);
+            var row = await Db.Crud.GetAsync("demo", Schema, "tipos_prueba", Key(("id", 1)), default);
+            Assert.Equal("(\"Av. Siempre Viva\",742)", row["dir"]);
+            Assert.Equal("[2026-01-01,2027-01-01)", row["vigencia"]);
+            Assert.Equal("10.0.0.1", row["ip"]);
+            Assert.Equal("3 days", row["plazo"]);
+
+            // Filtro y búsqueda: como texto.
+            var found = await Db.Crud.ListAsync("demo", Schema, "tipos_prueba", new ListRequest
+            {
+                Filters = new Dictionary<string, string> { ["ip"] = "10.0" }
+            }, default);
+            Assert.Single(found.Rows);
+            await Assert.ThrowsAnyAsync<Exception>(() => Db.Crud.UpdateAsync("demo", Schema, "tipos_prueba", Key(("id", 1)), Body(("ip", "no-es-ip")), default));
+        }
+        finally
+        {
+            await Db.ScalarAsync("DROP TABLE ventas.tipos_prueba");
+            await Db.ScalarAsync("DROP TYPE ventas.direccion_prueba");
+            await Db.Schemas.RefreshAsync("demo", default);
+        }
+    }
+
     [Fact]
     public async Task Arreglo_se_lee_como_lista_y_se_guarda_validando_cada_elemento()
     {
@@ -206,6 +247,28 @@ public abstract class MySqlFamilyTests<TFixture>(TFixture db) : ProviderContract
 public sealed class MySqlTests(MySqlFixture db) : MySqlFamilyTests<MySqlFixture>(db)
 {
     [Fact]
+    public async Task Una_columna_con_srid_se_escribe_y_se_lee_en_longitud_latitud()
+    {
+        // P-104: MySQL 8 informa el SRID de la columna; en 4326 el WKT sigue en longitud latitud, como en los demás motores.
+        await Db.ScalarAsync("CREATE TABLE srid_prueba (id INT PRIMARY KEY, punto POINT SRID 4326 NULL)");
+        try
+        {
+            await Db.Schemas.RefreshAsync("demo", default);
+            var info = (await Db.Schemas.GetTableAsync("demo", Schema, "srid_prueba", default)).Table;
+            Assert.Equal((int?)4326, info.FindColumn("punto")!.Srid);
+            await Db.Crud.CreateAsync("demo", Schema, "srid_prueba", Body(("id", 1), ("punto", "POINT(-70.66 -33.45)")), default);
+            Assert.Equal("POINT(-70.66 -33.45)", (await Db.Crud.GetAsync("demo", Schema, "srid_prueba", Key(("id", 1)), default))["punto"]);
+            // La latitud quedó como latitud: el orden se respetó.
+            Assert.Equal(-3345L, Convert.ToInt64(await Db.ScalarAsync("SELECT ROUND(ST_Latitude(punto) * 100) FROM srid_prueba WHERE id = 1")));
+        }
+        finally
+        {
+            await Db.ScalarAsync("DROP TABLE srid_prueba");
+            await Db.Schemas.RefreshAsync("demo", default);
+        }
+    }
+
+    [Fact]
     public async Task Se_identifica_como_mysql() =>
         Assert.Equal("MySQL", (await Db.Schemas.TestAsync(new Core.Connections.ConnectionDefinition
         {
@@ -221,4 +284,38 @@ public sealed class MariaDbTests(MariaDbFixture db) : MySqlFamilyTests<MariaDbFi
         {
             Id = "p", Name = "p", Engine = Db.Engine, ConnectionString = Db.ConnectionString
         }, default)).Server.Product);
+}
+
+/// <summary>PostGIS (P-104): geography y geometry editables como WKT, con el SRID de cada columna.</summary>
+[Trait("Category", "Integration")]
+public sealed class PostgisTests(PostgisFixture db) : IClassFixture<PostgisFixture>
+{
+    private static Dictionary<string, JsonElement> Body(params (string Key, object? Value)[] values) =>
+        values.ToDictionary(v => v.Key, v => JsonSerializer.SerializeToElement(v.Value));
+
+    [Fact]
+    public async Task Geografia_y_geometria_se_editan_como_wkt_con_su_srid()
+    {
+        var cliente = (await db.Schemas.GetTableAsync("demo", "ventas", "cliente", default)).Table;
+        Assert.Equal((LogicalType.Spatial, (int?)4326), (cliente.FindColumn("ubicacion")!.Type, cliente.FindColumn("ubicacion")!.Srid));
+        Assert.Equal((int?)0, cliente.FindColumn("zona")!.Srid);
+        Assert.Equal((int?)32719, cliente.FindColumn("plano")!.Srid);
+
+        var row = Assert.Single((await db.Crud.ListAsync("demo", "ventas", "cliente", new ListRequest
+        {
+            Exact = new Dictionary<string, string> { ["rut"] = "76.123.456-7" }
+        }, default)).Rows);
+        Assert.Equal("POINT(-70.66 -33.45)", row["ubicacion"]);
+
+        var key = new Dictionary<string, string> { ["id"] = Convert.ToString(row["id"], System.Globalization.CultureInfo.InvariantCulture)! };
+        var updated = await db.Crud.UpdateAsync("demo", "ventas", "cliente", key, Body(
+            ("ubicacion", "POINT (-71.6 -33.04)"), ("zona", "POLYGON((0 0, 1 0, 1 1, 0 0))"), ("plano", "POINT(350000 6300000)")), default);
+        Assert.Equal("POINT(-71.6 -33.04)", updated["ubicacion"]);
+        Assert.Equal("POLYGON((0 0,1 0,1 1,0 0))", updated["zona"]);
+        Assert.Equal("POINT(350000 6300000)", updated["plano"]);
+
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
+            db.Crud.UpdateAsync("demo", "ventas", "cliente", key, Body(("ubicacion", "-71, -33")), default));
+        Assert.Contains("WKT", ex.Errors["ubicacion"]);
+    }
 }

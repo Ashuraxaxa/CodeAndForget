@@ -50,6 +50,20 @@ public sealed class MySqlSchemaProvider : ISchemaProvider
         ORDER BY k.TABLE_SCHEMA, k.TABLE_NAME, k.CONSTRAINT_NAME, k.ORDINAL_POSITION
         """;
 
+    private static readonly string SridSql = $"""
+        SELECT TABLE_SCHEMA AS SchemaName, TABLE_NAME AS TableName, COLUMN_NAME AS ColumnName, SRS_ID AS SrsId
+        FROM information_schema.COLUMNS
+        WHERE SRS_ID IS NOT NULL AND {Filter("TABLE_SCHEMA")}
+        """;
+
+    private sealed class SridRow
+    {
+        public string SchemaName { get; set; } = "";
+        public string TableName { get; set; } = "";
+        public string ColumnName { get; set; } = "";
+        public long SrsId { get; set; }
+    }
+
     // MariaDB guarda JSON como LONGTEXT con un CHECK json_valid(`columna`): así se detecta.
     private static readonly string MariaDbJsonSql = $"""
         SELECT CONSTRAINT_SCHEMA AS SchemaName, TABLE_NAME AS TableName, CHECK_CLAUSE AS Clause
@@ -67,7 +81,15 @@ public sealed class MySqlSchemaProvider : ISchemaProvider
 
         var version = await connection.ExecuteScalarAsync<string>(new CommandDefinition("SELECT VERSION()", cancellationToken: ct)) ?? "";
         var mariaJson = new HashSet<(string, string, string)>();
-        if (version.Contains("MariaDB", StringComparison.OrdinalIgnoreCase))
+        var srids = new Dictionary<(string, string, string), int>();
+        var isMariaDb = version.Contains("MariaDB", StringComparison.OrdinalIgnoreCase);
+        if (!isMariaDb)
+        {
+            // SRID de cada columna espacial (P-104): MySQL 8 lo informa en SRS_ID; MariaDB no tiene la columna.
+            foreach (var s in await connection.QueryAsync<SridRow>(new CommandDefinition(SridSql, args, cancellationToken: ct)))
+                srids[(s.SchemaName.ToLowerInvariant(), s.TableName.ToLowerInvariant(), s.ColumnName.ToLowerInvariant())] = (int)s.SrsId;
+        }
+        if (isMariaDb)
         {
             foreach (var j in await connection.QueryAsync<JsonCheckRow>(new CommandDefinition(MariaDbJsonSql, args, cancellationToken: ct)))
             {
@@ -78,8 +100,12 @@ public sealed class MySqlSchemaProvider : ISchemaProvider
 
         return SchemaAssembler.Assemble(
             tables.Select(t => new RawTable(t.SchemaName, t.TableName, t.Kind == "VIEW" ? TableKind.View : TableKind.Table)),
-            columns.Select(c => new RawColumn(c.SchemaName, c.TableName,
-                ToColumn(c, mariaJson.Contains((c.SchemaName.ToLowerInvariant(), c.TableName.ToLowerInvariant(), c.ColumnName.ToLowerInvariant()))))),
+            columns.Select(c =>
+            {
+                var k = (c.SchemaName.ToLowerInvariant(), c.TableName.ToLowerInvariant(), c.ColumnName.ToLowerInvariant());
+                var col = ToColumn(c, mariaJson.Contains(k));
+                return new RawColumn(c.SchemaName, c.TableName, srids.TryGetValue(k, out var srid) ? col with { Srid = srid } : col);
+            }),
             keys.Select(ToKey),
             includeSchemas);
     }

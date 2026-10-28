@@ -38,6 +38,7 @@ public sealed class PostgresSchemaProvider : ISchemaProvider
                     THEN ((a.atttypmod - 4) >> 16) & 65535 END AS NumericPrecision,
                CASE WHEN COALESCE(bt.typname, t.typname) = 'numeric' AND a.atttypmod > 0
                     THEN (a.atttypmod - 4) & 65535 END AS NumericScale,
+               format_type(a.atttypid, a.atttypmod) AS FormatType,
                et.typname AS ElementTypeName, et.typtype::text AS ElementTypeKind,
                et.typcategory::text AS ElementTypeCategory, etn.nspname AS ElementTypeSchema
         FROM pg_attribute a
@@ -69,7 +70,19 @@ public sealed class PostgresSchemaProvider : ISchemaProvider
         LEFT JOIN pg_namespace rn ON rn.oid = rc.relnamespace
         LEFT JOIN pg_attribute ra ON ra.attrelid = con.confrelid AND ra.attnum = con.confkey[k.ord]
         WHERE con.contype IN ('p', 'u', 'f') AND {SchemaFilter}
-        ORDER BY n.nspname, c.relname, con.conname, k.ord
+        UNION ALL
+        -- Índices únicos que no son restricción (P-031). Sin predicado ni expresiones: esos no valen para la columna entera.
+        SELECT ic.relname, 'u', n.nspname, c.relname, a.attname, k.ord::int, NULL, NULL, NULL
+        FROM pg_index i
+        JOIN pg_class ic ON ic.oid = i.indexrelid
+        JOIN pg_class c ON c.oid = i.indrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        CROSS JOIN LATERAL unnest(i.indkey::int2[]) WITH ORDINALITY AS k(attnum, ord)
+        JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = k.attnum
+        WHERE i.indisunique AND NOT i.indisprimary AND i.indpred IS NULL AND i.indexprs IS NULL
+          AND NOT EXISTS (SELECT 1 FROM pg_constraint pc WHERE pc.conindid = i.indexrelid)
+          AND {SchemaFilter}
+        ORDER BY 3, 4, 1, 6
         """;
 
     private const string EnumsSql = """
@@ -127,6 +140,8 @@ public sealed class PostgresSchemaProvider : ISchemaProvider
             Sortable = c.TypeName is not ("json" or "xml"),
             Filterable = c.TypeName is not ("json" or "xml"),
             ElementType = element,
+            TextCast = type == LogicalType.String && PostgresTypeMapper.IsTextCast(c.TypeName, c.TypeKind),
+            Srid = PostgresTypeMapper.Srid(c.TypeName, c.FormatType),
             ElementNativeType = element is null ? null : c.ElementTypeName,
             ElementNativeTypeSchema = element is null ? null : c.ElementTypeSchema
         };
@@ -162,6 +177,7 @@ public sealed class PostgresSchemaProvider : ISchemaProvider
         public int? MaxLength { get; set; }
         public int? NumericPrecision { get; set; }
         public int? NumericScale { get; set; }
+        public string? FormatType { get; set; }
         public string? ElementTypeName { get; set; }
         public string? ElementTypeKind { get; set; }
         public string? ElementTypeCategory { get; set; }

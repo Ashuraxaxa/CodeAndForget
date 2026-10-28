@@ -751,6 +751,26 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - PostGIS y `hierarchyid` siguen de solo lectura (`ReadOnlyText`): sin PostGIS en la imagen de pruebas no se puede pasar la batería común (D-033). Queda P-104.
 - **Descartado:** un control de mapa: suma una librería y un proveedor de mapas (D-022), y el WKT ya se puede copiar de cualquier GIS.
 
+### D-084 · Índices únicos, búsqueda sin CAST y tipos propios de PostgreSQL
+- **Estado:** Vigente · 2026-10-28 (P-031, P-034, P-075)
+- **Qué:**
+  - Los índices únicos que no son restricción cuentan como claves únicas (SQL Server `sys.indexes`, PG `pg_index`), salvo los filtrados o por expresión, que no valen para la columna entera. El error de duplicado nombra la columna. En MySQL/MariaDB ya venían así.
+  - La búsqueda y el filtro "contiene" ya no convierten a texto las columnas que lo son (`ISqlDialect.Contains(…, isText)`): la base puede usar un índice de trigramas o similar.
+  - PG: compuestos, rangos, multirangos e `inet`, `cidr`, `macaddr`, `interval`, `bit`, geometría simple y `timetz` se manejan como texto (`ColumnInfo.TextCast`): se leen con su salida normal (`format('%s', …)`, porque `CAST(inet AS text)` agrega "/32") y se escriben con `CAST(texto AS tipo)`. La base valida el valor. `tsvector` sigue sin soporte: suele ser generada.
+- **Descartado:** mapear cada uno de estos tipos a un control propio: la forma en texto es la que el usuario de Postgres ya conoce.
+
+### D-085 · Bloqueo de fila al guardar con versión, y auditoría sin ediciones vacías
+- **Estado:** Vigente · 2026-10-28 (P-096, P-103)
+- **Qué:**
+  - Cuando el cliente manda la versión que editó (D-069), la edición o el borrado van en una transacción: se bloquea la fila (`ISqlDialect.LockRow`: `FOR UPDATE`, o `WITH (UPDLOCK, ROWLOCK, HOLDLOCK)` en SQL Server), se compara y se escribe. Con 4 ediciones simultáneas con la misma versión gana una sola, en los cuatro motores.
+  - Auditoría con perfil: una edición en la que solo cambiaron columnas que el usuario no ve no se lista. El total de la página puede quedar mayor que lo listado.
+- **Descartado:** `UPDATE … WHERE version = …`: la versión es un hash calculado de la fila, no una columna.
+
+### D-086 · PostGIS editable y SRID por columna
+- **Estado:** Vigente · 2026-10-28 (P-104)
+- **Qué:** PostGIS pasa a `Spatial`. El SRID se lee de `format_type` (`geometry(Point,4326)`); sin SRID declarado, geography usa 4326 y geometry 0. MySQL 8 informa `SRS_ID`; con SRID se usa `axis-order=long-lat` al leer y escribir, para que el WKT vaya en longitud latitud como en los demás motores. MariaDB no informa SRID (0). Las pruebas de PostGIS usan su propia imagen (`postgis/postgis:12-3.4`, variable `MANTENEDORES_POSTGIS_IMAGE`).
+- **Descartado:** pedir el SRID al usuario en cada valor (EWKT): solo PostgreSQL lo entiende.
+
 ---
 
 ## Propuestas (aún no decididas)

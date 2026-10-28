@@ -26,8 +26,8 @@ public class QueryBuilderTests
             "SELECT t0.\"id\", t0.\"codigo\", t0.\"categoria_id\", t0.\"precio\", t0.\"notas\", j0.\"nombre\" AS \"__lbl0\", " +
             "OCTET_LENGTH(t0.\"foto\") AS \"__sz1\" " +
             "FROM \"ventas\".\"producto\" t0 LEFT JOIN \"ventas\".\"categoria\" j0 ON j0.\"id\" = t0.\"categoria_id\" " +
-            "WHERE CAST(t0.\"codigo\" AS text) ILIKE @p0 ESCAPE '!' AND (t0.\"categoria_id\" = @p1 OR " +
-            "t0.\"categoria_id\" IN (SELECT lf.\"id\" FROM \"ventas\".\"categoria\" lf WHERE CAST(lf.\"nombre\" AS text) ILIKE @p2 ESCAPE '!')) " +
+            "WHERE t0.\"codigo\" ILIKE @p0 ESCAPE '!' AND (t0.\"categoria_id\" = @p1 OR " +
+            "t0.\"categoria_id\" IN (SELECT lf.\"id\" FROM \"ventas\".\"categoria\" lf WHERE lf.\"nombre\" ILIKE @p2 ESCAPE '!')) " +
             "ORDER BY t0.\"precio\" DESC, t0.\"id\" ASC LIMIT @p4 OFFSET @p3",
             data.Sql);
         Assert.Equal("%be!_%", data.Parameters["p0"]);
@@ -61,7 +61,7 @@ public class QueryBuilderTests
     public void Busqueda_general_sobre_columnas_de_texto()
     {
         var (data, _) = new QueryBuilder(new PostgresDialect()).BuildList(_schema, Producto, new ListRequest { Search = "50%" });
-        Assert.Contains("(CAST(t0.\"codigo\" AS text) ILIKE @p0 ESCAPE '!' OR CAST(t0.\"notas\" AS text) ILIKE @p0 ESCAPE '!')", data.Sql);
+        Assert.Contains("(t0.\"codigo\" ILIKE @p0 ESCAPE '!' OR t0.\"notas\" ILIKE @p0 ESCAPE '!')", data.Sql);
         Assert.Equal("%50!%%", data.Parameters["p0"]);
     }
 
@@ -142,7 +142,7 @@ public class QueryBuilderTests
         var q = new QueryBuilder(new PostgresDialect()).BuildLookup(categoria, "beb", 20);
         Assert.Equal(
             "SELECT t0.\"id\" AS \"value\", t0.\"nombre\" AS \"label\" FROM \"ventas\".\"categoria\" t0 " +
-            "WHERE CAST(t0.\"nombre\" AS text) ILIKE @p0 ESCAPE '!' ORDER BY t0.\"nombre\" LIMIT @p2 OFFSET @p1",
+            "WHERE t0.\"nombre\" ILIKE @p0 ESCAPE '!' ORDER BY t0.\"nombre\" LIMIT @p2 OFFSET @p1",
             q.Sql);
     }
 

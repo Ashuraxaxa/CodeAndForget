@@ -363,6 +363,31 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
     // ---------- Concurrencia optimista (D-069) ----------
 
     [Fact]
+    public async Task Dos_ediciones_a_la_vez_con_la_misma_version_solo_una_gana()
+    {
+        // P-096: la fila se bloquea entre comparar la versión y escribir; la segunda espera y ve la versión nueva.
+        const string V = Core.Concurrency.RowVersion.Field;
+        var created = await Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
+            (N("codigo"), UniqueCode()), (N("nombre"), "Carrera"), (N("categoria_id"), 1), (N("precio"), 10)), default);
+        var key = Key((N("id"), created[N("id")]!));
+        var version = (string)created[V]!;
+        try
+        {
+            for (var round = 0; round < 5; round++)
+            {
+                var results = await Task.WhenAll(Enumerable.Range(0, 4).Select(i => Task.Run(async () =>
+                {
+                    try { await Db.Crud.UpdateAsync(Conn, Schema, N("producto"), key, Body((N("precio"), 100 + round * 10 + i)), default, version); return true; }
+                    catch (ConcurrencyException) { return false; }
+                })));
+                Assert.Equal(1, results.Count(ok => ok));
+                version = (string)(await Db.Crud.GetAsync(Conn, Schema, N("producto"), key, default))[V]!;
+            }
+        }
+        finally { await Db.Crud.DeleteAsync(Conn, Schema, N("producto"), key, default); }
+    }
+
+    [Fact]
     public async Task No_pisa_un_registro_que_otro_cambio_despues_de_leerlo()
     {
         const string V = Core.Concurrency.RowVersion.Field;
@@ -801,6 +826,34 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
             await Db.Snapshots.DeleteAsync(Conn, default);
         }
     }
+    [Fact]
+    public async Task Un_indice_unico_cuenta_como_clave_unica_y_su_error_nombra_la_columna()
+    {
+        // P-031: un índice único (no una restricción UNIQUE) también impide duplicados.
+        var d = Db.Provider.Dialect;
+        var name = N("uidx_prueba");
+        var table = $"{d.Quote(Schema)}.{d.Quote(name)}";
+        string Q(string c) => d.Quote(N(c));
+        await Db.ScalarAsync($"CREATE TABLE {table} ({Q("id")} INT NOT NULL PRIMARY KEY, {Q("codigo")} VARCHAR(20) NOT NULL)");
+        try
+        {
+            await Db.ScalarAsync($"CREATE UNIQUE INDEX {d.Quote(N("ux_uidx_codigo"))} ON {table} ({Q("codigo")})");
+            await Db.Schemas.RefreshAsync(Conn, default);
+            var info = await TableAsync("uidx_prueba");
+            Assert.Contains(info.UniqueKeys, u => u.Columns.Count == 1 && string.Equals(u.Columns[0], N("codigo"), StringComparison.OrdinalIgnoreCase));
+
+            await Db.Crud.CreateAsync(Conn, Schema, name, Body((N("id"), 1), (N("codigo"), "A")), default);
+            var ex = await Assert.ThrowsAsync<ConstraintViolationException>(() =>
+                Db.Crud.CreateAsync(Conn, Schema, name, Body((N("id"), 2), (N("codigo"), "A")), default));
+            Assert.Contains(ex.Errors.Keys, k => string.Equals(k, N("codigo"), StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            await Db.ScalarAsync($"DROP TABLE {table}");
+            await Db.Schemas.RefreshAsync(Conn, default);
+        }
+    }
+
     [Fact]
     public async Task Detecta_solo_un_cambio_de_esquema_sin_pulsar_refrescar()
     {

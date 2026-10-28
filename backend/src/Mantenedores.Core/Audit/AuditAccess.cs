@@ -44,6 +44,15 @@ public static class AuditAccess
         return entry with { OldValues = Filter(entry.OldValues), NewValues = Filter(entry.NewValues) };
     }
 
+    /// <summary>
+    /// Una edición en la que solo cambiaron columnas que el usuario no ve (P-103): se omite, porque listarla vacía
+    /// revelaría que algo cambió.
+    /// </summary>
+    public static bool IsEmptyForUser(AuditEntry masked) =>
+        masked.Operation == AuditOperation.Update && IsEmpty(masked.OldValues) && IsEmpty(masked.NewValues);
+
+    private static bool IsEmpty(string? json) => json is null || json.Trim() is "{}" or "";
+
     /// <summary>¿La entrada cabe en lo permitido? (para almacenes que filtran en memoria).</summary>
     public static bool Allows(AuditQuery q, AuditEntry e) =>
         (q.AllowedConnections is null && q.AllowedTables is null) ||

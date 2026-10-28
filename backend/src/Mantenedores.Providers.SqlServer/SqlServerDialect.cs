@@ -19,8 +19,8 @@ public sealed class SqlServerDialect : ISqlDialect
     public string Paging(string offsetParam, string limitParam) =>
         $"OFFSET {offsetParam} ROWS FETCH NEXT {limitParam} ROWS ONLY";
 
-    public string Contains(string columnExpr, string param) =>
-        $"CAST({columnExpr} AS nvarchar(max)) LIKE {param} ESCAPE '{QueryBuilder.LikeEscape}'";
+    public string Contains(string columnExpr, string param, bool isText = false) =>
+        $"{(isText ? columnExpr : $"CAST({columnExpr} AS nvarchar(max))")} LIKE {param} ESCAPE '{QueryBuilder.LikeEscape}'";
 
     /// <summary>decimal(29..38) puede no caber en decimal de .NET: se lee como texto (P-023).</summary>
     public string SelectExpression(ColumnInfo column, string columnExpr) =>
@@ -32,6 +32,10 @@ public sealed class SqlServerDialect : ISqlDialect
         : columnExpr;
 
     public string ByteLength(string columnExpr) => $"DATALENGTH({columnExpr})";
+
+    /// <summary>SQL Server no tiene FOR UPDATE: el bloqueo de actualización se pide con una sugerencia de tabla (P-096).</summary>
+    public string LockRow(string table, string alias, string where) =>
+        $"SELECT 1 FROM {table} {alias} WITH (UPDLOCK, ROWLOCK, HOLDLOCK) WHERE {where}";
 
     /// <summary>Un nulo sin tipo llega como nvarchar, que SQL Server no convierte a varbinary: se fija el tipo (P-018).</summary>
     /// <summary>

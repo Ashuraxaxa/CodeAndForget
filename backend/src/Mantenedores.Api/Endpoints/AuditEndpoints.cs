@@ -23,7 +23,7 @@ public static class AuditEndpoints
             var user = await access.CurrentAsync(ct);
             var query = AuditAccess.Restrict(Parse(req.Query), user, user.Unrestricted ? [] : await audit.Store.TablesAsync(ct));
             var page = await audit.Store.QueryAsync(query, ct);
-            var entries = page.Entries.Select(e => AuditAccess.Mask(e, user)).ToList();
+            var entries = page.Entries.Select(e => AuditAccess.Mask(e, user)).Where(e => user.Unrestricted || !AuditAccess.IsEmptyForUser(e)).ToList();
             var labels = await AuditLabels.ForAsync(entries, crud, schemas, ct);
             return new AuditPageResponse(entries.Select(e => new AuditEntryResponse(e, labels.GetValueOrDefault(e.Id))).ToList(),
                 page.Total, page.Page, page.PageSize);
@@ -52,7 +52,7 @@ public static class AuditEndpoints
             {
                 var page = await audit.Store.QueryAsync(query with { Page = n }, ct);
                 if (page.Entries.Count == 0) break;
-                var entries = page.Entries.Select(e => AuditAccess.Mask(e, user)).ToList();
+                var entries = page.Entries.Select(e => AuditAccess.Mask(e, user)).Where(e => user.Unrestricted || !AuditAccess.IsEmptyForUser(e)).ToList();
                 var labels = await AuditLabels.ForAsync(entries, crud, schemas, ct);
                 foreach (var e in entries.Take(max - written))
                 {

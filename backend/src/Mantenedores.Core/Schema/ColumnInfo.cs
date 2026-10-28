@@ -74,6 +74,15 @@ public sealed record ColumnInfo
     public bool IsSelectable => Type is not (LogicalType.Unsupported or LogicalType.Binary) && !(Hidden && !IsPrimaryKey);
 
     /// <summary>Archivo que se puede subir y descargar (P-018): binario que no es rowversion.</summary>
+    /// <summary>
+    /// Tipo propio del motor que se lee y se escribe como texto con un CAST (P-075), p. ej. inet, interval, un rango
+    /// o un tipo compuesto de Postgres. La búsqueda también lo convierte a texto.
+    /// </summary>
+    public bool TextCast { get; init; }
+
+    /// <summary>Sistema de referencia de una columna espacial (P-104), p. ej. 4326. Null = el del motor por defecto.</summary>
+    public int? Srid { get; init; }
+
     public bool IsFile => Type == LogicalType.Binary && !IsRowVersion && !(Hidden && !IsPrimaryKey);
 
     /// <summary>Se ofrece ordenar por ella (P-022).</summary>

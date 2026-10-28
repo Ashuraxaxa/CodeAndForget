@@ -45,7 +45,7 @@ public static class AuthEndpoints
 
             var (token, expires) = tokens.Issue(user);
             return Results.Ok(new LoginResponse(token, expires, user.Username));
-        }).AllowAnonymous();
+        }).AllowAnonymous().RequireRateLimiting(Infrastructure.RateLimiting.Login);
 
         // Quién soy: nombre y roles ya normalizados desde los claims del emisor.
         app.MapGet("/api/auth/me", async (ClaimsPrincipal user, HttpContext http, HttpAccessContext access, IOptions<AuthOptions> options, CancellationToken ct) =>

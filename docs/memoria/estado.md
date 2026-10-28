@@ -5,7 +5,7 @@
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Fase 3 decidida con el dueño (D-062 a D-066) y en curso: migraciones con bloqueo y secretos (PR #20), perfiles y permisos (PR #21) auditoría de cambios (PR #22) y concurrencia optimista (PR #23). **Fase 3 completa.** Siguiente: Fase 4 (escala y operación).
+**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Fase 3 decidida con el dueño (D-062 a D-066) y en curso: migraciones con bloqueo y secretos (PR #20), perfiles y permisos (PR #21) auditoría de cambios (PR #22) y concurrencia optimista (PR #23). **Fase 3 completa.** Fase 4 en curso: tope del pool y límites de uso (PR #24). Siguiente: observabilidad (P-053).
 
 ## Ramas y PR
 
@@ -13,6 +13,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 |---|---|
 | `main` | Rama por defecto. Fase 1, bloque M, Fase 2 y Fase 3 hasta la auditoría: PR #1 a #22. |
 | `feature/f3-concurrencia` | PR #23: concurrencia optimista. |
+| `feature/f4-limites` | PR #24 (sale de la rama del #23): tope del pool y límites de uso. |
 | `feature/fase1-*`, `feature/m1-*`, `feature/m3-*`, `feature/f2-*`, `feature/f3-infra`, `-seguridad`, `-auditoria` | Ya fusionadas en `main`; se pueden borrar (P-005). |
 
 ## Qué funciona hoy
@@ -33,6 +34,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 - **Ajustes sin tocar código** (D-049, `docs/ajustes.md`): etiquetas, grupos del menú, columnas ocultas, orden, solo lectura, obligatorias, patrón, rango, lista de opciones, control de la UI, columna a mostrar, orden por defecto, PK y FK virtuales. Se aplican al instante, los cambia quien tiene el permiso `ConfigureTables` (D-053) y lo que deja de aplicar se avisa en el menú. Se editan con **⚙ Configurar** (pestañas Tabla y Columnas, vista previa en vivo, restablecer) o por la API.
 - **SQL Server:** la inserción funciona también en tablas con triggers (D-010).
 - **Seguridad propia** (D-062 a D-067, `docs/seguridad.md`): perfiles con roles y usuarios, permisos de la app y permisos sobre los datos por conexión, tabla y columna (ver, crear, editar, borrar, exportar, importar). Usuarios propios con contraseña en hash. Sin perfiles, todo sigue abierto. Pantalla **Seguridad** con el permiso `ManageSecurity`.
+- **Tope y límites** (D-070): máximo de conexiones por base y cierre de inactivas, configurables; 600 solicitudes por minuto por usuario, 10 exportaciones o importaciones y 10 intentos de login por minuto (por IP); `429` al pasarse.
 - **Edición simultánea** (D-069): si otra persona guardó el registro mientras se editaba, no se pisa. El formulario muestra qué cambió y deja ver lo actual o guardar igual; borrar desde una lista vieja también se rechaza.
 - **Auditoría** (D-065, D-068): cada alta, edición (solo lo que cambió), baja, fila importada y cambio N:M con quién y cuándo; 1 año configurable con limpieza automática. Página **Auditoría** con filtros y **Historial** desde cada registro, con el permiso `ViewAudit`.
 - **Permisos por acción** (D-053, D-066): `ConfigureTables`, `ManageConnections`, `ManageSecurity` y `ViewAudit`, cada uno otorgado a roles por configuración (por defecto `mnt-configurador`, `mnt-conexiones`, `mnt-seguridad` y `mnt-auditor`; los administradores tienen todos) o a perfiles. La UI oculta lo que el usuario no puede hacer.

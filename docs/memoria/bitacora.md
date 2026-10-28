@@ -4,6 +4,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Fase 4: tope del pool y límites de uso (P-051, P-091)
+- Cada proveedor agrega a la cadena el máximo de conexiones y el cierre de inactivas con los nombres de su driver, sin pisar lo que trae la cadena (D-070).
+- Límites con el limitador de ASP.NET Core: por usuario, para exportar e importar, y para el login por IP. Los health checks quedan fuera.
+- 187 unitarias y 215 de integración en verde.
+- **Siguiente:** P-053, observabilidad.
+
 ## 2026-10-28 · Fase 3: concurrencia optimista (P-046), Fase 3 completa
 - El dueño fusionó los PR #18 a #22.
 - Cada fila trae `__version` (hash de sus valores visibles). Editar y borrar la devuelven en `If-Match`, y si cambió responde 409 con la fila actual (D-069).

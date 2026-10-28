@@ -84,7 +84,7 @@ public static class DataEndpoints
             http.Response.Headers["X-Total-Count"] = plan.Rows.ToString(System.Globalization.CultureInfo.InvariantCulture);
             await plan.WriteAsync(http.Response.Body, ct);
             return Results.Empty;
-        });
+        }).RequireRateLimiting(Infrastructure.RateLimiting.Heavy);
 
         // Multipart: "file" (csv, xlsx, json o xml, por su extensión) y "mapping" opcional ({"encabezado": "columna" | null}).
         group.MapPost("/import/preview", async (string conn, string schema, string table, HttpRequest http,
@@ -93,7 +93,7 @@ public static class DataEndpoints
             var (file, mapping) = await ReadImportAsync(http, options, ct);
             await using var stream = file.OpenReadStream();
             return Results.Ok(await crud.PreviewImportAsync(conn, schema, table, stream, TransferFormats.FromFileName(file.FileName), mapping, ct));
-        });
+        }).RequireRateLimiting(Infrastructure.RateLimiting.Heavy);
 
         // Igual que la vista previa, pero graba si no hay errores. Con errores responde 400 con el mismo detalle.
         group.MapPost("/import", async (string conn, string schema, string table, HttpRequest http,
@@ -105,7 +105,7 @@ public static class DataEndpoints
             return result.Imported > 0 || (result.Errors.Count == 0 && result.TotalRows == 0)
                 ? Results.Ok(result)
                 : Results.Json(result, statusCode: StatusCodes.Status400BadRequest);
-        });
+        }).RequireRateLimiting(Infrastructure.RateLimiting.Heavy);
 
         // Opciones para combos de FK: [{ value, label }]
         group.MapGet("/lookup", (string conn, string schema, string table, string? q, int? take, CrudService crud, CancellationToken ct) =>

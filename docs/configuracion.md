@@ -92,6 +92,32 @@ Las cadenas de conexión se guardan cifradas. Estas llaves son las que permiten 
 | `DataProtection:CertificatePath` | — | Certificado `.pfx` para cifrar las llaves en reposo. Opcional. |
 | `DataProtection:CertificatePassword` | — | Contraseña del certificado. |
 
+## Conexiones a las bases (`Database:Pool`)
+
+Cada conexión configurada tiene su propio pool. Estos valores se agregan a la cadena de conexión **solo si esta no los
+trae**: si la cadena dice `Max Pool Size=50`, manda la cadena (D-070).
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `Database:Pool:MaxSize` | `20` | Máximo de conexiones abiertas a la vez hacia una misma base. `0` = el valor del driver (100). |
+| `Database:Pool:IdleSeconds` | `300` | Segundos sin uso antes de cerrar una conexión. `0` = el valor del driver. En SQL Server no se aplica: SqlClient las cierra solo, a los 4 a 8 minutos. |
+
+Con varias instancias, el máximo hacia una base es `MaxSize × instancias`.
+
+## Límites de uso (`RateLimit`)
+
+Protegen a las bases de un uso excesivo y el login de intentos repetidos (P-051, P-091). Al pasarse, la API responde
+`429` con `Retry-After`. Los contadores están en la memoria de cada instancia.
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `RateLimit:Enabled` | `true` | Aplicar los límites. |
+| `RateLimit:PermitsPerMinute` | `600` | Solicitudes a la API por minuto y por usuario (por IP sin sesión). No cuentan los health checks ni los archivos del frontend. `0` = sin límite. |
+| `RateLimit:HeavyPerMinute` | `10` | Exportaciones e importaciones (incluida la vista previa) por minuto y por usuario. |
+| `RateLimit:LoginPerMinute` | `10` | Intentos de inicio de sesión por minuto y por IP. |
+
+Detrás de un proxy, la IP es la del cliente solo si el proxy está configurado en `Hosting` (P-007).
+
 ## Consultas (`Crud`)
 
 | Clave | Por defecto | Qué hace |

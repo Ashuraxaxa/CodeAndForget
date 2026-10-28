@@ -283,8 +283,8 @@ administrar la seguridad. Los puntos de abajo se ajustan a eso.
 ## 3. Fase 4: escala y operación (3 semanas)
 
 1. **Caché del esquema compartida opcional:** `Cache:Provider = Redis` para varias instancias. Con una sola instancia sigue en memoria.
-2. **Pools de conexión con tope** por conexión y cierre de los inactivos.
-3. **Límites de uso** (rate limit) por usuario y por conexión.
+2. ✅ PR #24 · **Pools de conexión con tope** por conexión y cierre de los inactivos (D-070).
+3. ✅ PR #24 · **Límites de uso** por usuario, para exportar/importar y para el login (D-070).
 4. **Tablas grandes:** paginación por clave (sin OFFSET) y conteo estimado (`reltuples` / `sys.partitions`).
 5. **Observabilidad:** OpenTelemetry (trazas, métricas por conexión y por consulta lenta) y logs estructurados.
 6. **Pruebas de carga** con k6: 200 usuarios concurrentes y tablas de 10 millones de filas.

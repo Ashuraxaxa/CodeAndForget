@@ -52,6 +52,7 @@ builder.Services.AddSingleton<ProviderRegistry>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("Crud").Get<CrudOptions>() ?? new CrudOptions());
 builder.Services.AddSingleton(new SecretResolver(builder.Configuration.GetSection(SecretOptions.Section).Get<SecretOptions>() ?? new SecretOptions()));
 builder.Services.AddSingleton<SecurityService>();
+builder.Services.AddSingleton(builder.Configuration.GetSection(PoolOptions.Section).Get<PoolOptions>() ?? new PoolOptions());
 builder.Services.AddSingleton<SchemaService>();
 // --- Auditoría de cambios (D-065): activa por defecto, 365 días ---
 var auditOptions = builder.Configuration.GetSection(AuditOptions.Section).Get<AuditOptions>() ?? new AuditOptions();
@@ -66,6 +67,9 @@ builder.Services.AddHostedService<AuditPurgeService>();
 builder.Services.AddSingleton<CrudService>();
 
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+// --- Límites de uso por usuario, para exportar/importar y para el login (P-051, P-091) ---
+builder.Services.AddMantenedoresRateLimiting(
+    builder.Configuration.GetSection(RateLimitOptions.Section).Get<RateLimitOptions>() ?? new RateLimitOptions());
 builder.Services.AddExceptionHandler<ErrorHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddMantenedoresHealthChecks();
@@ -79,6 +83,7 @@ app.UseExceptionHandler();
 app.UseHosting(hosting);
 app.UseStaticFiles(); // Recursos del frontend compilado (wwwroot). index.html lo sirve MapSpaIndex.
 app.UseAuthentication();
+app.UseRateLimiter(); // después de autenticar: el límite es por usuario
 app.UseAuthorization();
 
 app.MapMantenedoresHealthChecks();

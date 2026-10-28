@@ -20,6 +20,12 @@ public interface IDatabaseProvider
     /// <summary>Producto, versión y ajustes relevantes del servidor.</summary>
     Task<ServerInfo> GetServerInfoAsync(DbConnection connection, CancellationToken ct);
 
+    /// <summary>
+    /// Agrega a la cadena el tope del pool y el cierre de inactivas con los nombres de su driver (D-070),
+    /// sin tocar lo que el usuario ya configuró.
+    /// </summary>
+    string ApplyPool(string connectionString, PoolOptions pool) => connectionString;
+
     /// <summary>Ajustes de sesión al abrir cada conexión (p. ej. zona horaria UTC en MySQL).</summary>
     Task InitializeSessionAsync(DbConnection connection, CancellationToken ct) => Task.CompletedTask;
 }

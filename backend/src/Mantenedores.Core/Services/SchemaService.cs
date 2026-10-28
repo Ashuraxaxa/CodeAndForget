@@ -27,16 +27,27 @@ public sealed record SchemaDiffResult(
 /// </summary>
 public sealed class SchemaService(
     IConnectionStore store, ProviderRegistry providers, IOverrideStore? overrides = null, ISchemaSnapshotStore? snapshots = null,
-    SecretResolver? secrets = null, IAccessContext? access = null)
+    SecretResolver? secrets = null, IAccessContext? access = null, PoolOptions? pool = null)
 {
     private readonly SecretResolver _secrets = secrets ?? new SecretResolver();
+    private readonly PoolOptions _pool = pool ?? new PoolOptions();
     private readonly IAccessContext _access = access ?? new UnrestrictedAccess();
 
     /// <summary>Permisos del usuario de la solicitud actual (D-063).</summary>
     public ValueTask<UserAccess> AccessAsync(CancellationToken ct) => _access.CurrentAsync(ct);
 
-    /// <summary>Cadena de conexión con las referencias a secretos ya reemplazadas (P-045). Solo se usa para conectar.</summary>
-    public string ConnectionStringFor(ConnectionDefinition def) => _secrets.Resolve(def.ConnectionString);
+    /// <summary>
+    /// Cadena para conectar: secretos ya reemplazados (P-045) y tope del pool (D-070). La misma cadena da el mismo pool,
+    /// por eso el resultado es estable para una misma definición.
+    /// </summary>
+    public string ConnectionStringFor(ConnectionDefinition def)
+    {
+        var resolved = _secrets.Resolve(def.ConnectionString);
+        // Pocas conexiones y cadenas cortas: la caché evita reprocesarla en cada apertura.
+        return _pooled.GetOrAdd((def.Engine, resolved), k => providers.Get(k.Engine).ApplyPool(k.Resolved, _pool));
+    }
+
+    private readonly ConcurrentDictionary<(DatabaseEngine Engine, string Resolved), string> _pooled = new();
 
     private readonly IOverrideStore _overrides = overrides ?? new NoOverrideStore();
     private readonly ISchemaSnapshotStore _snapshots = snapshots ?? new NoSnapshotStore();

@@ -286,8 +286,8 @@ administrar la seguridad. Los puntos de abajo se ajustan a eso.
 2. ✅ PR #24 · **Pools de conexión con tope** por conexión y cierre de los inactivos (D-070).
 3. ✅ PR #24 · **Límites de uso** por usuario, para exportar/importar y para el login (D-070).
 4. **Tablas grandes:** paginación por clave (sin OFFSET) y conteo estimado (`reltuples` / `sys.partitions`).
-5. **Observabilidad:** OpenTelemetry (trazas, métricas por conexión y por consulta lenta) y logs estructurados.
-6. **Pruebas de carga** con k6: 200 usuarios concurrentes y tablas de 10 millones de filas.
+5. ✅ PR #25 · **Observabilidad:** OpenTelemetry opcional por OTLP, solicitudes lentas en el log y logs en JSON (D-071).
+6. ◐ PR #25 · **Pruebas de carga** con k6 (`tests/load/crud.js`): falta la corrida contra tablas de 10 millones de filas (P-097).
 
 ## 4. Fase 5: extensiones (continuo)
 

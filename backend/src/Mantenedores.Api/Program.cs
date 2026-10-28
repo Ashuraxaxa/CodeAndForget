@@ -70,6 +70,9 @@ builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Ad
 // --- Límites de uso por usuario, para exportar/importar y para el login (P-051, P-091) ---
 builder.Services.AddMantenedoresRateLimiting(
     builder.Configuration.GetSection(RateLimitOptions.Section).Get<RateLimitOptions>() ?? new RateLimitOptions());
+// --- Observabilidad (P-053): OpenTelemetry por OTLP si se configura un destino; log de solicitudes lentas siempre ---
+builder.Services.AddMantenedoresTelemetry(
+    builder.Configuration.GetSection(TelemetryOptions.Section).Get<TelemetryOptions>() ?? new TelemetryOptions());
 builder.Services.AddExceptionHandler<ErrorHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddMantenedoresHealthChecks();
@@ -80,6 +83,7 @@ var app = builder.Build();
 await app.Services.InitializeMetadataAsync(dataDir);
 
 app.UseExceptionHandler();
+app.UseSlowRequestLog();
 app.UseHosting(hosting);
 app.UseStaticFiles(); // Recursos del frontend compilado (wwwroot). index.html lo sirve MapSpaIndex.
 app.UseAuthentication();

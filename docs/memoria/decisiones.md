@@ -601,6 +601,18 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Contadores compartidos entre instancias (Redis): sería una dependencia externa (D-022). Con N instancias el límite efectivo es N veces el configurado; queda para P-050.
   - Limitar el login por usuario además de por IP: el nombre viene en el cuerpo y habría que leerlo antes de autenticar.
 
+### D-071 · Observabilidad opcional por OTLP y log de solicitudes lentas
+- **Estado:** Vigente · 2026-10-28 (P-053)
+- **Qué:**
+  - OpenTelemetry (paquetes 1.19) solo si se configura `Telemetry:OtlpEndpoint`. Sin destino, no se registra nada (D-022).
+  - Trazas: ASP.NET Core y las fuentes `Npgsql` y `MySqlConnector`. Métricas: ASP.NET Core, runtime, límites de uso y el pool de esos drivers.
+  - Un middleware anota en el log las solicitudes de más de `SlowRequestMilliseconds` (2 s): método, ruta sin la query (puede traer valores), estado, usuario y duración.
+  - Pruebas de carga con k6 (`tests/load/crud.js`, `docs/carga.md`), fuera de la CI.
+- **Descartado:**
+  - Medir dentro de cada método del CRUD: ensucia Core y deja fuera lo que no es CRUD. La solicitud HTTP y las trazas de los drivers ya lo cubren.
+  - Un endpoint Prometheus propio: su paquete de OpenTelemetry sigue en prerelease. El Collector convierte OTLP a Prometheus si hace falta.
+  - Instrumentar SqlClient: requiere otro paquete y su tiempo ya está en la traza de la solicitud.
+
 ---
 
 ## Propuestas (aún no decididas)

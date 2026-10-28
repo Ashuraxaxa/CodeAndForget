@@ -30,7 +30,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-082 | Ajustes con varias instancias: un ajuste guardado en una instancia solo se ve en las otras al refrescar o reiniciar (caché en memoria). Opciones: TTL corto del esquema combinado o caché compartida (P-050) | 🟡 | ⏳ |
 | P-086 | Detectar cambios de esquema sin que nadie pulse ↻ (p. ej. relectura periódica configurable o al fallar una consulta por columna inexistente) | ⚪ | ⏳ |
 | P-087 | N:M: ajuste para desactivar el selector de un puente o mostrarlo como pestaña; puentes con columnas extra (p. ej. `cantidad`) como hijas con su propio formulario | ⚪ | ⏳ |
-| P-088 | Importar actualizando por clave (upsert) además de insertar; hoy solo inserta y las columnas de solo lectura (identity) se ignoran | 🟡 | ⏳ |
+| P-088 | Importar actualizando por clave (upsert) además de insertar (D-075) | 🟡 | ✅ PR #29 |
 | P-089 | Árbol: elegir la FK cuando hay más de una autorreferencia (hoy se usa la primera) y mover nodos arrastrando | ⚪ | ⏳ |
 | P-090 | Archivos: vista previa de imágenes en la grilla y en el formulario; editar `geography`/`geometry` como WKT | ⚪ | ⏳ |
 | P-085 | Editor: FK virtuales compuestas desde la UI (hoy solo por la API) y arrastrar para ordenar columnas (hoy, botones ↑ ↓) | ⚪ | ⏳ |
@@ -80,7 +80,7 @@ Detalle técnico en [../motores.md](../motores.md).
 
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
-| P-030 | Etiquetas de FK y `/lookup` solo funcionan con FK y PK de una columna; extender a compuestas (el filtro de hijas por FK compuesta ya funciona, PR #15) | 🟡 | ⏳ |
+| P-030 | Etiquetas de FK, `/lookup` y combo del formulario con FK y PK de varias columnas (D-075) | 🟡 | ✅ PR #29 |
 | P-031 | No se detectan índices únicos que no son restricciones (`sys.indexes.is_unique`, `pg_index.indisunique`) | ⚪ | ⏳ |
 | P-032 | El filtro de una columna FK acepta el id o el texto que se muestra (D-074) | 🟡 | ✅ PR #28 |
 | P-033 | Fechas en formato día/mes/año fijo, sin depender del idioma del navegador (D-074) | ⚪ | ✅ PR #28 |

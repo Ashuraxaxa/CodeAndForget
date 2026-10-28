@@ -432,7 +432,11 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         return rows.Select(r =>
         {
             var d = (IDictionary<string, object>)r;
-            return new LookupItem(d["value"], d["label"]?.ToString());
+            // PK compuesta (P-030): el valor es un objeto con cada columna de la clave.
+            object? value = info.PrimaryKey.Count == 1
+                ? d["value"]
+                : info.PrimaryKey.Select((k, n) => (k, v: d[$"__k{n}"])).ToDictionary(x => x.k, x => (object?)x.v);
+            return new LookupItem(value, d["label"]?.ToString());
         }).ToList();
     }
 

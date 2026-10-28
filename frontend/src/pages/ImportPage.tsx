@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
-import { labelOf, type ImportResult } from '../api/types'
+import { labelOf, type ImportMode, type ImportResult } from '../api/types'
 
 const ACCEPT = '.csv,.txt,.xlsx,.json,.xml'
 
@@ -17,15 +17,16 @@ export function ImportPage() {
   const [file, setFile] = useState<File | null>(null)
   const [mapping, setMapping] = useState<Record<string, string | null> | undefined>(undefined)
   const [result, setResult] = useState<ImportResult | null>(null)
+  const [mode, setMode] = useState<ImportMode>('insert')
   const back = `/c/${conn}/t/${encodeURIComponent(schema)}/${encodeURIComponent(table)}`
 
   const preview = useMutation({
-    mutationFn: (args: { file: File; mapping?: Record<string, string | null> }) =>
-      api.previewImport(conn, schema, table, args.file, args.mapping),
+    mutationFn: (args: { file: File; mapping?: Record<string, string | null>; mode?: ImportMode }) =>
+      api.previewImport(conn, schema, table, args.file, args.mapping, args.mode ?? mode),
     onSuccess: r => { setResult(r); setMapping(r.mapping) },
   })
   const commit = useMutation({
-    mutationFn: () => api.importFile(conn, schema, table, file!, mapping),
+    mutationFn: () => api.importFile(conn, schema, table, file!, mapping, mode),
     onSuccess: r => {
       setResult(r)
       if (r.imported > 0) qc.invalidateQueries({ queryKey: ['rows', conn, schema, table] })
@@ -38,6 +39,13 @@ export function ImportPage() {
     setMapping(undefined)
     commit.reset()
     if (f) preview.mutate({ file: f })
+  }
+
+  function changeMode(m: ImportMode) {
+    setMode(m)
+    // La asociación automática cambia (en "actualizar" se ofrece la clave): se vuelve a calcular.
+    setMapping(undefined)
+    if (file) preview.mutate({ file, mode: m })
   }
 
   function remap(header: string, column: string) {
@@ -67,6 +75,25 @@ export function ImportPage() {
           <span className="field-label">1. Archivo</span>
           <input type="file" accept={ACCEPT} onChange={e => choose(e.target.files?.[0] ?? null)} />
         </label>
+        <div>
+          <span className="field-label">Qué hacer con cada fila</span>
+          <div className="checks">
+            <label className="check">
+              <input type="radio" name="mode" checked={mode === 'insert'} onChange={() => changeMode('insert')} />
+              Solo agregar registros nuevos
+            </label>
+            <label className="check">
+              <input type="radio" name="mode" checked={mode === 'upsert'} onChange={() => changeMode('upsert')} />
+              Agregar y actualizar por clave
+            </label>
+          </div>
+          {mode === 'upsert' && meta.data && (
+            <span className="hint">
+              Si la fila trae una clave ({meta.data.primaryKey.join(', ')}) que ya existe, se actualiza con lo que trae el archivo;
+              si no trae clave, se crea.
+            </span>
+          )}
+        </div>
         {preview.isPending && <p className="muted">Leyendo y validando…</p>}
         {error && <div className="alert">{error.message}</div>}
       </div>
@@ -87,7 +114,7 @@ export function ImportPage() {
                           <option value="">(ignorar)</option>
                           {r.targets.map(t => (
                             <option key={t.name} value={t.name}>
-                              {t.label ? `${t.label} (${t.name})` : t.name}{t.required ? ' *' : ''}
+                              {t.label ? `${t.label} (${t.name})` : t.name}{t.required ? ' *' : ''}{t.isKey ? ' · clave' : ''}
                             </option>
                           ))}
                         </select>
@@ -104,6 +131,7 @@ export function ImportPage() {
             <span className="field-label">3. Revisión</span>
             <p>
               <b>{r.totalRows}</b> filas · <b>{r.validRows}</b> válidas
+              {mode === 'upsert' && r.errors.length === 0 && <> · <b>{r.created}</b> nuevas · <b>{r.updated}</b> se actualizan</>}
               {r.errors.length > 0 && <> · <span className="field-error">{r.errors.length} errores</span></>}
             </p>
             {r.errors.length > 0 && (
@@ -142,7 +170,9 @@ export function ImportPage() {
 
       {done && (
         <div className="card">
-          <div className="alert ok">Se importaron {r.imported} registros.</div>
+          <div className="alert ok">
+            {r.updated > 0 ? `Se crearon ${r.created} registros y se actualizaron ${r.updated}.` : `Se importaron ${r.imported} registros.`}
+          </div>
           <div className="actions">
             <Link to={back} className="button primary">Ver la lista</Link>
             <button onClick={() => choose(null)}>Importar otro archivo</button>

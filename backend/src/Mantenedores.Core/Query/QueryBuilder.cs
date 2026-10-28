@@ -178,16 +178,26 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         return new SqlQuery($"DELETE FROM {dialect.Table(table.Schema, table.Name)} WHERE {where}", p.Snapshot());
     }
 
+    /// <summary>
+    /// ¿Cuáles de estas claves ya existen? (importar actualizando, P-088). Devuelve las columnas de la PK de las que
+    /// están: <c>WHERE (k1 = … AND k2 = …) OR (…)</c>, igual en todos los motores. Lotes chicos: cada clave son parámetros.
+    /// </summary>
+    public SqlQuery BuildExistingKeys(TableInfo table, IReadOnlyList<IReadOnlyDictionary<string, object?>> keys)
+    {
+        RequireKey(table);
+        var p = new ParamBag(dialect.ParameterPrefix);
+        var select = string.Join(", ", table.PrimaryKey.Select(k => dialect.Quote(k)));
+        var where = string.Join(" OR ", keys.Select(k => "(" + KeyPredicate(table, k, p, "") + ")"));
+        return new SqlQuery($"SELECT {select} FROM {dialect.Table(table.Schema, table.Name)} WHERE {where}", p.Snapshot());
+    }
+
     /// <summary>Opciones para un combo de FK: valor de la PK + texto de la columna a mostrar.</summary>
     public SqlQuery BuildLookup(TableInfo table, string? search, int take)
     {
-        if (table.PrimaryKey.Count != 1)
-            throw new OperationNotAllowedException($"{table.FullName} necesita una PK de una sola columna para usarse como lista.");
-
+        RequireKey(table);
         var p = new ParamBag(dialect.ParameterPrefix);
-        var pkCol = table.FindColumn(table.PrimaryKey[0])!;
-        var displayCol = (table.DisplayColumn is { } d ? table.FindColumn(d) : null) ?? pkCol;
-        var pk = $"{Base}.{dialect.Quote(pkCol.Name)}";
+        var keyCols = table.PrimaryKey.Select(k => table.FindColumn(k)!).ToList();
+        var displayCol = (table.DisplayColumn is { } d ? table.FindColumn(d) : null) ?? keyCols[^1];
         var display = $"{Base}.{dialect.Quote(displayCol.Name)}";
 
         var where = "";
@@ -195,15 +205,19 @@ public sealed class QueryBuilder(ISqlDialect dialect)
             where = $" WHERE {dialect.Contains(display, p.Add(LikePattern(search)))}";
 
         // Se ordena por la columna a mostrar solo si el motor puede ordenarla.
-        var orderBy = displayCol.IsSortable ? display : pk;
+        var orderBy = displayCol.IsSortable ? display : string.Join(", ", keyCols.Select(k => $"{Base}.{dialect.Quote(k.Name)}"));
         var offset = p.Add(0L);
         var limit = p.Add((long)Math.Clamp(take, 1, 100));
-        var sql = $"SELECT {dialect.SelectExpression(pkCol, pk)} AS {dialect.Quote("value")}, " +
-                  $"{dialect.SelectExpression(displayCol, display)} AS {dialect.Quote("label")} " +
+        // Clave de una columna: "value". Compuesta (P-030): "__k0", "__k1"… en el orden de la PK.
+        var keys = keyCols.Count == 1
+            ? $"{dialect.SelectExpression(keyCols[0], $"{Base}.{dialect.Quote(keyCols[0].Name)}")} AS {dialect.Quote("value")}"
+            : string.Join(", ", keyCols.Select((k, n) => $"{dialect.SelectExpression(k, $"{Base}.{dialect.Quote(k.Name)}")} AS {dialect.Quote($"__k{n}")}"));
+        var sql = $"SELECT {keys}, {dialect.SelectExpression(displayCol, display)} AS {dialect.Quote("label")} " +
                   $"FROM {dialect.Table(table.Schema, table.Name)} {Base}{where} " +
                   $"ORDER BY {orderBy} {dialect.Paging(offset, limit)}";
         return new SqlQuery(sql, p.Snapshot());
     }
+
 
     /// <summary>
     /// Valores vinculados en una relación N:M (P-015): la clave del otro lado y su texto a mostrar,
@@ -306,22 +320,26 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         var renames = new Dictionary<string, string>();
         var i = 0;
 
-        foreach (var fk in table.ForeignKeys.Where(f => f.IsSingleColumn))
+        // Primero las FK de una columna: si una compuesta pone su etiqueta en la misma columna, manda la simple.
+        var labeled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var fk in table.ForeignKeys.OrderBy(f => f.Columns.Count))
         {
             var target = schema.FindTable(fk.RefSchema, fk.RefTable);
             var display = target?.DisplayColumn is { } d ? target.FindColumn(d) : null;
-            // Si la columna a mostrar es la misma clave, la etiqueta no aporta nada.
-            // Tampoco si la columna local está oculta: la etiqueta revelaría su valor.
-            if (target is null || display is null || !display.IsSelectable || table.FindColumn(fk.Columns[0]) is not { IsSelectable: true } ||
-                string.Equals(display.Name, fk.RefColumns[0], StringComparison.OrdinalIgnoreCase))
+            // Si la columna a mostrar es parte de la clave, la etiqueta no aporta nada.
+            // Tampoco si alguna columna local está oculta: la etiqueta revelaría su valor.
+            if (target is null || display is null || !display.IsSelectable ||
+                fk.Columns.Any(c => table.FindColumn(c) is not { IsSelectable: true }) ||
+                fk.RefColumns.Contains(display.Name, StringComparer.OrdinalIgnoreCase) ||
+                !labeled.Add(fk.LabelColumn))
                 continue;
 
             var join = $"j{i}";
             var alias = LabelAlias(i++);
-            joins.Add($" LEFT JOIN {dialect.Table(target.Schema, target.Name)} {join} " +
-                      $"ON {join}.{dialect.Quote(fk.RefColumns[0])} = {Base}.{dialect.Quote(fk.Columns[0])}");
+            var on = string.Join(" AND ", fk.Columns.Select((c, n) => $"{join}.{dialect.Quote(fk.RefColumns[n])} = {Base}.{dialect.Quote(c)}"));
+            joins.Add($" LEFT JOIN {dialect.Table(target.Schema, target.Name)} {join} ON {on}");
             parts.Add(SelectColumn(display, join, alias, forceAlias: true));
-            renames[alias] = fk.Columns[0] + LabelSuffix;
+            renames[alias] = fk.LabelColumn + LabelSuffix;
         }
 
         // Tamaño de cada archivo (P-018): el contenido no viaja en el listado, se descarga aparte.

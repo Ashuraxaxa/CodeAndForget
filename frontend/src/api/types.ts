@@ -99,6 +99,8 @@ export interface ForeignKey {
   refSchema: string
   refTable: string
   refColumns: string[]
+  /** Columna local que lleva la etiqueta (`<columna>__label`): la única, o la última de una FK compuesta (P-030). */
+  labelColumn: string
 }
 
 export interface TableMeta {
@@ -270,13 +272,20 @@ export interface ImportResult {
   headers: string[]
   /** Encabezado del archivo → columna de la tabla (null = se ignora). */
   mapping: Record<string, string | null>
-  targets: { name: string; label: string | null; type: LogicalType; required: boolean }[]
+  /** `isKey`: identifica la fila a actualizar (modo upsert); si la genera la base, solo sirve para eso. */
+  targets: { name: string; label: string | null; type: LogicalType; required: boolean; isKey: boolean }[]
   totalRows: number
   validRows: number
   errors: ImportError[]
   sample: Record<string, string | null>[]
   imported: number
+  /** En la vista previa, lo que se haría; al importar, lo que se hizo. */
+  created: number
+  updated: number
 }
+
+/** insert: todas son altas. upsert: las filas con una clave que ya existe se actualizan (P-088). */
+export type ImportMode = 'insert' | 'upsert'
 
 // ----- Árboles (P-016) -----
 

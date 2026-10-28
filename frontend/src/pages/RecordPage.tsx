@@ -4,6 +4,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import { api, ApiError, isConcurrencyError } from '../api/client'
 import { LABEL_SUFFIX, SIZE_SUFFIX, VERSION_FIELD, labelOf, type Column, type LookupItem, type Row, type TableMeta } from '../api/types'
 import { FieldControl } from '../components/FieldControl'
+import { CompositeForeignKeySelect } from '../components/ForeignKeySelect'
 import { fromInputValue, keyQuery, parseRecordSearch, toInputValue } from '../lib/format'
 import { ChildTabs } from '../components/ChildTabs'
 import { ManyToManySelect } from '../components/ManyToManySelect'
@@ -64,6 +65,10 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
   const back = returnTo ?? list
   const children = meta.children ?? meta.referencedBy
   const fkByColumn = new Map(meta.foreignKeys.filter(f => f.columns.length === 1).map(f => [f.columns[0], f]))
+  // FK compuesta (P-030): un solo combo, en su columna de etiqueta, llena todas sus columnas; las demás no se muestran.
+  const compositeByColumn = new Map(meta.foreignKeys.filter(f => f.columns.length > 1).map(f => [f.labelColumn, f]))
+  const compositeMembers = new Set(meta.foreignKeys.filter(f => f.columns.length > 1)
+    .flatMap(f => f.columns.filter(c => c !== f.labelColumn)))
   const tableLabel = useTableLabels(conn)
 
   // En alta se ocultan las columnas que genera la BD; en edición se muestran deshabilitadas.
@@ -175,6 +180,29 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
         <div className="grid-2">
           {fields.map(c => {
             const required = !isLocked(c) && (isEdit ? !c.isNullable && c.type !== 'Boolean' : c.isRequiredOnInsert)
+            const composite = compositeByColumn.get(c.name)
+            if (compositeMembers.has(c.name) && fields.some(f => compositeByColumn.get(f.name)?.columns.includes(c.name))) return null
+            if (composite) {
+              const cols = composite.columns.map(n => fields.find(f => f.name === n)).filter((x): x is Column => !!x)
+              const locked = cols.some(isLocked)
+              const anyRequired = cols.some(x => !isLocked(x) && (isEdit ? !x.isNullable : x.isRequiredOnInsert))
+              return (
+                <label key={c.name}>
+                  <span className="field-label">
+                    {tableLabel(composite.refSchema, composite.refTable)}{anyRequired && <span className="req"> *</span>}
+                    <span className="muted small"> {composite.columns.join(' + ')}</span>
+                  </span>
+                  <CompositeForeignKeySelect conn={conn} fk={composite} disabled={locked}
+                    values={Object.fromEntries(composite.columns.map(n => [n, values[n]]))} label={labels[c.name]}
+                    nullable={cols.every(x => x.isNullable)}
+                    onChange={(picked, l) => {
+                      setValues(s => ({ ...s, ...Object.fromEntries(composite.columns.map(n => [n, picked[n] ?? ''])) }))
+                      setLabels(s => ({ ...s, [c.name]: l }))
+                    }} />
+                  {composite.columns.map(n => errors[n] && <span key={n} className="field-error">{n}: {errors[n]}</span>)}
+                </label>
+              )
+            }
             const fk = fkByColumn.get(c.name)
             return (
               <label key={c.name} className={c.type === 'Text' || c.type === 'Json' || c.type === 'Array' || c.widget === 'textarea' ? 'span-2' : undefined}>

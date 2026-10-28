@@ -654,6 +654,25 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **Nombres visibles de tablas** (ajuste `label`) en "→ tabla", "Referenciada por", N:M y combos, desde la misma consulta del menú.
 - **Descartado:** filtrar la FK con un `JOIN` en la consulta de conteo: el subquery `IN` sirve igual en los cuatro motores y no cambia el conteo.
 
+### D-075 · Importar actualizando por clave y FK de varias columnas
+- **Estado:** Vigente · 2026-10-28 (P-088, P-030)
+- **Qué:**
+  - **Importar** tiene dos modos, `insert` (como antes) y `upsert`:
+    - las filas con la clave completa que ya existe se **actualizan** solo con lo que trae el archivo; las demás se crean;
+    - si la clave la genera la base (identity), una clave que no existe es un error de esa fila ("déjela vacía para crear");
+    - la vista previa dice cuántas se crean y cuántas se actualizan; todo va en una transacción;
+    - las claves se buscan en lotes de 100 con `(k1 = … AND k2 = …) OR …`, igual en los cuatro motores;
+    - exige permiso de editar; la auditoría registra las actualizaciones con su antes y después.
+  - **FK de varias columnas:**
+    - la etiqueta va en la última columna local (`ForeignKeyInfo.LabelColumn`), con un `JOIN` por todas las columnas;
+    - si una FK simple ya usa esa columna, manda la simple;
+    - `/lookup` de una tabla con PK compuesta devuelve `value` como objeto con cada columna de la clave;
+    - en el formulario, un solo combo llena todas las columnas.
+  - Bases de ejemplo: `sucursal` (PK país + código) y `bodega` (FK compuesta) en los cuatro motores.
+- **Descartado:**
+  - Upsert con `MERGE` o `ON CONFLICT`: la sintaxis es distinta en cada motor, y el `MERGE` de SQL Server tiene problemas conocidos de concurrencia.
+  - Etiqueta en la primera columna de la FK compuesta: suele ser la más genérica (el país), que también puede tener su propia FK.
+
 ---
 
 ## Propuestas (aún no decididas)

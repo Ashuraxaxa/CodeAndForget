@@ -1,5 +1,5 @@
 import type {
-  ImportResult, TransferFormat, TreeNode,
+  ImportMode, ImportResult, TransferFormat, TreeNode,
   AuditPage, SecurityInfo, SecurityProfile, SecurityUser,
   Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride,
 } from './types'
@@ -89,10 +89,11 @@ async function download(url: string): Promise<void> {
 }
 
 /** Sube un archivo para importar. Con errores (400) devuelve igual el detalle, que la pantalla muestra. */
-async function upload(url: string, file: File, mapping?: Record<string, string | null>): Promise<ImportResult> {
+async function upload(url: string, file: File, mapping?: Record<string, string | null>, mode?: ImportMode): Promise<ImportResult> {
   const form = new FormData()
   form.append('file', file)
   if (mapping) form.append('mapping', JSON.stringify(mapping))
+  if (mode) form.append('mode', mode)
   const token = tokenProvider()
   const res = await fetch(url, { method: 'POST', body: form, headers: token ? { Authorization: `Bearer ${token}` } : {} })
   if (res.status === 401) { onUnauthorized(); throw new ApiError(401, 'Sesión expirada') }
@@ -221,10 +222,10 @@ export const api = {
     for (const [k, v] of Object.entries(p.exact ?? {})) qs.set(`e.${k}`, v)
     return download(`${tablePath(conn, schema, table)}/export?${qs}`)
   },
-  previewImport: (conn: string, schema: string, table: string, file: File, mapping?: Record<string, string | null>) =>
-    upload(`${tablePath(conn, schema, table)}/import/preview`, file, mapping),
-  importFile: (conn: string, schema: string, table: string, file: File, mapping?: Record<string, string | null>) =>
-    upload(`${tablePath(conn, schema, table)}/import`, file, mapping),
+  previewImport: (conn: string, schema: string, table: string, file: File, mapping?: Record<string, string | null>, mode?: ImportMode) =>
+    upload(`${tablePath(conn, schema, table)}/import/preview`, file, mapping, mode),
+  importFile: (conn: string, schema: string, table: string, file: File, mapping?: Record<string, string | null>, mode?: ImportMode) =>
+    upload(`${tablePath(conn, schema, table)}/import`, file, mapping, mode),
   downloadFile: (conn: string, schema: string, table: string, key: string, column: string) =>
     download(`${tablePath(conn, schema, table)}/row/file/${enc(column)}?${key}&download=1`),
   tree: (conn: string, schema: string, table: string, parent?: unknown) =>

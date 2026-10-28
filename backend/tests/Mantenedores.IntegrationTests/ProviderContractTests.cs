@@ -52,7 +52,7 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         Assert.True(result.Server.IsSupported);
         Assert.Equal(Db.MajorVersion, result.Server.Version.Major);
         Assert.NotEmpty(result.Server.Settings);
-        Assert.Equal(10, result.Tables);
+        Assert.Equal(12, result.Tables);
     }
 
     // ---------- Lectura del esquema ----------
@@ -61,7 +61,7 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
     public async Task Lee_tablas_vistas_y_tablas_sin_pk()
     {
         var schema = (await Db.Schemas.GetContextAsync(Conn, default)).Schema;
-        Assert.Equal(10, schema.Tables.Count);
+        Assert.Equal(12, schema.Tables.Count);
 
         var view = schema.FindTable(Schema, N("v_productos"))!;
         Assert.Equal(TableKind.View, view.Kind);
@@ -207,6 +207,32 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
     }
 
     // ---------- Escritura ----------
+
+    // ---------- FK de varias columnas (P-030) ----------
+
+    [Fact]
+    public async Task Fk_compuesta_trae_etiqueta_y_combo_con_todas_las_columnas_de_la_clave()
+    {
+        var label = N("sucursal_codigo") + QueryBuilder.LabelSuffix;
+        var bodegas = await Db.Crud.ListAsync(Conn, Schema, N("bodega"), new ListRequest { Sort = [new SortSpec(N("id"))] }, default);
+        Assert.Equal("Santiago Centro", bodegas.Rows[0][label]);
+        var fk = Assert.Single((await TableAsync("bodega")).ForeignKeys);
+        Assert.Equal(N("sucursal_codigo"), fk.LabelColumn, ignoreCase: true);
+
+        // El combo de la tabla referenciada devuelve la clave completa.
+        var options = await Db.Crud.LookupAsync(Conn, Schema, N("sucursal"), "val", 20, default);
+        var valpo = Assert.Single(options);
+        Assert.Equal("Valparaíso", valpo.Label);
+        var key = Assert.IsAssignableFrom<IDictionary<string, object?>>(valpo.Value);
+        Assert.Equal("CL", Convert.ToString(key.First(k => string.Equals(k.Key, N("pais"), StringComparison.OrdinalIgnoreCase)).Value)?.Trim());
+        Assert.Equal("VAL", key.First(k => string.Equals(k.Key, N("codigo"), StringComparison.OrdinalIgnoreCase)).Value);
+
+        // Alta con lo elegido en el combo: la etiqueta vuelve resuelta.
+        var created = await Db.Crud.CreateAsync(Conn, Schema, N("bodega"), Body(
+            (N("nombre"), "Bodega " + UniqueCode()), (N("pais"), "PE"), (N("sucursal_codigo"), "LIM")), default);
+        try { Assert.Equal("Lima", created[label]); }
+        finally { await Db.Crud.DeleteAsync(Conn, Schema, N("bodega"), Key((N("id"), created[N("id")]!)), default); }
+    }
 
     // ---------- Filtro de una FK por su etiqueta (P-032) ----------
 
@@ -854,6 +880,61 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
     }
 
     private static Stream Csv(string text) => new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text));
+
+    [Fact]
+    public async Task Importar_actualizando_por_clave_cambia_las_existentes_y_crea_las_nuevas()
+    {
+        var prefix = UniqueCode();
+        var a = await Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
+            (N("codigo"), prefix + "-A"), (N("nombre"), "Original A"), (N("categoria_id"), 1), (N("precio"), 10)), default);
+        var idA = Convert.ToString(a[N("id")], System.Globalization.CultureInfo.InvariantCulture)!;
+        var header = $"{N("id")},{N("codigo")},nombre,{N("categoria_id")},precio\n";
+        var created = new List<object?>();
+        try
+        {
+            // La clave la genera la base: una fila con un id que no existe no se puede crear con ese id.
+            var bad = header + $"{idA},{prefix}-A,Cambiado A,1,99\n,{prefix}-B,Nuevo B,2,20\n999999999,{prefix}-C,No,1,5";
+            var preview = await Db.Crud.PreviewImportAsync(Conn, Schema, N("producto"), Csv(bad), Core.Transfer.TransferFormat.Csv, null, default,
+                Core.Services.ImportMode.Upsert);
+            var error = Assert.Single(preview.Errors);
+            Assert.Equal(4, error.Line);
+            Assert.Contains("la genera la base", error.Message);
+            Assert.Contains(preview.Targets, t => t.IsKey && string.Equals(t.Name, N("id"), StringComparison.OrdinalIgnoreCase));
+
+            var ok = header + $"{idA},{prefix}-A,Cambiado A,1,99\n,{prefix}-B,Nuevo B,2,20";
+            var plan = await Db.Crud.PreviewImportAsync(Conn, Schema, N("producto"), Csv(ok), Core.Transfer.TransferFormat.Csv, null, default,
+                Core.Services.ImportMode.Upsert);
+            Assert.Empty(plan.Errors);
+            Assert.Equal((1, 1), (plan.Created, plan.Updated));
+
+            var done = await Db.Crud.ImportAsync(Conn, Schema, N("producto"), Csv(ok), Core.Transfer.TransferFormat.Csv, null, default,
+                Core.Services.ImportMode.Upsert);
+            Assert.Equal((2, 1, 1), (done.Imported, done.Created, done.Updated));
+
+            var rowA = await Db.Crud.GetAsync(Conn, Schema, N("producto"), Key((N("id"), idA)), default);
+            Assert.Equal("Cambiado A", rowA[N("nombre")]);
+            Assert.Equal(99m, Convert.ToDecimal(rowA[N("precio")]));
+            var rowsB = (await Db.Crud.ListAsync(Conn, Schema, N("producto"),
+                new ListRequest { Filters = new Dictionary<string, string> { [N("codigo")] = prefix + "-B" } }, default)).Rows;
+            created.Add(Assert.Single(rowsB)[N("id")]);
+
+            // En la auditoría: la existente como edición (solo lo que cambió) y la nueva como importación.
+            var history = Db.Audit.For(Schema, N("producto"), Core.Audit.AuditValues.Key([new(N("id"), idA)]));
+            var edit = history.Last();
+            Assert.Equal(Core.Audit.AuditOperation.Update, edit.Operation);
+            Assert.Contains("Cambiado A", edit.NewValues);
+
+            // Sin el modo actualizar, la misma fila de A sería un alta (y choca con su código único).
+            var insertOnly = await Db.Crud.ImportAsync(Conn, Schema, N("producto"), Csv(header + $"{idA},{prefix}-A,Otra,1,1"),
+                Core.Transfer.TransferFormat.Csv, null, default);
+            Assert.Equal(0, insertOnly.Imported);
+        }
+        finally
+        {
+            await Db.Crud.DeleteAsync(Conn, Schema, N("producto"), Key((N("id"), idA)), default);
+            foreach (var id in created) await Db.Crud.DeleteAsync(Conn, Schema, N("producto"), Key((N("id"), id!)), default);
+        }
+    }
 
     [Fact]
     public async Task Importa_csv_en_una_transaccion_y_nada_queda_a_medias()

@@ -16,12 +16,19 @@ public sealed record ExportPlan(TransferFormat Format, string FileName, long Row
 /// <summary>Error de una fila al importar. <c>Line</c> es la línea del archivo (o el número de elemento en JSON/XML).</summary>
 public sealed record ImportError(int Line, string? Column, string Message);
 
-/// <summary>Columna de destino que se le ofrece al usuario para asociar.</summary>
-public sealed record ImportTarget(string Name, string? Label, LogicalType Type, bool Required);
+/// <summary>
+/// Columna de destino que se le ofrece al usuario para asociar. <c>IsKey</c>: identifica la fila a actualizar
+/// (modo <see cref="ImportMode.Upsert"/>); si la genera la base, solo sirve para eso.
+/// </summary>
+public sealed record ImportTarget(string Name, string? Label, LogicalType Type, bool Required, bool IsKey = false);
+
+/// <summary>Insert: todas las filas son altas. Upsert: las que traen una clave existente se actualizan (P-088).</summary>
+public enum ImportMode { Insert, Upsert }
 
 /// <summary>
 /// Resultado de la vista previa o de la importación. <c>Mapping</c>: encabezado del archivo → columna (null = se ignora).
 /// <c>Sample</c>: primeras filas ya asociadas. <c>Imported</c> &gt; 0 solo si se grabó.
+/// <c>Created</c> y <c>Updated</c>: en la vista previa, lo que se haría; al importar, lo que se hizo.
 /// </summary>
 public sealed record ImportResult(
     IReadOnlyList<string> Headers,
@@ -31,7 +38,9 @@ public sealed record ImportResult(
     int ValidRows,
     IReadOnlyList<ImportError> Errors,
     IReadOnlyList<IReadOnlyDictionary<string, string?>> Sample,
-    int Imported);
+    int Imported,
+    int Created = 0,
+    int Updated = 0);
 
 public sealed partial class CrudService
 {
@@ -90,35 +99,44 @@ public sealed partial class CrudService
     /// <summary>Lee el archivo, asocia columnas y valida cada fila sin grabar nada.</summary>
     public Task<ImportResult> PreviewImportAsync(
         string conn, string schema, string table, Stream file, TransferFormat format,
-        IReadOnlyDictionary<string, string?>? mapping, CancellationToken ct) =>
-        ImportCoreAsync(conn, schema, table, file, format, mapping, commit: false, ct);
+        IReadOnlyDictionary<string, string?>? mapping, CancellationToken ct, ImportMode mode = ImportMode.Insert) =>
+        ImportCoreAsync(conn, schema, table, file, format, mapping, mode, commit: false, ct);
 
     /// <summary>Valida todo y, si no hay errores, inserta todas las filas en una transacción: o entran todas o ninguna.</summary>
     public Task<ImportResult> ImportAsync(
         string conn, string schema, string table, Stream file, TransferFormat format,
-        IReadOnlyDictionary<string, string?>? mapping, CancellationToken ct) =>
-        ImportCoreAsync(conn, schema, table, file, format, mapping, commit: true, ct);
+        IReadOnlyDictionary<string, string?>? mapping, CancellationToken ct, ImportMode mode = ImportMode.Insert) =>
+        ImportCoreAsync(conn, schema, table, file, format, mapping, mode, commit: true, ct);
 
     private async Task<ImportResult> ImportCoreAsync(
         string conn, string schema, string table, Stream file, TransferFormat format,
-        IReadOnlyDictionary<string, string?>? requested, bool commit, CancellationToken ct)
+        IReadOnlyDictionary<string, string?>? requested, ImportMode mode, bool commit, CancellationToken ct)
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
         Require(info, DataOperation.Import, "importar en");
         Require(info, DataOperation.Create, "crear registros en");
         if (!info.IsEditable) throw new OperationNotAllowedException($"{info.FullName} es de solo lectura: no se puede importar.");
+        var upsert = mode == ImportMode.Upsert;
+        if (upsert) Require(info, DataOperation.Update, "editar registros de");
 
         var data = await TableReader.ReadAsync(file, format, Math.Max(1, options.ImportMaxRows), ct);
         var writable = info.Columns.Where(c => c.IsSelectable && !c.Hidden && !c.IsReadOnly).ToList();
-        var targets = writable.Select(c => new ImportTarget(c.Name, c.Label, c.Type, c.IsRequiredOnInsert)).ToList();
-        var mapping = Map(data.Headers, writable, requested);
+        // Al actualizar, la clave también se asocia aunque la genere la base (identity): sirve para encontrar la fila.
+        var keyColumns = upsert ? info.PrimaryKey.Select(k => info.FindColumn(k)!).ToList() : [];
+        var mappable = writable.Concat(keyColumns.Where(k => !writable.Contains(k))).ToList();
+        var targets = mappable.Select(c => new ImportTarget(c.Name, c.Label, c.Type,
+            !upsert && c.IsRequiredOnInsert, keyColumns.Contains(c))).ToList();
+        var mapping = Map(data.Headers, mappable, requested);
+        bool Mapped(string column) => mapping.Values.Contains(column, StringComparer.OrdinalIgnoreCase);
 
         var errors = new List<ImportError>();
-        foreach (var t in targets.Where(t => t.Required && !mapping.Values.Contains(t.Name, StringComparer.OrdinalIgnoreCase)))
+        foreach (var t in targets.Where(t => t.Required && !Mapped(t.Name)))
             errors.Add(new ImportError(0, t.Name, "es obligatoria y ninguna columna del archivo está asociada a ella"));
+        foreach (var k in keyColumns.Where(k => !Mapped(k.Name)))
+            errors.Add(new ImportError(0, k.Name, "es parte de la clave: asóciela para poder actualizar"));
 
         // Validar y convertir cada fila con las mismas reglas que un alta desde el formulario.
-        var parsed = new List<(int Line, Dictionary<string, object?> Values)>();
+        var parsed = new List<ImportRow>();
         for (var i = 0; i < data.Rows.Count; i++)
         {
             var line = data.FirstDataLine + i;
@@ -135,7 +153,16 @@ public sealed partial class CrudService
             try
             {
                 // Una obligatoria sin asociar ya es un error general (línea 0); una asociada y vacía la rechaza ParseValues.
-                parsed.Add((line, ParseValues(info, body, MaxFileBytes)));
+                var values = ParseValues(info, body, MaxFileBytes);
+                Dictionary<string, object?>? key = null;
+                if (upsert)
+                {
+                    key = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var k in keyColumns)
+                        key[k.Name] = body.TryGetValue(k.Name, out var v) ? ValueConverter.FromJson(k, v) : null;
+                    if (key.Values.Any(v => v is null)) key = null; // sin clave completa: es un alta
+                }
+                parsed.Add(new ImportRow(line, values, key));
             }
             catch (ValidationException ex)
             {
@@ -143,48 +170,124 @@ public sealed partial class CrudService
             }
         }
 
+        // Actualizar: qué claves ya existen. Las que no, son altas (si la clave la genera la base, no se puede elegir).
+        if (upsert && parsed.Any(r => r.Key is not null) && errors.All(e => e.Line > 0))
+        {
+            await using var check = await OpenAsync(ctx, ct);
+            var qb0 = new QueryBuilder(ctx.Provider.Dialect);
+            var existing = new HashSet<string>();
+            foreach (var chunk in parsed.Where(r => r.Key is not null).Chunk(100))
+            {
+                var rows = await Translated(ctx, info, DbOperation.Read,
+                    () => check.QueryAsync(Command(qb0.BuildExistingKeys(info, chunk.Select(r => (IReadOnlyDictionary<string, object?>)r.Key!).ToList()), ct)));
+                foreach (IDictionary<string, object?> row in rows) existing.Add(KeyText(info, row));
+            }
+            var generated = keyColumns.Any(k => k.IsReadOnly);
+            for (var n = 0; n < parsed.Count; n++)
+            {
+                var r = parsed[n];
+                if (r.Key is null) continue;
+                if (existing.Contains(KeyText(info, r.Key))) parsed[n] = r with { Exists = true };
+                else if (generated)
+                    errors.Add(new ImportError(r.Line, keyColumns[0].Name,
+                        "no existe un registro con esa clave; la genera la base: deje la clave vacía para crear uno nuevo"));
+            }
+        }
+        // Las altas necesitan las obligatorias aunque en modo actualizar no se hayan exigido de entrada.
+        if (upsert)
+            foreach (var r in parsed.Where(r => !r.Exists))
+                foreach (var c in writable.Where(c => c.IsRequiredOnInsert && !r.Values.ContainsKey(c.Name)))
+                    errors.Add(new ImportError(r.Line, c.Name, "es obligatoria para crear un registro nuevo"));
+
         var invalidLines = errors.Where(e => e.Line > 0).Select(e => e.Line).ToHashSet();
         var validRows = data.Rows.Count - invalidLines.Count;
         var sample = data.Rows.Take(SampleRows)
             .Select(r => (IReadOnlyDictionary<string, string?>)mapping.Where(m => m.Value is not null)
                 .ToDictionary(m => m.Value!, m => r.GetValueOrDefault(m.Key)))
             .ToList();
+        var toUpdate = parsed.Count(r => r.Exists);
+        var toCreate = parsed.Count - toUpdate;
 
-        ImportResult Result(int imported, IReadOnlyList<ImportError> errs) => new(
-            data.Headers, mapping, targets, data.Rows.Count, validRows, errs.Take(MaxReportedErrors).ToList(), sample, imported);
+        ImportResult Result(int imported, IReadOnlyList<ImportError> errs, int created, int updated) => new(
+            data.Headers, mapping, targets, data.Rows.Count, validRows, errs.Take(MaxReportedErrors).ToList(), sample, imported, created, updated);
 
-        if (!commit || errors.Count > 0 || parsed.Count == 0) return Result(0, errors);
+        if (!commit || errors.Count > 0 || parsed.Count == 0)
+            return Result(0, errors, errors.Count == 0 ? toCreate : 0, errors.Count == 0 ? toUpdate : 0);
+
+        // Para la auditoría y los avisos: cómo estaban las filas que se van a actualizar.
+        var befores = new Dictionary<int, IDictionary<string, object?>>();
+        if (TracksChanges(info))
+            foreach (var r in parsed.Where(r => r.Exists))
+                befores[r.Line] = await GetByKeyAsync(ctx, info, r.Key!, ct);
 
         // Todas en una transacción: si la base rechaza una fila, no queda ninguna.
         var qb = new QueryBuilder(ctx.Provider.Dialect);
-        await using var db = await OpenAsync(ctx, ct);
-        await using var tx = await db.BeginTransactionAsync(ct);
-        foreach (var (line, values) in parsed)
+        await using (var db = await OpenAsync(ctx, ct))
+        await using (var tx = await db.BeginTransactionAsync(ct))
         {
-            var insert = qb.BuildInsert(info, values);
-            try
+            foreach (var r in parsed)
             {
-                await Translated(ctx, info, DbOperation.Insert, () => db.ExecuteAsync(Command(insert.Query, ct, tx)));
+                try
+                {
+                    if (r.Exists)
+                    {
+                        // Solo lo que trae el archivo, sin la clave (la clave identifica la fila).
+                        var values = r.Values.Where(kv => !keyColumns.Any(k => string.Equals(k.Name, kv.Key, StringComparison.OrdinalIgnoreCase)))
+                            .ToDictionary(kv => kv.Key, kv => kv.Value);
+                        if (values.Count == 0) continue;
+                        var update = qb.BuildUpdate(info, r.Key!, values);
+                        await Translated(ctx, info, DbOperation.Update, () => db.ExecuteAsync(Command(update, ct, tx)));
+                    }
+                    else
+                    {
+                        var insert = qb.BuildInsert(info, r.Values);
+                        await Translated(ctx, info, DbOperation.Insert, () => db.ExecuteAsync(Command(insert.Query, ct, tx)));
+                    }
+                }
+                catch (ConstraintViolationException ex)
+                {
+                    await tx.RollbackAsync(CancellationToken.None);
+                    return Result(0, [new ImportError(r.Line, ex.Errors.Keys.FirstOrDefault(), ex.Message)], 0, 0);
+                }
+                catch (DbException ex)
+                {
+                    await tx.RollbackAsync(CancellationToken.None);
+                    return Result(0, [new ImportError(r.Line, null, ex.Message)], 0, 0);
+                }
             }
-            catch (ConstraintViolationException ex)
-            {
-                await tx.RollbackAsync(CancellationToken.None);
-                return Result(0, [new ImportError(line, ex.Errors.Keys.FirstOrDefault(), ex.Message)]);
-            }
-            catch (DbException ex)
-            {
-                await tx.RollbackAsync(CancellationToken.None);
-                return Result(0, [new ImportError(line, null, ex.Message)]);
-            }
+            await tx.CommitAsync(ct);
         }
-        await tx.CommitAsync(ct);
-        // Una entrada por fila, con lo que venía en el archivo (la clave, si la genera la base, no se conoce aquí).
-        await AuditAsync(ctx, info, AuditOperation.Import, parsed.Select(p =>
+
+        // Altas: una entrada por fila con lo que venía en el archivo (si la clave la genera la base, no se conoce aquí).
+        await AuditAsync(ctx, info, AuditOperation.Import, parsed.Where(r => !r.Exists).Select(r =>
         {
-            var row = p.Values.AsReadOnly();
+            var row = r.Values.AsReadOnly();
             return (AuditValues.Key(info, row), (string?)null, (string?)AuditValues.Serialize(AuditValues.Columns(info, row)));
         }), ct);
-        return Result(parsed.Count, []);
+        // Actualizaciones: antes y después, solo lo que cambió.
+        if (befores.Count > 0)
+        {
+            var changes = new List<(string?, string?, string?)>();
+            foreach (var r in parsed.Where(r => r.Exists))
+            {
+                var after = await GetByKeyAsync(ctx, info, r.Key!, ct);
+                if (AuditValues.Diff(info, befores[r.Line].AsReadOnly(), after.AsReadOnly()) is var (o, n))
+                    changes.Add((AuditValues.Key(info, after.AsReadOnly()), o, n));
+            }
+            await AuditAsync(ctx, info, AuditOperation.Update, changes, ct);
+        }
+        return Result(parsed.Count, [], toCreate, toUpdate);
+    }
+
+    /// <summary>Una fila del archivo ya convertida. <c>Key</c>: la clave, si viene completa (modo actualizar).</summary>
+    private sealed record ImportRow(int Line, Dictionary<string, object?> Values, Dictionary<string, object?>? Key, bool Exists = false);
+
+    /// <summary>La clave como texto invariante, para comparar lo leído del archivo con lo que devuelve la base.</summary>
+    private static string KeyText(TableInfo info, IEnumerable<KeyValuePair<string, object?>> row)
+    {
+        var d = row.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase);
+        return string.Join("\u0001", info.PrimaryKey.Select(k =>
+            d.TryGetValue(k, out var v) ? Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture) : ""));
     }
 
     /// <summary>

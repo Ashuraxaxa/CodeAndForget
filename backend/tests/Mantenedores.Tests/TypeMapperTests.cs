@@ -14,8 +14,9 @@ public class TypeMapperTests
     [InlineData("jsonb", "b", "U", LogicalType.Json)]
     [InlineData("uuid", "b", "U", LogicalType.Uuid)]
     [InlineData("estado", "e", "E", LogicalType.Enum)]
-    [InlineData("_int4", "b", "A", LogicalType.Unsupported)]
-    [InlineData("geometry", "b", "U", LogicalType.Unsupported)]
+    [InlineData("_int4", "b", "A", LogicalType.Array)] // el elemento se resuelve aparte (P-018)
+    [InlineData("geometry", "b", "U", LogicalType.ReadOnlyText)] // PostGIS, como WKT
+    [InlineData("tsvector", "b", "U", LogicalType.Unsupported)]
     public void Postgres(string type, string kind, string category, LogicalType expected) =>
         Assert.Equal(expected, PostgresTypeMapper.Map(type, kind, category).Type);
 
@@ -30,7 +31,9 @@ public class TypeMapperTests
     [InlineData("bit", 1, LogicalType.Boolean)]
     [InlineData("uniqueidentifier", 16, LogicalType.Uuid)]
     [InlineData("rowversion", 8, LogicalType.Binary)]
-    [InlineData("geography", -1, LogicalType.Unsupported)]
+    [InlineData("geography", -1, LogicalType.ReadOnlyText)]
+    [InlineData("hierarchyid", 892, LogicalType.ReadOnlyText)]
+    [InlineData("sql_variant", 8016, LogicalType.Unsupported)]
     public void SqlServer(string type, int? length, LogicalType expected) =>
         Assert.Equal(expected, SqlServerTypeMapper.Map(type, length).Type);
 

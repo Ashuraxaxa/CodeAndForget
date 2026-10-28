@@ -486,6 +486,21 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Por qué:** cargar por nivel escala con jerarquías grandes, y la validación vive en el servidor, que es donde se cumple.
 - **Alternativa descartada:** cargar el árbol completo de una vez, que sería lento con miles de registros.
 
+### D-059 · Archivos, arreglos y tipos que solo se muestran
+- **Estado:** Vigente · 2026-10-27 (P-018)
+- **Qué:**
+  - **Tipos lógicos nuevos:** `Array` (con `ElementType` y su tipo nativo) y `ReadOnlyText`.
+  - **Archivos (`Binary` sin rowversion):** el contenido no va en los listados. Va su tamaño (`<col>__size`, con `ByteLength` del dialecto). Se descarga con `GET /row/file/{col}`, que deduce el tipo por los primeros bytes. Se guarda en base64 dentro del mismo JSON del alta o la edición, con tope `Crud:FileMaxMegabytes`.
+  - **Arreglos de PostgreSQL:** cada elemento se valida con el tipo del elemento. Viajan como texto (`CAST(@p AS <tipo>[])`) y se leen como `text[]`, porque Npgsql no lee un `int4[]` con nulos como `int[]` (bug encontrado por la batería). La UI los edita con un valor por línea.
+  - **`ReadOnlyText`:** `geography`, `geometry` y `hierarchyid` de SQL Server, PostGIS y los tipos espaciales de MySQL. Se leen como texto con `SelectExpression` (WKT o ruta) y no se ordenan, filtran ni escriben.
+- **Por qué:**
+  - El archivo en el mismo JSON permite crear un registro con un archivo obligatorio sin un segundo paso.
+  - El tamaño en el listado evita traer megabytes por fila.
+  - Todas las diferencias quedan en el dialecto (D-031).
+- **Alternativas descartadas:**
+  - Un endpoint aparte para subir archivos: un archivo obligatorio exigiría dos pasos.
+  - Editar `geography` como WKT: requiere validación espacial propia de cada motor.
+
 ---
 
 ## Propuestas (aún no decididas)

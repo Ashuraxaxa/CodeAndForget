@@ -130,7 +130,7 @@ public sealed partial class CrudService
             try
             {
                 // Una obligatoria sin asociar ya es un error general (línea 0); una asociada y vacía la rechaza ParseValues.
-                parsed.Add((line, ParseValues(info, body)));
+                parsed.Add((line, ParseValues(info, body, MaxFileBytes)));
             }
             catch (ValidationException ex)
             {

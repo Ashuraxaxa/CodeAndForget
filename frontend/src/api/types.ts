@@ -4,7 +4,7 @@ export type Engine = 'SqlServer' | 'Postgres' | 'MySql'
 
 export type LogicalType =
   | 'String' | 'Text' | 'Integer' | 'Decimal' | 'Boolean' | 'Date' | 'DateTime'
-  | 'Time' | 'Uuid' | 'Json' | 'Enum' | 'Binary' | 'Unsupported'
+  | 'Time' | 'Uuid' | 'Json' | 'Enum' | 'Binary' | 'Array' | 'ReadOnlyText' | 'Unsupported'
 
 export interface Connection {
   id: string
@@ -69,6 +69,10 @@ export interface Column {
   isLargeNumber: boolean
   isReadOnly: boolean
   isRequiredOnInsert: boolean
+  /** Archivo (binario que no es rowversion): se sube en base64 y se descarga aparte (P-018). */
+  isFile: boolean
+  /** Tipo de cada elemento de un arreglo (P-018). */
+  elementType: LogicalType | null
   // Ajustes (P-011)
   label: string | null
   helpText: string | null
@@ -141,6 +145,8 @@ export interface LookupItem {
 }
 
 export const LABEL_SUFFIX = '__label'
+/** Tamaño en bytes de un archivo en las filas (P-018). */
+export const SIZE_SUFFIX = '__size'
 
 // ----- Ajustes (overrides, P-011): mismo JSON que guarda la API -----
 

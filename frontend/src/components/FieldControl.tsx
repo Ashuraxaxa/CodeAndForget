@@ -71,6 +71,12 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
         </select>
       )
 
+    case 'Array':
+      return (
+        <textarea id={id} rows={4} value={str} disabled={disabled} required={required}
+          placeholder="Un valor por línea" onChange={e => onChange(e.target.value)} />
+      )
+
     case 'Text':
     case 'Json':
       return (

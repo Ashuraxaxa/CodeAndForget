@@ -48,6 +48,9 @@ public interface ISqlDialect
             ? $"INSERT INTO {table} DEFAULT VALUES"
             : $"INSERT INTO {table} ({string.Join(", ", columns)}) VALUES ({string.Join(", ", values)})";
 
+    /// <summary>Tamaño en bytes de un binario (P-018): para mostrar "12 KB" sin traer el archivo.</summary>
+    string ByteLength(string columnExpr) => $"OCTET_LENGTH({columnExpr})";
+
     /// <summary>Expresión que devuelve el último id autogenerado en la sesión (MySQL: LAST_INSERT_ID()). Null si no aplica.</summary>
     string? LastInsertIdExpression => null;
 }

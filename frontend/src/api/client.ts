@@ -189,6 +189,8 @@ export const api = {
     upload(`${tablePath(conn, schema, table)}/import/preview`, file, mapping),
   importFile: (conn: string, schema: string, table: string, file: File, mapping?: Record<string, string | null>) =>
     upload(`${tablePath(conn, schema, table)}/import`, file, mapping),
+  downloadFile: (conn: string, schema: string, table: string, key: string, column: string) =>
+    download(`${tablePath(conn, schema, table)}/row/file/${enc(column)}?${key}&download=1`),
   tree: (conn: string, schema: string, table: string, parent?: unknown) =>
     request<TreeNode[]>('GET', `${tablePath(conn, schema, table)}/tree${parent == null ? '' : `?${new URLSearchParams({ parent: String(parent) })}`}`),
   lookup: (conn: string, schema: string, table: string, q: string) =>

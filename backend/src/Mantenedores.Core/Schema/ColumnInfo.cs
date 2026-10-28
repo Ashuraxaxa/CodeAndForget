@@ -63,17 +63,30 @@ public sealed record ColumnInfo
     /// <summary>Lista fija de valores permitidos (ajuste).</summary>
     public IReadOnlyList<string>? Options { get; init; }
 
+    /// <summary>Tipo de cada elemento si <see cref="Type"/> es Array (p. ej. Integer para int4[]).</summary>
+    public LogicalType? ElementType { get; init; }
+
+    /// <summary>Tipo nativo del elemento (p. ej. "int4"), y su esquema, para convertir al escribir.</summary>
+    public string? ElementNativeType { get; init; }
+    public string? ElementNativeTypeSchema { get; init; }
+
     /// <summary>Se puede leer de forma segura (los tipos no soportados y binarios se omiten de los SELECT), y no está oculta.</summary>
     public bool IsSelectable => Type is not (LogicalType.Unsupported or LogicalType.Binary) && !(Hidden && !IsPrimaryKey);
 
+    /// <summary>Archivo que se puede subir y descargar (P-018): binario que no es rowversion.</summary>
+    public bool IsFile => Type == LogicalType.Binary && !IsRowVersion && !(Hidden && !IsPrimaryKey);
+
     /// <summary>Se ofrece ordenar por ella (P-022).</summary>
-    public bool IsSortable => IsSelectable && Sortable;
+    public bool IsSortable => IsSelectable && Sortable && Type is not (LogicalType.Array or LogicalType.ReadOnlyText);
 
     /// <summary>Se ofrece filtrar por ella: "contiene" en textos, igualdad en el resto (P-022).</summary>
-    public bool IsFilterable => IsSelectable && (Filterable || Type is LogicalType.String or LogicalType.Text);
+    public bool IsFilterable => IsSelectable && Type is not (LogicalType.Array or LogicalType.ReadOnlyText)
+                                && (Filterable || Type is LogicalType.String or LogicalType.Text);
 
     /// <summary>La UI no permite escribir esta columna.</summary>
-    public bool IsReadOnly => IsIdentity || IsComputed || IsRowVersion || ForcedReadOnly || !IsSelectable;
+    /// <summary>No se escribe: generada por la base, de solo lectura por ajuste u oculta, o de un tipo que no se edita.</summary>
+    public bool IsReadOnly => IsIdentity || IsComputed || IsRowVersion || ForcedReadOnly
+                              || Type is LogicalType.Unsupported or LogicalType.ReadOnlyText || (Hidden && !IsPrimaryKey);
 
     /// <summary>Obligatoria al crear: no acepta nulos, no tiene default y no la genera la BD.</summary>
     public bool IsRequiredOnInsert => !IsNullable && !HasDefault && !IsReadOnly;

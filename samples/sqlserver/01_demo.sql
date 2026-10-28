@@ -100,3 +100,13 @@ INSERT INTO ventas.PedidoDetalle VALUES (1, 1, 1, 10, 690), (1, 2, 3, 5, 1490);
 INSERT INTO ventas.Empleado (Nombre) VALUES (N'Ana Gerente');
 INSERT INTO ventas.Empleado (Nombre, JefeId, HoraEntrada) VALUES (N'Luis Vendedor', 1, '09:00');
 GO
+
+-- Tipos de P-018: archivo (varbinary), geografía (se lee como WKT) y jerarquía (se lee como ruta).
+ALTER TABLE ventas.Categoria ADD Icono varbinary(max) NULL;
+ALTER TABLE ventas.Cliente ADD Ubicacion geography NULL;
+ALTER TABLE ventas.Empleado ADD Nodo hierarchyid NULL;
+GO
+UPDATE ventas.Cliente SET Ubicacion = geography::Point(-33.45, -70.66, 4326) WHERE Rut = '76.123.456-7';
+UPDATE ventas.Empleado SET Nodo = hierarchyid::GetRoot() WHERE Id = 1;
+UPDATE ventas.Empleado SET Nodo = hierarchyid::Parse('/1/') WHERE Id = 2;
+GO

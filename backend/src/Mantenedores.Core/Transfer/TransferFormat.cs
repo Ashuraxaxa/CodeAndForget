@@ -53,6 +53,9 @@ public static class TransferFormats
         DateTime dt => dt.ToString("yyyy-MM-dd'T'HH:mm:ss.FFFFFFF", CultureInfo.InvariantCulture),
         DateTimeOffset dto => dto.ToString("O", CultureInfo.InvariantCulture),
         Guid g => g.ToString("D"),
+        byte[] bytes => Convert.ToBase64String(bytes),
+        // Arreglos (P-018): como arreglo JSON, que la importación vuelve a leer.
+        System.Collections.IEnumerable items => System.Text.Json.JsonSerializer.Serialize(items.Cast<object?>().Select(ToText)),
         IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
         _ => value.ToString()
     };

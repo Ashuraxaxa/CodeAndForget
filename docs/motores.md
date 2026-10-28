@@ -89,6 +89,9 @@ Si no se cumple ninguna, pide el valor de la clave al usuario.
 |---|---|---|
 | **Npgsql guarda los tipos en caché al primer uso** | PostgreSQL: un enum creado después de esa conexión no se puede leer ("-.-") | Los enums se leen como texto (`CAST(... AS text)`) (D-041) |
 | **Cada driver devuelve fechas y horas con tipos distintos** | Npgsql 10: `DateOnly`/`TimeOnly`; SqlClient: `DateTime`/`TimeSpan` | `CrudService` normaliza: Date → `DateOnly` (`AAAA-MM-DD`), Time → `TimeOnly` (`HH:MM:SS`) (D-036) |
+| **Arreglos de PostgreSQL** | `text[]`, `int4[]`… Npgsql no lee un `int4[]` con nulos como `int[]` | Se leen como `text[]`, se escriben como texto validado por elemento con `CAST(@p AS int4[])` (P-018, D-059) |
+| **Tipos espaciales y jerárquicos** | SQL Server `geography`/`geometry`/`hierarchyid`, PostGIS, MySQL `POINT`… | Solo lectura, como texto: `.STAsText()`, `.ToString()`, `ST_AsText()` en `SelectExpression` (P-018, D-059) |
+| **Binarios y nulos** | SQL Server no convierte un `NULL` sin tipo (nvarchar) a `varbinary` | `ParameterFor` hace `CAST(@p AS varbinary(max))`; el tamaño se calcula con `ByteLength` (`DATALENGTH` / `OCTET_LENGTH`) (P-018) |
 | **Números más grandes que `decimal` de .NET (28–29 dígitos)** | PG `numeric` sin límite, SQL Server y MySQL `DECIMAL(29..65)` | El proveedor marca `IsLargeNumber`; se leen como texto (`SelectExpression`) y se escriben como texto validado (✅ P-023, D-041) |
 | Booleanos simulados | MySQL `TINYINT(1)` / `BIT(1)` | Boolean por defecto, corregible por override |
 | Enteros sin signo | MySQL `INT UNSIGNED`, `BIGINT UNSIGNED` | `BIGINT UNSIGNED` no cabe en `long`: tratar como Decimal |

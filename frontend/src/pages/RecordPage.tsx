@@ -2,11 +2,12 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
-import { LABEL_SUFFIX, labelOf, type Column, type LookupItem, type Row, type TableMeta } from '../api/types'
+import { LABEL_SUFFIX, SIZE_SUFFIX, labelOf, type Column, type LookupItem, type Row, type TableMeta } from '../api/types'
 import { FieldControl } from '../components/FieldControl'
 import { fromInputValue, keyQuery, parseRecordSearch, toInputValue } from '../lib/format'
 import { ChildTabs } from '../components/ChildTabs'
 import { ManyToManySelect } from '../components/ManyToManySelect'
+import { FileField } from '../components/FileField'
 
 /** Formulario de alta y edición generado desde la metadata de la tabla. */
 export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
@@ -73,6 +74,9 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
     Object.fromEntries(fields.map(c => [c.name, (row?.[c.name + LABEL_SUFFIX] as string | null) ?? null])))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [links, setLinks] = useState(initialLinks)
+  // Archivos (P-018): no vienen con el registro; solo se envían si se eligió otro o se quitó.
+  const files = meta.columns.filter(c => c.isFile && !c.hidden)
+  const [fileValues, setFileValues] = useState<Record<string, string | null | undefined>>({})
   const sameLinks = (a: LookupItem[], b: LookupItem[]) =>
     a.map(x => String(x.value)).sort().join('\u0001') === b.map(x => String(x.value)).sort().join('\u0001')
 
@@ -87,6 +91,10 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
         // En alta, un vacío en columna con default se omite para que la BD ponga su valor.
         if (!isEdit && v === null && c.hasDefault) continue
         body[c.name] = v
+      }
+      for (const c of files) {
+        if (c.isReadOnly || fileValues[c.name] === undefined) continue
+        body[c.name] = fileValues[c.name]
       }
       const saved = await (isEdit
         ? api.update(conn, meta.schema, meta.name, recordKey, body)
@@ -137,7 +145,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
             const required = !isLocked(c) && (isEdit ? !c.isNullable && c.type !== 'Boolean' : c.isRequiredOnInsert)
             const fk = fkByColumn.get(c.name)
             return (
-              <label key={c.name} className={c.type === 'Text' || c.type === 'Json' || c.widget === 'textarea' ? 'span-2' : undefined}>
+              <label key={c.name} className={c.type === 'Text' || c.type === 'Json' || c.type === 'Array' || c.widget === 'textarea' ? 'span-2' : undefined}>
                 <span className="field-label" title={c.label ? c.name : undefined}>
                   {labelOf(c)}{required && <span className="req"> *</span>}
                   <span className="muted small"> {fk ? `→ ${fk.refTable}` : c.nativeType}</span>
@@ -159,6 +167,22 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
                 {c.isComputed && <span className="hint">Calculada por la base de datos</span>}
                 {errors[c.name] && <span className="field-error">{errors[c.name]}</span>}
               </label>
+            )
+          })}
+          {files.map(c => {
+            const required = !isEdit && c.isRequiredOnInsert
+            return (
+              <div key={c.name} className="field span-2">
+                <span className="field-label">
+                  {labelOf(c)}{required && <span className="req"> *</span>}
+                  <span className="muted small"> archivo · {c.nativeType}</span>
+                </span>
+                <FileField conn={conn} schema={meta.schema} table={meta.name} recordKey={isEdit ? recordKey : ''} column={c}
+                  size={row?.[c.name + SIZE_SUFFIX]} value={fileValues[c.name]} disabled={c.isReadOnly}
+                  onChange={v => setFileValues(s => ({ ...s, [c.name]: v }))} />
+                {c.helpText && <span className="hint">{c.helpText}</span>}
+                {errors[c.name] && <span className="field-error">{errors[c.name]}</span>}
+              </div>
             )
           })}
           {meta.manyToMany.map(l => (

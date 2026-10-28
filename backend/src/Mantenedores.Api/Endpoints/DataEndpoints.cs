@@ -51,6 +51,21 @@ public static class DataEndpoints
             List<System.Text.Json.JsonElement> values, CrudService crud, CancellationToken ct) =>
             crud.SetLinksAsync(conn, schema, table, Key(http.Query), link, values, ct));
 
+        // Archivo de una columna binaria (P-018). Se sube en base64 en el alta o la edición; aquí se descarga.
+        group.MapGet("/row/file/{column}", async (string conn, string schema, string table, string column, HttpRequest http,
+            CrudService crud, CancellationToken ct) =>
+        {
+            var key = Key(http.Query);
+            key.Remove("download");
+            var file = await crud.GetFileAsync(conn, schema, table, key, column, ct);
+            if (file is null) return Results.NotFound();
+            // Imágenes y PDF se pueden ver en el navegador; lo demás se descarga.
+            var inline = http.Query["download"] != "1" && (file.ContentType.StartsWith("image/") || file.ContentType == "application/pdf");
+            return inline
+                ? Results.File(file.Content, file.ContentType)
+                : Results.File(file.Content, file.ContentType, file.FileName);
+        });
+
         // Árbol de una tabla con autorreferencia (P-016): un nivel por llamada. Sin ?parent, las raíces.
         group.MapGet("/tree", (string conn, string schema, string table, string? parent, int? take, CrudService crud, CancellationToken ct) =>
             crud.TreeAsync(conn, schema, table, parent, take ?? 500, ct));

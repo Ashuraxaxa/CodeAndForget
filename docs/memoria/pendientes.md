@@ -32,10 +32,10 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-087 | N:M: ajuste para desactivar el selector de un puente o mostrarlo como pestaña; puentes con columnas extra (p. ej. `cantidad`) como hijas con su propio formulario | ⚪ | ⏳ |
 | P-088 | Importar actualizando por clave (upsert) además de insertar; hoy solo inserta y las columnas de solo lectura (identity) se ignoran | 🟡 | ⏳ |
 | P-089 | Árbol: elegir la FK cuando hay más de una autorreferencia (hoy se usa la primera) y mover nodos arrastrando | ⚪ | ⏳ |
+| P-090 | Archivos: vista previa de imágenes en la grilla y en el formulario; editar `geography`/`geometry` como WKT | ⚪ | ⏳ |
 | P-085 | Editor: FK virtuales compuestas desde la UI (hoy solo por la API) y arrastrar para ordenar columnas (hoy, botones ↑ ↓) | ⚪ | ⏳ |
 | P-084 | UI: usar la etiqueta de la tabla referenciada (no su nombre) en "→ categoria" y en "Referenciada por" | ⚪ | ⏳ |
 | P-081 | Migraciones con varias instancias arrancando a la vez: bloqueo (p. ej. `pg_advisory_lock`, `sp_getapplock`) para que no corran dos veces en paralelo | 🟡 | ⏳ |
-| P-018 | Tipos pendientes: arreglos PG, binarios (subir/bajar), `geography`/`hierarchyid` como texto | ⚪ | ⏳ |
 
 ## 2. Fase 3: seguridad
 
@@ -112,6 +112,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-029 | UI: MySQL/MariaDB en el selector, ejemplo de cadena y ayuda de esquemas según el motor | ✅ 2026-10-27 · PR #8 |
 | P-010 | Metadata en `Sqlite` (por defecto), `Postgres` o `SqlServer`, con migraciones, `SqlConnectionStore` e importación de `connections.json` (D-047, D-048) | ✅ 2026-10-27 · PR #10 |
 | P-080 | Llaves de Data Protection en la base (`DataProtection:KeyStore=Database`) y certificado opcional: varias instancias comparten conexiones | ✅ 2026-10-27 · PR #10 |
+| P-018 | Tipos pendientes: archivos (subir en base64, descargar, tamaño), arreglos de PG como lista, `geography`/`geometry`/`hierarchyid` y espaciales de MySQL como texto (D-059) | ✅ 2026-10-27 · PR #19 |
 | P-016 | Árboles para autorreferencias: vista por niveles, "＋ hijo" y validación de ciclos al guardar (D-058) | ✅ 2026-10-27 · PR #18 |
 | P-017 | Exportar (CSV, Excel, JSON, XML, por streaming) e importar los mismos formatos con vista previa, asociación de columnas y transacción (D-057) | ✅ 2026-10-27 · PR #17 |
 | P-015 | Relaciones N:M: detección de tablas puente, selector múltiple en el formulario y `PUT /row/links` en transacción (D-056) | ✅ 2026-10-27 · PR #16 |

@@ -5,7 +5,7 @@
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Fase 3 decidida con el dueño (D-062 a D-066) y en curso: migraciones con bloqueo y secretos (PR #20), perfiles y permisos (PR #21) auditoría de cambios (PR #22) y concurrencia optimista (PR #23). **Fase 3 completa.** Fase 4 en curso: tope del pool y límites de uso (PR #24), observabilidad y pruebas de carga (PR #25). tablas grandes (PR #26). Fase 5: avisos por correo por tabla (PR #27). Tanda 1 de mejoras: filtro de FK por nombre, permisos de la base, fechas y nombres visibles (PR #28). Importar con actualización y FK compuestas (PR #29). Interfaz en español, inglés y ruso (PR #30). Siguiente: tanda 2 (operación: P-082, P-074, P-092).
+**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Fase 3 decidida con el dueño (D-062 a D-066) y en curso: migraciones con bloqueo y secretos (PR #20), perfiles y permisos (PR #21) auditoría de cambios (PR #22) y concurrencia optimista (PR #23). **Fase 3 completa.** Fase 4 en curso: tope del pool y límites de uso (PR #24), observabilidad y pruebas de carga (PR #25). tablas grandes (PR #26). Fase 5: avisos por correo por tabla (PR #27). Tanda 1 de mejoras: filtro de FK por nombre, permisos de la base, fechas y nombres visibles (PR #28). Importar con actualización y FK compuestas (PR #29). Interfaz en español, inglés y ruso (PR #30). Tanda 2 de operación: avisos entre instancias, cambios de esquema detectados solos y health check sin curl (PR #31). Siguiente: tanda 3 (P-094, P-095, P-093, P-101, P-085, P-087, P-089, P-090)..
 
 ## Ramas y PR
 
@@ -15,6 +15,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 | `feature/t1-ajustes` | PR #28: filtro de FK por nombre, permisos de la base, fechas y nombres visibles. |
 | `feature/t1-importar-fk` | PR #29 (sale de la rama del #28): importar actualizando por clave y FK de varias columnas. |
 | `feature/i18n` | PR #30 (sale de la rama del #29): interfaz en español, inglés y ruso, con fechas por idioma. |
+| `feature/t2-operacion` | PR #31 (sale de la rama del #30): avisos entre instancias, cambios de esquema solos, health check sin curl. |
 | `feature/fase1-*`, `feature/m1-*`, `feature/m3-*`, `feature/f2-*`, `feature/f3-*`, `feature/f4-*`, `feature/f5-avisos` | Ya fusionadas en `main`; se pueden borrar (P-005). |
 
 ## Qué funciona hoy
@@ -35,6 +36,9 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 - **Ajustes sin tocar código** (D-049, `docs/ajustes.md`): etiquetas, grupos del menú, columnas ocultas, orden, solo lectura, obligatorias, patrón, rango, lista de opciones, control de la UI, columna a mostrar, orden por defecto, PK y FK virtuales. Se aplican al instante, los cambia quien tiene el permiso `ConfigureTables` (D-053) y lo que deja de aplicar se avisa en el menú. Se editan con **⚙ Configurar** (pestañas Tabla y Columnas, vista previa en vivo, restablecer) o por la API.
 - **SQL Server:** la inserción funciona también en tablas con triggers (D-010).
 - **Seguridad propia** (D-062 a D-067, `docs/seguridad.md`): perfiles con roles y usuarios, permisos de la app y permisos sobre los datos por conexión, tabla y columna (ver, crear, editar, borrar, exportar, importar). Usuarios propios con contraseña en hash. Sin perfiles, todo sigue abierto. Pantalla **Seguridad** con el permiso `ManageSecurity`.
+- **Varias instancias al día** (D-077): un ajuste, un ↻, un perfil o un usuario cambiado en una instancia se ve en las demás en unos 5 segundos.
+- **Cambios de esquema solos** (D-078): el catálogo se relee cada hora y, si una consulta falla por una columna o tabla que ya no existe, el esquema se relee al momento.
+- **Health check del contenedor** (D-079): `docker ps` muestra `healthy` sin instalar `curl`.
 - **Idiomas** (D-076): la interfaz en español, inglés o ruso, con selector en la barra superior y en el login; fechas y números con el formato de cada idioma (28/10/2026, 10/28/2026, 28.10.2026). Los mensajes que arma el servidor siguen en español (P-101).
 - **Importar actualizando** (D-075): además de solo agregar, "agregar y actualizar por clave", con la vista previa de cuántas se crean y cuántas se actualizan.
 - **FK de varias columnas** (D-075): etiqueta en la grilla y un solo combo en el formulario (p. ej. bodega → sucursal por país + código).

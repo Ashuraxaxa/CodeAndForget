@@ -42,7 +42,7 @@ public sealed class MetadataStoreTests : IDisposable
         var first = await new MetadataMigrator(db).MigrateAsync();
         var second = await new MetadataMigrator(db).MigrateAsync();
 
-        Assert.Equal(["001_conexiones", "002_overrides", "003_schema_snapshot", "004_security", "005_audit"], first);
+        Assert.Equal(["001_conexiones", "002_overrides", "003_schema_snapshot", "004_security", "005_audit", "006_change_stamp"], first);
         Assert.Empty(second);
         Assert.True(File.Exists(Path.Combine(_root, "mantenedores.db")));
     }
@@ -146,6 +146,49 @@ public sealed class MetadataStoreTests : IDisposable
         var list = await b.GetStringAsync("/api/connections");
         Assert.Contains("\"server\":\"srv-a\"", list);
         Assert.Contains("\"database\":\"ventas\"", list);
+    }
+
+    [Fact]
+    public async Task Una_instancia_ve_al_momento_los_cambios_de_seguridad_de_otra()
+    {
+        // D-077: sin el aviso, B vería el perfil nuevo recién al vencer su caché (30 s) y el usuario desactivado a los 10 s.
+        var db = Path.Combine(_root, "compartida.db");
+        HttpClient Instance(string name) => new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
+        {
+            b.UseEnvironment("Development");
+            b.UseSetting("Storage:DataDirectory", Path.Combine(_root, name));
+            b.UseSetting("Metadata:ConnectionString", $"Data Source={db}");
+            b.UseSetting("Metadata:SyncSeconds", "1");
+        }).CreateClient();
+        async Task Login(HttpClient c, string user, string password)
+        {
+            var login = await c.PostAsJsonAsync("/api/auth/login", new { username = user, password });
+            Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+            c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", (await login.Content.ReadFromJsonAsync<Login>())!.Token);
+        }
+        async Task Eventually(Func<Task<bool>> condition)
+        {
+            for (var i = 0; i < 50 && !await condition(); i++) await Task.Delay(100);
+            Assert.True(await condition());
+        }
+
+        var a = Instance("a");
+        var b = Instance("b");
+        var ana = Instance("b");
+        await Login(a, "admin", "admin");
+        await Login(b, "admin", "admin");
+        Assert.Contains("\"securityOpen\":true", await b.GetStringAsync("/api/auth/me"));
+        Assert.Equal(HttpStatusCode.OK, (await a.PutAsJsonAsync("/api/security/users/ana", new { password = "clave-de-ana" })).StatusCode);
+        await Login(ana, "ana", "clave-de-ana");
+        Assert.Equal(HttpStatusCode.OK, (await ana.GetAsync("/api/auth/me")).StatusCode);
+        await Task.Delay(1500); // que B haga su primera revisión (solo toma nota)
+
+        Assert.Equal(HttpStatusCode.OK, (await a.PutAsJsonAsync("/api/security/profiles/lectura",
+            new { name = "Lectura", users = new[] { "ana" }, connections = new { } })).StatusCode);
+        await Eventually(async () => (await b.GetStringAsync("/api/auth/me")).Contains("\"securityOpen\":false"));
+
+        Assert.Equal(HttpStatusCode.OK, (await a.PutAsJsonAsync("/api/security/users/ana", new { active = false })).StatusCode);
+        await Eventually(async () => (await ana.GetAsync("/api/auth/me")).StatusCode == HttpStatusCode.Unauthorized);
     }
 
     [Theory]

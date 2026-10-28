@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Tanda 2: operación (P-082, P-092, P-074, P-086)
+- El dueño pidió hacer las tandas 2 y 3 de una vez; la 2 va en el PR #31 y la 3 en los siguientes.
+- Avisos entre instancias con contadores en la metadata (D-077): probado con dos APIs reales sobre la misma metadata; B vio el ajuste guardado en A en 1,7 s y su borrado.
+- Usuarios propios activos en caché 10 s; perfil nuevo y usuario desactivado se notan en la otra instancia en ~1 s (prueba unitaria con dos instancias).
+- Cambios de esquema solos (D-078): relectura cada hora y, si falta una tabla o columna, 409 con relectura inmediata; probado en los cuatro motores.
+- `healthcheck` de la propia app y `HEALTHCHECK` en el Dockerfile (D-079).
+- 203 unitarias y 245 de integración en verde.
+
 ## 2026-10-28 · Interfaz en inglés y ruso (P-100)
 - Pedido del dueño antes de seguir con la tanda 2: inglés y ruso intercambiables desde la interfaz, con el formato de fechas de cada idioma.
 - Sistema propio y liviano (D-076): el español del código es la clave, `en.ts`/`ru.ts` traducen 304 textos, plurales con `Intl.PluralRules`, y `npm run lint` falla si falta alguna traducción.

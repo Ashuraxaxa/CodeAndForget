@@ -137,8 +137,11 @@ public sealed class UnrestrictedAccess : IAccessContext
     public ValueTask<UserAccess> CurrentAsync(CancellationToken ct) => ValueTask.FromResult(UserAccess.All);
 }
 
-/// <summary>Perfiles con una caché corta: varias instancias ven un cambio a los pocos segundos.</summary>
-public sealed class SecurityService(ISecurityStore store)
+/// <summary>
+/// Perfiles con una caché corta. Con metadata compartida, un cambio se avisa a las demás instancias (D-077);
+/// el vencimiento de 30 s queda de respaldo.
+/// </summary>
+public sealed class SecurityService(ISecurityStore store, Services.ChangeStamps? stamps = null)
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromSeconds(30);
     private (DateTimeOffset At, IReadOnlyList<SecurityProfile> Profiles)? _cache;
@@ -153,7 +156,15 @@ public sealed class SecurityService(ISecurityStore store)
         return profiles;
     }
 
+    /// <summary>Solo en esta instancia.</summary>
     public void Invalidate() => _cache = null;
+
+    /// <summary>Cambió un perfil o un usuario: se recarga aquí y en las demás instancias.</summary>
+    public async Task ChangedAsync(CancellationToken ct)
+    {
+        Invalidate();
+        if (stamps is not null) await stamps.PublishAsync(Services.ChangeStamps.Security, ct);
+    }
 
     public async Task<UserAccess> AccessForAsync(string? username, IEnumerable<string> roles, bool isAdmin, CancellationToken ct) =>
         UserAccess.For(username, roles, isAdmin, await ProfilesAsync(ct));

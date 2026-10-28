@@ -43,8 +43,10 @@ volumes:
   mantenedores-data:
 ```
 
-> La imagen `aspnet:8.0` no trae `curl` ni `wget`, así que el health check se hace desde afuera
-> (orquestador, balanceador o monitoreo) contra `/api/health/ready`.
+> La imagen no trae `curl` ni `wget`: el health check lo hace la propia app con
+> `dotnet Mantenedores.Api.dll healthcheck`, que consulta `/api/health/ready` (respeta `ASPNETCORE_URLS` y
+> `Hosting__PathBase`) y sale con 0 si responde bien. El `Dockerfile` ya lo declara como `HEALTHCHECK`, así que
+> `docker ps` muestra `healthy`. Para otra URL: `healthcheck http://localhost:9000/api/health/ready`.
 
 ## 3. Kubernetes
 

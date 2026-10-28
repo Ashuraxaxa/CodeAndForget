@@ -18,8 +18,12 @@ using Mantenedores.Providers.SqlServer;
 if (args is ["hash-password", var plain])
 {
     Console.WriteLine(PasswordHasher.Hash(plain));
-    return;
+    return 0;
 }
+
+// Health check del contenedor sin curl (P-074): dotnet Mantenedores.Api.dll healthcheck [url]
+if (args is ["healthcheck", .. var rest])
+    return await HealthProbe.RunAsync(rest.FirstOrDefault());
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,9 +57,21 @@ builder.Services.AddSingleton<ProviderRegistry>();
 
 builder.Services.AddSingleton(builder.Configuration.GetSection("Crud").Get<CrudOptions>() ?? new CrudOptions());
 builder.Services.AddSingleton(new SecretResolver(builder.Configuration.GetSection(SecretOptions.Section).Get<SecretOptions>() ?? new SecretOptions()));
+// --- Avisos entre instancias (D-077): con metadata en base, cada instancia revisa cada pocos segundos lo que cambió otra ---
+builder.Services.AddSingleton(sp =>
+{
+    var log = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Mantenedores.Sincronizacion");
+    return new ChangeStamps(sp.GetService<IChangeStampStore>(),
+        ex => log.LogWarning(ex, "No se pudo avisar un cambio a las demás instancias (el cambio sí se guardó)"));
+});
+builder.Services.AddSingleton(builder.Configuration.GetSection("Metadata").Get<ChangeSyncOptions>() ?? new ChangeSyncOptions());
+builder.Services.AddHostedService<ChangeSyncService>();
 builder.Services.AddSingleton<SecurityService>();
 builder.Services.AddSingleton(builder.Configuration.GetSection(PoolOptions.Section).Get<PoolOptions>() ?? new PoolOptions());
 builder.Services.AddSingleton<SchemaService>();
+// Relectura periódica del catálogo para detectar cambios de esquema sin pulsar ↻ (P-086). 60 minutos por defecto.
+builder.Services.AddSingleton(builder.Configuration.GetSection(SchemaRefreshOptions.Section).Get<SchemaRefreshOptions>() ?? new SchemaRefreshOptions());
+builder.Services.AddHostedService<SchemaRefreshService>();
 // --- Auditoría de cambios (D-065): activa por defecto, 365 días ---
 var auditOptions = builder.Configuration.GetSection(AuditOptions.Section).Get<AuditOptions>() ?? new AuditOptions();
 builder.Services.AddSingleton(auditOptions);
@@ -110,5 +126,6 @@ app.Map("/api/{**rest}", () => Results.NotFound()).AllowAnonymous();
 app.MapSpaIndex();
 
 await app.RunAsync();
+return 0;
 
 public partial class Program;

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -48,9 +49,26 @@ public sealed class TokenService(IOptions<AuthOptions> options, ISecurityStore s
         return ok && local is { Active: true } ? new AuthUser { Username = local.Username } : null;
     }
 
-    /// <summary>¿El usuario sigue habilitado? Los de la configuración siempre; los propios, si existen y están activos.</summary>
-    public async Task<bool> IsActiveAsync(string username, CancellationToken ct) =>
-        ConfigUser(username) is not null || await store.GetUserAsync(username, ct) is { Active: true };
+    /// <summary>
+    /// ¿El usuario sigue habilitado? Los de la configuración siempre; los propios, si existen y están activos.
+    /// Se consulta en cada solicitud, así que la respuesta se guarda unos segundos (P-092): desactivar a alguien
+    /// corta su sesión al instante en esta instancia y, con metadata compartida, a los pocos segundos en las demás.
+    /// </summary>
+    public async Task<bool> IsActiveAsync(string username, CancellationToken ct)
+    {
+        if (ConfigUser(username) is not null) return true;
+        var key = username.Trim().ToLowerInvariant();
+        if (_active.TryGetValue(key, out var c) && DateTimeOffset.UtcNow - c.At < ActiveTtl) return c.Active;
+        var active = await store.GetUserAsync(username, ct) is { Active: true };
+        _active[key] = (DateTimeOffset.UtcNow, active);
+        return active;
+    }
+
+    /// <summary>Tras crear, editar o borrar un usuario propio (aquí o, por aviso, en otra instancia).</summary>
+    public void InvalidateUsers() => _active.Clear();
+
+    private static readonly TimeSpan ActiveTtl = TimeSpan.FromSeconds(10);
+    private readonly ConcurrentDictionary<string, (DateTimeOffset At, bool Active)> _active = new();
 
     public bool IsConfigUser(string username) => ConfigUser(username) is not null;
 

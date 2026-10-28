@@ -42,6 +42,19 @@ No se configuran; siempre están disponibles y no requieren autenticación (P-00
 
 Bajo una subruta van precedidos por ella: `/mantenedores/api/health/ready`.
 
+La imagen de Docker no trae `curl`: su `HEALTHCHECK` es `dotnet Mantenedores.Api.dll healthcheck`, que consulta
+`/api/health/ready` de la propia instancia (según `ASPNETCORE_URLS` y `Hosting__PathBase`) y sale con 0 o 1 (P-074).
+Acepta otra URL como argumento.
+
+## Cambios de esquema (`Schema`)
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `Schema:RefreshMinutes` | `60` | Cada cuánto se vuelve a leer el catálogo de las conexiones abiertas para detectar cambios sin pulsar ↻ (P-086). Si nada cambió no toca nada; si cambió, aparece el aviso de cambios. `0` = nunca. |
+
+Además, si una consulta falla porque una tabla o columna ya no existe, el esquema se descarta al momento (en todas las
+instancias) y el usuario ve "La estructura de … cambió; recargue la página".
+
 ## Datos (`Storage`)
 
 | Clave | Por defecto | Qué hace |
@@ -57,9 +70,12 @@ Las tablas llevan el prefijo `mnt_` y se crean solas al arrancar (migraciones en
 |---|---|---|
 | `Metadata:Provider` | `Sqlite` | `Sqlite` (un archivo, nada que instalar) · `Postgres` · `SqlServer` · `File` (archivos JSON `connections.json`, `overrides.json` y `snapshots/`, solo para desarrollo). |
 | `Metadata:ConnectionString` | `Data Source=<datos>/mantenedores.db` en `Sqlite` | Obligatoria en `Postgres` y `SqlServer`. El usuario necesita crear tablas la primera vez (o se crean a mano con los scripts). |
+| `Metadata:SyncSeconds` | `5` | Cada cuántos segundos una instancia revisa si otra cambió ajustes, el esquema de una conexión, perfiles o usuarios (D-077). Es una consulta liviana a `mnt_change_stamp`. `0` = no revisar. Sin efecto con `File`. |
 
 **Varias instancias** (Kubernetes con más de una réplica, granja de IIS): usar `Postgres` o `SqlServer` **y** `DataProtection:KeyStore=Database`,
-para que todas compartan conexiones y llaves sin un volumen común.
+para que todas compartan conexiones y llaves sin un volumen común. Cada instancia guarda el esquema y los ajustes en
+memoria; cuando una cambia algo (un ajuste, ↻ en una conexión, un perfil o un usuario), las demás lo ven en
+`Metadata:SyncSeconds` segundos, sin Redis (D-077).
 
 Si al arrancar existe `data/connections.json` (Fase 1) y la base está vacía, sus conexiones se importan una sola vez
 y el archivo se renombra a `connections.json.importado`.

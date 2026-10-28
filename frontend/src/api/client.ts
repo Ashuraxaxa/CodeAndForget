@@ -111,6 +111,9 @@ const ifMatch = (version: unknown): Record<string, string> | undefined =>
 /** ¿El error es porque otra persona cambió el registro? (D-069) */
 export const isConcurrencyError = (e: unknown): e is ApiError =>
   e instanceof ApiError && e.status === 409 && e.type === 'mantenedores:concurrencia'
+/** La tabla cambió en la base desde que se leyó su definición (P-086). */
+export const isSchemaChangedError = (e: unknown): e is ApiError =>
+  e instanceof ApiError && e.status === 409 && e.type === 'mantenedores:esquema'
 const tablePath = (conn: string, schema: string, table: string) =>
   `api/data/${enc(conn)}/${enc(schema)}/${enc(table)}`
 

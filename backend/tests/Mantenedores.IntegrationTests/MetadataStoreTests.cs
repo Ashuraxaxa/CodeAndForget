@@ -65,6 +65,29 @@ public abstract class MetadataStoreContractTests<TFixture>(TFixture db) : IClass
     }
 
     [Fact]
+    public async Task Los_avisos_entre_instancias_suben_y_se_leen_una_vez()
+    {
+        var database = Database();
+        await new MetadataMigrator(database).MigrateAsync();
+        var store = new SqlChangeStampStore(database);
+        var a = new Core.Services.ChangeStamps(store);
+        var b = new Core.Services.ChangeStamps(store);
+        var scope = Core.Services.ChangeStamps.Overrides("c" + Guid.NewGuid().ToString("N")[..8]);
+
+        await b.PollAsync(default); // primera revisión: solo toma nota
+        // Varias instancias suben el mismo ámbito a la vez: ninguna pierde su aviso.
+        await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => store.BumpAsync(scope, default)));
+        Assert.Equal(8, (await store.ListAsync(default))[scope]);
+
+        Assert.Contains(scope, await b.PollAsync(default));
+        Assert.DoesNotContain(scope, await b.PollAsync(default));
+        await a.PublishAsync(scope, default);
+        Assert.Contains(scope, await b.PollAsync(default));
+        await a.PollAsync(default);
+        Assert.DoesNotContain(scope, await a.PollAsync(default)); // lo propio no vuelve como aviso
+    }
+
+    [Fact]
     public async Task La_auditoria_se_guarda_filtra_pagina_y_purga()
     {
         var database = Database();

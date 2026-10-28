@@ -60,6 +60,7 @@ public sealed partial class SqlServerProvider : IDatabaseProvider
             547 => new(DbErrorKind.ForeignKeyOrCheck, DoubleQuoted(sql.Message, 0)), // FK o CHECK: lo resuelve la metadata
             515 => new(DbErrorKind.NotNull, Column: Quoted(sql.Message, 0)),
             229 or 230 => new(DbErrorKind.PermissionDenied),                  // permiso denegado en el objeto o la columna
+            207 or 208 => new(DbErrorKind.SchemaMismatch),                    // columna u objeto inexistente
             _ => DbErrorInfo.Unknown
         };
 

@@ -14,7 +14,10 @@ public enum DbErrorKind
     ForeignKeyOrCheck,
 
     /// <summary>El usuario de la base no tiene permiso sobre la tabla o la columna (P-073).</summary>
-    PermissionDenied
+    PermissionDenied,
+
+    /// <summary>La tabla o una columna ya no existe: el esquema cambió desde que se leyó (P-086).</summary>
+    SchemaMismatch
 }
 
 /// <summary>
@@ -51,6 +54,11 @@ public static class DbErrorTranslator
 {
     public static MantenedorException? Translate(DbErrorInfo info, TableInfo table, DbOperation operation)
     {
+        if (info.Kind == DbErrorKind.SchemaMismatch)
+            return new SchemaChangedException(
+                $"La estructura de {table.FullName} cambió en la base desde que se leyó. Ya se volvió a leer: " +
+                "recargue la página e intente de nuevo.");
+
         if (info.Kind == DbErrorKind.PermissionDenied)
             return new DbPermissionDeniedException(
                 $"El usuario con que la app se conecta a la base no tiene permiso para {Verb(operation)} {table.FullName}. " +
@@ -129,3 +137,6 @@ public static class DbErrorTranslator
 
 /// <summary>La base rechazó la operación por permisos de su propio usuario (P-073), no por los de la app.</summary>
 public sealed class DbPermissionDeniedException(string message) : MantenedorException(message);
+
+/// <summary>La consulta nombró una tabla o columna que ya no existe (P-086): hay que volver a leer el esquema.</summary>
+public sealed class SchemaChangedException(string message) : MantenedorException(message);

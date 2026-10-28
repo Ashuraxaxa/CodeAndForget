@@ -20,6 +20,9 @@ public sealed class ErrorHandler(ILogger<ErrorHandler> logger) : IExceptionHandl
             ConcurrencyException c => Results.Problem(c.Message, statusCode: 409, title: "El registro cambió",
                 type: "mantenedores:concurrencia", extensions: new Dictionary<string, object?> { ["current"] = c.Current }),
             NotFoundException n => Results.Problem(n.Message, statusCode: 404, title: "No encontrado"),
+            // El esquema cambió (P-086): ya se descartó el leído; la UI recarga la definición.
+            SchemaChangedException s => Results.Problem(s.Message, statusCode: 409, title: "La tabla cambió",
+                type: "mantenedores:esquema"),
             // Restricción de la BD ya traducida (P-003): mensaje claro y, si se puede, el campo afectado.
             ConstraintViolationException c => Results.ValidationProblem(
                 c.Errors.ToDictionary(e => e.Key, e => new[] { e.Value }),

@@ -75,3 +75,18 @@ public sealed class HostingTests : IDisposable
         try { Directory.Delete(_root, recursive: true); } catch (IOException) { }
     }
 }
+
+public class HealthProbeTests
+{
+    [Theory]
+    [InlineData(null, null, null, "http://localhost:8080/api/health/ready")]
+    [InlineData(null, "http://+:8080", "/mantenedores/", "http://localhost:8080/mantenedores/api/health/ready")]
+    [InlineData(null, "https://*:443;http://0.0.0.0:5080", "", "http://localhost:5080/api/health/ready")]
+    [InlineData("http://otro:9000/salud", "http://+:8080", null, "http://otro:9000/salud")]
+    public void Arma_la_url_desde_la_configuracion_del_contenedor(string? url, string? urls, string? pathBase, string expected) =>
+        Assert.Equal(expected, Mantenedores.Api.Infrastructure.HealthProbe.Url(url, urls, pathBase));
+
+    [Fact]
+    public async Task Falla_si_no_hay_nadie_escuchando() =>
+        Assert.Equal(1, await Mantenedores.Api.Infrastructure.HealthProbe.RunAsync("http://127.0.0.1:1/api/health/ready"));
+}

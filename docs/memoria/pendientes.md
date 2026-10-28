@@ -35,17 +35,15 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-090 | Archivos: vista previa de imágenes en la grilla y en el formulario; editar `geography`/`geometry` como WKT | ⚪ | ⏳ |
 | P-085 | Editor: FK virtuales compuestas desde la UI (hoy solo por la API) y arrastrar para ordenar columnas (hoy, botones ↑ ↓) | ⚪ | ⏳ |
 | P-084 | UI: usar la etiqueta de la tabla referenciada (no su nombre) en "→ categoria" y en "Referenciada por" | ⚪ | ⏳ |
-| P-081 | Migraciones con varias instancias arrancando a la vez: bloqueo (p. ej. `pg_advisory_lock`, `sp_getapplock`) para que no corran dos veces en paralelo | 🟡 | ⏳ |
 
 ## 2. Fase 3: seguridad
 
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
-| P-040 | Usuarios y roles locales en el metadata store (solo modo `Local`) | 🟡 | ⏳ |
-| P-042 | RBAC por conexión, tabla, columna y operación, asociado a nombres de rol de los claims (D-028) y aplicado en `QueryBuilder`. Apartado de seguridad propio (perfiles y usuarios) que también asigne los permisos de D-053; **el dueño lo quiere conversar antes de diseñarlo** | 🔴 | ⏳ |
-| P-043 | Filtros de fila por rol | 🟡 | ⏳ |
-| P-044 | Auditoría (quién, cuándo, valor anterior y nuevo) + vista en la UI | 🟡 | ⏳ depende de Q-007 |
-| P-045 | Referencias `${env:VAR}` / `${file:/ruta}` en las cadenas de conexión (D-025) (las llaves en la base y el certificado ya están, PR #10) | 🟡 | ⏳ |
+| P-040 | Perfiles propios con usuarios locales (en la metadata) y roles del proveedor de identidad asociados (D-062) | 🔴 | ⏳ |
+| P-042 | Permisos por conexión, tabla y columna (ver, crear, editar, borrar, exportar, importar) con herencia, aplicados en el servidor; pantalla "Seguridad" con el permiso `ManageSecurity` (D-063, D-066) | 🔴 | ⏳ |
+| P-043 | Filtros de fila por rol | — | ⛔ descartado por el dueño (D-064) |
+| P-044 | Auditoría de cambios (quién, cuándo, valor anterior y nuevo), 1 año configurable, con vista en la UI (D-065) | 🟡 | ⏳ |
 | P-046 | Concurrencia optimista (`rowversion` / `xmin`) | 🟡 | ⏳ |
 
 ## 3. Fase 4: escala y operación
@@ -112,6 +110,8 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-029 | UI: MySQL/MariaDB en el selector, ejemplo de cadena y ayuda de esquemas según el motor | ✅ 2026-10-27 · PR #8 |
 | P-010 | Metadata en `Sqlite` (por defecto), `Postgres` o `SqlServer`, con migraciones, `SqlConnectionStore` e importación de `connections.json` (D-047, D-048) | ✅ 2026-10-27 · PR #10 |
 | P-080 | Llaves de Data Protection en la base (`DataProtection:KeyStore=Database`) y certificado opcional: varias instancias comparten conexiones | ✅ 2026-10-27 · PR #10 |
+| P-081 | Migraciones con varias instancias: bloqueo de sesión y verificación dentro de la transacción (D-060) | ✅ 2026-10-28 · PR #20 |
+| P-045 | Secretos `${env:MNT_…}` / `${file:…}` en las cadenas de conexión, con prefijo y carpeta permitidos (D-061) | ✅ 2026-10-28 · PR #20 |
 | P-018 | Tipos pendientes: archivos (subir en base64, descargar, tamaño), arreglos de PG como lista, `geography`/`geometry`/`hierarchyid` y espaciales de MySQL como texto (D-059) | ✅ 2026-10-27 · PR #19 |
 | P-016 | Árboles para autorreferencias: vista por niveles, "＋ hijo" y validación de ciclos al guardar (D-058) | ✅ 2026-10-27 · PR #18 |
 | P-017 | Exportar (CSV, Excel, JSON, XML, por streaming) e importar los mismos formatos con vista previa, asociación de columnas y transacción (D-057) | ✅ 2026-10-27 · PR #17 |

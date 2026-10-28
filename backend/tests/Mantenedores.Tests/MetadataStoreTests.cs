@@ -48,6 +48,18 @@ public sealed class MetadataStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task Varias_instancias_migrando_a_la_vez_no_chocan()
+    {
+        // Como varias réplicas que arrancan juntas contra el mismo archivo (P-081).
+        var options = new MetadataOptions();
+        var runs = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ =>
+            Task.Run(() => new MetadataMigrator(new MetadataDatabase(options, _root)).MigrateAsync())));
+        var all = runs.SelectMany(r => r).ToList();
+        Assert.Equal(all.Distinct().Count(), all.Count); // ningún script se aplicó dos veces
+        Assert.Equal(MetadataMigrator.Scripts("Sqlite").Count, all.Count);
+    }
+
+    [Fact]
     public async Task Guarda_lee_actualiza_y_borra_con_la_cadena_cifrada()
     {
         await using var sp = Services(_root);

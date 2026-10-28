@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Mantenedores.Api.Auth;
 using Mantenedores.Api.Endpoints;
 using Mantenedores.Api.Infrastructure;
+using Mantenedores.Core.Connections;
 using Mantenedores.Core.Providers;
 using Mantenedores.Core.Services;
 using Mantenedores.Metadata;
@@ -47,6 +48,7 @@ builder.Services.AddSingleton<IDatabaseProvider, MySqlProvider>();
 builder.Services.AddSingleton<ProviderRegistry>();
 
 builder.Services.AddSingleton(builder.Configuration.GetSection("Crud").Get<CrudOptions>() ?? new CrudOptions());
+builder.Services.AddSingleton(new SecretResolver(builder.Configuration.GetSection(SecretOptions.Section).Get<SecretOptions>() ?? new SecretOptions()));
 builder.Services.AddSingleton<SchemaService>();
 builder.Services.AddSingleton<CrudService>();
 

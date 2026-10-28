@@ -5,7 +5,7 @@
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Siguiente: conversar el apartado de seguridad (Fase 3) con el dueño.
+**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Fase 3 decidida con el dueño (D-062 a D-066) y en curso: migraciones con bloqueo y secretos (PR #20). Siguiente: perfiles y permisos (P-040, P-042).
 
 ## Ramas y PR
 
@@ -14,12 +14,14 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 | `main` | Rama por defecto. Fase 1, bloque M y Fase 2 hasta exportar/importar: PR #1 a #17. |
 | `feature/f2-arboles` | PR #18: árboles por autorreferencia. |
 | `feature/f2-tipos` | PR #19 (sale de la rama del #18): archivos, arreglos y tipos que solo se muestran. |
+| `feature/f3-infra` | PR #20 (sale de la rama del #19): bloqueo de migraciones y secretos en las cadenas. |
 | `feature/fase1-*`, `feature/m1-*`, `feature/m3-*` | Ya fusionadas en `main`; se pueden borrar (P-005). |
 
 ## Qué funciona hoy
 
 - **Conexiones:** alta, edición, prueba y borrado. Se guardan con la cadena cifrada en la metadata del servicio: SQLite por defecto, o Postgres / SQL Server (D-023, D-047).
-- **Varias instancias** comparten conexiones y llaves con metadata en Postgres/SQL Server y `DataProtection:KeyStore=Database`.
+- **Secretos fuera de la metadata** (D-061): `Password=${env:MNT_…}` o `${file:…}` en la cadena de conexión.
+- **Varias instancias** migran sin chocar (D-060) y comparten conexiones y llaves con metadata en Postgres/SQL Server y `DataProtection:KeyStore=Database`.
 - **Lectura de esquema** en SQL Server, PostgreSQL, MySQL y MariaDB:
   - Tablas, vistas, columnas y tipos.
   - PK simples y compuestas, restricciones UNIQUE y FK.
@@ -53,9 +55,9 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 
 ## Cómo se verificó (2026-10-27)
 
-- 155 pruebas unitarias (`backend/tests/Mantenedores.Tests`): núcleo (incluidos los ajustes, el traductor de errores y las capacidades del dialecto), API en memoria (`HostingTests`, `AuthTests`, con el permiso de administrador para los ajustes) y metadata en SQLite y archivo (`MetadataStoreTests`), entre ellas dos instancias de la API que comparten base y llaves.
+- 158 pruebas unitarias (`backend/tests/Mantenedores.Tests`): núcleo (incluidos los ajustes, el traductor de errores y las capacidades del dialecto), API en memoria (`HostingTests`, `AuthTests`, con el permiso de administrador para los ajustes) y metadata en SQLite y archivo (`MetadataStoreTests`), entre ellas dos instancias de la API que comparten base y llaves.
 - Recorrido en navegador con la app publicada en `/mantenedores` contra PostgreSQL 12: login, conexión, alta con FK, recarga directa y salida. Ninguna petición sale de la subruta.
-- 199 pruebas de integración (incluye ajustes, cambios de esquema, filtro exacto, N:M, exportar/importar, árboles y archivos en la batería común; arreglos, geografía y jerarquía en las pruebas propias de cada motor y el almacén de metadata en PG 12/16 y SQL Server 2017/2022) (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
+- 201 pruebas de integración (incluye ajustes, cambios de esquema, filtro exacto, N:M, exportar/importar, árboles y archivos en la batería común; arreglos, geografía y jerarquía en las pruebas propias de cada motor y el almacén de metadata en PG 12/16 y SQL Server 2017/2022) (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
 - Login con **Keycloak 26** en el navegador: PKCE, vuelta a la app, API con el token, roles anidados (`realm_access.roles`), cierre de sesión sin confirmación; el token no queda en `localStorage`.
 - Tipos en navegador contra PostgreSQL 16: teléfonos de un cliente como lista y un ícono subido, guardado y descargado.
 - Árbol en navegador contra PostgreSQL 16: jerarquía de empleados, alta de un hijo, ciclo rechazado en el campo y vuelta a la vista de árbol.

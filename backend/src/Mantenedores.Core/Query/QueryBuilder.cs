@@ -218,6 +218,24 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         return new SqlQuery(sql, p.Snapshot());
     }
 
+    /// <summary>
+    /// Texto a mostrar de varios valores de una columna clave (P-094: etiquetas en la auditoría), p. ej. los nombres
+    /// de las categorías 2 y 5. Devuelve "value" y "label". Null si la tabla no tiene una columna a mostrar distinta.
+    /// </summary>
+    public SqlQuery? BuildLabels(TableInfo table, string keyColumn, IReadOnlyList<object?> values)
+    {
+        var key = table.FindColumn(keyColumn) ?? throw new ValidationException(keyColumn, "columna inexistente");
+        var displayCol = table.DisplayColumn is { } d ? table.FindColumn(d) : null;
+        // Una columna a mostrar oculta (por ajuste o por perfil) no se revela por aquí.
+        if (displayCol is null || displayCol.Hidden || displayCol.Name == key.Name || values.Count == 0) return null;
+        var p = new ParamBag(dialect.ParameterPrefix);
+        var keyExpr = $"{Base}.{dialect.Quote(key.Name)}";
+        var list = string.Join(", ", values.Select(p.Add));
+        var sql = $"SELECT {dialect.SelectExpression(key, keyExpr)} AS {dialect.Quote("value")}, " +
+                  $"{dialect.SelectExpression(displayCol, $"{Base}.{dialect.Quote(displayCol.Name)}")} AS {dialect.Quote("label")} " +
+                  $"FROM {dialect.Table(table.Schema, table.Name)} {Base} WHERE {keyExpr} IN ({list})";
+        return new SqlQuery(sql, p.Snapshot());
+    }
 
     /// <summary>
     /// Valores vinculados en una relación N:M (P-015): la clave del otro lado y su texto a mostrar,

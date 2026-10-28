@@ -41,5 +41,33 @@ for (const lang of ['en', 'ru']) {
   }
   if (unused.length) console.warn(`[i18n] ${lang}.ts: ${unused.length} claves sin uso: ${unused.slice(0, 10).map(k => JSON.stringify(k)).join(', ')}${unused.length > 10 ? '…' : ''}`)
 }
+// Cada traducción lleva las mismas {variables} que el español (si no, se mostraría "{n}" o se perdería un dato).
+const vars = text => [...text.matchAll(/\{(\w+)\}/g)].map(m => m[1]).sort().join(',')
+const literal = /'((?:[^'\\]|\\.)*)'/g
+for (const lang of ['en', 'ru']) {
+  for (const line of readFileSync(join(src, 'i18n', `${lang}.ts`), 'utf8').split('\n')) {
+    const strings = [...line.matchAll(literal)].map(m => unescape(m[1]))
+    if (strings.length < 2) continue
+    const [key, ...values] = strings
+    // En los plurales, la forma "una" puede no nombrar {n} ("First row"): basta con no inventar variables.
+    const plural = /\{\s*one\s*:/.test(line)
+    const ok = v => plural ? vars(v).split(',').filter(Boolean).every(x => vars(key).split(',').includes(x)) : vars(v) === vars(key)
+    for (const v of values) if (!ok(v)) {
+      failed = true
+      console.error(`[i18n] ${lang}.ts: ${JSON.stringify(v)} no tiene las mismas variables que ${JSON.stringify(key)}`)
+    }
+  }
+}
+// Mensajes del servidor (P-101): [es, en, ru] por línea.
+for (const line of readFileSync(join(src, 'i18n', 'server.ts'), 'utf8').split('\n')) {
+  const strings = [...line.matchAll(literal)].map(m => unescape(m[1]))
+  if (!line.trim().startsWith('[') || strings.length !== 3) continue
+  const [es, en, ru] = strings
+  for (const v of [en, ru]) if (vars(v) !== vars(es)) {
+    failed = true
+    console.error(`[i18n] server.ts: ${JSON.stringify(v)} no tiene las mismas variables que ${JSON.stringify(es)}`)
+  }
+}
+
 if (failed) process.exit(1)
 console.log(`[i18n] ${used.size} textos, traducidos al inglés y al ruso.`)

@@ -40,7 +40,20 @@ public sealed record AuditQuery
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 50;
     public const int MaxPageSize = 200;
+
+    /// <summary>
+    /// Lo que el usuario puede ver (P-095): conexiones completas y tablas sueltas. Ambas null = sin restricción;
+    /// listas vacías = nada.
+    /// </summary>
+    public IReadOnlyList<string>? AllowedConnections { get; init; }
+    public IReadOnlyList<AuditTable>? AllowedTables { get; init; }
+
+    /// <summary>Contar el total (la exportación recorre páginas y no lo necesita).</summary>
+    public bool CountTotal { get; init; } = true;
 }
+
+/// <summary>Una tabla que tiene entradas en la auditoría.</summary>
+public sealed record AuditTable(string Connection, string Schema, string Table);
 
 public sealed record AuditPage(IReadOnlyList<AuditEntry> Entries, long Total, int Page, int PageSize);
 
@@ -48,6 +61,9 @@ public interface IAuditStore
 {
     Task WriteAsync(IReadOnlyList<AuditEntry> entries, CancellationToken ct);
     Task<AuditPage> QueryAsync(AuditQuery query, CancellationToken ct);
+
+    /// <summary>Las tablas distintas que tienen entradas (para saber cuáles puede ver un usuario con perfil).</summary>
+    Task<IReadOnlyList<AuditTable>> TablesAsync(CancellationToken ct);
 
     /// <summary>Borra lo anterior a <paramref name="before"/>; devuelve cuántas entradas borró.</summary>
     Task<int> PurgeAsync(DateTimeOffset before, CancellationToken ct);
@@ -58,6 +74,7 @@ public sealed class NoAuditStore : IAuditStore
 {
     public Task WriteAsync(IReadOnlyList<AuditEntry> entries, CancellationToken ct) => Task.CompletedTask;
     public Task<AuditPage> QueryAsync(AuditQuery query, CancellationToken ct) => Task.FromResult(new AuditPage([], 0, 1, query.PageSize));
+    public Task<IReadOnlyList<AuditTable>> TablesAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<AuditTable>>([]);
     public Task<int> PurgeAsync(DateTimeOffset before, CancellationToken ct) => Task.FromResult(0);
 }
 

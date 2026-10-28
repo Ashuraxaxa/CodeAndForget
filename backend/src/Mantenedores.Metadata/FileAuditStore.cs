@@ -34,12 +34,15 @@ public sealed class FileAuditStore : IAuditStore
                 Same(q.Connection, e.Connection) && Same(q.Schema, e.Schema) && Same(q.Table, e.Table) &&
                 (q.RowKey is null || q.RowKey == e.RowKey) && (q.User is null || q.User == e.User) &&
                 (q.Operation is null || q.Operation == e.Operation) &&
-                (q.From is null || e.At >= q.From) && (q.To is null || e.At < q.To))
+                (q.From is null || e.At >= q.From) && (q.To is null || e.At < q.To) && AuditAccess.Allows(q, e))
             .OrderByDescending(e => e.Id).ToList();
         var size = Math.Clamp(q.PageSize, 1, AuditQuery.MaxPageSize);
         var page = Math.Max(q.Page, 1);
         return new AuditPage(matches.Skip((page - 1) * size).Take(size).ToList(), matches.Count, page, size);
     }
+
+    public async Task<IReadOnlyList<AuditTable>> TablesAsync(CancellationToken ct) =>
+        (await ReadAsync(ct)).Select(e => new AuditTable(e.Connection, e.Schema, e.Table)).Distinct().ToList();
 
     public async Task<int> PurgeAsync(DateTimeOffset before, CancellationToken ct)
     {

@@ -5,7 +5,7 @@ import { formatInstant } from '../lib/format'
 import { api } from '../api/client'
 import type { SchemaChange } from '../api/types'
 import { useCan } from '../lib/useMe'
-import { useT } from '../i18n'
+import { translateServer, useT } from '../i18n'
 
 /**
  * Aviso de cambios en el esquema desde la foto de referencia y de ajustes que quedaron sin efecto (P-013).
@@ -59,7 +59,7 @@ export function SchemaChangesBanner({ conn }: { conn: string }) {
                   <Link to={`/c/${conn}/t/${encodeURIComponent(c0.schema)}/${encodeURIComponent(c0.table)}`}><b>{table}</b></Link>
                 )}
                 <ul>
-                  {changes.map((c, i) => <li key={i}>{c.column ? <code>{c.column}</code> : null}{c.column ? ': ' : ''}{c.description}</li>)}
+                  {changes.map((c, i) => <li key={i}>{c.column ? <code>{c.column}</code> : null}{c.column ? ': ' : ''}{translateServer(c.description)}</li>)}
                 </ul>
               </div>
             )

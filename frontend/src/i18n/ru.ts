@@ -306,4 +306,7 @@ export const ru: Messages = {
   'Todos': 'Все',
   'contiene…': 'содержит…',
   'id o nombre…': 'id или имя…',
+  'Exportar lo que muestran los filtros': 'Экспортировать то, что показывают фильтры',
+  'Copiar': 'Копировать',
+  'Copia de {name}': 'Копия: {name}',
 }

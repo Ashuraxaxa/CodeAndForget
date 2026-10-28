@@ -213,6 +213,10 @@ servicio (tabla `mnt_audit`) y se consulta en **Auditoría** o con **Historial**
 | `Audit:Enabled` | `true` | Registrar los cambios. |
 | `Audit:RetentionDays` | `365` | Días que se guardan. `0` = para siempre. |
 | `Audit:PurgeIntervalHours` | `24` | Cada cuántas horas se borran las entradas vencidas (también al arrancar). |
+| `Audit:ExportMaxRows` | `100000` | Tope de filas al exportar la auditoría a CSV o Excel con **⤓ Exportar** (D-081). |
+
+Con un perfil (y el permiso `ViewAudit` dado por ese perfil), cada usuario ve solo las tablas y columnas que su perfil le
+deja ver; los administradores ven todo. Las FK y los vínculos N:M se muestran con su texto, p. ej. "Bebidas (1)".
 
 El registro se escribe después de confirmar el cambio en la base de datos. Si la metadata no responde en ese momento,
 el cambio queda hecho y el fallo se anota en el log (D-068).

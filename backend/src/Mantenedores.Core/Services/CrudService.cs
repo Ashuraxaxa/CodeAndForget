@@ -444,6 +444,31 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         }).ToList();
     }
 
+    /// <summary>
+    /// Texto a mostrar de varios valores de <paramref name="column"/> en la tabla (P-094), con los permisos del usuario.
+    /// Los valores vienen como JSON (los de la auditoría); la clave del resultado es su texto invariante.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, string>> LabelsAsync(
+        string conn, string schema, string table, string column, IReadOnlyCollection<JsonElement> values, CancellationToken ct)
+    {
+        var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
+        if (!info.Access.HasFlag(DataOperation.View) || info.FindColumn(column) is not { } col) return new Dictionary<string, string>();
+        var typed = new List<object?>();
+        foreach (var v in values.Take(500))
+        {
+            try { if (ValueConverter.FromJson(col, v) is { } x) typed.Add(x); }
+            catch (ValidationException) { /* un valor que ya no calza con el tipo: se muestra sin etiqueta */ }
+        }
+        if (new QueryBuilder(ctx.Provider.Dialect).BuildLabels(info, col.Name, typed) is not { } query) return new Dictionary<string, string>();
+        await using var db = await OpenAsync(ctx, ct);
+        var rows = await Translated(ctx, info, DbOperation.Read, () => db.QueryAsync(Command(query, ct)));
+        var result = new Dictionary<string, string>();
+        foreach (IDictionary<string, object?> r in rows)
+            if (r["label"] is { } label)
+                result[Convert.ToString(r["value"], System.Globalization.CultureInfo.InvariantCulture) ?? ""] = label.ToString()!;
+        return result;
+    }
+
     private async Task<IDictionary<string, object?>> GetByKeyAsync(
         ConnectionContext ctx, TableInfo info, IReadOnlyDictionary<string, object?> key, CancellationToken ct)
     {

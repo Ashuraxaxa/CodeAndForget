@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Tanda 3, parte A (P-094, P-095, P-093, P-101)
+- Auditoría: nombres en FK y N:M, exportación a CSV/Excel con encabezados en el idioma de la interfaz, y filtro por perfil en SQL más enmascarado de columnas (D-081).
+- En el navegador: "categoria_id: Bebidas (1) → Snacks! (2)"; el CSV trae lo mismo; una usuaria con perfil no vio `etiqueta` ni `categoria_id` y el admin vio todo.
+- Hallazgo de la prueba: "ana" ya tenía otro perfil de una prueba anterior y los perfiles se suman; se repitió con una usuaria nueva.
+- Seguridad: copiar perfil y listas de tablas y columnas con la regla `*` (13 tablas sugeridas).
+- Mensajes del servidor traducidos en el frontend con plantillas (D-080); lint revisa que las traducciones tengan las mismas variables.
+- Abierto: P-103 (edición con solo columnas ocultas se lista vacía).
+
 ## 2026-10-28 · Tanda 2: operación (P-082, P-092, P-074, P-086)
 - El dueño pidió hacer las tandas 2 y 3 de una vez; la 2 va en el PR #31 y la 3 en los siguientes.
 - Avisos entre instancias con contadores en la metadata (D-077): probado con dos APIs reales sobre la misma metadata; B vio el ajuste guardado en A en 1,7 s y su borrado.

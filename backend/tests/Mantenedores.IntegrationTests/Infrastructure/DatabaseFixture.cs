@@ -213,6 +213,9 @@ public sealed class InMemoryAuditStore : Mantenedores.Core.Audit.IAuditStore
     public Task<Mantenedores.Core.Audit.AuditPage> QueryAsync(Mantenedores.Core.Audit.AuditQuery query, CancellationToken ct) =>
         throw new NotSupportedException();
 
+    public Task<IReadOnlyList<Mantenedores.Core.Audit.AuditTable>> TablesAsync(CancellationToken ct) =>
+        throw new NotSupportedException();
+
     public Task<int> PurgeAsync(DateTimeOffset before, CancellationToken ct) => Task.FromResult(0);
 }
 

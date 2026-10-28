@@ -348,6 +348,8 @@ export interface AuditEntry {
   /** JSON con los valores antes y después (solo lo que cambió en una edición). */
   oldValues: string | null
   newValues: string | null
+  /** Texto a mostrar de FK y vínculos N:M (P-094): labels[columna][valor] = texto. */
+  labels?: Record<string, Record<string, string>> | null
 }
 
 export interface AuditPage {

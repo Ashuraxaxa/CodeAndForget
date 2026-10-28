@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { formatInstant } from '../lib/format'
 import { api } from '../api/client'
-import type { AuditEntry, AuditOperation } from '../api/types'
+import type { AuditEntry, AuditOperation, TransferFormat } from '../api/types'
 import { useMe } from '../lib/useMe'
 import { useT, type Translate } from '../i18n'
 
@@ -21,18 +21,26 @@ export function AuditPage() {
   const [params, setParams] = useSearchParams()
   const page = Number(params.get('page') ?? '1') || 1
   const connections = useQuery({ queryKey: ['connections'], queryFn: api.connections, enabled: allowed })
+  // Filtros para la API: las fechas del filtro son del día local completo.
+  const apiParams = () => {
+    const q = new URLSearchParams(params)
+    q.set('pageSize', String(PAGE_SIZE))
+    const from = q.get('from'); if (from) q.set('from', new Date(`${from}T00:00:00`).toISOString())
+    const to = q.get('to'); if (to) { const d = new Date(`${to}T00:00:00`); d.setDate(d.getDate() + 1); q.set('to', d.toISOString()) }
+    return q
+  }
   const audit = useQuery({
     queryKey: ['audit', params.toString()],
-    queryFn: () => {
-      const q = new URLSearchParams(params)
-      q.set('pageSize', String(PAGE_SIZE))
-      // Las fechas del filtro son del día local completo.
-      const from = q.get('from'); if (from) q.set('from', new Date(`${from}T00:00:00`).toISOString())
-      const to = q.get('to'); if (to) { const d = new Date(`${to}T00:00:00`); d.setDate(d.getDate() + 1); q.set('to', d.toISOString()) }
-      return api.audit(q)
-    },
+    queryFn: () => api.audit(apiParams()),
     enabled: allowed,
   })
+  const [exporting, setExporting] = useState(false)
+  async function exportAs(format: TransferFormat) {
+    setExporting(true)
+    try { await api.exportAudit(apiParams(), format) }
+    catch (e) { alert((e as Error).message) }
+    finally { setExporting(false) }
+  }
 
   const set = (name: string, value: string) => {
     const next = new URLSearchParams(params)
@@ -52,7 +60,15 @@ export function AuditPage() {
     <div className="page">
       <div className="page-header">
         <h1>{t('Auditoría')}</h1>
-        <span className="muted small">{t('{n} cambios', { n: total })}</span>
+        <div className="actions">
+          <span className="muted small">{t('{n} cambios', { n: total })}</span>
+          <select className="export" value="" title={t('Exportar lo que muestran los filtros')} disabled={exporting || total === 0}
+            onChange={e => e.target.value && exportAs(e.target.value as TransferFormat)}>
+            <option value="">{exporting ? t('Exportando…') : '⤓ ' + t('Exportar')}</option>
+            <option value="csv">CSV</option>
+            <option value="xlsx">Excel</option>
+          </select>
+        </div>
       </div>
 
       <div className="card audit-filters">
@@ -135,8 +151,8 @@ function Entry({ entry: e }: { entry: AuditEntry }) {
           <div key={f}>
             <strong>{f}</strong>:{' '}
             {e.operation === 'Update' || e.operation === 'Links'
-              ? <><span className="old">{show(before[f])}</span> → <span>{show(after[f])}</span></>
-              : <span className={e.operation === 'Delete' ? 'old' : undefined}>{show(e.operation === 'Delete' ? before[f] : after[f])}</span>}
+              ? <><span className="old">{show(before[f], e.labels?.[f])}</span> → <span>{show(after[f], e.labels?.[f])}</span></>
+              : <span className={e.operation === 'Delete' ? 'old' : undefined}>{show(e.operation === 'Delete' ? before[f] : after[f], e.labels?.[f])}</span>}
           </div>
         ))}
       </td>
@@ -149,10 +165,15 @@ function parse(json: string | null): Record<string, unknown> {
   try { return JSON.parse(json) as Record<string, unknown> } catch { return {} }
 }
 
-function show(v: unknown): string {
+/** Un valor, con su texto si es una FK o un vínculo N:M (P-094): "Bebidas (2)". */
+function show(v: unknown, labels?: Record<string, string>): string {
   if (v === null || v === undefined) return '∅'
-  if (typeof v === 'object') return JSON.stringify(v)
-  return String(v)
+  const one = (x: unknown) => {
+    const text = typeof x === 'object' && x !== null ? JSON.stringify(x) : String(x)
+    return labels?.[text] ? `${labels[text]} (${text})` : text
+  }
+  if (Array.isArray(v)) return '[' + v.map(one).join(', ') + ']'
+  return one(v)
 }
 
 function decodeKey(key: string): string {

@@ -115,3 +115,20 @@ INSERT INTO ventas.empleado (nombre, jefe_id, hora_entrada) VALUES ('Luis Vended
 ALTER TABLE ventas.categoria ADD COLUMN icono bytea;
 ALTER TABLE ventas.cliente ADD COLUMN telefonos text[];
 UPDATE ventas.cliente SET telefonos = ARRAY['+56 2 2345 6789', '+56 9 8765 4321'] WHERE rut = '76.123.456-7';
+
+-- Relación de varias columnas (P-030): una sucursal se identifica por país + código.
+CREATE TABLE ventas.sucursal (
+    pais   char(2)      NOT NULL,
+    codigo varchar(10)  NOT NULL,
+    nombre varchar(80)  NOT NULL,
+    PRIMARY KEY (pais, codigo)
+);
+CREATE TABLE ventas.bodega (
+    id              serial PRIMARY KEY,
+    nombre          varchar(80) NOT NULL,
+    pais            char(2)     NOT NULL,
+    sucursal_codigo varchar(10) NOT NULL,
+    CONSTRAINT fk_bodega_sucursal FOREIGN KEY (pais, sucursal_codigo) REFERENCES ventas.sucursal (pais, codigo)
+);
+INSERT INTO ventas.sucursal VALUES ('CL', 'STGO', 'Santiago Centro'), ('CL', 'VAL', 'Valparaíso'), ('PE', 'LIM', 'Lima');
+INSERT INTO ventas.bodega (nombre, pais, sucursal_codigo) VALUES ('Bodega norte', 'CL', 'STGO'), ('Bodega puerto', 'CL', 'VAL');

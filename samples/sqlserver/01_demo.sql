@@ -110,3 +110,22 @@ UPDATE ventas.Cliente SET Ubicacion = geography::Point(-33.45, -70.66, 4326) WHE
 UPDATE ventas.Empleado SET Nodo = hierarchyid::GetRoot() WHERE Id = 1;
 UPDATE ventas.Empleado SET Nodo = hierarchyid::Parse('/1/') WHERE Id = 2;
 GO
+
+-- Relación de varias columnas (P-030): una sucursal se identifica por país + código.
+CREATE TABLE ventas.Sucursal (
+    Pais   char(2)      NOT NULL,
+    Codigo varchar(10)  NOT NULL,
+    Nombre nvarchar(80) NOT NULL,
+    CONSTRAINT PK_Sucursal PRIMARY KEY (Pais, Codigo)
+);
+CREATE TABLE ventas.Bodega (
+    Id             int IDENTITY PRIMARY KEY,
+    Nombre         nvarchar(80) NOT NULL,
+    Pais           char(2)      NOT NULL,
+    SucursalCodigo varchar(10)  NOT NULL,
+    CONSTRAINT FK_Bodega_Sucursal FOREIGN KEY (Pais, SucursalCodigo) REFERENCES ventas.Sucursal (Pais, Codigo)
+);
+GO
+INSERT INTO ventas.Sucursal VALUES ('CL', 'STGO', N'Santiago Centro'), ('CL', 'VAL', N'Valparaíso'), ('PE', 'LIM', N'Lima');
+INSERT INTO ventas.Bodega (Nombre, Pais, SucursalCodigo) VALUES (N'Bodega norte', 'CL', 'STGO'), (N'Bodega puerto', 'CL', 'VAL');
+GO

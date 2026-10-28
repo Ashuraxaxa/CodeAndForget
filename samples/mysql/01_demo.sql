@@ -119,3 +119,20 @@ INSERT INTO empleado (nombre, jefe_id, hora_entrada) VALUES ('Luis Vendedor', 1,
 ALTER TABLE categoria ADD COLUMN icono LONGBLOB NULL;
 ALTER TABLE cliente ADD COLUMN ubicacion POINT NULL;
 UPDATE cliente SET ubicacion = ST_GeomFromText('POINT(-70.66 -33.45)') WHERE rut = '76.123.456-7';
+
+-- Relación de varias columnas (P-030): una sucursal se identifica por país + código.
+CREATE TABLE sucursal (
+    pais   CHAR(2)     NOT NULL,
+    codigo VARCHAR(10) NOT NULL,
+    nombre VARCHAR(80) NOT NULL,
+    PRIMARY KEY (pais, codigo)
+) ENGINE=InnoDB;
+CREATE TABLE bodega (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    nombre          VARCHAR(80) NOT NULL,
+    pais            CHAR(2)     NOT NULL,
+    sucursal_codigo VARCHAR(10) NOT NULL,
+    CONSTRAINT fk_bodega_sucursal FOREIGN KEY (pais, sucursal_codigo) REFERENCES sucursal (pais, codigo)
+) ENGINE=InnoDB;
+INSERT INTO sucursal VALUES ('CL', 'STGO', 'Santiago Centro'), ('CL', 'VAL', 'Valparaíso'), ('PE', 'LIM', 'Lima');
+INSERT INTO bodega (nombre, pais, sucursal_codigo) VALUES ('Bodega norte', 'CL', 'STGO'), ('Bodega puerto', 'CL', 'VAL');

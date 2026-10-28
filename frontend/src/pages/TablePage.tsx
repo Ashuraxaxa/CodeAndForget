@@ -52,6 +52,8 @@ export function Grid({ conn, meta, fixed, returnTo }: {
   // El orden viene del servidor (ajuste Order); las ocultas y las que van solo en el formulario no se muestran.
   const columns = meta.columns.filter(c => c.isSelectable && !c.hidden && c.showInGrid && !(fixed && c.name in fixed))
   const fkByColumn = new Map(meta.foreignKeys.filter(f => f.columns.length === 1).map(f => [f.columns[0], f]))
+  // La etiqueta de una FK, también compuesta (P-030), va en su columna de etiqueta.
+  const fkByLabelColumn = new Map(meta.foreignKeys.map(f => [f.labelColumn, f]))
   const tableLabel = useTableLabels(conn)
   const base = `/c/${conn}/t/${encodeURIComponent(meta.schema)}/${encodeURIComponent(meta.name)}`
   // Lo que se agrega a los enlaces de alta y edición: los valores fijos y a dónde volver.
@@ -223,7 +225,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
               <tr key={meta.hasPrimaryKey ? keyQuery(meta, row) : i}
                   onDoubleClick={() => meta.isEditable && navigate(editUrl(row))}>
                 {columns.map(c => {
-                  const fk = fkByColumn.get(c.name)
+                  const fk = fkByLabelColumn.get(c.name)
                   const label = row[c.name + LABEL_SUFFIX]
                   return (
                     <td key={c.name} className={fk ? 't-fk' : `t-${c.type.toLowerCase()}`}>

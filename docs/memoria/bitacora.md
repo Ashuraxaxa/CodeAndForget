@@ -4,6 +4,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Tanda 1 de mejoras, parte B (P-088, P-030)
+- Importar en modo "agregar y actualizar por clave": búsqueda de claves por lotes, error claro si la clave es identity y no existe, y conteo de nuevas y actualizadas en la vista previa.
+- FK de varias columnas: etiqueta, `/lookup` con la clave completa y combo único en el formulario. Bases de ejemplo con `sucursal`/`bodega`.
+- Al preparar esta parte se vio que el PR #28 tenía rotas dos pruebas unitarias (SQL esperado sin el filtro por etiqueta). Se corrigió en el #28.
+- 197 unitarias y 239 de integración en verde; navegador: bodega con sucursal compuesta e importación con 1 nueva y 1 actualizada.
+
 ## 2026-10-28 · Tanda 1 de mejoras, parte A (P-032, P-033, P-073, P-084)
 - El dueño fusionó los PR #23 a #27.
 - Filtro de una FK por el texto que se muestra o por el id.

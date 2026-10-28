@@ -90,18 +90,18 @@ public static class DataEndpoints
         group.MapPost("/import/preview", async (string conn, string schema, string table, HttpRequest http,
             CrudService crud, CrudOptions options, CancellationToken ct) =>
         {
-            var (file, mapping) = await ReadImportAsync(http, options, ct);
+            var (file, mapping, mode) = await ReadImportAsync(http, options, ct);
             await using var stream = file.OpenReadStream();
-            return Results.Ok(await crud.PreviewImportAsync(conn, schema, table, stream, TransferFormats.FromFileName(file.FileName), mapping, ct));
+            return Results.Ok(await crud.PreviewImportAsync(conn, schema, table, stream, TransferFormats.FromFileName(file.FileName), mapping, ct, mode));
         }).RequireRateLimiting(Infrastructure.RateLimiting.Heavy);
 
         // Igual que la vista previa, pero graba si no hay errores. Con errores responde 400 con el mismo detalle.
         group.MapPost("/import", async (string conn, string schema, string table, HttpRequest http,
             CrudService crud, CrudOptions options, CancellationToken ct) =>
         {
-            var (file, mapping) = await ReadImportAsync(http, options, ct);
+            var (file, mapping, mode) = await ReadImportAsync(http, options, ct);
             await using var stream = file.OpenReadStream();
-            var result = await crud.ImportAsync(conn, schema, table, stream, TransferFormats.FromFileName(file.FileName), mapping, ct);
+            var result = await crud.ImportAsync(conn, schema, table, stream, TransferFormats.FromFileName(file.FileName), mapping, ct, mode);
             return result.Imported > 0 || (result.Errors.Count == 0 && result.TotalRows == 0)
                 ? Results.Ok(result)
                 : Results.Json(result, statusCode: StatusCodes.Status400BadRequest);
@@ -133,7 +133,7 @@ public static class DataEndpoints
         };
     }
 
-    private static async Task<(IFormFile File, Dictionary<string, string?>? Mapping)> ReadImportAsync(
+    private static async Task<(IFormFile File, Dictionary<string, string?>? Mapping, ImportMode Mode)> ReadImportAsync(
         HttpRequest http, CrudOptions options, CancellationToken ct)
     {
         var maxBytes = (long)Math.Max(1, options.ImportMaxMegabytes) * 1024 * 1024;
@@ -153,7 +153,11 @@ public static class DataEndpoints
             try { mapping = JsonSerializer.Deserialize<Dictionary<string, string?>>(json); }
             catch (JsonException) { throw new ValidationException("mapping", "debe ser un objeto JSON {\"encabezado\": \"columna\"}"); }
         }
-        return (file, mapping);
+        // "insert" (por defecto) o "upsert": las filas con una clave que ya existe se actualizan (P-088).
+        var mode = form["mode"].ToString() is { Length: > 0 } m
+            ? Enum.TryParse<ImportMode>(m, ignoreCase: true, out var parsed) ? parsed : throw new ValidationException("mode", "use insert o upsert")
+            : ImportMode.Insert;
+        return (file, mapping, mode);
     }
 
     private static Dictionary<string, string> Key(IQueryCollection q) =>

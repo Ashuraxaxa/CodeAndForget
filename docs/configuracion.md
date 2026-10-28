@@ -171,7 +171,8 @@ aparte. Su tiempo queda dentro de la traza de la solicitud.
 ## Límites de uso (`RateLimit`)
 
 Protegen a las bases de un uso excesivo y el login de intentos repetidos (P-051, P-091). Al pasarse, la API responde
-`429` con `Retry-After`. Los contadores están en la memoria de cada instancia.
+`429` con `Retry-After`. Los contadores están en la memoria de cada instancia; con `Cache:Provider=Redis` se
+comparten, y el tope es el mismo con una instancia o con varias (P-050).
 
 | Clave | Por defecto | Qué hace |
 |---|---|---|
@@ -181,6 +182,53 @@ Protegen a las bases de un uso excesivo y el login de intentos repetidos (P-051,
 | `RateLimit:LoginPerMinute` | `10` | Intentos de inicio de sesión por minuto y por IP. |
 
 Detrás de un proxy, la IP es la del cliente solo si el proxy está configurado en `Hosting` (P-007).
+
+## Caché compartida (`Cache`)
+
+Solo hace falta con varias instancias (P-050, D-026, D-091). Por defecto cada instancia guarda lo suyo en memoria y
+no se necesita nada más. Con Redis (probado con Redis 6.2 y Valkey 8):
+- **El esquema leído del catálogo** se comparte: la instancia que lo lee lo deja en Redis y las demás lo toman de ahí
+  sin volver a la base. ↻ lo borra, y la relectura periódica (`Schema:RefreshMinutes`) lo reemplaza si cambió.
+- **Los contadores de los límites de uso** (`RateLimit`) suman entre todas las instancias.
+
+Los avisos entre instancias (ajustes, ↻, perfiles) siguen yendo por la base de metadata (D-077), con o sin Redis.
+
+Si Redis no responde, nada se corta: cada instancia lee el catálogo y cuenta los límites en memoria, como sin Redis,
+y lo anota en el log (una vez por minuto como mucho). Cuando Redis vuelve, se usa otra vez solo.
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `Cache:Provider` | `Memory` | `Memory` o `Redis`. Otro valor detiene el arranque. |
+| `Cache:Redis` | — | Configuración de StackExchange.Redis: `redis:6379`, `redis:6379,password=…,ssl=true`. Acepta `${env:…}` y `${file:…}` (ver `Secrets`). Obligatoria con `Redis`. |
+| `Cache:KeyPrefix` | `mnt:` | Prefijo de las claves, para compartir un Redis con otras apps o con otra copia del servicio. |
+| `Cache:SchemaMinutes` | `60` | Cuánto vive el esquema en Redis. |
+| `Cache:TimeoutMs` | `1000` | Tope de cada operación en Redis; si tarda más, se sigue sin la caché. |
+
+En Redis no queda ninguna contraseña: la clave del esquema lleva un hash del servidor, la base y los esquemas de la
+conexión, sin la contraseña. Lo que sí queda es la estructura de las bases (tablas y columnas): un Redis con clave
+y solo accesible desde la red de la app.
+
+```bash
+Cache__Provider=Redis
+Cache__Redis='redis:6379,password=${env:MNT_REDIS_PASSWORD}'   # o ${file:redis-password}
+```
+
+## Motores como plugins (`Providers`)
+
+Un motor que la app no trae se instala copiando su plugin a una carpeta, sin recompilar (P-064, D-092). Apagado por
+defecto. Cómo se escribe un plugin: [motores.md](motores.md#motores-como-plugins).
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `Providers:PluginsDirectory` | — (sin plugins) | Carpeta con un plugin por subcarpeta: `<carpeta>/<Nombre>/<Nombre>.dll` y sus dependencias. Ruta relativa = desde la carpeta de la app. |
+
+- Se cargan al arrancar; para agregar, quitar o actualizar uno hay que reiniciar.
+- Un plugin que no carga (falta su `.dll`, está compilado para otra versión, repite un motor que ya existe)
+  **detiene el arranque** con el motivo. Así no queda un motor a medias con conexiones que fallan.
+- El log dice qué plugins se cargaron y qué motores trae cada uno; `GET /api/engines` los lista y la interfaz los
+  muestra al crear una conexión.
+- **Seguridad:** un plugin es código que corre con los permisos de la app. La carpeta solo debe poder escribirla
+  quien administra el servidor (en un contenedor, móntela de solo lectura).
 
 ## Consultas (`Crud`)
 
@@ -312,7 +360,7 @@ Auth__Jwt__ClientId=mantenedores-spa
 Auth__Jwt__ProviderName=Keycloak
 ```
 
-**Duende IdentityServer:**
+**Duende IdentityServer** (probado con Duende 7 y la app con tokens de 70 s; host de ejemplo en `samples/duende/`):
 
 ```bash
 Auth__Mode=Jwt
@@ -324,6 +372,11 @@ Auth__Jwt__ClientId=mantenedores-spa          # Client con RequirePkce = true, R
 Auth__Jwt__Scopes="openid profile mantenedores"
 Auth__Jwt__ProviderName="Identidad corporativa"
 ```
+
+Duende entrega tokens `at+jwt` y el `scope` como lista; la API acepta ambas cosas. Sin `AllowOfflineAccess` no hay refresh
+token y la sesión se renueva con `silent-renew.html` (regístrela en `RedirectUris`). Si el IdentityServer se prueba
+por `http`, ponga `Authentication.CookieSameSiteMode = Lax`: con `None` el navegador descarta su cookie y el login
+vuelve a pedir la clave.
 
 **Microsoft Entra ID:**
 
@@ -361,4 +414,6 @@ Para agregar un idioma: crear `frontend/src/i18n/<código>.ts` con las mismas cl
 | `MANTENEDORES_MSSQL_IMAGE` | `mcr.microsoft.com/mssql/server:2017-latest` | Imagen de SQL Server (2016 no tiene imagen Linux). |
 | `MANTENEDORES_MYSQL_IMAGE` | `mysql:8.0` (versión mínima) | Imagen de MySQL. |
 | `MANTENEDORES_MARIADB_IMAGE` | `mariadb:10.6` (versión mínima) | Imagen de MariaDB. |
+| `MANTENEDORES_POSTGIS_IMAGE` | `postgis/postgis:12-3.4` | PostgreSQL con PostGIS, solo para las pruebas espaciales (P-104). |
+| `MANTENEDORES_REDIS_IMAGE` | `redis:6.2` | Redis para las pruebas de la caché compartida (P-050). Sirve también `valkey/valkey:8`. |
 | `TESTCONTAINERS_RYUK_DISABLED` | `false` | Ponerla en `true` si el entorno no puede descargar la imagen auxiliar de Testcontainers. |

@@ -114,6 +114,7 @@ export const SERVER: [es: string, en: string, ru: string][] = [
   ['la columna \'{column}\' no existe en {table}', 'the column \'{column}\' does not exist in {table}', 'столбца «{column}» нет в {table}'],
   ['esas columnas ya tienen una FK declarada en la base', 'those columns already have a FK declared in the database', 'у этих столбцов уже есть FK, объявленный в базе'],
   ['formato inválido', 'invalid format', 'неверный формат'],
+  ['el motor {name} no está instalado', 'the {name} engine is not installed', 'СУБД {name} не установлена'],
   ['la variable de entorno \'{name}\' no existe', 'the environment variable \'{name}\' does not exist', 'переменная окружения «{name}» не существует'],
   ['las referencias a archivos están desactivadas (Secrets:FilesDirectory)', 'file references are disabled (Secrets:FilesDirectory)', 'ссылки на файлы отключены (Secrets:FilesDirectory)'],
   ['el archivo de secreto \'{name}\' no existe en {dir}', 'the secret file \'{name}\' does not exist in {dir}', 'файла секрета «{name}» нет в {dir}'],

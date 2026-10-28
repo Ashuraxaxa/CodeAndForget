@@ -9,6 +9,8 @@ namespace Mantenedores.Providers.SqlServer;
 public sealed partial class SqlServerProvider : IDatabaseProvider
 {
     public DatabaseEngine Engine => DatabaseEngine.SqlServer;
+    public string DisplayName => "SQL Server";
+    public string? ExampleConnectionString => "Server=mi-servidor,1433;Database=MiBase;User Id=usuario;Password=***;TrustServerCertificate=True";
     public ISqlDialect Dialect { get; } = new SqlServerDialect();
     public ISchemaProvider Schema { get; } = new SqlServerSchemaProvider();
 

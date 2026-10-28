@@ -794,6 +794,31 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Estado:** Vigente · 2026-10-28 (P-102)
 - **Qué:** ajustes `labels` (tabla y columna) y `helpTexts` (columna) por código de idioma; la UI usa el del idioma elegido y, si falta, `label`. También para el texto de las acciones.
 
+### D-091 · Redis como caché compartida, opcional
+- **Estado:** Vigente · 2026-10-28 (P-050; detalla D-026)
+- **Qué:**
+  - `Cache:Provider` = `Memory` (por defecto) o `Redis`, con `Cache:Redis` (acepta `${env:}` y `${file:}`). Probado con Redis 6.2, 7.4 (CI) y Valkey 8.
+  - Se comparten dos cosas. El esquema leído del catálogo (`ISchemaCache` en Core; JSON con TTL `Cache:SchemaMinutes`), que ↻ borra y la relectura periódica reemplaza. Y los contadores de los límites de uso (ventana fija con `INCRBY` + `PEXPIRE` en un script).
+  - La clave del esquema lleva un hash del motor, los esquemas y la cadena **sin la contraseña**: editar servidor o base cambia la clave, y en Redis no queda ningún secreto.
+  - Si Redis no está o tarda más de `Cache:TimeoutMs`, se sigue sin él: esquema desde el catálogo y límites en memoria. Se avisa en el log al caer y al volver.
+  - Los avisos entre instancias siguen por la metadata (D-077).
+- **Descartado:**
+  - Mover a Redis también los avisos (pub/sub): D-077 ya funciona sin Redis y tendría dos caminos para lo mismo.
+  - `IDistributedCache` de ASP.NET: no tiene incremento atómico para los contadores.
+  - Fallar si Redis no responde: dejaría a todas las instancias sin servicio por una caché.
+
+### D-092 · Motores como plugins y nombre de motor abierto
+- **Estado:** Vigente · 2026-10-28 (P-064)
+- **Qué:**
+  - `Providers:PluginsDirectory` (vacío = apagado): cada subcarpeta `<Nombre>/<Nombre>.dll` se carga al arrancar en su propio `AssemblyLoadContext`. Mantenedores.Core y lo que Core referencia se comparten con la app; el resto (el driver) sale de la carpeta del plugin.
+  - Se registra cada clase pública que implemente `IDatabaseProvider` con constructor sin parámetros. Un plugin que no carga, o un motor repetido, detiene el arranque.
+  - `DatabaseEngine` deja de ser enum. Pasa a ser un nombre (letras, números, `_`), comparado sin mayúsculas, que se guarda y se envía como texto. Los tres de siempre siguen como `DatabaseEngine.SqlServer` y los demás. Lo guardado como número por el enum (archivo de conexiones, `connections.json` de la Fase 1) se sigue leyendo.
+  - `IDatabaseProvider` suma `DisplayName` y `ExampleConnectionString` (con valor por defecto). `GET /api/engines` lista lo instalado y la UI arma el selector con eso. Guardar una conexión con un motor que no está instalado responde 400.
+- **Descartado:**
+  - Cargar todo en el contexto por defecto: dos plugins con versiones distintas del mismo driver chocarían.
+  - Recarga en caliente: obliga a descargar contextos con conexiones abiertas; reiniciar es simple y raro.
+  - Dejar el enum y mapear los plugins a un valor "Otro": varios plugins no se podrían distinguir.
+
 ---
 
 ## Propuestas (aún no decididas)

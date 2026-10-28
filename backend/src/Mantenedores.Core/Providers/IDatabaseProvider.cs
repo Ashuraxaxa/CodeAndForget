@@ -3,10 +3,19 @@ using Mantenedores.Core.Errors;
 
 namespace Mantenedores.Core.Providers;
 
-/// <summary>Punto de extensión por motor. Agregar MySQL u Oracle = una implementación nueva.</summary>
+/// <summary>
+/// Punto de extensión por motor. Agregar un motor = una implementación nueva, compilada con la app o cargada como
+/// plugin desde una carpeta (P-064, D-092). Guía en <c>docs/motores.md</c>.
+/// </summary>
 public interface IDatabaseProvider
 {
     DatabaseEngine Engine { get; }
+
+    /// <summary>Nombre para la interfaz (p. ej. "MySQL / MariaDB").</summary>
+    string DisplayName => Engine.Name;
+
+    /// <summary>Cadena de ejemplo que la interfaz muestra al crear una conexión.</summary>
+    string? ExampleConnectionString => null;
     ISqlDialect Dialect { get; }
     ISchemaProvider Schema { get; }
     DbConnection CreateConnection(string connectionString);
@@ -34,8 +43,19 @@ public sealed class ProviderRegistry
 {
     private readonly Dictionary<DatabaseEngine, IDatabaseProvider> _providers;
 
-    public ProviderRegistry(IEnumerable<IDatabaseProvider> providers) =>
-        _providers = providers.ToDictionary(p => p.Engine);
+    public ProviderRegistry(IEnumerable<IDatabaseProvider> providers)
+    {
+        _providers = [];
+        foreach (var p in providers)
+            if (!_providers.TryAdd(p.Engine, p))
+                throw new InvalidOperationException(
+                    $"Dos proveedores dicen ser el motor '{p.Engine}': {_providers[p.Engine].GetType().FullName} y {p.GetType().FullName}.");
+    }
+
+    /// <summary>Los motores instalados, en el orden en que se registraron.</summary>
+    public IReadOnlyList<IDatabaseProvider> All => _providers.Values.ToList();
+
+    public bool Has(DatabaseEngine engine) => _providers.ContainsKey(engine);
 
     public IDatabaseProvider Get(DatabaseEngine engine) =>
         _providers.TryGetValue(engine, out var p)

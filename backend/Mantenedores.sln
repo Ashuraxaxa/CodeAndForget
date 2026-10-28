@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mantenedores.Providers.MySq
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mantenedores.Metadata", "src\Mantenedores.Metadata\Mantenedores.Metadata.csproj", "{25E290F0-B431-4A66-A337-7CEB5BF2FE87}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mantenedores.TestPlugin", "tests\Mantenedores.TestPlugin\Mantenedores.TestPlugin.csproj", "{3C81B669-87AE-420B-8362-9FF1BA34427D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -64,6 +66,10 @@ Global
 		{25E290F0-B431-4A66-A337-7CEB5BF2FE87}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{25E290F0-B431-4A66-A337-7CEB5BF2FE87}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{25E290F0-B431-4A66-A337-7CEB5BF2FE87}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C81B669-87AE-420B-8362-9FF1BA34427D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C81B669-87AE-420B-8362-9FF1BA34427D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C81B669-87AE-420B-8362-9FF1BA34427D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C81B669-87AE-420B-8362-9FF1BA34427D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{16D5FC3D-CA94-4F39-8722-CE12A99EBB47} = {FA22BECC-4929-42CD-8692-2B961FCA2954}
@@ -74,5 +80,6 @@ Global
 		{F7F591FE-C372-4149-AE4C-B56F1CC81163} = {E5815AA4-53D5-496D-8BD4-73A40E8C1A2E}
 		{05B816C6-0FE1-41FF-86DB-28679F1EE068} = {FA22BECC-4929-42CD-8692-2B961FCA2954}
 		{25E290F0-B431-4A66-A337-7CEB5BF2FE87} = {FA22BECC-4929-42CD-8692-2B961FCA2954}
+		{3C81B669-87AE-420B-8362-9FF1BA34427D} = {E5815AA4-53D5-496D-8BD4-73A40E8C1A2E}
 	EndGlobalSection
 EndGlobal

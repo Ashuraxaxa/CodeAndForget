@@ -1,7 +1,15 @@
 import { currentLocale } from '../i18n'
 // Tipos que espejan las respuestas de la API (.NET).
 
-export type Engine = 'SqlServer' | 'Postgres' | 'MySql'
+/** Los tres que trae la app y, si se instalaron, los de plugins (P-064): por eso es un texto abierto. */
+export type Engine = 'SqlServer' | 'Postgres' | 'MySql' | (string & {})
+
+/** Motor instalado en el servidor (GET /api/engines). */
+export interface EngineInfo {
+  name: Engine
+  label: string
+  example?: string | null
+}
 
 export type LogicalType =
   | 'String' | 'Text' | 'Integer' | 'Decimal' | 'Boolean' | 'Date' | 'DateTime'

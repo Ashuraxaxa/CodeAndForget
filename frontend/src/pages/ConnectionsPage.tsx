@@ -2,21 +2,30 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
-import type { Connection, ConnectionInput, Engine } from '../api/types'
+import type { Connection, ConnectionInput, Engine, EngineInfo } from '../api/types'
 import { useCan } from '../lib/useMe'
 import { useT } from '../i18n'
 
-const EXAMPLES: Record<Engine, string> = {
+const EXAMPLES: Record<string, string> = {
   SqlServer: 'Server=mi-servidor,1433;Database=MiBase;User Id=usuario;Password=***;TrustServerCertificate=True',
   Postgres: 'Host=mi-servidor;Port=5432;Database=mibase;Username=usuario;Password=***',
   MySql: 'Server=mi-servidor;Port=3306;Database=mibase;User ID=usuario;Password=***',
 }
 
-/** Nombre y estilo de cada motor. MySql cubre MySQL y MariaDB (un solo proveedor). */
-const ENGINES: Record<Engine, { label: string; badge: string }> = {
+/**
+ * Nombre y estilo de los motores que trae la app. MySql cubre MySQL y MariaDB (un solo proveedor).
+ * Los de plugins (P-064) toman nombre y ejemplo del servidor.
+ */
+const ENGINES: Record<string, { label: string; badge: string }> = {
   SqlServer: { label: 'SQL Server', badge: 'badge-mssql' },
   Postgres: { label: 'PostgreSQL', badge: 'badge-pg' },
   MySql: { label: 'MySQL / MariaDB', badge: 'badge-mysql' },
+}
+
+/** Motores instalados en el servidor; mientras llega la lista, los tres de siempre. */
+function useEngines(): EngineInfo[] {
+  return useQuery({ queryKey: ['engines'], queryFn: api.engines, staleTime: Infinity }).data
+    ?? Object.entries(ENGINES).map(([name, e]): EngineInfo => ({ name, label: e.label }))
 }
 
 export function ConnectionsPage() {
@@ -24,6 +33,8 @@ export function ConnectionsPage() {
   const qc = useQueryClient()
   const canManage = useCan('ManageConnections')
   const { data, isLoading, error } = useQuery({ queryKey: ['connections'], queryFn: api.connections })
+  const engines = useEngines()
+  const engineLabel = (e: Engine) => ENGINES[e]?.label ?? engines.find(x => x.name === e)?.label ?? e
   const [editing, setEditing] = useState<Connection | 'new' | null>(null)
 
   const remove = useMutation({
@@ -62,7 +73,7 @@ export function ConnectionsPage() {
               <div className="conn-title">{c.name}</div>
               <div className="muted small">
                 <span className={`badge ${ENGINES[c.engine]?.badge ?? ''}`}>
-                  {ENGINES[c.engine]?.label ?? c.engine}
+                  {engineLabel(c.engine)}
                 </span>{' '}
                 {c.server} / {c.database}
               </div>
@@ -101,6 +112,10 @@ function ConnectionForm({ initial, onClose }: { initial: Connection | null; onCl
   })
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  // Un motor guardado que ya no está instalado igual se muestra, para no cambiarlo sin querer.
+  const engines = useEngines()
+  const options = engines.some(e => e.name === form.engine) ? engines : [...engines, { name: form.engine, label: form.engine }]
+  const example = EXAMPLES[form.engine] ?? engines.find(e => e.name === form.engine)?.example ?? ''
 
   const input = (): ConnectionInput => ({
     id: form.id.trim().toLowerCase(),
@@ -163,8 +178,8 @@ function ConnectionForm({ initial, onClose }: { initial: Connection | null; onCl
         <label>
           {t('Motor')}
           <select value={form.engine} onChange={set('engine')}>
-            {(Object.keys(ENGINES) as Engine[]).map(e => (
-              <option key={e} value={e}>{ENGINES[e].label}</option>
+            {options.map(e => (
+              <option key={e.name} value={e.name}>{ENGINES[e.name]?.label ?? e.label}</option>
             ))}
           </select>
         </label>
@@ -184,7 +199,7 @@ function ConnectionForm({ initial, onClose }: { initial: Connection | null; onCl
           rows={2}
           value={form.connectionString}
           onChange={set('connectionString')}
-          placeholder={initial ? t('Déjala vacía para conservar la actual') : EXAMPLES[form.engine]}
+          placeholder={initial ? t('Déjala vacía para conservar la actual') : example}
           required={!initial}
         />
         <span className="hint">{t('Se guarda cifrada. Usa un usuario de BD con los permisos mínimos necesarios.')}</span>

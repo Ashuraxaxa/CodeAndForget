@@ -4,7 +4,10 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace Mantenedores.Api.Infrastructure;
 
-/// <summary>Límites de uso (P-051, P-091, D-070), sección <c>RateLimit</c>. En memoria de cada instancia.</summary>
+/// <summary>
+/// Límites de uso (P-051, P-091, D-070), sección <c>RateLimit</c>. En memoria de cada instancia; con
+/// <c>Cache:Provider = Redis</c> los contadores se comparten (P-050), así el tope es el mismo con una o con varias.
+/// </summary>
 public sealed class RateLimitOptions
 {
     public const string Section = "RateLimit";
@@ -51,9 +54,9 @@ public static class RateLimiting
             r.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(http =>
                 !http.Request.Path.StartsWithSegments("/api") || http.Request.Path.StartsWithSegments("/api/health")
                     ? RateLimitPartition.GetNoLimiter("")
-                    : Window(Who(http), o.PermitsPerMinute));
-            r.AddPolicy(Heavy, http => Window(Who(http), o.HeavyPerMinute));
-            r.AddPolicy(Login, http => Window("ip:" + http.Connection.RemoteIpAddress, o.LoginPerMinute));
+                    : Window(http, "api:" + Who(http), o.PermitsPerMinute));
+            r.AddPolicy(Heavy, http => Window(http, "heavy:" + Who(http), o.HeavyPerMinute));
+            r.AddPolicy(Login, http => Window(http, "login:ip:" + http.Connection.RemoteIpAddress, o.LoginPerMinute));
         });
     }
 
@@ -62,11 +65,15 @@ public static class RateLimiting
         http.User.FindFirstValue(ClaimTypes.Name) is { Length: > 0 } name ? "user:" + name.ToLowerInvariant()
             : "ip:" + http.Connection.RemoteIpAddress;
 
-    private static RateLimitPartition<string> Window(string key, int permits) =>
-        permits <= 0
-            ? RateLimitPartition.GetNoLimiter(key)
-            : RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = permits, Window = TimeSpan.FromMinutes(1), QueueLimit = 0, AutoReplenishment = true
-            });
+    private static RateLimitPartition<string> Window(HttpContext http, string key, int permits)
+    {
+        if (permits <= 0) return RateLimitPartition.GetNoLimiter(key);
+        var options = new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = permits, Window = TimeSpan.FromMinutes(1), QueueLimit = 0, AutoReplenishment = true
+        };
+        return http.RequestServices.GetService<IRateCounter>() is { } shared
+            ? RateLimitPartition.Get(key, k => new SharedWindowLimiter(shared, "rl:" + k, options))
+            : RateLimitPartition.GetFixedWindowLimiter(key, _ => options);
+    }
 }

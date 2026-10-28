@@ -82,7 +82,7 @@ public sealed class SqlConnectionStore(MetadataDatabase db, IDataProtectionProvi
     {
         Id = r.Id,
         Name = r.Name,
-        Engine = Enum.Parse<DatabaseEngine>(r.Engine),
+        Engine = DatabaseEngine.Parse(r.Engine),
         ConnectionString = _protector.Unprotect(r.Protected),
         Schemas = JsonSerializer.Deserialize<List<string>>(r.Schemas) ?? []
     };

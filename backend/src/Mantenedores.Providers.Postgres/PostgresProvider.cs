@@ -8,6 +8,8 @@ namespace Mantenedores.Providers.Postgres;
 public sealed class PostgresProvider : IDatabaseProvider
 {
     public DatabaseEngine Engine => DatabaseEngine.Postgres;
+    public string DisplayName => "PostgreSQL";
+    public string? ExampleConnectionString => "Host=mi-servidor;Port=5432;Database=mibase;Username=usuario;Password=***";
     public ISqlDialect Dialect { get; } = new PostgresDialect();
     public ISchemaProvider Schema { get; } = new PostgresSchemaProvider();
 

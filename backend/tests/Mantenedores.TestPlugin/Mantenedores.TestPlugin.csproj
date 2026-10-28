@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Plugin de prueba (P-064): un motor "PgPlugin" que usa PostgreSQL por dentro. Lo cargan las pruebas de integración
+    desde su carpeta de salida, como se cargaría un plugin real. Ejemplo de .csproj para un plugin propio.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Copia las dependencias (el driver) a la salida y genera el .deps.json que lee el cargador. -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core lo pone la app: se compila contra él pero no se copia. -->
+    <ProjectReference Include="..\..\src\Mantenedores.Core\Mantenedores.Core.csproj">
+      <Private>false</Private>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Mantenedores.Providers.Postgres\Mantenedores.Providers.Postgres.csproj" />
+  </ItemGroup>
+
+</Project>

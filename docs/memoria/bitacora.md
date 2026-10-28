@@ -4,6 +4,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Pendientes, lote C (P-050, P-064, P-078) y cierre
+- **Redis opcional:** dos APIs reales con un Redis compartido sumaron el límite de login entre las dos (la cuarta respuesta fue 429). Con Redis apagado siguieron respondiendo en milisegundos. Probado con Redis 6.2 y Valkey 8.
+- **Plugins:** hizo falta que `DatabaseEngine` dejara de ser enum. Hallazgo: el archivo de conexiones y el `connections.json` de la Fase 1 guardaban el motor como número; se siguen leyendo. En el navegador, el motor del plugin apareció en el selector, la conexión se probó (13 tablas) y se listaron sus tablas.
+- **Duende 7 en vivo:** login PKCE, `at+jwt`, `scope` como lista, rol y renovación silenciosa con tokens de 70 s, a la primera en la app. Hallazgo del lado de Duende: por `http` su cookie `SameSite=None` se descarta y el login vuelve a pedir la clave. Se documentó.
+- 230 unitarias y 277 de integración en verde. No queda trabajo de código; P-005 y P-097 son del dueño y P-062 se hace a pedido.
+
 ## 2026-10-28 · Pendientes, lote B (P-102, P-079, P-061, P-098)
 - Nombres y ayudas por idioma en los ajustes; en el navegador, "Products" en inglés en título y menú.
 - Renovación silenciosa con Keycloak sin refresh tokens (tokens de 70 s): siguió en la app pasados los 95 s. Lo que parecían dos pedidos por renovación era el `redirect_uri` dentro de la URL de autorización.

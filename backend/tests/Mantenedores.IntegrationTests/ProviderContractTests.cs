@@ -34,6 +34,19 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
     private async Task<TableInfo> TableAsync(string logical) =>
         (await Db.Schemas.GetTableAsync(Conn, Schema, N(logical), default)).Table;
 
+    // ---------- Caché compartida (P-050) ----------
+
+    [Fact]
+    public async Task El_esquema_leido_pasa_por_la_cache_compartida_sin_perder_nada()
+    {
+        var raw = await Db.Schemas.GetRawSchemaAsync(Conn, default);
+        var json = Mantenedores.Core.Services.SchemaJson.Serialize(raw);
+        var back = Mantenedores.Core.Services.SchemaJson.Deserialize(json)!;
+        Assert.Equal(json, Mantenedores.Core.Services.SchemaJson.Serialize(back));
+        Assert.Equal(raw.Hash, back.Hash);
+        Assert.Empty(SchemaDiff.Compare(SchemaSnapshot.From(raw), SchemaSnapshot.From(back)));
+    }
+
     // ---------- Versión ----------
 
     [Fact]

@@ -13,6 +13,8 @@ public sealed partial class MySqlProvider : IDatabaseProvider
     public static readonly Version MinimumMariaDb = new(10, 6);
 
     public DatabaseEngine Engine => DatabaseEngine.MySql;
+    public string DisplayName => "MySQL / MariaDB";
+    public string? ExampleConnectionString => "Server=mi-servidor;Port=3306;Database=mibase;User ID=usuario;Password=***";
     public ISqlDialect Dialect { get; } = new MySqlDialect();
     public ISchemaProvider Schema { get; } = new MySqlSchemaProvider();
 

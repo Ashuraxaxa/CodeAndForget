@@ -102,6 +102,14 @@ spec:
 
 En el Ingress, la regla `path: /mantenedores` con `pathType: Prefix` debe **reenviar la ruta completa**, sin reescribirla.
 
+**Varias réplicas:**
+- Metadata en PostgreSQL o SQL Server y `DataProtection__KeyStore=Database` (D-023, D-025).
+- Opcional, Redis para compartir el esquema leído y los límites de uso (`Cache__Provider=Redis`, `Cache__Redis=redis:6379`,
+  ver `configuracion.md`). Sin Redis funciona igual; cada réplica lee el catálogo una vez y cuenta sus propios límites.
+
+**Plugins de motores** (P-064): monte la carpeta de plugins de solo lectura y apunte `Providers__PluginsDirectory` a ella,
+p. ej. un volumen en `/app/plugins`. Para cambiar un plugin hay que reiniciar los pods.
+
 ## 4. Detrás de nginx (subruta + HTTPS)
 
 ```nginx

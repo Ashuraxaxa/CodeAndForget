@@ -32,18 +32,21 @@ jobs:
             mssql: mcr.microsoft.com/mssql/server:2017-latest
             mysql: mysql:8.0
             mariadb: mariadb:10.6
+            redis: redis:6.2
           - name: versiones actuales (PG 16 · SQL Server 2022 · MySQL 8.4 · MariaDB 11.4)
             pg: postgres:16
             postgis: postgis/postgis:16-3.4
             mssql: mcr.microsoft.com/mssql/server:2022-latest
             mysql: mysql:8.4
             mariadb: mariadb:11.4
+            redis: redis:7.4
     env:
       MANTENEDORES_PG_IMAGE: ${{ matrix.pg }}
       MANTENEDORES_POSTGIS_IMAGE: ${{ matrix.postgis }}
       MANTENEDORES_MSSQL_IMAGE: ${{ matrix.mssql }}
       MANTENEDORES_MYSQL_IMAGE: ${{ matrix.mysql }}
       MANTENEDORES_MARIADB_IMAGE: ${{ matrix.mariadb }}
+      MANTENEDORES_REDIS_IMAGE: ${{ matrix.redis }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4

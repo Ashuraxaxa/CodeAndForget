@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Mantenedores.Core.Connections;
 using Mantenedores.Core.Errors;
 using Mantenedores.Core.Overrides;
+using Mantenedores.Core.Security;
 using Mantenedores.Core.Providers;
 using Mantenedores.Core.Schema;
 
@@ -26,9 +27,13 @@ public sealed record SchemaDiffResult(
 /// </summary>
 public sealed class SchemaService(
     IConnectionStore store, ProviderRegistry providers, IOverrideStore? overrides = null, ISchemaSnapshotStore? snapshots = null,
-    SecretResolver? secrets = null)
+    SecretResolver? secrets = null, IAccessContext? access = null)
 {
     private readonly SecretResolver _secrets = secrets ?? new SecretResolver();
+    private readonly IAccessContext _access = access ?? new UnrestrictedAccess();
+
+    /// <summary>Permisos del usuario de la solicitud actual (D-063).</summary>
+    public ValueTask<UserAccess> AccessAsync(CancellationToken ct) => _access.CurrentAsync(ct);
 
     /// <summary>Cadena de conexión con las referencias a secretos ya reemplazadas (P-045). Solo se usa para conectar.</summary>
     public string ConnectionStringFor(ConnectionDefinition def) => _secrets.Resolve(def.ConnectionString);
@@ -55,8 +60,20 @@ public sealed class SchemaService(
             await _snapshots.SaveAsync(connectionId, current, null, ct);
             stored = new StoredSnapshot(current, DateTimeOffset.UtcNow, null);
         }
-        var applied = (await GetContextAsync(connectionId, ct)).Schema;
-        return new SchemaDiffResult(stored.TakenAt, stored.TakenBy, SchemaDiff.Compare(stored.Snapshot, current), applied.OverrideWarnings);
+        var ctx = await GetUnrestrictedContextAsync(connectionId, ct);
+        var applied = ctx.Schema;
+        var changes = SchemaDiff.Compare(stored.Snapshot, current);
+        var access = await _access.CurrentAsync(ct);
+        if (access.Unrestricted)
+            return new SchemaDiffResult(stored.TakenAt, stored.TakenBy, changes, applied.OverrideWarnings);
+
+        // Con perfiles (D-067): solo los cambios de lo que el usuario puede ver, y sin los avisos de ajustes.
+        var id = ctx.Definition.Id;
+        if (!access.CanSeeConnection(id)) throw new NotFoundException($"La conexión '{connectionId}' no existe.");
+        var visible = changes.Where(c => access.Table(id, c.Schema, c.Table).HasFlag(DataOperation.View) &&
+                                         (c.Column is null || access.Column(id, c.Schema, c.Table, c.Column).HasFlag(DataOperation.View)))
+            .ToList();
+        return new SchemaDiffResult(stored.TakenAt, stored.TakenBy, visible, []);
     }
 
     /// <summary>Da por revisados los cambios: el esquema actual pasa a ser la referencia.</summary>
@@ -67,7 +84,21 @@ public sealed class SchemaService(
         return await GetDiffAsync(connectionId, ct);
     }
 
+    /// <summary>
+    /// Conexión y esquema como los ve el usuario actual (D-063): sin las tablas que no puede ver y con sus
+    /// columnas restringidas. Todo el CRUD pasa por aquí, así los permisos se cumplen en un solo lugar.
+    /// </summary>
     public async Task<ConnectionContext> GetContextAsync(string connectionId, CancellationToken ct)
+    {
+        var ctx = await GetUnrestrictedContextAsync(connectionId, ct);
+        var access = await _access.CurrentAsync(ct);
+        if (!access.Unrestricted && !access.CanSeeConnection(ctx.Definition.Id))
+            throw new NotFoundException($"La conexión '{connectionId}' no existe.");
+        return ctx with { Schema = access.Restrict(ctx.Definition.Id, ctx.Schema) };
+    }
+
+    /// <summary>Esquema con ajustes, sin restricciones de usuario: para configurar mantenedores y avisar cambios.</summary>
+    public async Task<ConnectionContext> GetUnrestrictedContextAsync(string connectionId, CancellationToken ct)
     {
         var (def, provider) = await DefinitionAsync(connectionId, ct);
         var schema = await Cached(_applied, def.Id, async () =>

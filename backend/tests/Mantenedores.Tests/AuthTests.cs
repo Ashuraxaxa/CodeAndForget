@@ -194,8 +194,9 @@ public sealed class AuthTests : IDisposable
         // El administrador pasa la autorización y llega a la conexión, que no existe.
         Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Put, admin));
         Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Delete, admin));
-        // Leerlos no exige ser administrador.
-        Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Get, user));
+        // Leerlos también exige ConfigureTables: nombran tablas y columnas que un perfil puede ocultar (D-067).
+        Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Get, user));
+        Assert.Equal(HttpStatusCode.NotFound, await Send(HttpMethod.Get, admin));
     }
 
     [Fact]
@@ -230,7 +231,7 @@ public sealed class AuthTests : IDisposable
         Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Post, "/api/connections/test", usuario, conexion));
 
         var me = await (await Get(c, "/api/auth/me", Token(KeycloakLike("admin")))).Content.ReadFromJsonAsync<MeDto>();
-        Assert.Equal(["ConfigureTables", "ManageConnections"], me!.Permissions);
+        Assert.Equal(["ConfigureTables", "ManageConnections", "ManageSecurity"], me!.Permissions);
         me = await (await Get(c, "/api/auth/me", configurador)).Content.ReadFromJsonAsync<MeDto>();
         Assert.Equal(["ConfigureTables"], me!.Permissions);
     }

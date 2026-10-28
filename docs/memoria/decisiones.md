@@ -545,6 +545,21 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Estado:** Vigente · 2026-10-28
 - **Qué:** un permiso nuevo, `ManageSecurity`, que se otorga a roles como los de D-053. Permite administrar perfiles, usuarios y permisos. Los `AdminRoles` lo tienen.
 
+### D-067 · Cómo se aplican los perfiles
+- **Estado:** Vigente · 2026-10-28 (P-040, P-042)
+- **Qué:**
+  - **Sin ningún perfil, la seguridad de datos queda abierta** (todos ven y editan todo). Al crear el primero, solo ven datos los administradores y quienes tengan un perfil.
+  - Los permisos se aplican **recortando el esquema** que ve cada usuario (`UserAccess.Restrict`): tablas fuera, columnas ocultas o de solo lectura. Así etiquetas, búsqueda, exportación, combos y pestañas los respetan sin código aparte. Crear, editar, borrar, exportar e importar se verifican además con `ForbiddenException` (403).
+  - Se definen por conexión (o `*`), tabla y columna; cada nivel **reemplaza** al anterior cuando aparece, y varios perfiles se suman.
+  - Cambiar los vínculos N:M de un registro cuenta como **editar el registro dueño**, no como crear o borrar en el puente.
+  - Para no revelar nombres de lo que el perfil oculta: el aviso de cambios del esquema solo trae lo que el usuario ve, los avisos de ajustes sin efecto solo llegan sin restricciones, y **leer** ajustes pasa a exigir `ConfigureTables` (antes, cualquier usuario).
+  - Los perfiles otorgan también permisos de la app, que se suman a los de `Auth:Permissions`; las políticas `perm:*` pasan a un `AuthorizationHandler`.
+  - Usuarios propios en `mnt_user` (hash PBKDF2). Si el nombre existe en `Auth:Users`, manda la configuración. Al desactivar o borrar uno, su token deja de valer en la siguiente solicitud.
+- **Descartado:**
+  - Cerrar todo al actualizar (rompería instalaciones existentes sin perfiles).
+  - Validar permisos en cada consulta con `if` repartidos por el CRUD: se olvidarían casos (etiquetas, búsquedas).
+  - Que la columna o la tabla se sumen a lo de arriba en vez de reemplazarlo: no permitiría restringir una tabla dentro de una conexión abierta.
+
 ---
 
 ## Propuestas (aún no decididas)

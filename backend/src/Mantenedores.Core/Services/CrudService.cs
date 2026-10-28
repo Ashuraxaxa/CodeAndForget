@@ -4,6 +4,7 @@ using Dapper;
 using Mantenedores.Core.Errors;
 using Mantenedores.Core.Query;
 using Mantenedores.Core.Schema;
+using Mantenedores.Core.Security;
 
 namespace Mantenedores.Core.Services;
 
@@ -53,6 +54,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         string conn, string schema, string table, IReadOnlyDictionary<string, JsonElement> body, CancellationToken ct)
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
+        Require(info, DataOperation.Create, "crear registros en");
         var insert = new QueryBuilder(ctx.Provider.Dialect).BuildInsert(info, ParseValues(info, body, MaxFileBytes));
 
         IReadOnlyDictionary<string, object?> keys;
@@ -78,6 +80,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         IReadOnlyDictionary<string, string> key, IReadOnlyDictionary<string, JsonElement> body, CancellationToken ct)
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
+        Require(info, DataOperation.Update, "editar registros de");
         var keyValues = ParseKey(info, key);
         var values = ParseValues(info, body, MaxFileBytes);
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildUpdate(info, keyValues, values);
@@ -94,6 +97,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
     public async Task DeleteAsync(string conn, string schema, string table, IReadOnlyDictionary<string, string> key, CancellationToken ct)
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
+        Require(info, DataOperation.Delete, "eliminar registros de");
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildDelete(info, ParseKey(info, key));
 
         await using var db = await OpenAsync(ctx, ct);
@@ -115,6 +119,13 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         {
             throw friendly;
         }
+    }
+
+    /// <summary>Corta la operación si el perfil del usuario no la permite en la tabla (D-063).</summary>
+    private static void Require(TableInfo table, DataOperation op, string verb)
+    {
+        if (!table.Access.HasFlag(op))
+            throw new ForbiddenException($"No tiene permiso para {verb} {table.FullName}.");
     }
 
     // ---------- Archivos (P-018) ----------
@@ -217,7 +228,8 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         string conn, string schema, string table, IReadOnlyDictionary<string, string> key, string linkName,
         IReadOnlyList<JsonElement> values, CancellationToken ct)
     {
-        var (ctx, _, link, bridge, target, localValue) = await ResolveLinkAsync(conn, schema, table, key, linkName, ct);
+        var (ctx, owner, link, bridge, target, localValue) = await ResolveLinkAsync(conn, schema, table, key, linkName, ct);
+        Require(owner, DataOperation.Update, "editar registros de");
         if (!bridge.IsEditable) throw new OperationNotAllowedException($"{bridge.FullName} es de solo lectura.");
         var foreignCol = bridge.FindColumn(link.ForeignColumn)!;
 

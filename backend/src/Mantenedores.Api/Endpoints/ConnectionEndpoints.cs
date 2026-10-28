@@ -1,5 +1,6 @@
 using System.Data.Common;
 using System.Text.RegularExpressions;
+using Mantenedores.Api.Auth;
 using Mantenedores.Core.Connections;
 using Mantenedores.Core.Errors;
 using Mantenedores.Core.Providers;
@@ -28,11 +29,16 @@ public static partial class ConnectionEndpoints
     {
         var group = app.MapGroup("/api/connections").RequireAuthorization();
 
-        group.MapGet("/", async (IConnectionStore store, CancellationToken ct) =>
-            (await store.ListAsync(ct)).Select(ToResponse));
+        // Quien administra conexiones las ve todas; el resto, solo aquellas en que sus perfiles le dan algo (D-063).
+        group.MapGet("/", async (IConnectionStore store, HttpContext http, HttpAccessContext access, CancellationToken ct) =>
+        {
+            var visible = await VisibleAsync(http, access, ct);
+            return (await store.ListAsync(ct)).Where(c => visible(c.Id)).Select(ToResponse);
+        });
 
-        group.MapGet("/{id}", async (string id, IConnectionStore store, CancellationToken ct) =>
-            await store.GetAsync(id, ct) is { } c ? Results.Ok(ToResponse(c)) : Results.NotFound());
+        group.MapGet("/{id}", async (string id, IConnectionStore store, HttpContext http, HttpAccessContext access, CancellationToken ct) =>
+            await store.GetAsync(id, ct) is { } c && (await VisibleAsync(http, access, ct))(c.Id)
+                ? Results.Ok(ToResponse(c)) : Results.NotFound());
 
         // Crea o reemplaza. Si al editar no se envía la cadena de conexión, se conserva la anterior.
         group.MapPut("/{id}", async (string id, ConnectionRequest req, IConnectionStore store, SchemaService schemas, CancellationToken ct) =>
@@ -70,6 +76,13 @@ public static partial class ConnectionEndpoints
                 return Results.Ok(new TestResult(false, 0, ex.Message));
             }
         }).RequireAuthorization(ManageConnectionsPolicy);
+    }
+
+    private static async Task<Func<string, bool>> VisibleAsync(HttpContext http, HttpAccessContext access, CancellationToken ct)
+    {
+        if (await access.HasAsync(http.User, http, Auth.Permissions.ManageConnections, ct)) return _ => true;
+        var mine = await access.ForAsync(http.User, http, ct);
+        return mine.CanSeeConnection;
     }
 
     private static async Task<ConnectionDefinition> BuildDefinitionAsync(string id, ConnectionRequest req, IConnectionStore store, CancellationToken ct)

@@ -36,6 +36,8 @@ export interface TableSummary {
   label: string | null
   group: string | null
   hidden: boolean
+  /** Operaciones que el usuario puede hacer (D-063): view, create, update, delete, export, import. */
+  access: string[]
 }
 
 export interface SchemaSummary {
@@ -117,6 +119,12 @@ export interface TableMeta {
   selfReference: ForeignKey | null
   displayColumn: string | null
   isEditable: boolean
+  /** Lo que el usuario puede hacer según sus perfiles (D-063). La UI solo oculta: el servidor rechaza igual. */
+  canCreate: boolean
+  canUpdate: boolean
+  canDelete: boolean
+  canExport: boolean
+  canImport: boolean
   hasPrimaryKey: boolean
   // Ajustes (P-011)
   label: string | null
@@ -259,4 +267,40 @@ export interface TreeNode {
   value: unknown
   label: string | null
   hasChildren: boolean
+}
+
+// ---------- Seguridad (P-040, P-042; D-062, D-063) ----------
+
+/** Operaciones sobre los datos. En las columnas solo cuentan "view" y "update". */
+export type DataOperation = 'view' | 'create' | 'update' | 'delete' | 'export' | 'import'
+
+export interface ColumnRule { operations: DataOperation[] }
+export interface TableRule { operations: DataOperation[]; columns: Record<string, ColumnRule> }
+export interface ConnectionRule { operations: DataOperation[]; tables: Record<string, TableRule> }
+
+export interface SecurityProfile {
+  id: string
+  name: string
+  description: string | null
+  roles: string[]
+  users: string[]
+  appPermissions: string[]
+  /** Por id de conexión; "*" = todas. */
+  connections: Record<string, ConnectionRule>
+}
+
+export interface SecurityUser {
+  username: string
+  displayName: string | null
+  active: boolean
+  /** local = editable aquí; config = de Auth:Users (solo lectura). */
+  source: 'local' | 'config'
+}
+
+export interface SecurityInfo {
+  mode: 'Local' | 'Jwt'
+  appPermissions: string[]
+  operations: DataOperation[]
+  adminRoles: string[]
+  minPasswordLength: number
 }

@@ -4,6 +4,7 @@ using Dapper;
 using Mantenedores.Core.Errors;
 using Mantenedores.Core.Query;
 using Mantenedores.Core.Schema;
+using Mantenedores.Core.Security;
 using Mantenedores.Core.Transfer;
 
 namespace Mantenedores.Core.Services;
@@ -46,6 +47,7 @@ public sealed partial class CrudService
         string conn, string schema, string table, ListRequest request, TransferFormat format, CancellationToken ct)
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
+        Require(info, DataOperation.Export, "exportar");
         var max = Math.Max(1, options.ExportMaxRows);
         var (data, count) = new QueryBuilder(ctx.Provider.Dialect)
             .BuildList(ctx.Schema, info, request with { Page = 1, PageSize = max }, max);
@@ -101,6 +103,8 @@ public sealed partial class CrudService
         IReadOnlyDictionary<string, string?>? requested, bool commit, CancellationToken ct)
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
+        Require(info, DataOperation.Import, "importar en");
+        Require(info, DataOperation.Create, "crear registros en");
         if (!info.IsEditable) throw new OperationNotAllowedException($"{info.FullName} es de solo lectura: no se puede importar.");
 
         var data = await TableReader.ReadAsync(file, format, Math.Max(1, options.ImportMaxRows), ct);

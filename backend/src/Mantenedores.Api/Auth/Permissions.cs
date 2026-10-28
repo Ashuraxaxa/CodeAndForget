@@ -4,8 +4,8 @@ namespace Mantenedores.Api.Auth;
 
 /// <summary>
 /// Permisos de la app (D-053). Cada uno se otorga a uno o más roles por configuración (<c>Auth:Permissions</c>);
-/// los roles de <c>Auth:AdminRoles</c> tienen todos. Cuando exista el apartado de seguridad (perfiles y usuarios,
-/// P-040/P-042), estos mismos permisos se asignarán a perfiles desde ahí.
+/// los roles de <c>Auth:AdminRoles</c> tienen todos. Los perfiles de seguridad también los otorgan (D-062);
+/// eso lo suma <see cref="HttpAccessContext"/>.
 /// </summary>
 public static class Permissions
 {
@@ -15,13 +15,17 @@ public static class Permissions
     /// <summary>Crear, editar, probar y borrar conexiones.</summary>
     public const string ManageConnections = "ManageConnections";
 
-    public static readonly IReadOnlyList<string> All = [ConfigureTables, ManageConnections];
+    /// <summary>Administrar perfiles, usuarios propios y permisos (D-066).</summary>
+    public const string ManageSecurity = "ManageSecurity";
+
+    public static readonly IReadOnlyList<string> All = [ConfigureTables, ManageConnections, ManageSecurity];
 
     /// <summary>Rol que recibe cada permiso si no se configura otro.</summary>
     public static readonly IReadOnlyDictionary<string, string> DefaultRoles = new Dictionary<string, string>
     {
         [ConfigureTables] = "mnt-configurador",
-        [ManageConnections] = "mnt-conexiones"
+        [ManageConnections] = "mnt-conexiones",
+        [ManageSecurity] = "mnt-seguridad"
     };
 
     /// <summary>Nombre de la política de autorización de un permiso.</summary>
@@ -43,6 +47,8 @@ public static class Permissions
         return All.Where(p => RolesFor(auth, p).Any(set.Contains)).ToList();
     }
 
-    public static bool Has(AuthOptions auth, ClaimsPrincipal user, string permission) =>
-        Granted(auth, user.FindAll(ClaimTypes.Role).Select(c => c.Value)).Contains(permission);
+    /// <summary>Nombre canónico del permiso, o null si no existe.</summary>
+    public static string? Canonical(string name) => All.FirstOrDefault(p => string.Equals(p, name, StringComparison.OrdinalIgnoreCase));
+
+    public static IReadOnlyList<string> Roles(ClaimsPrincipal user) => user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
 }

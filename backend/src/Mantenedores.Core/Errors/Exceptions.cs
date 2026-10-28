@@ -4,6 +4,9 @@ public class MantenedorException(string message) : Exception(message);
 
 public sealed class NotFoundException(string message) : MantenedorException(message);
 
+/// <summary>El usuario no tiene permiso para la operación (D-063).</summary>
+public sealed class ForbiddenException(string message) : MantenedorException(message);
+
 /// <summary>La operación no está permitida para esta tabla (vista, tabla sin PK, etc.).</summary>
 public sealed class OperationNotAllowedException(string message) : MantenedorException(message);
 

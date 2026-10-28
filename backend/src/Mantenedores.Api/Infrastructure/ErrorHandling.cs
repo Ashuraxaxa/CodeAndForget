@@ -13,6 +13,7 @@ public sealed class ErrorHandler(ILogger<ErrorHandler> logger) : IExceptionHandl
         {
             ValidationException v => Results.ValidationProblem(
                 v.Errors.ToDictionary(e => e.Key, e => new[] { e.Value }), title: v.Message),
+            ForbiddenException f => Results.Problem(f.Message, statusCode: 403, title: "Sin permiso"),
             NotFoundException n => Results.Problem(n.Message, statusCode: 404, title: "No encontrado"),
             // Restricción de la BD ya traducida (P-003): mensaje claro y, si se puede, el campo afectado.
             ConstraintViolationException c => Results.ValidationProblem(

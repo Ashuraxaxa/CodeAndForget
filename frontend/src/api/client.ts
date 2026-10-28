@@ -1,5 +1,6 @@
 import type {
   ImportResult, TransferFormat, TreeNode,
+  SecurityInfo, SecurityProfile, SecurityUser,
   Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride,
 } from './types'
 
@@ -110,8 +111,8 @@ export interface ListParams {
   exact?: Record<string, string>
 }
 
-/** Permisos de la app (D-053): cada uno se otorga a roles por configuración. */
-export type Permission = 'ConfigureTables' | 'ManageConnections'
+/** Permisos de la app (D-053, D-066): se otorgan a roles por configuración o a perfiles. */
+export type Permission = 'ConfigureTables' | 'ManageConnections' | 'ManageSecurity'
 
 /** Configuración pública de autenticación que expone la API (D-024). */
 export interface AuthConfig {
@@ -124,9 +125,26 @@ export interface AuthConfig {
 
 export const api = {
   authConfig: () => request<AuthConfig>('GET', 'api/auth/config'),
-  me: () => request<{ name: string | null; roles: string[]; isAdmin: boolean; permissions: Permission[] }>('GET', 'api/auth/me'),
+  me: () => request<{
+    name: string | null
+    roles: string[]
+    isAdmin: boolean
+    permissions: Permission[]
+    /** No hay perfiles: todos ven y editan todos los datos (D-062). */
+    securityOpen: boolean
+    profiles: string[]
+  }>('GET', 'api/auth/me'),
   login: (username: string, password: string) =>
     request<{ token: string; expiresAt: string; username: string }>('POST', 'api/auth/login', { username, password }),
+
+  securityInfo: () => request<SecurityInfo>('GET', 'api/security/info'),
+  profiles: () => request<SecurityProfile[]>('GET', 'api/security/profiles'),
+  saveProfile: (p: SecurityProfile) => request<SecurityProfile>('PUT', `api/security/profiles/${enc(p.id)}`, p),
+  deleteProfile: (id: string) => request<void>('DELETE', `api/security/profiles/${enc(id)}`),
+  users: () => request<SecurityUser[]>('GET', 'api/security/users'),
+  saveUser: (username: string, u: { displayName?: string | null; password?: string; active?: boolean }) =>
+    request<SecurityUser>('PUT', `api/security/users/${enc(username)}`, u),
+  deleteUser: (username: string) => request<void>('DELETE', `api/security/users/${enc(username)}`),
 
   connections: () => request<Connection[]>('GET', 'api/connections'),
   saveConnection: (c: ConnectionInput) => request<Connection>('PUT', `api/connections/${enc(c.id)}`, c),

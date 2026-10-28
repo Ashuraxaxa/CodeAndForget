@@ -40,11 +40,14 @@ Detalle técnico en [../motores.md](../motores.md).
 
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
-| P-040 | Perfiles propios con usuarios locales (en la metadata) y roles del proveedor de identidad asociados (D-062) | 🔴 | ⏳ |
-| P-042 | Permisos por conexión, tabla y columna (ver, crear, editar, borrar, exportar, importar) con herencia, aplicados en el servidor; pantalla "Seguridad" con el permiso `ManageSecurity` (D-063, D-066) | 🔴 | ⏳ |
+| P-040 | Perfiles propios con usuarios locales (en la metadata) y roles del proveedor de identidad asociados (D-062) | 🔴 | ✅ PR #21 |
+| P-042 | Permisos por conexión, tabla y columna (ver, crear, editar, borrar, exportar, importar) con herencia, aplicados en el servidor; pantalla "Seguridad" con el permiso `ManageSecurity` (D-063, D-066, D-067) | 🔴 | ✅ PR #21 |
 | P-043 | Filtros de fila por rol | — | ⛔ descartado por el dueño (D-064) |
 | P-044 | Auditoría de cambios (quién, cuándo, valor anterior y nuevo), 1 año configurable, con vista en la UI (D-065) | 🟡 | ⏳ |
 | P-046 | Concurrencia optimista (`rowversion` / `xmin`) | 🟡 | ⏳ |
+| P-091 | Login: limitar intentos fallidos por usuario e IP (hoy no hay tope) | 🟡 | ⏳ |
+| P-092 | Usuarios propios: cachear unos segundos si siguen activos (hoy se consulta la metadata en cada solicitud del modo Local) | ⚪ | ⏳ |
+| P-093 | Seguridad: elegir tablas y columnas de una lista también con la regla `*` (hoy se escriben a mano) y copiar un perfil | ⚪ | ⏳ |
 
 ## 3. Fase 4: escala y operación
 

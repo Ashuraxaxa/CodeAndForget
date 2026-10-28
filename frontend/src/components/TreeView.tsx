@@ -48,7 +48,7 @@ function Node({ conn, meta, node }: { conn: string; meta: TableMeta; node: TreeN
         {meta.isEditable
           ? <Link to={`${base}/edit?${key}`}>{node.label ?? String(node.value)}</Link>
           : <span>{node.label ?? String(node.value)}</span>}
-        {meta.isEditable && <Link className="muted small" to={`${base}/new?${child}`} title="Agregar un registro debajo de este">＋ hijo</Link>}
+        {meta.canCreate && <Link className="muted small" to={`${base}/new?${child}`} title="Agregar un registro debajo de este">＋ hijo</Link>}
       </div>
       {open && node.hasChildren && (
         children.isLoading ? <p className="muted small tree-indent">Cargando…</p>

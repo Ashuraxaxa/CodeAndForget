@@ -2,6 +2,7 @@ using System.Text.Json;
 using Mantenedores.Core.Errors;
 using Mantenedores.Core.Query;
 using Mantenedores.Core.Schema;
+using Mantenedores.Core.Security;
 using Mantenedores.IntegrationTests.Infrastructure;
 
 namespace Mantenedores.IntegrationTests;
@@ -206,6 +207,62 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
     }
 
     // ---------- Escritura ----------
+
+    // ---------- Permisos por perfil (D-063) ----------
+
+    [Fact]
+    public async Task Un_perfil_restringe_tablas_columnas_y_operaciones()
+    {
+        var code = UniqueCode();
+        var created = await Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
+            (N("codigo"), code), (N("nombre"), "Secreto"), (N("categoria_id"), 2), (N("precio"), 100)), default);
+        var key = Key((N("id"), created[N("id")]!));
+
+        var profile = new SecurityProfile
+        {
+            Id = "p", Name = "Editor de códigos", Users = ["ana"],
+            Connections = new Dictionary<string, ConnectionRule>
+            {
+                [Conn] = new()
+                {
+                    Tables = new Dictionary<string, TableRule>
+                    {
+                        [$"{Schema}.{N("producto")}"] = new()
+                        {
+                            Operations = ["view", "update"],
+                            Columns = new Dictionary<string, ColumnRule> { [N("precio")] = new() { Operations = ["view"] }, [N("nombre")] = new() }
+                        }
+                    }
+                }
+            }
+        };
+        Db.Access.Current = UserAccess.For("ana", [], isAdmin: false, [profile]);
+        try
+        {
+            var schema = (await Db.Schemas.GetContextAsync(Conn, default)).Schema;
+            Assert.Equal([N("producto")], schema.Tables.Select(t => t.Name));
+            await Assert.ThrowsAsync<NotFoundException>(() => Db.Schemas.GetTableAsync(Conn, Schema, N("categoria"), default));
+
+            // Ve la fila sin la columna oculta y sin la etiqueta de una tabla que no ve; no la encuentra por el dato oculto.
+            var row = await Db.Crud.GetAsync(Conn, Schema, N("producto"), key, default);
+            Assert.False(row.ContainsKey(N("nombre")));
+            Assert.False(row.ContainsKey(N("categoria_id") + QueryBuilder.LabelSuffix));
+            Assert.Equal(0, (await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { Search = "Secreto" }, default)).Total);
+
+            // Edita lo permitido; lo de solo lectura se ignora.
+            var updated = await Db.Crud.UpdateAsync(Conn, Schema, N("producto"), key, Body((N("codigo"), code + "X"), (N("precio"), 1)), default);
+            Assert.Equal(code + "X", updated[N("codigo")]);
+            Assert.Equal(100m, Convert.ToDecimal(updated[N("precio")]));
+
+            await Assert.ThrowsAsync<ForbiddenException>(() => Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body((N("codigo"), UniqueCode())), default));
+            await Assert.ThrowsAsync<ForbiddenException>(() => Db.Crud.DeleteAsync(Conn, Schema, N("producto"), key, default));
+            await Assert.ThrowsAsync<ForbiddenException>(() => Db.Crud.PrepareExportAsync(Conn, Schema, N("producto"), new ListRequest(), Core.Transfer.TransferFormat.Csv, default));
+        }
+        finally { Db.Access.Current = UserAccess.All; }
+
+        Assert.Equal("Secreto", (await Db.Crud.GetAsync(Conn, Schema, N("producto"), key, default))[N("nombre")]);
+        await Db.Crud.DeleteAsync(Conn, Schema, N("producto"), key, default);
+    }
 
     [Fact]
     public async Task Crud_completo_con_pk_identity()

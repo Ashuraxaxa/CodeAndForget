@@ -46,6 +46,16 @@ public sealed record TableInfo
     /// </summary>
     public ForeignKeyInfo? SelfReference { get; init; }
 
+    /// <summary>Operaciones que el usuario actual puede hacer en la tabla (D-063). Sin restricciones = todas.</summary>
+    [System.Text.Json.Serialization.JsonIgnore] // la UI recibe los Can* de abajo
+    public Security.DataOperation Access { get; init; } = Security.DataOperation.All;
+
+    public bool CanCreate => IsEditable && Access.HasFlag(Security.DataOperation.Create);
+    public bool CanUpdate => IsEditable && Access.HasFlag(Security.DataOperation.Update);
+    public bool CanDelete => IsEditable && Access.HasFlag(Security.DataOperation.Delete);
+    public bool CanExport => Access.HasFlag(Security.DataOperation.Export);
+    public bool CanImport => IsEditable && Access.HasFlag(Security.DataOperation.Import) && Access.HasFlag(Security.DataOperation.Create);
+
     /// <summary>Columna que se muestra cuando otra tabla referencia a esta (combos de FK).</summary>
     public string? DisplayColumn { get; init; }
 

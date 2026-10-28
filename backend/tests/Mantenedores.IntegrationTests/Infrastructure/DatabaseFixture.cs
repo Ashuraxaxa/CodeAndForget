@@ -41,6 +41,9 @@ public abstract class DatabaseFixture : IAsyncLifetime
     /// <summary>Versión principal mínima soportada (D-035).</summary>
     public abstract int MinimumMajorVersion { get; }
     public SchemaService Schemas { get; private set; } = null!;
+
+    /// <summary>Usuario de las pruebas: sin restricción salvo que una prueba lo cambie (y lo devuelva).</summary>
+    public SwitchableAccess Access { get; } = new();
     public CrudService Crud { get; private set; } = null!;
 
     /// <summary>Ajustes en memoria (P-011); cada prueba que los usa los borra al terminar.</summary>
@@ -97,7 +100,7 @@ public abstract class DatabaseFixture : IAsyncLifetime
             ConnectionString = ConnectionString,
             Schemas = [SampleSchema]
         });
-        Schemas = new SchemaService(store, new ProviderRegistry([Provider]), Overrides, Snapshots);
+        Schemas = new SchemaService(store, new ProviderRegistry([Provider]), Overrides, Snapshots, access: Access);
         Crud = new CrudService(Schemas, new CrudOptions { CommandTimeoutSeconds = 60 });
     }
 
@@ -145,4 +148,12 @@ public abstract class DatabaseFixture : IAsyncLifetime
             }
         }
     }
+}
+
+/// <summary>Acceso que una prueba puede cambiar para simular un usuario con perfiles (D-063).</summary>
+public sealed class SwitchableAccess : Mantenedores.Core.Security.IAccessContext
+{
+    public Mantenedores.Core.Security.UserAccess Current { get; set; } = Mantenedores.Core.Security.UserAccess.All;
+
+    public ValueTask<Mantenedores.Core.Security.UserAccess> CurrentAsync(CancellationToken ct) => ValueTask.FromResult(Current);
 }

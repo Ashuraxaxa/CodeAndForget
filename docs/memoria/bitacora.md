@@ -9,6 +9,7 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 - Sistema propio y liviano (D-076): el español del código es la clave, `en.ts`/`ru.ts` traducen 304 textos, plurales con `Intl.PluralRules`, y `npm run lint` falla si falta alguna traducción.
 - Hallazgo en el navegador: `es-CL` escribe las fechas 28-10-2026 y la hora con a. m./p. m.; para fechas se usa `es-ES`, y `es-CL` queda para los números.
 - Navegador: login, grilla, formulario y auditoría en los tres idiomas; el idioma se recuerda al recargar.
+- El dueño confirmó: el idioma inicial sale del navegador y, si no es español, inglés ni ruso, se usa inglés.
 - **Abierto:** traducir los mensajes del servidor (P-101).
 
 ## 2026-10-28 · Tanda 1 de mejoras, parte B (P-088, P-030)

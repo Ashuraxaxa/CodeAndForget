@@ -676,7 +676,7 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 ### D-076 · Interfaz en varios idiomas (español, inglés y ruso)
 - **Estado:** Vigente · 2026-10-28 (P-100)
 - **Qué:**
-  - Selector de idioma en la barra superior y en el login; se recuerda en el navegador (`mantenedores.locale`). Sin elección, se usa el idioma del navegador si es inglés o ruso, si no español.
+  - Selector de idioma en la barra superior y en el login; se recuerda en el navegador (`mantenedores.locale`). Sin elección, se usa el primero de los idiomas preferidos del navegador que la app tenga; si no tiene ninguno, **inglés** (decisión del dueño). El español sigue siendo el idioma base del código.
   - El texto en español del código es la clave: `t('Guardar')`. `src/i18n/en.ts` y `ru.ts` lo traducen; si falta una traducción se ve el español.
   - Textos con cantidad (`{n}`) con formas por número vía `Intl.PluralRules` (ruso: one/few/many); `es.ts` trae solo los singulares.
   - Fechas y horas con el formato del idioma, no del navegador: 28/10/2026 14:05 (es), 10/28/2026 02:05 PM (en), 28.10.2026 14:05 (ru). Para el español se usa `es-ES` en fechas (`es-CL` las escribe 28-10-2026 con a. m./p. m.) y `es-CL` en números (agrupa también 1.234).

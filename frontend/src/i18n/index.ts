@@ -33,8 +33,13 @@ function initialLocale(): Locale {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved === 'es' || saved === 'en' || saved === 'ru') return saved
   } catch { /* sin almacenamiento: se usa el del navegador */ }
-  const nav = (navigator.languages?.[0] ?? navigator.language ?? 'es').slice(0, 2).toLowerCase()
-  return nav === 'en' || nav === 'ru' ? nav : 'es'
+  // El primero de los idiomas preferidos del navegador que la app tenga; si ninguno, inglés.
+  const preferred = navigator.languages?.length ? navigator.languages : [navigator.language ?? '']
+  for (const lang of preferred) {
+    const code = lang.slice(0, 2).toLowerCase()
+    if (code === 'es' || code === 'en' || code === 'ru') return code
+  }
+  return 'en'
 }
 
 // Para lo que se formatea fuera de React (fechas en la grilla): el idioma vigente.

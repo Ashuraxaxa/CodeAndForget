@@ -321,7 +321,7 @@ Auth__Jwt__Scopes="openid profile api://<client-id-de-la-api>/acceso"
 ## Idioma de la interfaz
 
 No tiene claves en el servidor (D-076). Cada usuario elige español, inglés o ruso en la barra superior o en el
-login; se recuerda en su navegador. Sin elección, se usa el idioma del navegador si es inglés o ruso, si no español.
+login; se recuerda en su navegador. Sin elección, se usa el idioma del navegador (el primero de sus preferidos que la app tenga) y, si no es ninguno de los tres, inglés.
 Las fechas y los números siguen el formato del idioma elegido: 28/10/2026 (es), 10/28/2026 (en), 28.10.2026 (ru).
 
 Los mensajes que arma el servidor (validaciones, errores de la base) llegan en español por ahora (P-101).

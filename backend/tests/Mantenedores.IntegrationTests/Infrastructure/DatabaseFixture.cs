@@ -47,6 +47,9 @@ public abstract class DatabaseFixture : IAsyncLifetime
 
     /// <summary>Auditoría en memoria: las pruebas leen lo que registró el CRUD.</summary>
     public InMemoryAuditStore Audit { get; } = new();
+
+    /// <summary>Avisos por correo "enviados" (D-073): las pruebas leen lo que encoló el CRUD.</summary>
+    public RecordingNotifier Notices { get; } = new();
     public CrudService Crud { get; private set; } = null!;
 
     /// <summary>Ajustes en memoria (P-011); cada prueba que los usa los borra al terminar.</summary>
@@ -108,7 +111,7 @@ public abstract class DatabaseFixture : IAsyncLifetime
         });
         Schemas = new SchemaService(store, new ProviderRegistry([Provider]), Overrides, Snapshots, access: Access);
         Crud = new CrudService(Schemas, new CrudOptions { CommandTimeoutSeconds = 60 },
-            new Mantenedores.Core.Audit.AuditService(Audit, new Mantenedores.Core.Audit.AuditOptions()));
+            new Mantenedores.Core.Audit.AuditService(Audit, new Mantenedores.Core.Audit.AuditOptions()), Notices);
     }
 
     public async Task DisposeAsync()
@@ -198,4 +201,20 @@ public sealed class InMemoryAuditStore : Mantenedores.Core.Audit.IAuditStore
         throw new NotSupportedException();
 
     public Task<int> PurgeAsync(DateTimeOffset before, CancellationToken ct) => Task.FromResult(0);
+}
+
+public sealed class RecordingNotifier : Mantenedores.Core.Notifications.IChangeNotifier
+{
+    private readonly List<Mantenedores.Core.Notifications.ChangeNotice> _notices = [];
+    public bool Enabled => true;
+
+    public IReadOnlyList<Mantenedores.Core.Notifications.ChangeNotice> For(string table)
+    {
+        lock (_notices) return _notices.Where(n => string.Equals(n.Table, table, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    public void Enqueue(Mantenedores.Core.Notifications.ChangeNotice notice)
+    {
+        lock (_notices) _notices.Add(notice);
+    }
 }

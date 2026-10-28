@@ -86,6 +86,7 @@ Todo es opcional; lo que no se indica queda automático. Los nombres de columnas
 | `defaultSort` | Orden del listado cuando el usuario no eligió otro: `-fecha,nombre` (`-` = descendente). |
 | `virtualPrimaryKey` | Clave para tablas **sin PK declarada**: habilita editar y borrar. En una vista permite leer por clave y usarla en combos, pero sigue siendo de solo lectura. Las columnas deben identificar una sola fila: si no, una edición afectaría varias. |
 | `children` | Tablas hijas que se muestran en pestañas al editar un registro, por nombre de la FK y en ese orden. Sin definir = todas; `[]` = ninguna. En el editor: *Tabla → Tablas hijas*. |
+| `notify` | Avisos por correo cuando cambia un registro (D-073): `{"emails": ["jefa@empresa.cl"], "on": ["update", "delete"], "includeValues": true}`. `on` acepta `create`, `update`, `delete`, `import` y `links`; vacío = altas, ediciones y bajas. Solo se envían si la app tiene SMTP configurado (`Notifications`, ver `configuracion.md`). En el editor: *Tabla → Avisos por correo*. |
 | `virtualForeignKeys` | Relaciones que la base no declara: dan etiqueta, combo y "Referenciada por" como una FK real. La base no las hace cumplir. `name` es opcional. |
 
 ### Columna

@@ -31,7 +31,7 @@ Es para **un solo equipo interno** (D-027): no hay multi-tenant; si otro equipo 
 | 1 | Fase 2: configuración y personalización | 5–6 semanas | Auth y metadata configurables, mantenedores ajustables sin código, maestro-detalle, N:M, import/export |
 | 2 | Fase 3: seguridad | 3 semanas | Permisos por rol (desde claims del JWT), auditoría, concurrencia |
 | 3 | Fase 4: escala y operación | 3 semanas | Caché compartida opcional, límites, observabilidad, pruebas de carga |
-| 4 | Fase 5: extensiones | continuo | Hooks de negocio, más motores, acciones |
+| 4 | Fase 5: extensiones | continuo | Avisos por correo (hecho), más motores, acciones |
 
 Total hasta una v1 productiva: **unas 17–18 semanas** con 1 backend, 1 frontend y QA/DevOps parcial.
 
@@ -291,7 +291,7 @@ administrar la seguridad. Los puntos de abajo se ajustan a eso.
 
 ## 4. Fase 5: extensiones (continuo)
 
-- Hooks de negocio antes y después de guardar: webhook o script.
+- ~~Hooks de negocio antes y después de guardar~~: descartado por el dueño (D-073). En su lugar, ✅ PR #27: avisos por correo por tabla, apagados por defecto.
 - Procedimientos almacenados expuestos como botones de acción.
 - Otros motores (p. ej. SQLite, Db2, Firebird) si algún equipo los necesita: solo requieren un nuevo `IDatabaseProvider` que pase la batería común (P-002).
 - Carga de proveedores como *plugins* (ensamblados en una carpeta), para agregar un motor sin recompilar la app.

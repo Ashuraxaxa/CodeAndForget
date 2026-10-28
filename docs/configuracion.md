@@ -92,6 +92,29 @@ Las cadenas de conexión se guardan cifradas. Estas llaves son las que permiten 
 | `DataProtection:CertificatePath` | — | Certificado `.pfx` para cifrar las llaves en reposo. Opcional. |
 | `DataProtection:CertificatePassword` | — | Contraseña del certificado. |
 
+## Avisos por correo (`Notifications`)
+
+Para tablas críticas: avisar por correo cuando alguien crea, edita o borra un registro (D-073). **Apagado por defecto.**
+Se activa aquí con un servidor SMTP, y cada tabla elige a quién avisar en su ajuste `notify` (*⚙ Configurar → Tabla →
+Avisos por correo*).
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `Notifications:Enabled` | `false` | Enviar los avisos que configuren las tablas. |
+| `Notifications:From` | — | Remitente, p. ej. `Mantenedores <no-responder@empresa.cl>`. |
+| `Notifications:Smtp:Host` | — | Servidor SMTP (Exchange, Microsoft 365, Gmail, un relay interno…). |
+| `Notifications:Smtp:Port` | `587` | Puerto. |
+| `Notifications:Smtp:EnableSsl` | `true` | STARTTLS/SSL. Apagarlo solo con un relay interno de confianza. |
+| `Notifications:Smtp:User` / `Password` | — | Credenciales, si el servidor las pide. La clave, por variable de entorno (`Notifications__Smtp__Password`) o secreto del orquestador. |
+| `Notifications:Smtp:TimeoutSeconds` | `30` | Tiempo máximo por envío. |
+| `Notifications:SubjectPrefix` | `[Mantenedores]` | Inicio del asunto. |
+| `Notifications:AppUrl` | — | Dirección pública de la app: si se da, el correo trae un enlace al registro. |
+| `Notifications:MaxRowsPerMessage` | `20` | En una importación, cuántas filas se detallan; del resto se dice cuántas son. |
+
+El correo dice quién, cuándo, en qué tabla y registro, y (si la tabla lo pide) los valores antes y después, con las
+mismas reglas de la auditoría: sin columnas ocultas ni el contenido de archivos. Se envía en segundo plano después de
+guardar, con 3 reintentos; si no se puede, queda en el log, y el cambio igual queda en la auditoría.
+
 ## Conexiones a las bases (`Database:Pool`)
 
 Cada conexión configurada tiene su propio pool. Estos valores se agregan a la cadena de conexión **solo si esta no los

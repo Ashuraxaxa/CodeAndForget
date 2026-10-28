@@ -4,6 +4,7 @@ using Dapper;
 using Mantenedores.Core.Audit;
 using Mantenedores.Core.Concurrency;
 using Mantenedores.Core.Errors;
+using Mantenedores.Core.Notifications;
 using Mantenedores.Core.Query;
 using Mantenedores.Core.Schema;
 using Mantenedores.Core.Security;
@@ -51,20 +52,30 @@ public sealed class CrudOptions
 }
 
 /// <summary>CRUD genérico sobre cualquier tabla descubierta.</summary>
-public sealed partial class CrudService(SchemaService schemas, CrudOptions options, AuditService? audit = null)
+public sealed partial class CrudService(SchemaService schemas, CrudOptions options, AuditService? audit = null,
+    IChangeNotifier? notifier = null)
 {
+    /// <summary>¿Hay que leer el registro antes de cambiarlo? Para la auditoría o para avisar por correo (D-073).</summary>
+    private bool TracksChanges(TableInfo info) =>
+        audit is { Enabled: true } || (info.Notify is not null && notifier is { Enabled: true });
+
     /// <summary>Registra un cambio ya confirmado (D-065). Sin auditoría configurada, no hace nada.</summary>
     private async Task AuditAsync(ConnectionContext ctx, TableInfo info, AuditOperation op,
         IEnumerable<(string? Key, string? Old, string? New)> changes, CancellationToken ct)
     {
-        if (audit is not { Enabled: true }) return;
+        var notify = info.Notify is { } n && n.On.Contains(op) && notifier is { Enabled: true } ? n : null;
+        if (audit is not { Enabled: true } && notify is null) return;
         var user = (await schemas.AccessAsync(ct)).Username;
+        var now = DateTimeOffset.UtcNow;
         var entries = changes.Select(c => new AuditEntry
         {
-            User = user, Connection = ctx.Definition.Id, Schema = info.Schema, Table = info.Name,
+            At = now, User = user, Connection = ctx.Definition.Id, Schema = info.Schema, Table = info.Name,
             Operation = op, RowKey = c.Key, OldValues = c.Old, NewValues = c.New
         }).ToList();
-        await audit.RecordAsync(entries, ct);
+        if (audit is { Enabled: true }) await audit.RecordAsync(entries, ct);
+        // Aviso por correo de una tabla crítica (D-073): se encola, no demora la respuesta.
+        if (notify is not null && entries.Count > 0)
+            notifier!.Enqueue(new ChangeNotice(ctx.Definition.Id, info.Schema, info.Name, info.Label, notify, entries));
     }
 
     private Task AuditAsync(ConnectionContext ctx, TableInfo info, AuditOperation op, string? key, string? old, string? @new, CancellationToken ct) =>
@@ -176,7 +187,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         var keyValues = ParseKey(info, key);
         var values = ParseValues(info, body, MaxFileBytes);
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildUpdate(info, keyValues, values);
-        var before = audit is { Enabled: true } || expectedVersion is not null ? await GetByKeyAsync(ctx, info, keyValues, ct) : null;
+        var before = TracksChanges(info) || expectedVersion is not null ? await GetByKeyAsync(ctx, info, keyValues, ct) : null;
         CheckVersion(before, expectedVersion);
 
         await using (var db = await OpenAsync(ctx, ct))
@@ -198,7 +209,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         Require(info, DataOperation.Delete, "eliminar registros de");
         var keyValues = ParseKey(info, key);
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildDelete(info, keyValues);
-        var before = audit is { Enabled: true } || expectedVersion is not null ? await GetByKeyAsync(ctx, info, keyValues, ct) : null;
+        var before = TracksChanges(info) || expectedVersion is not null ? await GetByKeyAsync(ctx, info, keyValues, ct) : null;
         CheckVersion(before, expectedVersion);
 
         await using (var db = await OpenAsync(ctx, ct))

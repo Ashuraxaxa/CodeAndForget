@@ -2,8 +2,10 @@ using System.Text.Json.Serialization;
 using Mantenedores.Api.Auth;
 using Mantenedores.Api.Endpoints;
 using Mantenedores.Api.Infrastructure;
+using Mantenedores.Api.Notifications;
 using Mantenedores.Core.Audit;
 using Mantenedores.Core.Connections;
+using Mantenedores.Core.Notifications;
 using Mantenedores.Core.Providers;
 using Mantenedores.Core.Security;
 using Mantenedores.Core.Services;
@@ -64,6 +66,12 @@ builder.Services.AddSingleton(sp =>
         ex => log.LogError(ex, "No se pudo registrar un cambio en la auditoría (el cambio sí se guardó)"));
 });
 builder.Services.AddHostedService<AuditPurgeService>();
+// --- Avisos por correo de tablas críticas (D-073): apagados por defecto ---
+var notifications = builder.Configuration.GetSection(NotificationOptions.Section).Get<NotificationOptions>() ?? new NotificationOptions();
+builder.Services.AddSingleton(notifications);
+builder.Services.AddSingleton<SmtpChangeNotifier>();
+builder.Services.AddSingleton<IChangeNotifier>(sp => sp.GetRequiredService<SmtpChangeNotifier>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<SmtpChangeNotifier>());
 builder.Services.AddSingleton<CrudService>();
 
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));

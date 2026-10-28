@@ -627,6 +627,23 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Paginación por clave (sin `OFFSET`): con 1 millón de filas no hace falta, y quitaría el "ir a la página N" y el orden libre. Queda en P-098 por si aparecen tablas de decenas de millones.
   - Crear índices desde la app: la app no modifica la estructura de las bases (D-069). Se documenta qué índice pedir al DBA.
 
+### D-073 · Sin lógica propia al guardar; avisos por correo opcionales por tabla
+- **Estado:** Vigente · 2026-10-28 (responde Q-005)
+- **Qué dijo el dueño:**
+  - no habrá lógica de negocio propia al guardar: cada cambio es responsabilidad del usuario;
+  - los casos extremos los cubre la base con FK o triggers (también responsabilidad del usuario);
+  - no hay que validar contra otros sistemas;
+  - enviar correos, sí, como configuración apagada por defecto que se habilita para tablas críticas.
+- **Qué:**
+  - P-060 (hooks) se descarta. Los errores de FK, únicos, CHECK y triggers ya se traducen a mensajes claros (D-038).
+  - Ajuste por tabla `notify`: destinatarios, operaciones (por defecto altas, ediciones y bajas) e `includeValues`. Lo edita quien tiene `ConfigureTables`, y las direcciones no viajan a la UI de datos.
+  - Se envía por SMTP (`Notifications`, apagado por defecto) con `System.Net.Mail`, sin dependencias.
+  - El aviso usa las mismas entradas que la auditoría (D-068), se arma después de confirmar el cambio y se envía en segundo plano. La cola es de 1.000 avisos, con 3 reintentos; los fallos van al log.
+- **Descartado:**
+  - Webhooks o scripts al guardar: el dueño no los necesita.
+  - Un paquete de correo como MailKit: `System.Net.Mail` alcanza para SMTP con STARTTLS y no agrega dependencias.
+  - Enviar dentro de la solicitud: el usuario esperaría al servidor de correo, y un fallo del correo parecería un fallo al guardar.
+
 ---
 
 ## Propuestas (aún no decididas)

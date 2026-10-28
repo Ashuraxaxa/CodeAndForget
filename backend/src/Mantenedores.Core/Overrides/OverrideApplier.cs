@@ -17,7 +17,7 @@ public sealed record OverrideIssue(string Schema, string Table, string Field, st
 /// al guardar, los mismos avisos se devuelven como errores de validación (<see cref="Validate"/>).
 /// Excepción: ocultar una columna siempre se aplica, aunque tenga avisos, porque puede proteger datos sensibles.
 /// </summary>
-public static class OverrideApplier
+public static partial class OverrideApplier
 {
     /// <summary>Controles que entiende la UI, además de los automáticos por tipo.</summary>
     public static readonly IReadOnlySet<string> Widgets =
@@ -162,8 +162,28 @@ public static class OverrideApplier
             else defaultSort = string.Join(",", specs.Select(s => (s.Descending ? "-" : "") + columns.First(c => Same(c.Name, s.Column)).Name));
         }
 
+        // --- Avisos por correo (D-073) ---
+        Notifications.TableNotify? notify = null;
+        if (o.Notify is { } no)
+        {
+            var emails = (no.Emails ?? []).Select(e => e.Trim()).Where(e => e.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            var ops = new HashSet<Audit.AuditOperation>();
+            foreach (var name in no.On ?? [])
+                if (NotifyOps.TryGetValue(name.Trim(), out var op)) ops.Add(op);
+                else Issue("notify.on", $"'{name}' no es válido; use create, update, delete, import o links");
+            if (emails.FirstOrDefault(e => !Email().IsMatch(e)) is { } badEmail) Issue("notify.emails", $"'{badEmail}' no es un correo válido");
+            else if (emails.Count > 0)
+                notify = new Notifications.TableNotify
+                {
+                    Emails = emails,
+                    On = ops.Count > 0 ? ops : new HashSet<Audit.AuditOperation> { Audit.AuditOperation.Create, Audit.AuditOperation.Update, Audit.AuditOperation.Delete },
+                    IncludeValues = no.IncludeValues ?? true
+                };
+        }
+
         return t with
         {
+            Notify = notify,
             Columns = columns.OrderBy(c => c.Order).ThenBy(c => c.Ordinal).ToList(),
             PrimaryKey = pk,
             HasVirtualPrimaryKey = virtualPk,
@@ -176,6 +196,16 @@ public static class OverrideApplier
             ForcedReadOnly = o.ReadOnly ?? false
         };
     }
+
+    private static readonly IReadOnlyDictionary<string, Audit.AuditOperation> NotifyOps =
+        new Dictionary<string, Audit.AuditOperation>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["create"] = Audit.AuditOperation.Create, ["update"] = Audit.AuditOperation.Update, ["delete"] = Audit.AuditOperation.Delete,
+            ["import"] = Audit.AuditOperation.Import, ["links"] = Audit.AuditOperation.Links
+        };
+
+    [GeneratedRegex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$")]
+    private static partial Regex Email();
 
     private static ColumnInfo ApplyColumn(ColumnInfo c, ColumnOverride o, string field, Action<string, string> issue)
     {

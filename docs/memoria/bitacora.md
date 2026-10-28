@@ -4,6 +4,18 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Fase 5: avisos por correo (Q-005 → D-073)
+- El dueño respondió que no habrá lógica propia al guardar (P-060 descartado), y que sí quiere correos, apagados por defecto y habilitables por tabla.
+- Ajuste `notify` por tabla (destinatarios, operaciones, valores) y envío SMTP en segundo plano, a partir de las mismas entradas de la auditoría.
+- Pruebas:
+  - validación del ajuste;
+  - texto del correo;
+  - envío real contra un SMTP falso;
+  - en la batería, solo se avisa lo configurado;
+  - en el navegador, el correo llegó con el cambio y el enlace.
+- 194 unitarias y 223 de integración en verde.
+- **Siguiente:** pendientes menores.
+
 ## 2026-10-28 · Fase 4: tablas grandes (P-052)
 - El dueño respondió Q-004: tablas de hasta ~1 millón de filas, en general no transaccionales, "pero tengámoslo cubierto" → D-072.
 - Se midió con una tabla de 1 millón en PostgreSQL 16. Paginar por número va bien (la última página tarda 0,2 s), así que no hace falta la paginación por clave (queda en P-098).

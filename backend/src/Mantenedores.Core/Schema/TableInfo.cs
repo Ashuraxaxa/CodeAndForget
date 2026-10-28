@@ -46,6 +46,10 @@ public sealed record TableInfo
     /// </summary>
     public ForeignKeyInfo? SelfReference { get; init; }
 
+    /// <summary>Avisos por correo (ajuste <c>notify</c>, D-073). No viaja a la UI: tiene direcciones de correo.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Notifications.TableNotify? Notify { get; init; }
+
     /// <summary>Operaciones que el usuario actual puede hacer en la tabla (D-063). Sin restricciones = todas.</summary>
     [System.Text.Json.Serialization.JsonIgnore] // la UI recibe los Can* de abajo
     public Security.DataOperation Access { get; init; } = Security.DataOperation.All;

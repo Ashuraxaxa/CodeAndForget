@@ -200,6 +200,17 @@ export interface TableOverride {
   /** Hijas en pestañas, por nombre de FK y en orden. Sin definir = todas; [] = ninguna. */
   children?: string[]
   columns?: Record<string, ColumnOverride>
+  /** Avisar por correo cuando cambia (D-073). Solo se envía si la app tiene SMTP configurado. */
+  notify?: NotifyOverride
+}
+
+export type NotifyOperation = 'create' | 'update' | 'delete' | 'import' | 'links'
+
+export interface NotifyOverride {
+  emails?: string[]
+  /** Vacío = altas, ediciones y bajas. */
+  on?: NotifyOperation[]
+  includeValues?: boolean
 }
 
 export interface OverridePreview {

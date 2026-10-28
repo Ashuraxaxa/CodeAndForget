@@ -175,6 +175,7 @@ export const api = {
       settings: Record<string, string> | null
     }>('POST', 'api/connections/test', c),
 
+  notificationsStatus: () => request<{ enabled: boolean }>('GET', 'api/meta/notifications'),
   tables: (conn: string) => request<SchemaSummary>('GET', `api/meta/${enc(conn)}/tables`),
   refresh: (conn: string) => request<SchemaSummary>('POST', `api/meta/${enc(conn)}/refresh`),
   diff: (conn: string) => request<SchemaDiff>('GET', `api/meta/${enc(conn)}/diff`),

@@ -15,6 +15,14 @@ public sealed partial class SqlServerProvider : IDatabaseProvider
     // SqlClient mantiene un pool por cadena de conexión.
     public DbConnection CreateConnection(string connectionString) => new SqlConnection(connectionString);
 
+    /// <summary>SqlClient cierra solo las conexiones inactivas (a los 4 a 8 minutos): aquí se fija solo el tope.</summary>
+    public string ApplyPool(string connectionString, PoolOptions pool)
+    {
+        var b = new DbConnectionStringBuilder { ConnectionString = connectionString };
+        PoolOptions.SetIfMissing(b, pool.MaxSize, "Max Pool Size", "MaxPoolSize");
+        return b.ConnectionString;
+    }
+
     /// <summary>13 = SQL Server 2016.</summary>
     public static readonly Version MinimumVersion = new(13, 0);
 

@@ -587,6 +587,20 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Agregar una columna de versión a las tablas del cliente: la app no modifica su estructura.
   - Comparar en el `WHERE` del `UPDATE` los valores originales: varios tipos no se comparan con `=` (`xml`, `ntext`, `json`).
 
+### D-070 · Tope del pool y límites de uso por configuración
+- **Estado:** Vigente · 2026-10-28 (P-051, P-091)
+- **Qué:**
+  - **Pool:** cada proveedor agrega a la cadena, con los nombres de su driver, el máximo de conexiones (`Database:Pool:MaxSize`, 20) y el cierre de inactivas (`IdleSeconds`, 300). Solo si la cadena no los trae: lo del usuario manda.
+  - **Límites de uso:** el limitador de ASP.NET Core, en memoria:
+    - 600 solicitudes por minuto por usuario;
+    - 10 exportaciones o importaciones por minuto por usuario;
+    - 10 intentos de login por minuto por IP.
+  - Al pasarse, `429` con `Retry-After`. Los health checks no cuentan.
+- **Descartado:**
+  - Un semáforo propio por conexión: el pool del driver ya pone el tope y hace esperar.
+  - Contadores compartidos entre instancias (Redis): sería una dependencia externa (D-022). Con N instancias el límite efectivo es N veces el configurado; queda para P-050.
+  - Limitar el login por usuario además de por IP: el nombre viene en el cuerpo y habría que leerlo antes de autenticar.
+
 ---
 
 ## Propuestas (aún no decididas)

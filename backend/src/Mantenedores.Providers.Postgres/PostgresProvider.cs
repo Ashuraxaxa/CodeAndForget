@@ -14,6 +14,14 @@ public sealed class PostgresProvider : IDatabaseProvider
     // Npgsql mantiene un pool por cadena de conexión.
     public DbConnection CreateConnection(string connectionString) => new NpgsqlConnection(connectionString);
 
+    public string ApplyPool(string connectionString, PoolOptions pool)
+    {
+        var b = new DbConnectionStringBuilder { ConnectionString = connectionString };
+        PoolOptions.SetIfMissing(b, pool.MaxSize, "Maximum Pool Size", "Max Pool Size", "MaxPoolSize", "MaximumPoolSize");
+        PoolOptions.SetIfMissing(b, pool.IdleSeconds, "Connection Idle Lifetime", "ConnectionIdleLifetime");
+        return b.ConnectionString;
+    }
+
     public static readonly Version MinimumVersion = new(12, 0);
 
     public async Task<ServerInfo> GetServerInfoAsync(DbConnection connection, CancellationToken ct)

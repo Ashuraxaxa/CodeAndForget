@@ -45,7 +45,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-043 | Filtros de fila por rol | — | ⛔ descartado por el dueño (D-064) |
 | P-044 | Auditoría de cambios (quién, cuándo, valor anterior y nuevo), 1 año configurable, con vista en la UI (D-065, D-068) | 🟡 | ✅ PR #22 |
 | P-046 | Concurrencia optimista: no pisar un registro que otro cambió (D-069) | 🟡 | ✅ PR #23 |
-| P-091 | Login: limitar intentos fallidos por usuario e IP (hoy no hay tope) | 🟡 | ⏳ |
+| P-091 | Login: limitar intentos por IP (D-070) | 🟡 | ✅ PR #24 |
 | P-092 | Usuarios propios: cachear unos segundos si siguen activos (hoy se consulta la metadata en cada solicitud del modo Local) | ⚪ | ⏳ |
 | P-093 | Seguridad: elegir tablas y columnas de una lista también con la regla `*` (hoy se escriben a mano) y copiar un perfil | ⚪ | ⏳ |
 | P-094 | Auditoría: mostrar etiquetas (no solo ids) en FK y vínculos N:M, y exportarla a CSV o Excel | ⚪ | ⏳ |
@@ -56,8 +56,8 @@ Detalle técnico en [../motores.md](../motores.md).
 
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
-| P-050 | Caché del esquema en Redis, opcional por configuración (D-026) | ⚪ | ⏳ solo si hay varias instancias |
-| P-051 | Pools con tope por conexión, cierre de inactivos y rate limit | 🟡 | ⏳ |
+| P-050 | Caché del esquema y contadores de límites de uso en Redis, opcional por configuración (D-026, D-070) | ⚪ | ⏳ solo si hay varias instancias |
+| P-051 | Pools con tope por conexión, cierre de inactivos y rate limit (D-070) | 🟡 | ✅ PR #24 |
 | P-052 | Paginación por clave y conteo estimado para tablas grandes | 🟡 | ⏳ depende de Q-004 |
 | P-053 | Observabilidad (OpenTelemetry, consultas lentas) y pruebas de carga con k6 | 🟡 | ⏳ |
 

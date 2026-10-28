@@ -23,6 +23,14 @@ public sealed partial class MySqlProvider : IDatabaseProvider
     public DbConnection CreateConnection(string connectionString) =>
         new MySqlConnection(new MySqlConnectionStringBuilder(connectionString) { ConvertZeroDateTime = true }.ConnectionString);
 
+    public string ApplyPool(string connectionString, PoolOptions pool)
+    {
+        var b = new DbConnectionStringBuilder { ConnectionString = connectionString };
+        PoolOptions.SetIfMissing(b, pool.MaxSize, "Maximum Pool Size", "Max Pool Size", "MaxPoolSize", "MaximumPoolsize");
+        PoolOptions.SetIfMissing(b, pool.IdleSeconds, "Connection Idle Timeout", "ConnectionIdleTimeout");
+        return b.ConnectionString;
+    }
+
     /// <summary>TIMESTAMP se convierte con la zona de la sesión: se fija en UTC para que sea predecible.</summary>
     public async Task InitializeSessionAsync(DbConnection connection, CancellationToken ct)
     {

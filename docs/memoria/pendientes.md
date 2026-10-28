@@ -32,7 +32,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-087 | N:M: ajuste para desactivar el selector de un puente o mostrarlo como pestaña; puentes con columnas extra (p. ej. `cantidad`) como hijas con su propio formulario | ⚪ | ⏳ |
 | P-088 | Importar actualizando por clave (upsert) además de insertar (D-075) | 🟡 | ✅ PR #29 |
 | P-100 | Interfaz en español, inglés y ruso, con selector y formato de fechas y números por idioma (D-076) | 🟡 | ✅ PR #30 |
-| P-101 | Mensajes del servidor en el idioma elegido: errores de validación, de la base y descripciones de cambios de esquema según `Accept-Language` (hoy llegan en español) | ⚪ | ⏳ |
+| P-101 | Mensajes del servidor en el idioma elegido: plantillas en el frontend sobre el español del servidor (D-080) | ⚪ | ✅ PR #32 |
 | P-102 | Nombres visibles por idioma en los ajustes (`label`, `helpText`), si algún equipo los necesita | ⚪ | ⏳ |
 | P-089 | Árbol: elegir la FK cuando hay más de una autorreferencia (hoy se usa la primera) y mover nodos arrastrando | ⚪ | ⏳ |
 | P-090 | Archivos: vista previa de imágenes en la grilla y en el formulario; editar `geography`/`geometry` como WKT | ⚪ | ⏳ |
@@ -50,9 +50,10 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-046 | Concurrencia optimista: no pisar un registro que otro cambió (D-069) | 🟡 | ✅ PR #23 |
 | P-091 | Login: limitar intentos por IP (D-070) | 🟡 | ✅ PR #24 |
 | P-092 | Usuarios propios: si siguen activos se guarda 10 s; desactivar corta la sesión al instante (D-077) | ⚪ | ✅ PR #31 |
-| P-093 | Seguridad: elegir tablas y columnas de una lista también con la regla `*` (hoy se escriben a mano) y copiar un perfil | ⚪ | ⏳ |
-| P-094 | Auditoría: mostrar etiquetas (no solo ids) en FK y vínculos N:M, y exportarla a CSV o Excel | ⚪ | ⏳ |
-| P-095 | Auditoría: con `ViewAudit` restringido por perfil, mostrar solo las conexiones y tablas que el usuario ve | ⚪ | ⏳ |
+| P-093 | Seguridad: tablas y columnas de una lista también con la regla `*`, y copiar un perfil | ⚪ | ✅ PR #32 |
+| P-094 | Auditoría: texto de FK y vínculos N:M ("Bebidas (1)") y exportar a CSV o Excel (D-081) | ⚪ | ✅ PR #32 |
+| P-095 | Auditoría con perfil: solo las tablas y columnas que el usuario ve (D-081) | ⚪ | ✅ PR #32 |
+| P-103 | Auditoría con perfil: una edición en la que solo cambiaron columnas ocultas se lista vacía (revela que algo cambió); evaluar ocultarla si algún equipo lo pide | ⚪ | ⏳ |
 | P-096 | Concurrencia: cerrar la ventana de milisegundos entre comparar y escribir con un bloqueo de fila por dialecto (`FOR UPDATE` / `UPDLOCK`), si algún equipo lo necesita | ⚪ | ⏳ |
 
 ## 3. Fase 4: escala y operación

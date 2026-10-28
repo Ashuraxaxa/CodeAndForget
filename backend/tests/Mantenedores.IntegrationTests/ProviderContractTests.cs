@@ -237,6 +237,18 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
     // ---------- Filtro de una FK por su etiqueta (P-032) ----------
 
     [Fact]
+    public async Task Da_el_texto_a_mostrar_de_varios_ids_para_la_auditoria()
+    {
+        // P-094: ids como vienen del JSON de la auditoría (número o texto), con uno que ya no existe.
+        var ids = new[] { JsonSerializer.SerializeToElement(1), JsonSerializer.SerializeToElement("2"), JsonSerializer.SerializeToElement(999999) };
+        var labels = await Db.Crud.LabelsAsync(Conn, Schema, N("categoria"), N("id"), ids, default);
+        Assert.Equal(2, labels.Count);
+        Assert.False(string.IsNullOrEmpty(labels["1"]));
+        Assert.False(string.IsNullOrEmpty(labels["2"]));
+        Assert.Empty(await Db.Crud.LabelsAsync(Conn, Schema, N("categoria"), N("id"), [], default));
+    }
+
+    [Fact]
     public async Task El_filtro_de_una_fk_acepta_el_id_o_el_texto_que_se_muestra()
     {
         async Task<List<object?>> Categorias(string filter) =>

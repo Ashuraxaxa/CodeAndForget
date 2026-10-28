@@ -3,7 +3,7 @@ import type {
   AuditPage, SecurityInfo, SecurityProfile, SecurityUser,
   Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride,
 } from './types'
-import { t } from '../i18n'
+import { t, translateServer } from '../i18n'
 
 /** Error de la API con el formato ProblemDetails de ASP.NET. */
 export class ApiError extends Error {
@@ -16,12 +16,13 @@ export class ApiError extends Error {
 
   constructor(status: number, title: string, detail?: string, errors?: Record<string, string[]>,
     type?: string, current?: Record<string, unknown>) {
-    super(detail || title)
+    // El servidor responde en español; se muestra en el idioma elegido (P-101).
+    super(translateServer(detail || title))
     this.status = status
     this.type = type
     this.current = current
     this.fieldErrors = Object.fromEntries(
-      Object.entries(errors ?? {}).map(([k, v]) => [k, v.join(' ')]),
+      Object.entries(errors ?? {}).map(([k, v]) => [k, v.map(m => translateServer(m)).join(' ')]),
     )
   }
 }
@@ -73,7 +74,9 @@ async function request<T>(method: string, url: string, body?: unknown, extraHead
 /** Descarga un archivo de la API con el token (un enlace directo no lo llevaría). */
 async function download(url: string): Promise<void> {
   const token = tokenProvider()
-  const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  const headers: Record<string, string> = { 'Accept-Language': document.documentElement.lang || 'es' }
+  if (token) headers.Authorization = `Bearer ${token}`
+  const res = await fetch(url, { headers })
   if (res.status === 401) { onUnauthorized(); throw new ApiError(401, t('Sesión expirada')) }
   if (!res.ok) {
     const data = await res.json().catch(() => undefined)
@@ -167,6 +170,12 @@ export const api = {
 
   /** Filtros: conn, schema, table, user, op, from, to, page, pageSize y la clave como k.<columna>. */
   audit: (params: URLSearchParams) => request<AuditPage>('GET', `api/audit?${params}`),
+  /** Exporta lo que muestran los filtros de la auditoría (P-094). */
+  exportAudit: (params: URLSearchParams, format: TransferFormat) => {
+    const q = new URLSearchParams(params)
+    q.delete('page'); q.delete('pageSize'); q.set('format', format)
+    return download(`api/audit/export?${q}`)
+  },
 
   connections: () => request<Connection[]>('GET', 'api/connections'),
   saveConnection: (c: ConnectionInput) => request<Connection>('PUT', `api/connections/${enc(c.id)}`, c),

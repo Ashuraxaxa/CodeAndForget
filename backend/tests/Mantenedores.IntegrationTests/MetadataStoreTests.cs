@@ -118,6 +118,17 @@ public abstract class MetadataStoreContractTests<TFixture>(TFixture db) : IClass
 
         Assert.True(await store.PurgeAsync(now.AddDays(-365), default) >= 1);
         Assert.Equal(2, (await store.QueryAsync(new Core.Audit.AuditQuery { Connection = conn }, default)).Total);
+        // Con perfil (P-095): solo lo permitido, por conexión completa o por tabla suelta.
+        Assert.Contains(await store.TablesAsync(default), t => t.Connection == conn && t.Table == "producto");
+        Assert.Equal(2, (await store.QueryAsync(new Core.Audit.AuditQuery
+        {
+            Connection = conn, AllowedConnections = [], AllowedTables = [new(conn, "ventas", "producto")]
+        }, default)).Total);
+        Assert.Equal(0, (await store.QueryAsync(new Core.Audit.AuditQuery
+        {
+            Connection = conn, AllowedConnections = ["otra"], AllowedTables = [new(conn, "ventas", "otra_tabla")]
+        }, default)).Total);
+        Assert.Equal(-1, (await store.QueryAsync(new Core.Audit.AuditQuery { Connection = conn, CountTotal = false }, default)).Total);
     }
 
     [Fact]

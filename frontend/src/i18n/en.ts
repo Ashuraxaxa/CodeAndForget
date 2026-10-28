@@ -306,4 +306,7 @@ export const en: Messages = {
   'Todos': 'All',
   'contiene…': 'contains…',
   'id o nombre…': 'id or name…',
+  'Exportar lo que muestran los filtros': 'Export what the filters show',
+  'Copiar': 'Copy',
+  'Copia de {name}': 'Copy of {name}',
 }

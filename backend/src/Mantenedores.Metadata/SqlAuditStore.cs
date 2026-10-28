@@ -50,6 +50,24 @@ public sealed class SqlAuditStore(MetadataDatabase db) : IAuditStore
         Eq("operation", "op", q.Operation?.ToString());
         if (q.From is { } from) { where.Append(" AND at >= @from"); args.Add("from", At(from)); }
         if (q.To is { } to) { where.Append(" AND at < @to"); args.Add("to", At(to)); }
+        // Perfil (P-095): conexiones completas o tablas sueltas que el usuario puede ver.
+        if (q.AllowedConnections is not null || q.AllowedTables is not null)
+        {
+            var allowed = new List<string>();
+            var conns = q.AllowedConnections ?? [];
+            if (conns.Count > 0)
+            {
+                allowed.Add($"connection_id IN ({string.Join(", ", conns.Select((_, i) => $"@ac{i}"))})");
+                for (var i = 0; i < conns.Count; i++) args.Add($"ac{i}", conns[i]);
+            }
+            var tables = q.AllowedTables ?? [];
+            for (var i = 0; i < tables.Count; i++)
+            {
+                allowed.Add($"(connection_id = @tc{i} AND schema_name = @ts{i} AND table_name = @tt{i})");
+                args.Add($"tc{i}", tables[i].Connection); args.Add($"ts{i}", tables[i].Schema); args.Add($"tt{i}", tables[i].Table);
+            }
+            where.Append(allowed.Count == 0 ? " AND 1 = 0" : $" AND ({string.Join(" OR ", allowed)})");
+        }
 
         var size = Math.Clamp(q.PageSize, 1, AuditQuery.MaxPageSize);
         var page = Math.Max(q.Page, 1);
@@ -59,7 +77,9 @@ public sealed class SqlAuditStore(MetadataDatabase db) : IAuditStore
         var paging = Sqlite ? " ORDER BY id DESC LIMIT @take OFFSET @skip" : " ORDER BY id DESC OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY";
 
         await using var conn = await db.OpenAsync(ct);
-        var total = await conn.ExecuteScalarAsync<long>(new CommandDefinition("SELECT COUNT(*) FROM mnt_audit" + where, args, cancellationToken: ct));
+        var total = q.CountTotal
+            ? await conn.ExecuteScalarAsync<long>(new CommandDefinition("SELECT COUNT(*) FROM mnt_audit" + where, args, cancellationToken: ct))
+            : -1;
         var rows = await conn.QueryAsync<Row>(new CommandDefinition(
             "SELECT id AS Id, at AS At, username AS Username, connection_id AS ConnectionId, schema_name AS SchemaName, table_name AS TableName, " +
             "operation AS Operation, row_key AS RowKey, old_values AS OldValues, new_values AS NewValues FROM mnt_audit" + where + paging,
@@ -70,6 +90,14 @@ public sealed class SqlAuditStore(MetadataDatabase db) : IAuditStore
             Operation = Enum.TryParse<AuditOperation>(r.Operation, out var op) ? op : AuditOperation.Update,
             RowKey = r.RowKey, OldValues = r.OldValues, NewValues = r.NewValues
         }).ToList(), total, page, size);
+    }
+
+    public async Task<IReadOnlyList<AuditTable>> TablesAsync(CancellationToken ct)
+    {
+        await using var conn = await db.OpenAsync(ct);
+        var rows = await conn.QueryAsync<(string Connection, string Schema, string Table)>(new CommandDefinition(
+            "SELECT DISTINCT connection_id, schema_name, table_name FROM mnt_audit", cancellationToken: ct));
+        return rows.Select(r => new AuditTable(r.Connection, r.Schema, r.Table)).ToList();
     }
 
     public async Task<int> PurgeAsync(DateTimeOffset before, CancellationToken ct)

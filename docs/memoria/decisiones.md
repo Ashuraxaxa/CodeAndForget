@@ -714,6 +714,27 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Qué:** `dotnet Mantenedores.Api.dll healthcheck [url]` consulta `/api/health/ready` (de `ASPNETCORE_URLS` y `Hosting__PathBase`) y sale con 0 o 1. El `Dockerfile` lo usa como `HEALTHCHECK`.
 - **Descartado:** instalar `curl` en la imagen: suma un paquete y superficie de ataque solo para esto.
 
+### D-080 · Mensajes del servidor traducidos en el frontend
+- **Estado:** Vigente · 2026-10-28 (P-101)
+- **Qué:**
+  - El servidor sigue respondiendo en español. `frontend/src/i18n/server.ts` tiene unas 145 plantillas `[es, en, ru]`, con las partes variables entre llaves.
+  - `translateServer` busca la frase exacta, luego por plantilla y, si son varias oraciones, una por una. Lo que no reconoce queda en español.
+  - Se aplica en `ApiError` (mensaje y errores por campo), en los errores de importación y en las descripciones de cambios de esquema.
+  - Una variable no cruza el fin de una oración; `{verb}` se reconoce por la lista de fragmentos ("editar registros de"…), que también se traducen.
+  - `npm run lint` revisa que cada traducción tenga las mismas `{variables}` que el español (también en `en.ts` y `ru.ts`).
+  - La exportación de la auditoría sí usa `Accept-Language` para sus encabezados.
+- **Descartado:**
+  - **Catálogo de mensajes en el servidor:** obliga a cambiar unos 150 `throw` de interpolación a plantilla con argumentos y a tener dos sistemas de traducción.
+  - **Códigos de error en vez de frases:** las pruebas y los registros pierden el texto legible, y cada frase igual necesita su traducción.
+
+### D-081 · Auditoría con etiquetas, exportación y filtro por perfil
+- **Estado:** Vigente · 2026-10-28 (P-094, P-095)
+- **Qué:**
+  - **Por perfil:** con una consulta `SELECT DISTINCT` se sabe qué tablas tienen entradas y, por nombres (sin leer el esquema, sirve aunque la base no responda), cuáles puede ver el usuario. La consulta se limita a esas conexiones completas o tablas sueltas, y de antes y después se quitan las columnas que no puede ver. Los administradores y la seguridad abierta ven todo.
+  - **Etiquetas:** por página, una consulta por tabla referenciada (`WHERE clave IN (…)`, hasta 500 valores) con los permisos del usuario, para FK de una columna y vínculos N:M. Si la base no responde, se ven los ids.
+  - **Exportar:** `GET /api/audit/export?format=csv|xlsx` con los mismos filtros, hasta `Audit:ExportMaxRows` (100.000), recorriendo páginas sin contar el total.
+- **Descartado:** guardar la etiqueta en la entrada al registrar: el texto cambia (se renombra la categoría) y agranda cada entrada; la etiqueta actual es lo que el usuario reconoce.
+
 ---
 
 ## Propuestas (aún no decididas)

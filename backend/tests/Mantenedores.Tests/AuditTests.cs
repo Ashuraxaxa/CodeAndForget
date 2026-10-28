@@ -39,6 +39,54 @@ public sealed class AuditTests : IDisposable
     }
 
     public static TheoryData<string> Stores => new() { "sqlite", "file" };
+    [Theory]
+    [MemberData(nameof(Stores))]
+    public async Task Con_perfil_solo_se_ven_las_tablas_y_columnas_permitidas(string kind)
+    {
+        // P-095: ana ve todo "demo" salvo la tabla sueldo, y en producto no ve el costo; de "rrhh" no ve nada.
+        var store = await Store(kind);
+        AuditEntry E(string conn, string table, string values) => new()
+        {
+            At = DateTimeOffset.UtcNow, User = "x", Connection = conn, Schema = "ventas", Table = table,
+            Operation = AuditOperation.Update, RowKey = "id=1", OldValues = values, NewValues = values
+        };
+        await store.WriteAsync([E("demo", "producto", """{"precio":1,"costo":2}"""), E("demo", "sueldo", """{"monto":9}"""),
+            E("demo", "categoria", """{"nombre":"a"}"""), E("rrhh", "producto", """{"precio":3}""")], default);
+        var profile = new Mantenedores.Core.Security.SecurityProfile
+        {
+            Id = "p", Name = "p", Users = ["ana"],
+            Connections = new Dictionary<string, Mantenedores.Core.Security.ConnectionRule>
+            {
+                ["demo"] = new()
+                {
+                    Operations = ["view"],
+                    Tables = new Dictionary<string, Mantenedores.Core.Security.TableRule>
+                    {
+                        ["ventas.sueldo"] = new() { Operations = [] },
+                        ["ventas.producto"] = new()
+                        {
+                            Operations = ["view"],
+                            Columns = new Dictionary<string, Mantenedores.Core.Security.ColumnRule> { ["costo"] = new() { Operations = [] } }
+                        }
+                    }
+                }
+            }
+        };
+        var ana = Mantenedores.Core.Security.UserAccess.For("ana", [], false, [profile]);
+
+        var query = AuditAccess.Restrict(new AuditQuery(), ana, await store.TablesAsync(default));
+        var page = await store.QueryAsync(query, default);
+        Assert.Equal(2, page.Total);
+        Assert.Equal(["categoria", "producto"], page.Entries.Select(e => e.Table).Order().ToList());
+        var producto = AuditAccess.Mask(page.Entries.Single(e => e.Table == "producto"), ana);
+        Assert.Equal("""{"precio":1}""", producto.OldValues);
+
+        // Sin nada permitido, nada; sin restricciones, todo.
+        var nadie = Mantenedores.Core.Security.UserAccess.For("luis", [], false, [profile]);
+        Assert.Equal(0, (await store.QueryAsync(AuditAccess.Restrict(new AuditQuery(), nadie, await store.TablesAsync(default)), default)).Total);
+        Assert.Equal(4, (await store.QueryAsync(AuditAccess.Restrict(new AuditQuery(), Mantenedores.Core.Security.UserAccess.All, []), default)).Total);
+    }
+
 
     private async Task<IAuditStore> Store(string kind)
     {
@@ -111,6 +159,7 @@ public sealed class AuditTests : IDisposable
     {
         public Task WriteAsync(IReadOnlyList<AuditEntry> entries, CancellationToken ct) => throw new InvalidOperationException("caída");
         public Task<AuditPage> QueryAsync(AuditQuery query, CancellationToken ct) => throw new NotImplementedException();
+        public Task<IReadOnlyList<AuditTable>> TablesAsync(CancellationToken ct) => throw new NotImplementedException();
         public Task<int> PurgeAsync(DateTimeOffset before, CancellationToken ct) => throw new NotImplementedException();
     }
 

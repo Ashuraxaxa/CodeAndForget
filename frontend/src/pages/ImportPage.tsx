@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { labelOf, type ImportMode, type ImportResult } from '../api/types'
-import { useT } from '../i18n'
+import { translateServer, useT } from '../i18n'
 
 const ACCEPT = '.csv,.txt,.xlsx,.json,.xml'
 
@@ -138,7 +138,7 @@ export function ImportPage() {
             {r.errors.length > 0 && (
               <div className="alert">
                 {r.errors.map((e, i) => (
-                  <div key={i}>{e.line > 0 ? t('Línea {line}', { line: e.line }) : t('General')}{e.column ? ` · ${e.column}` : ''}: {e.message}</div>
+                  <div key={i}>{e.line > 0 ? t('Línea {line}', { line: e.line }) : t('General')}{e.column ? ` · ${e.column}` : ''}: {translateServer(e.message)}</div>
                 ))}
               </div>
             )}

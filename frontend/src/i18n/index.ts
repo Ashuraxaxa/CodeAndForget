@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react'
 import { en } from './en'
 import { es } from './es'
 import { ru } from './ru'
+import { SERVER, SERVER_VERBS } from './server'
 
 /**
  * Idiomas de la interfaz (P-100). El español es el idioma base: los textos se escriben en español en el código y
@@ -74,6 +75,57 @@ export function translate(locale: Locale, text: string, vars?: Record<string, st
 
 /** Fuera de React: con el idioma vigente. */
 export const t: Translate = (text, vars) => translate(current, text, vars)
+
+// ---------- Mensajes del servidor (P-101, D-080) ----------
+
+interface ServerTemplate { re: RegExp; names: string[]; en: string; ru: string }
+let serverExact: Map<string, [string, string]> | null = null
+let serverTemplates: ServerTemplate[] = []
+
+function compileServer() {
+  serverExact = new Map(SERVER.map(([es, en, ru]) => [es, [en, ru]]))
+  // Las plantillas más largas primero: "… es de solo lectura: no se puede importar." antes que "… es de solo lectura.".
+  serverTemplates = SERVER.filter(([es]) => es.includes('{'))
+    .sort((a, b) => b[0].length - a[0].length)
+    .map(([es, en, ru]) => {
+      const names: string[] = []
+      const pattern = es.split(/(\{\w+\})/).map(part => {
+        const m = /^\{(\w+)\}$/.exec(part)
+        if (!m) return part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        names.push(m[1])
+        // Una variable no cruza el fin de una oración; {verb} es uno de los fragmentos conocidos.
+        return m[1] === 'verb' ? `(${SERVER_VERBS.join('|')})` : '((?:(?!\\. ).)+?)'
+      }).join('')
+      return { re: new RegExp(`^${pattern}$`, 's'), names, en, ru }
+    })
+}
+
+/**
+ * Traduce un mensaje que armó el servidor en español: exacto, por plantilla o, si son varias oraciones, una por una.
+ * Lo que no se reconoce queda en español.
+ */
+export function translateServer(text: string | undefined | null, locale: Locale = current): string {
+  if (!text || locale === 'es') return text ?? ''
+  if (!serverExact) compileServer()
+  const i = locale === 'en' ? 0 : 1
+  const one = (s: string): string | null => {
+    const exact = serverExact!.get(s)
+    if (exact) return exact[i]
+    for (const tpl of serverTemplates) {
+      const m = tpl.re.exec(s)
+      if (!m) continue
+      return (locale === 'en' ? tpl.en : tpl.ru).replace(/\{(\w+)\}/g, (all, name: string) => {
+        const v = m[tpl.names.indexOf(name) + 1]
+        return v === undefined ? all : serverExact!.get(v)?.[i] ?? v
+      })
+    }
+    return null
+  }
+  const whole = one(text)
+  if (whole !== null) return whole
+  const parts = text.split(/(?<=[.:])\s+/)
+  return parts.length > 1 ? parts.map(p => one(p) ?? p).join(' ') : text
+}
 
 export interface I18n {
   locale: Locale

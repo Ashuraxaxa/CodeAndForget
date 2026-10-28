@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
 import type { DataOperation, SecurityProfile, SecurityUser } from '../api/types'
 import { useMe } from '../lib/useMe'
@@ -56,12 +56,15 @@ function Profiles({ adminRoles, permissions }: { adminRoles: string[]; permissio
   const OP_LABELS = opLabels(t)
   const PERMISSION_LABELS = permissionLabels(t)
   const [editing, setEditing] = useState<SecurityProfile | 'new' | null>(null)
+  // Copiar (P-093): el formulario parte de otro perfil, pero es uno nuevo.
+  const [copying, setCopying] = useState(false)
   const remove = useMutation({
     mutationFn: api.deleteProfile,
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['profiles'] }); qc.invalidateQueries({ queryKey: ['me'] }) },
   })
 
-  if (editing) return <ProfileForm initial={editing === 'new' ? null : editing} permissions={permissions} onClose={() => setEditing(null)} />
+  if (editing) return <ProfileForm initial={editing === 'new' ? null : editing} copy={copying} permissions={permissions}
+    onClose={() => { setEditing(null); setCopying(false) }} />
 
   return (
     <>
@@ -96,6 +99,7 @@ function Profiles({ adminRoles, permissions }: { adminRoles: string[]; permissio
             </div>
             <div className="actions">
               <button onClick={() => setEditing(p)}>{t('Editar')}</button>
+              <button onClick={() => { setCopying(true); setEditing(p) }}>{t('Copiar')}</button>
               <button className="danger" onClick={() => confirm(t('¿Eliminar el perfil "{name}"?', { name: p.name })) && remove.mutate(p.id)}>{t('Eliminar')}</button>
             </div>
           </div>
@@ -131,13 +135,16 @@ const fromDraft = (rules: ConnectionDraft[]): SecurityProfile['connections'] =>
 
 const splitList = (s: string) => s.split(',').map(x => x.trim()).filter(Boolean)
 
-function ProfileForm({ initial, permissions, onClose }: { initial: SecurityProfile | null; permissions: string[]; onClose: () => void }) {
+function ProfileForm({ initial, copy = false, permissions, onClose }: {
+  initial: SecurityProfile | null; copy?: boolean; permissions: string[]; onClose: () => void
+}) {
   const qc = useQueryClient()
   const connections = useQuery({ queryKey: ['connections'], queryFn: api.connections })
   const t = useT()
   const PERMISSION_LABELS = permissionLabels(t)
-  const [id, setId] = useState(initial?.id ?? '')
-  const [name, setName] = useState(initial?.name ?? '')
+  const isNew = initial === null || copy
+  const [id, setId] = useState(initial ? (copy ? `${initial.id}-copia` : initial.id) : '')
+  const [name, setName] = useState(initial ? (copy ? t('Copia de {name}', { name: initial.name }) : initial.name) : '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [roles, setRoles] = useState((initial?.roles ?? []).join(', '))
   const [users, setUsers] = useState((initial?.users ?? []).join(', '))
@@ -171,7 +178,7 @@ function ProfileForm({ initial, permissions, onClose }: { initial: SecurityProfi
 
   return (
     <form className="card form" onSubmit={submit}>
-      <h2>{initial ? t('Perfil · {name}', { name: initial.name }) : t('Nuevo perfil')}</h2>
+      <h2>{isNew ? t('Nuevo perfil') : t('Perfil · {name}', { name: initial!.name })}</h2>
       <div className="grid-2">
         <label>
           <span className="field-label">{t('Nombre')}</span>
@@ -180,7 +187,7 @@ function ProfileForm({ initial, permissions, onClose }: { initial: SecurityProfi
         </label>
         <label>
           <span className="field-label">Id</span>
-          <input value={id} onChange={e => setId(e.target.value)} disabled={initial !== null} required placeholder="ventas-lectura" />
+          <input value={id} onChange={e => setId(e.target.value)} disabled={!isNew} required placeholder="ventas-lectura" />
           {errors.id && <span className="field-error">{errors.id}</span>}
         </label>
         <label className="span-2">
@@ -259,13 +266,17 @@ function ConnectionRuleEditor({ rule, connections, used, onChange, onRemove }: {
   onChange: (r: Partial<ConnectionDraft>) => void
   onRemove: () => void
 }) {
-  // Con una conexión concreta se sugieren sus tablas; con "*" se escriben a mano.
-  const tables = useQuery({
-    queryKey: ['tables', rule.conn],
-    queryFn: () => api.tables(rule.conn),
-    enabled: rule.conn !== '' && rule.conn !== '*',
-    retry: false,
+  // Se sugieren las tablas de la conexión; con "*", las de todas (P-093). Una que no responde no aporta sugerencias.
+  const sources = rule.conn === '*' ? connections.map(c => c.id) : rule.conn ? [rule.conn] : []
+  const lists = useQueries({
+    queries: sources.map(id => ({ queryKey: ['tables', id], queryFn: () => api.tables(id), retry: false })),
   })
+  // De qué conexión se leen las columnas de cada tabla (con "*", la primera que la tiene).
+  const owner = new Map<string, string>()
+  lists.forEach((l, i) => l.data?.tables.forEach(x => {
+    const key = `${x.schema}.${x.name}`
+    if (!owner.has(key)) owner.set(key, sources[i])
+  }))
   const t = useT()
   const listId = `tables-${rule.conn}`
   const setTable = (i: number, v: Partial<TableDraft>) => onChange({ tables: rule.tables.map((x, j) => (j === i ? { ...x, ...v } : x)) })
@@ -285,10 +296,10 @@ function ConnectionRuleEditor({ rule, connections, used, onChange, onRemove }: {
         <button type="button" className="link danger" onClick={onRemove}>{t('Quitar')}</button>
       </div>
       <datalist id={listId}>
-        {tables.data?.tables.map(x => <option key={`${x.schema}.${x.name}`} value={`${x.schema}.${x.name}`} />)}
+        {[...owner.keys()].sort().map(key => <option key={key} value={key} />)}
       </datalist>
       {rule.tables.map((x, i) => (
-        <TableRuleEditor key={i} conn={rule.conn} listId={listId} rule={x} onChange={v => setTable(i, v)}
+        <TableRuleEditor key={i} conn={owner.get(x.key.trim()) ?? rule.conn} listId={listId} rule={x} onChange={v => setTable(i, v)}
           onRemove={() => onChange({ tables: rule.tables.filter((_, j) => j !== i) })} />
       ))}
       <button type="button" className="link" onClick={() => onChange({ tables: [...rule.tables, { key: '', operations: ['view'], columns: [] }] })}>

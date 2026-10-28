@@ -8,10 +8,17 @@ import type {
 export class ApiError extends Error {
   status: number
   fieldErrors: Record<string, string>
+  /** Tipo del problema; "mantenedores:concurrencia" = otra persona cambió el registro (D-069). */
+  type?: string
+  /** En un conflicto de concurrencia, cómo está el registro ahora. */
+  current?: Record<string, unknown>
 
-  constructor(status: number, title: string, detail?: string, errors?: Record<string, string[]>) {
+  constructor(status: number, title: string, detail?: string, errors?: Record<string, string[]>,
+    type?: string, current?: Record<string, unknown>) {
     super(detail || title)
     this.status = status
+    this.type = type
+    this.current = current
     this.fieldErrors = Object.fromEntries(
       Object.entries(errors ?? {}).map(([k, v]) => [k, v.join(' ')]),
     )
@@ -41,8 +48,8 @@ export function setUnauthorizedHandler(fn: () => void) { onUnauthorized = fn }
 let tokenProvider: () => string | null = () => tokenStore.get()
 export function setTokenProvider(fn: () => string | null) { tokenProvider = fn }
 
-async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = {}
+async function request<T>(method: string, url: string, body?: unknown, extraHeaders?: Record<string, string>): Promise<T> {
+  const headers: Record<string, string> = { ...extraHeaders }
   const token = tokenProvider()
   if (token) headers.Authorization = `Bearer ${token}`
   if (body !== undefined) headers['Content-Type'] = 'application/json'
@@ -57,7 +64,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 
   const text = await res.text()
   const data = text ? JSON.parse(text) : undefined
-  if (!res.ok) throw new ApiError(res.status, data?.title ?? res.statusText, data?.detail, data?.errors)
+  if (!res.ok) throw new ApiError(res.status, data?.title ?? res.statusText, data?.detail, data?.errors, data?.type, data?.current)
   return data as T
 }
 
@@ -95,6 +102,12 @@ async function upload(url: string, file: File, mapping?: Record<string, string |
 }
 
 const enc = encodeURIComponent
+const ifMatch = (version: unknown): Record<string, string> | undefined =>
+  typeof version === 'string' && version ? { 'If-Match': `"${version}"` } : undefined
+
+/** ¿El error es porque otra persona cambió el registro? (D-069) */
+export const isConcurrencyError = (e: unknown): e is ApiError =>
+  e instanceof ApiError && e.status === 409 && e.type === 'mantenedores:concurrencia'
 const tablePath = (conn: string, schema: string, table: string) =>
   `api/data/${enc(conn)}/${enc(schema)}/${enc(table)}`
 
@@ -190,10 +203,11 @@ export const api = {
     request<Row>('GET', `${tablePath(conn, schema, table)}/row?${key}`),
   create: (conn: string, schema: string, table: string, body: Row) =>
     request<Row>('POST', tablePath(conn, schema, table), body),
-  update: (conn: string, schema: string, table: string, key: string, body: Row) =>
-    request<Row>('PUT', `${tablePath(conn, schema, table)}/row?${key}`, body),
-  remove: (conn: string, schema: string, table: string, key: string) =>
-    request<void>('DELETE', `${tablePath(conn, schema, table)}/row?${key}`),
+  /** Con <c>version</c>, el servidor no pisa el registro si otra persona lo cambió (409, D-069). */
+  update: (conn: string, schema: string, table: string, key: string, body: Row, version?: unknown) =>
+    request<Row>('PUT', `${tablePath(conn, schema, table)}/row?${key}`, body, ifMatch(version)),
+  remove: (conn: string, schema: string, table: string, key: string, version?: unknown) =>
+    request<void>('DELETE', `${tablePath(conn, schema, table)}/row?${key}`, undefined, ifMatch(version)),
   links: (conn: string, schema: string, table: string, key: string, link: string) =>
     request<LookupItem[]>('GET', `${tablePath(conn, schema, table)}/row/links/${enc(link)}?${key}`),
   setLinks: (conn: string, schema: string, table: string, key: string, link: string, values: unknown[]) =>

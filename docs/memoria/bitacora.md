@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Fase 3: concurrencia optimista (P-046), Fase 3 completa
+- El dueño fusionó los PR #18 a #22.
+- Cada fila trae `__version` (hash de sus valores visibles). Editar y borrar la devuelven en `If-Match`, y si cambió responde 409 con la fila actual (D-069).
+- Es igual en los cuatro motores: no depende de `rowversion` ni de `xmin`.
+- Formulario con aviso de conflicto (qué cambió, ver lo actual o guardar igual); el borrado desde una lista vieja también se rechaza.
+- 182 unitarias y 215 de integración en verde; recorrido con dos sesiones en el navegador.
+- **Siguiente:** Fase 4 (P-051 a P-053).
+
 ## 2026-10-28 · Fase 3: auditoría de cambios (P-044)
 - Tabla `mnt_audit` (migración `005_audit`) en SQLite, Postgres y SQL Server, más un almacén en archivo.
 - El CRUD registra altas, ediciones (solo lo que cambió), bajas, filas importadas y cambios N:M, después de confirmar el cambio (D-068).

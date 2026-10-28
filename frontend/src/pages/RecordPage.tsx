@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, ApiError } from '../api/client'
-import { LABEL_SUFFIX, SIZE_SUFFIX, labelOf, type Column, type LookupItem, type Row, type TableMeta } from '../api/types'
+import { api, ApiError, isConcurrencyError } from '../api/client'
+import { LABEL_SUFFIX, SIZE_SUFFIX, VERSION_FIELD, labelOf, type Column, type LookupItem, type Row, type TableMeta } from '../api/types'
 import { FieldControl } from '../components/FieldControl'
 import { fromInputValue, keyQuery, parseRecordSearch, toInputValue } from '../lib/format'
 import { ChildTabs } from '../components/ChildTabs'
@@ -88,8 +88,12 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
   const sameLinks = (a: LookupItem[], b: LookupItem[]) =>
     a.map(x => String(x.value)).sort().join('\u0001') === b.map(x => String(x.value)).sort().join('\u0001')
 
+  // Concurrencia optimista (D-069): si otra persona guardó mientras se editaba, el servidor devuelve cómo quedó.
+  const [conflict, setConflict] = useState<Record<string, unknown> | null>(null)
+
   const save = useMutation({
-    mutationFn: async () => {
+    /** <c>version</c>: la del registro al abrirlo, o la actual si el usuario decide guardar igual tras un conflicto. */
+    mutationFn: async (version: unknown = row?.[VERSION_FIELD]) => {
       const body: Row = {}
       for (const c of fields) {
         // Los valores fijos se envían aunque estén bloqueados: son la FK al registro padre.
@@ -111,7 +115,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
       const saved = isEdit && Object.keys(body).length === 0
         ? row
         : await (isEdit
-          ? api.update(conn, meta.schema, meta.name, recordKey, body)
+          ? api.update(conn, meta.schema, meta.name, recordKey, body, version)
           : api.create(conn, meta.schema, meta.name, body))
       // Después del registro, las relaciones N:M que cambiaron: cada una se sincroniza en una transacción (P-015).
       const key = isEdit ? recordKey : keyQuery(meta, saved)
@@ -135,17 +139,25 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
         navigate(`${list}/edit?${keyQuery(meta, saved)}`, { replace: true })
       else navigate(back)
     },
-    onError: err => setErrors(err instanceof ApiError ? err.fieldErrors : {}),
+    onError: err => {
+      setErrors(err instanceof ApiError ? err.fieldErrors : {})
+      setConflict(isConcurrencyError(err) ? err.current ?? {} : null)
+    },
   })
 
   function submit(e: FormEvent) {
     e.preventDefault()
     if (viewOnly) return
     setErrors({})
-    save.mutate()
+    setConflict(null)
+    save.mutate(undefined)
   }
 
-  const generalError = save.error && Object.keys(errors).length === 0 ? (save.error as Error).message : null
+  const generalError = save.error && !conflict && Object.keys(errors).length === 0 ? (save.error as Error).message : null
+  // Lo que cambió la otra persona, en los campos del formulario: "antes" es lo que se cargó al abrir.
+  const conflictFields = conflict
+    ? fields.filter(c => toInputValue(c, conflict[c.name]) !== initialValues[c.name])
+    : []
 
   return (
     <div className="page">
@@ -216,6 +228,29 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
         </div>
 
         {(generalError || errors._) && <div className="alert">{generalError ?? errors._}</div>}
+
+        {conflict && (
+          <div className="banner conflict">
+            <strong>Otra persona cambió este registro mientras lo editaba.</strong>
+            {conflictFields.length > 0 ? (
+              <ul>
+                {conflictFields.map(c => (
+                  <li key={c.name}>
+                    {labelOf(c)}: ahora <strong>{String(toInputValue(c, conflict[c.name]) || '∅')}</strong>
+                    {values[c.name] !== initialValues[c.name] && <> · usted puso <strong>{String(values[c.name] || '∅')}</strong></>}
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="small">Cambió algo que este formulario no muestra.</p>}
+            <div className="actions">
+              <button type="button" onClick={() => window.location.reload()}>Descartar lo mío y ver lo actual</button>
+              <button type="button" className="danger" disabled={save.isPending}
+                onClick={() => { const v = conflict[VERSION_FIELD]; setConflict(null); save.mutate(v) }}>
+                Guardar lo mío igual
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="actions">
           {!viewOnly && <button className="primary" disabled={save.isPending}>{save.isPending ? 'Guardando…' : 'Guardar'}</button>}

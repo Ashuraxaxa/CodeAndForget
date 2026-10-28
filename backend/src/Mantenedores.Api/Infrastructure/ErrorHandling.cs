@@ -14,6 +14,9 @@ public sealed class ErrorHandler(ILogger<ErrorHandler> logger) : IExceptionHandl
             ValidationException v => Results.ValidationProblem(
                 v.Errors.ToDictionary(e => e.Key, e => new[] { e.Value }), title: v.Message),
             ForbiddenException f => Results.Problem(f.Message, statusCode: 403, title: "Sin permiso"),
+            // Concurrencia optimista (D-069): se devuelve cómo está ahora, para comparar y decidir.
+            ConcurrencyException c => Results.Problem(c.Message, statusCode: 409, title: "El registro cambió",
+                type: "mantenedores:concurrencia", extensions: new Dictionary<string, object?> { ["current"] = c.Current }),
             NotFoundException n => Results.Problem(n.Message, statusCode: 404, title: "No encontrado"),
             // Restricción de la BD ya traducida (P-003): mensaje claro y, si se puede, el campo afectado.
             ConstraintViolationException c => Results.ValidationProblem(

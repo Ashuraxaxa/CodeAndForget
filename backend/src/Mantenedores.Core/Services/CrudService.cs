@@ -2,6 +2,7 @@ using System.Data.Common;
 using System.Text.Json;
 using Dapper;
 using Mantenedores.Core.Audit;
+using Mantenedores.Core.Concurrency;
 using Mantenedores.Core.Errors;
 using Mantenedores.Core.Query;
 using Mantenedores.Core.Schema;
@@ -57,7 +58,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         var rows = await db.QueryAsync(Command(data, ct));
 
         var pageSize = Math.Clamp(request.PageSize, 1, ListRequest.MaxPageSize);
-        return new PagedResult(rows.Cast<object>().Select(r => Normalize(info, Rename(ToRow(r), data.Renames))).ToList(),
+        return new PagedResult(rows.Cast<object>().Select(r => RowVersion.Stamp(info, Normalize(info, Rename(ToRow(r), data.Renames)))).ToList(),
             total, Math.Max(request.Page, 1), pageSize);
     }
 
@@ -99,14 +100,16 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
 
     public async Task<IDictionary<string, object?>> UpdateAsync(
         string conn, string schema, string table,
-        IReadOnlyDictionary<string, string> key, IReadOnlyDictionary<string, JsonElement> body, CancellationToken ct)
+        IReadOnlyDictionary<string, string> key, IReadOnlyDictionary<string, JsonElement> body, CancellationToken ct,
+        string? expectedVersion = null)
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
         Require(info, DataOperation.Update, "editar registros de");
         var keyValues = ParseKey(info, key);
         var values = ParseValues(info, body, MaxFileBytes);
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildUpdate(info, keyValues, values);
-        var before = audit is { Enabled: true } ? await GetByKeyAsync(ctx, info, keyValues, ct) : null;
+        var before = audit is { Enabled: true } || expectedVersion is not null ? await GetByKeyAsync(ctx, info, keyValues, ct) : null;
+        CheckVersion(before, expectedVersion);
 
         await using (var db = await OpenAsync(ctx, ct))
         {
@@ -120,13 +123,15 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         return after;
     }
 
-    public async Task DeleteAsync(string conn, string schema, string table, IReadOnlyDictionary<string, string> key, CancellationToken ct)
+    public async Task DeleteAsync(string conn, string schema, string table, IReadOnlyDictionary<string, string> key, CancellationToken ct,
+        string? expectedVersion = null)
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
         Require(info, DataOperation.Delete, "eliminar registros de");
         var keyValues = ParseKey(info, key);
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildDelete(info, keyValues);
-        var before = audit is { Enabled: true } ? await GetByKeyAsync(ctx, info, keyValues, ct) : null;
+        var before = audit is { Enabled: true } || expectedVersion is not null ? await GetByKeyAsync(ctx, info, keyValues, ct) : null;
+        CheckVersion(before, expectedVersion);
 
         await using (var db = await OpenAsync(ctx, ct))
             if (await Translated(ctx, info, DbOperation.Delete, () => db.ExecuteAsync(Command(query, ct))) == 0)
@@ -151,6 +156,18 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         {
             throw friendly;
         }
+    }
+
+    /// <summary>
+    /// Concurrencia optimista (D-069): si el cliente dice qué versión editó y la fila ya no es esa, no se pisa.
+    /// La comparación y la escritura no van bajo un bloqueo: la ventana es de milisegundos, frente a los minutos que
+    /// un formulario puede estar abierto.
+    /// </summary>
+    private static void CheckVersion(IDictionary<string, object?>? current, string? expected)
+    {
+        if (expected is null || current is null) return;
+        if (!string.Equals(current.TryGetValue(RowVersion.Field, out var v) ? v as string : null, expected, StringComparison.Ordinal))
+            throw new ConcurrencyException(current);
     }
 
     /// <summary>Corta la operación si el perfil del usuario no la permite en la tabla (D-063).</summary>
@@ -348,7 +365,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         var row = await db.QuerySingleOrDefaultAsync(Command(query, ct));
         return row is null
             ? throw new NotFoundException("El registro no existe.")
-            : Normalize(info, Rename(ToRow(row), query.Renames));
+            : RowVersion.Stamp(info, Normalize(info, Rename(ToRow(row), query.Renames)));
     }
 
     /// <summary>Convierte los valores de la clave (vienen como texto en la URL) a su tipo.</summary>

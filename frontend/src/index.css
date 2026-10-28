@@ -230,3 +230,7 @@ select.export { width: auto; }
 .audit-changes { font-size: 0.85rem; overflow-wrap: anywhere; min-width: 220px; }
 .audit-changes .old { color: var(--muted); text-decoration: line-through; }
 .nowrap { white-space: nowrap; }
+
+/* Concurrencia optimista: aviso de conflicto en el formulario */
+.banner.conflict ul { margin: 6px 0 8px 18px; padding: 0; }
+.banner.conflict .actions { margin-top: 6px; }

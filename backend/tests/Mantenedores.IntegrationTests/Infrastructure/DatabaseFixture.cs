@@ -44,6 +44,9 @@ public abstract class DatabaseFixture : IAsyncLifetime
 
     /// <summary>Usuario de las pruebas: sin restricción salvo que una prueba lo cambie (y lo devuelva).</summary>
     public SwitchableAccess Access { get; } = new();
+
+    /// <summary>Auditoría en memoria: las pruebas leen lo que registró el CRUD.</summary>
+    public InMemoryAuditStore Audit { get; } = new();
     public CrudService Crud { get; private set; } = null!;
 
     /// <summary>Ajustes en memoria (P-011); cada prueba que los usa los borra al terminar.</summary>
@@ -101,7 +104,8 @@ public abstract class DatabaseFixture : IAsyncLifetime
             Schemas = [SampleSchema]
         });
         Schemas = new SchemaService(store, new ProviderRegistry([Provider]), Overrides, Snapshots, access: Access);
-        Crud = new CrudService(Schemas, new CrudOptions { CommandTimeoutSeconds = 60 });
+        Crud = new CrudService(Schemas, new CrudOptions { CommandTimeoutSeconds = 60 },
+            new Mantenedores.Core.Audit.AuditService(Audit, new Mantenedores.Core.Audit.AuditOptions()));
     }
 
     public async Task DisposeAsync()
@@ -156,4 +160,28 @@ public sealed class SwitchableAccess : Mantenedores.Core.Security.IAccessContext
     public Mantenedores.Core.Security.UserAccess Current { get; set; } = Mantenedores.Core.Security.UserAccess.All;
 
     public ValueTask<Mantenedores.Core.Security.UserAccess> CurrentAsync(CancellationToken ct) => ValueTask.FromResult(Current);
+}
+
+public sealed class InMemoryAuditStore : Mantenedores.Core.Audit.IAuditStore
+{
+    private readonly List<Mantenedores.Core.Audit.AuditEntry> _entries = [];
+
+    public IReadOnlyList<Mantenedores.Core.Audit.AuditEntry> For(string schema, string table, string? rowKey = null)
+    {
+        lock (_entries)
+            return _entries.Where(e => string.Equals(e.Schema, schema, StringComparison.OrdinalIgnoreCase) &&
+                                       string.Equals(e.Table, table, StringComparison.OrdinalIgnoreCase) &&
+                                       (rowKey is null || e.RowKey == rowKey)).ToList();
+    }
+
+    public Task WriteAsync(IReadOnlyList<Mantenedores.Core.Audit.AuditEntry> entries, CancellationToken ct)
+    {
+        lock (_entries) _entries.AddRange(entries);
+        return Task.CompletedTask;
+    }
+
+    public Task<Mantenedores.Core.Audit.AuditPage> QueryAsync(Mantenedores.Core.Audit.AuditQuery query, CancellationToken ct) =>
+        throw new NotSupportedException();
+
+    public Task<int> PurgeAsync(DateTimeOffset before, CancellationToken ct) => Task.FromResult(0);
 }

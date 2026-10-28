@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Mantenedores.Api.Auth;
 using Mantenedores.Api.Endpoints;
 using Mantenedores.Api.Infrastructure;
+using Mantenedores.Core.Audit;
 using Mantenedores.Core.Connections;
 using Mantenedores.Core.Providers;
 using Mantenedores.Core.Security;
@@ -52,6 +53,16 @@ builder.Services.AddSingleton(builder.Configuration.GetSection("Crud").Get<CrudO
 builder.Services.AddSingleton(new SecretResolver(builder.Configuration.GetSection(SecretOptions.Section).Get<SecretOptions>() ?? new SecretOptions()));
 builder.Services.AddSingleton<SecurityService>();
 builder.Services.AddSingleton<SchemaService>();
+// --- Auditoría de cambios (D-065): activa por defecto, 365 días ---
+var auditOptions = builder.Configuration.GetSection(AuditOptions.Section).Get<AuditOptions>() ?? new AuditOptions();
+builder.Services.AddSingleton(auditOptions);
+builder.Services.AddSingleton(sp =>
+{
+    var log = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Mantenedores.Auditoria");
+    return new AuditService(sp.GetRequiredService<IAuditStore>(), auditOptions,
+        ex => log.LogError(ex, "No se pudo registrar un cambio en la auditoría (el cambio sí se guardó)"));
+});
+builder.Services.AddHostedService<AuditPurgeService>();
 builder.Services.AddSingleton<CrudService>();
 
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -76,6 +87,7 @@ app.MapConnections();
 app.MapMeta();
 app.MapData();
 app.MapSecurity();
+app.MapAudit();
 // Una ruta /api desconocida es 404; cualquier otra ruta la resuelve el router del frontend.
 app.Map("/api/{**rest}", () => Results.NotFound()).AllowAnonymous();
 app.MapSpaIndex();

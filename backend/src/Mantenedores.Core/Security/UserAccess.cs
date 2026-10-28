@@ -14,12 +14,16 @@ public sealed class UserAccess
 {
     private readonly IReadOnlyList<SecurityProfile> _profiles;
 
-    private UserAccess(bool unrestricted, IReadOnlyList<SecurityProfile> profiles, bool open)
+    private UserAccess(bool unrestricted, IReadOnlyList<SecurityProfile> profiles, bool open, string? username = null)
     {
+        Username = username;
         Unrestricted = unrestricted;
         _profiles = profiles;
         IsOpen = open;
     }
+
+    /// <summary>Quién es (para la auditoría, D-065). Null fuera de una solicitud.</summary>
+    public string? Username { get; }
 
     /// <summary>Sin restricciones de datos (administrador o seguridad abierta).</summary>
     public bool Unrestricted { get; }
@@ -34,13 +38,13 @@ public sealed class UserAccess
     /// <param name="allProfiles">Todos los perfiles de la app.</param>
     public static UserAccess For(string? username, IEnumerable<string> roles, bool isAdmin, IReadOnlyList<SecurityProfile> allProfiles)
     {
-        if (allProfiles.Count == 0) return new UserAccess(true, [], open: true);
+        if (allProfiles.Count == 0) return new UserAccess(true, [], open: true, username);
         var roleSet = roles.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var mine = allProfiles.Where(p =>
                 p.Roles.Any(roleSet.Contains) ||
                 (username is not null && p.Users.Contains(username, StringComparer.OrdinalIgnoreCase)))
             .ToList();
-        return new UserAccess(isAdmin, mine, open: false);
+        return new UserAccess(isAdmin, mine, open: false, username);
     }
 
     /// <summary>Permisos de la app que dan sus perfiles (se suman a los de los roles de la configuración).</summary>

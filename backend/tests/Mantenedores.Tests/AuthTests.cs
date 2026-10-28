@@ -231,7 +231,7 @@ public sealed class AuthTests : IDisposable
         Assert.Equal(HttpStatusCode.Forbidden, await Send(HttpMethod.Post, "/api/connections/test", usuario, conexion));
 
         var me = await (await Get(c, "/api/auth/me", Token(KeycloakLike("admin")))).Content.ReadFromJsonAsync<MeDto>();
-        Assert.Equal(["ConfigureTables", "ManageConnections", "ManageSecurity"], me!.Permissions);
+        Assert.Equal(["ConfigureTables", "ManageConnections", "ManageSecurity", "ViewAudit"], me!.Permissions);
         me = await (await Get(c, "/api/auth/me", configurador)).Content.ReadFromJsonAsync<MeDto>();
         Assert.Equal(["ConfigureTables"], me!.Permissions);
     }

@@ -560,6 +560,21 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Validar permisos en cada consulta con `if` repartidos por el CRUD: se olvidarían casos (etiquetas, búsquedas).
   - Que la columna o la tabla se sumen a lo de arriba en vez de reemplazarlo: no permitiría restringir una tabla dentro de una conexión abierta.
 
+### D-068 · Cómo se registra y quién ve la auditoría
+- **Estado:** Vigente · 2026-10-28 (P-044)
+- **Qué:**
+  - Una entrada por alta, edición, baja, fila importada o cambio de vínculos N:M, en `mnt_audit` de la metadata. Clave del registro como `col=valor` ordenada, para buscar el historial de un registro.
+  - En una edición se guardan **solo las columnas que cambiaron**. Una edición sin cambios no se registra. No se guardan la `rowversion`, las columnas ocultas ni el contenido de archivos (solo su tamaño).
+  - Se escribe **después de confirmar** el cambio en la base de datos. Si la metadata falla en ese momento, el cambio queda hecho y el error va al log.
+  - Nuevo permiso `ViewAudit` (rol `mnt-auditor`); ve la auditoría de todas las conexiones.
+  - Un servicio en segundo plano borra lo vencido al arrancar y cada `Audit:PurgeIntervalHours`.
+  - El formulario de edición envía **solo los campos que cambió el usuario**. Así un campo sin tocar no pierde precisión (los segundos de una fecha) ni aparece como cambio.
+- **Descartado:**
+  - Escribir la auditoría en la misma transacción que el cambio: está en otra base (la metadata), y una transacción distribuida no es portable entre motores.
+  - Fallar la operación si la auditoría falla: el usuario creería que no se guardó.
+  - Triggers en las bases de los clientes: exigen permisos de DDL y no saben quién es el usuario de la app.
+  - Que la auditoría la vea cualquiera que vea la tabla: muestra valores anteriores de columnas que un perfil puede ocultar.
+
 ---
 
 ## Propuestas (aún no decididas)

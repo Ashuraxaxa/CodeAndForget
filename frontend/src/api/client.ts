@@ -1,6 +1,6 @@
 import type {
   ImportResult, TransferFormat, TreeNode,
-  SecurityInfo, SecurityProfile, SecurityUser,
+  AuditPage, SecurityInfo, SecurityProfile, SecurityUser,
   Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride,
 } from './types'
 
@@ -112,7 +112,7 @@ export interface ListParams {
 }
 
 /** Permisos de la app (D-053, D-066): se otorgan a roles por configuración o a perfiles. */
-export type Permission = 'ConfigureTables' | 'ManageConnections' | 'ManageSecurity'
+export type Permission = 'ConfigureTables' | 'ManageConnections' | 'ManageSecurity' | 'ViewAudit'
 
 /** Configuración pública de autenticación que expone la API (D-024). */
 export interface AuthConfig {
@@ -145,6 +145,9 @@ export const api = {
   saveUser: (username: string, u: { displayName?: string | null; password?: string; active?: boolean }) =>
     request<SecurityUser>('PUT', `api/security/users/${enc(username)}`, u),
   deleteUser: (username: string) => request<void>('DELETE', `api/security/users/${enc(username)}`),
+
+  /** Filtros: conn, schema, table, user, op, from, to, page, pageSize y la clave como k.<columna>. */
+  audit: (params: URLSearchParams) => request<AuditPage>('GET', `api/audit?${params}`),
 
   connections: () => request<Connection[]>('GET', 'api/connections'),
   saveConnection: (c: ConnectionInput) => request<Connection>('PUT', `api/connections/${enc(c.id)}`, c),

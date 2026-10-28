@@ -27,6 +27,7 @@ Un perfil puede dar también los permisos de D-053 y D-066:
 | `ConfigureTables` | Configurar mantenedores (⚙ Configurar). |
 | `ManageConnections` | Crear, editar, probar y borrar conexiones; ver todas. |
 | `ManageSecurity` | Administrar perfiles y usuarios propios. |
+| `ViewAudit` | Consultar la auditoría de cambios (todas las conexiones). |
 
 Se suman a los que dan los roles por configuración (`Auth:Permissions`).
 

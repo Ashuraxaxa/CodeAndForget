@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Fase 3: auditoría de cambios (P-044)
+- Tabla `mnt_audit` (migración `005_audit`) en SQLite, Postgres y SQL Server, más un almacén en archivo.
+- El CRUD registra altas, ediciones (solo lo que cambió), bajas, filas importadas y cambios N:M, después de confirmar el cambio (D-068).
+- Permiso `ViewAudit`, página **Auditoría** con filtros e **Historial** desde cada registro. Limpieza automática a los 365 días.
+- La auditoría destapó un bug anterior: el formulario reenviaba todos los campos al editar, y las fechas perdían los segundos. Ahora solo envía lo que el usuario cambió.
+- 179 unitarias y 211 de integración en verde (versiones mínimas y actuales); recorrido en navegador.
+- **Siguiente:** P-046, concurrencia optimista.
+
 ## 2026-10-28 · Fase 3: perfiles y permisos (P-040, P-042)
 - Perfiles en la metadata (`mnt_profile`, `mnt_user`, migración `004_security`), con roles, usuarios, permisos de la app y permisos por conexión, tabla y columna.
 - Se aplican recortando el esquema por usuario y con 403 en las operaciones (D-067). Sin perfiles, todo sigue abierto.

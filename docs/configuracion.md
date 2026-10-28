@@ -102,6 +102,22 @@ Las cadenas de conexión se guardan cifradas. Estas llaves son las que permiten 
 | `Crud:ImportMaxRows` | `10000` | Máximo de filas por archivo importado. |
 | `Crud:ImportMaxMegabytes` | `20` | Tamaño máximo del archivo a importar. Si se sube, revisar también el límite del proxy (p. ej. `client_max_body_size` en nginx, `maxAllowedContentLength` en IIS). |
 
+## Auditoría (`Audit`)
+
+Registra cada alta, edición, baja, fila importada y cambio de vínculos N:M: quién, cuándo, tabla, clave y valores antes
+y después (en una edición, solo lo que cambió). Las lecturas no se registran (D-065). Se guarda en la metadata del
+servicio (tabla `mnt_audit`) y se consulta en **Auditoría** o con **Historial** desde un registro, con el permiso
+`ViewAudit`.
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `Audit:Enabled` | `true` | Registrar los cambios. |
+| `Audit:RetentionDays` | `365` | Días que se guardan. `0` = para siempre. |
+| `Audit:PurgeIntervalHours` | `24` | Cada cuántas horas se borran las entradas vencidas (también al arrancar). |
+
+El registro se escribe después de confirmar el cambio en la base de datos. Si la metadata no responde en ese momento,
+el cambio queda hecho y el fallo se anota en el log (D-068).
+
 ## Autenticación (`Auth`)
 
 Dos modos (D-024). El mismo build sirve para cualquiera: solo cambia la configuración.
@@ -113,6 +129,7 @@ Dos modos (D-024). El mismo build sirve para cualquiera: solo cambia la configur
 | `Auth:Permissions:ConfigureTables` | `["mnt-configurador"]` | Roles que pueden **configurar mantenedores** (ajustes por tabla y columna, botón ⚙ Configurar). |
 | `Auth:Permissions:ManageConnections` | `["mnt-conexiones"]` | Roles que pueden **crear, editar, probar y borrar conexiones**. Ver y abrir conexiones no exige permiso. |
 | `Auth:Permissions:ManageSecurity` | `["mnt-seguridad"]` | Roles que pueden **administrar la seguridad**: perfiles, usuarios propios y permisos (D-066). |
+| `Auth:Permissions:ViewAudit` | `["mnt-auditor"]` | Roles que pueden **consultar la auditoría** de cambios (D-068). |
 
 **Permisos (D-053).** Cada acción sensible tiene su propio permiso, y cada permiso se otorga a uno o más roles.
 Así se le puede dar a una persona solo lo que necesita, asignándole el rol en el proveedor de identidad (modo `Jwt`)

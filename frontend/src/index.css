@@ -223,3 +223,10 @@ select.export { width: auto; }
 .rule-head > select, .rule-head > input { flex: 0 1 240px; min-width: 0; }
 .rule-table { margin-left: 16px; padding-left: 10px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
 .rule-column { margin-left: 16px; }
+
+/* Auditoría */
+.audit-filters { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 12px; padding: 10px 12px; }
+.audit-filters > input, .audit-filters > select { flex: 0 1 180px; min-width: 0; }
+.audit-changes { font-size: 0.85rem; overflow-wrap: anywhere; min-width: 220px; }
+.audit-changes .old { color: var(--muted); text-decoration: line-through; }
+.nowrap { white-space: nowrap; }

@@ -73,6 +73,13 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
         </select>
       )
 
+    case 'Spatial':
+      // Geometría o geografía como WKT (P-090): longitud y latitud, en ese orden.
+      return (
+        <input id={id} className="mono" value={str} disabled={disabled} required={required}
+          placeholder={t('WKT, p. ej. POINT (-70.66 -33.45): longitud latitud')} onChange={e => onChange(e.target.value)} />
+      )
+
     case 'Array':
       return (
         <textarea id={id} rows={4} value={str} disabled={disabled} required={required}

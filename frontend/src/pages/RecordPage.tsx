@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError, isConcurrencyError } from '../api/client'
-import { LABEL_SUFFIX, SIZE_SUFFIX, VERSION_FIELD, labelOf, type Column, type LookupItem, type Row, type TableMeta } from '../api/types'
+import { LABEL_SUFFIX, SIZE_SUFFIX, VERSION_FIELD, labelOf, selectorLinks, type Column, type LookupItem, type Row, type TableMeta } from '../api/types'
 import { FieldControl } from '../components/FieldControl'
 import { CompositeForeignKeySelect } from '../components/ForeignKeySelect'
 import { fromInputValue, keyQuery, parseRecordSearch, toInputValue } from '../lib/format'
@@ -31,7 +31,7 @@ export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
 
   // Valores vinculados de cada relación N:M del registro (P-015).
   const links = useQueries({
-    queries: (meta.data?.manyToMany ?? []).map(l => ({
+    queries: (meta.data ? selectorLinks(meta.data) : []).map(l => ({
       queryKey: ['links', conn, schema, table, key, l.name],
       queryFn: () => api.links(conn, schema, table, key, l.name),
       enabled: mode === 'edit',
@@ -42,7 +42,7 @@ export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
   if (meta.isLoading || row.isLoading || links.some(l => l.isLoading)) return <p className="muted">{t('Cargando…')}</p>
   const error = meta.error ?? row.error ?? links.find(l => l.error)?.error
   if (error) return <div className="alert">{(error as Error).message}</div>
-  const initialLinks = Object.fromEntries(meta.data!.manyToMany.map((l, i) => [l.name, links[i]?.data ?? []]))
+  const initialLinks = Object.fromEntries(selectorLinks(meta.data!).map((l, i) => [l.name, links[i]?.data ?? []]))
 
   return (
     <RecordForm key={location.search} conn={conn} meta={meta.data!} row={mode === 'edit' ? row.data! : null}
@@ -129,7 +129,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
           : api.create(conn, meta.schema, meta.name, body))
       // Después del registro, las relaciones N:M que cambiaron: cada una se sincroniza en una transacción (P-015).
       const key = isEdit ? recordKey : keyQuery(meta, saved)
-      for (const l of meta.manyToMany) {
+      for (const l of selectorLinks(meta)) {
         const now = links[l.name] ?? []
         if (sameLinks(now, initialLinks[l.name] ?? [])) continue
         try {
@@ -248,7 +248,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
               </div>
             )
           })}
-          {meta.manyToMany.map(l => (
+          {selectorLinks(meta).map(l => (
             <label key={l.name} className="span-2">
               <span className="field-label">
                 {tableLabel(l.targetSchema, l.targetTable)}<span className="muted small"> · {t('varios, vía {bridge}', { bridge: tableLabel(l.bridgeSchema, l.bridgeTable) })}</span>

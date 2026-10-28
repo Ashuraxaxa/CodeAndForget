@@ -240,6 +240,14 @@ export const api = {
     upload(`${tablePath(conn, schema, table)}/import/preview`, file, mapping, mode),
   importFile: (conn: string, schema: string, table: string, file: File, mapping?: Record<string, string | null>, mode?: ImportMode) =>
     upload(`${tablePath(conn, schema, table)}/import`, file, mapping, mode),
+  /** El archivo de un registro como URL local (blob:) si es una imagen; null si no lo es (P-090). */
+  async imageUrl(conn: string, schema: string, table: string, key: string, column: string): Promise<string | null> {
+    const token = tokenProvider()
+    const res = await fetch(`${tablePath(conn, schema, table)}/row/file/${enc(column)}?${key}`,
+      { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    if (!res.ok || !(res.headers.get('Content-Type') ?? '').startsWith('image/')) return null
+    return URL.createObjectURL(await res.blob())
+  },
   downloadFile: (conn: string, schema: string, table: string, key: string, column: string) =>
     download(`${tablePath(conn, schema, table)}/row/file/${enc(column)}?${key}&download=1`),
   tree: (conn: string, schema: string, table: string, parent?: unknown) =>

@@ -85,17 +85,27 @@ public sealed class PostgresTests(PostgresFixture db) : ProviderContractTests<Po
 public sealed class SqlServerTests(SqlServerFixture db) : ProviderContractTests<SqlServerFixture>(db)
 {
     [Fact]
-    public async Task Geografia_y_jerarquia_se_leen_como_texto_de_solo_lectura()
+    public async Task Geografia_se_edita_como_wkt_y_la_jerarquia_se_lee_como_texto()
     {
         var cliente = (await Db.Schemas.GetTableAsync("demo", Schema, "Cliente", default)).Table;
-        Assert.Equal(LogicalType.ReadOnlyText, cliente.FindColumn("Ubicacion")!.Type);
-        Assert.True(cliente.FindColumn("Ubicacion")!.IsReadOnly);
+        Assert.Equal(LogicalType.Spatial, cliente.FindColumn("Ubicacion")!.Type);
+        Assert.False(cliente.FindColumn("Ubicacion")!.IsReadOnly);
 
         var list = await Db.Crud.ListAsync("demo", Schema, "Cliente", new ListRequest
         {
             Exact = new Dictionary<string, string> { ["Rut"] = "76.123.456-7" }
         }, default);
-        Assert.Equal("POINT (-70.66 -33.45)", Assert.Single(list.Rows)["Ubicacion"]);
+        var row = Assert.Single(list.Rows);
+        Assert.Equal("POINT (-70.66 -33.45)", row["Ubicacion"]);
+
+        // P-090: se escribe como WKT (geography en SRID 4326) y se lee igual; un texto que no es WKT se rechaza claro.
+        var ck = Key(("Id", row["Id"]!));
+        var moved = await Db.Crud.UpdateAsync("demo", Schema, "Cliente", ck, Body(("Ubicacion", "POINT (-71.6 -33.04)")), default);
+        Assert.Equal("POINT (-71.6 -33.04)", moved["Ubicacion"]);
+        var bad = await Assert.ThrowsAsync<ValidationException>(() =>
+            Db.Crud.UpdateAsync("demo", Schema, "Cliente", ck, Body(("Ubicacion", "-71.6, -33.04")), default));
+        Assert.Contains("WKT", bad.Errors["Ubicacion"]);
+        await Db.Crud.UpdateAsync("demo", Schema, "Cliente", ck, Body(("Ubicacion", "POINT (-70.66 -33.45)")), default);
 
         var empleados = await Db.Crud.ListAsync("demo", Schema, "Empleado", new ListRequest { Sort = [new SortSpec("Id")] }, default);
         Assert.Equal("/", empleados.Rows[0]["Nodo"]);
@@ -127,15 +137,22 @@ public abstract class MySqlFamilyTests<TFixture>(TFixture db) : ProviderContract
     where TFixture : MySqlFamilyFixture
 {
     [Fact]
-    public async Task Punto_geografico_se_lee_como_wkt()
+    public async Task Punto_geografico_se_lee_y_se_edita_como_wkt()
     {
         var cliente = (await Db.Schemas.GetTableAsync("demo", Schema, "cliente", default)).Table;
-        Assert.Equal(LogicalType.ReadOnlyText, cliente.FindColumn("ubicacion")!.Type);
+        Assert.Equal(LogicalType.Spatial, cliente.FindColumn("ubicacion")!.Type);
         var list = await Db.Crud.ListAsync("demo", Schema, "cliente", new ListRequest
         {
             Exact = new Dictionary<string, string> { ["rut"] = "76.123.456-7" }
         }, default);
-        Assert.Equal("POINT(-70.66 -33.45)", Assert.Single(list.Rows)["ubicacion"]);
+        var row = Assert.Single(list.Rows);
+        Assert.Equal("POINT(-70.66 -33.45)", row["ubicacion"]);
+
+        // P-090: se escribe como WKT y se lee igual; vacío lo deja nulo.
+        var key = Key(("id", row["id"]!));
+        Assert.Equal("POINT(-71.6 -33.04)", (await Db.Crud.UpdateAsync("demo", Schema, "cliente", key, Body(("ubicacion", "POINT (-71.6 -33.04)")), default))["ubicacion"]);
+        Assert.Null((await Db.Crud.UpdateAsync("demo", Schema, "cliente", key, Body(("ubicacion", "")), default))["ubicacion"]);
+        await Db.Crud.UpdateAsync("demo", Schema, "cliente", key, Body(("ubicacion", "POINT(-70.66 -33.45)")), default);
     }
 
     [Fact]

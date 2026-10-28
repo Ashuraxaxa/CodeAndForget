@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, isConcurrencyError } from '../api/client'
-import { LABEL_SUFFIX, VERSION_FIELD, labelOf, type Column, type Row, type TableMeta, type TransferFormat } from '../api/types'
+import { LABEL_SUFFIX, SIZE_SUFFIX, VERSION_FIELD, labelOf, type Column, type Row, type TableMeta, type TransferFormat } from '../api/types'
 import { FIXED_PREFIX, RETURN_PARAM, displayValue, keyQuery } from '../lib/format'
 import { useDebounce } from '../lib/useDebounce'
 import { useCan } from '../lib/useMe'
 import { useTableLabels } from '../lib/useTableLabels'
 import { TreeView } from '../components/TreeView'
 import { useT } from '../i18n'
+import { StoredImage } from '../components/ImagePreview'
 
 const PAGE_SIZES = [10, 25, 50, 100]
 
@@ -54,6 +55,8 @@ export function Grid({ conn, meta, fixed, returnTo }: {
 
   // El orden viene del servidor (ajuste Order); las ocultas y las que van solo en el formulario no se muestran.
   const columns = meta.columns.filter(c => c.isSelectable && !c.hidden && c.showInGrid && !(fixed && c.name in fixed))
+  // Archivos con el control "image" (P-090): miniatura en la grilla.
+  const imageCols = meta.columns.filter(c => c.isFile && !c.hidden && c.showInGrid && c.widget === 'image')
   const fkByColumn = new Map(meta.foreignKeys.filter(f => f.columns.length === 1).map(f => [f.columns[0], f]))
   // La etiqueta de una FK, también compuesta (P-030), va en su columna de etiqueta.
   const fkByLabelColumn = new Map(meta.foreignKeys.map(f => [f.labelColumn, f]))
@@ -210,6 +213,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
                   {sort?.col === c.name && (sort.desc ? ' ▼' : ' ▲')}
                 </th>
               ))}
+              {imageCols.map(c => <th key={c.name} className="no-sort">{labelOf(c)}</th>)}
               {meta.isEditable && <th className="actions-col" />}
             </tr>
             <tr className="filters">
@@ -220,6 +224,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
                   )}
                 </th>
               ))}
+              {imageCols.map(c => <th key={c.name} />)}
               {meta.isEditable && <th />}
             </tr>
           </thead>
@@ -240,6 +245,12 @@ export function Grid({ conn, meta, fixed, returnTo }: {
                     </td>
                   )
                 })}
+                {imageCols.map(c => (
+                  <td key={c.name} className="t-image">
+                    {row[c.name + SIZE_SUFFIX] != null && meta.hasPrimaryKey &&
+                      <StoredImage conn={conn} schema={meta.schema} table={meta.name} recordKey={keyQuery(meta, row)} column={c.name} className="thumb" />}
+                  </td>
+                ))}
                 {meta.isEditable && (
                   <td className="actions-col">
                     {/* Sin permiso de edición el formulario se abre de solo lectura (y muestra las pestañas hijas). */}
@@ -257,7 +268,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
               </tr>
             ))}
             {rows.data?.rows.length === 0 && (
-              <tr><td colSpan={columns.length + 1} className="empty">{t('Sin registros')}</td></tr>
+              <tr><td colSpan={columns.length + imageCols.length + 1} className="empty">{t('Sin registros')}</td></tr>
             )}
           </tbody>
         </table>

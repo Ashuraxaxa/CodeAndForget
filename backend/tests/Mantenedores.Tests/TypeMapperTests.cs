@@ -31,7 +31,7 @@ public class TypeMapperTests
     [InlineData("bit", 1, LogicalType.Boolean)]
     [InlineData("uniqueidentifier", 16, LogicalType.Uuid)]
     [InlineData("rowversion", 8, LogicalType.Binary)]
-    [InlineData("geography", -1, LogicalType.ReadOnlyText)]
+    [InlineData("geography", -1, LogicalType.Spatial)]
     [InlineData("hierarchyid", 892, LogicalType.ReadOnlyText)]
     [InlineData("sql_variant", 8016, LogicalType.Unsupported)]
     public void SqlServer(string type, int? length, LogicalType expected) =>

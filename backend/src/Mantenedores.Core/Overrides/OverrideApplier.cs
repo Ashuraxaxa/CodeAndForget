@@ -21,7 +21,7 @@ public static partial class OverrideApplier
 {
     /// <summary>Controles que entiende la UI, además de los automáticos por tipo.</summary>
     public static readonly IReadOnlySet<string> Widgets =
-        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "textarea", "email", "url", "color", "money", "password" };
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "textarea", "email", "url", "color", "money", "password", "image" };
 
     /// <summary>Tiempo máximo para evaluar una expresión regular de un ajuste (evita ReDoS).</summary>
     public static readonly TimeSpan PatternTimeout = TimeSpan.FromMilliseconds(100);
@@ -52,8 +52,20 @@ public static partial class OverrideApplier
         tables = tables.Select(t =>
         {
             var refs = t.ReferencedBy;
-            // Las tablas puente no van en pestañas por defecto: se editan con el selector múltiple.
-            IReadOnlyList<ForeignKeyInfo> children = refs.Where(f => !bridges.Contains(Key(f.Schema, f.Table))).ToList();
+            byKey.TryGetValue(Key(t.Schema, t.Name), out var own);
+            // Cómo se edita cada N:M (P-087): selector salvo ajuste ("tab" para un puente con columnas propias).
+            var tableLinks = (links.GetValueOrDefault(Key(t.Schema, t.Name)) ?? []).Select(l =>
+            {
+                var mode = own?.Links?.FirstOrDefault(kv => Same(kv.Key, l.Name)).Value;
+                return mode is not null && LinkDisplay.All.Contains(mode) ? l with { Display = mode.ToLowerInvariant() } : l;
+            }).ToList();
+            foreach (var n in own?.Links?.Keys.Where(n => !tableLinks.Any(l => Same(l.Name, n))) ?? [])
+                issues.Add(new(t.Schema, t.Name, "links", $"la relación N:M '{n}' no existe"));
+
+            // Las tablas puente no van en pestañas, salvo que su relación se edite así: se usa el selector múltiple.
+            bool AsTab(ForeignKeyInfo f) => tableLinks.Any(l => l.Display == LinkDisplay.Tab &&
+                Same(l.BridgeSchema, f.Schema) && Same(l.BridgeTable, f.Table) && Same(l.LocalColumn, f.Columns[0]));
+            IReadOnlyList<ForeignKeyInfo> children = refs.Where(f => !bridges.Contains(Key(f.Schema, f.Table)) || AsTab(f)).ToList();
             // Hijas elegidas por ajuste: van después de recalcular las FK entrantes, que pueden ser virtuales.
             if (byKey.TryGetValue(Key(t.Schema, t.Name), out var o) && o.Children is { } names)
             {
@@ -61,14 +73,14 @@ public static partial class OverrideApplier
                 foreach (var n in names.Where(n => !refs.Any(f => Same(f.Name, n))))
                     issues.Add(new(t.Schema, t.Name, "children", $"la relación '{n}' ya no existe"));
             }
+            // Árbol (P-089): la autorreferencia elegida por ajuste, o la primera.
+            var selfRefs = SelfReferences(t);
             return t with
             {
                 Children = children,
-                ManyToMany = links.GetValueOrDefault(Key(t.Schema, t.Name)) ?? [],
-                SelfReference = t.PrimaryKey.Count == 1
-                    ? t.ForeignKeys.FirstOrDefault(f => f.IsSingleColumn && Same(f.RefSchema, t.Schema) && Same(f.RefTable, t.Name)
-                                                        && Same(f.RefColumns[0], t.PrimaryKey[0]))
-                    : null,
+                ManyToMany = tableLinks,
+                SelfReference = (own?.TreeParent is { Length: > 0 } tp ? selfRefs.FirstOrDefault(f => Same(f.Name, tp)) : null)
+                                ?? selfRefs.FirstOrDefault(),
                 IsBridge = bridges.Contains(Key(t.Schema, t.Name))
             };
         }).ToList();
@@ -76,6 +88,11 @@ public static partial class OverrideApplier
         // El hash sigue siendo el del catálogo: sirve para detectar cambios en la base (P-013).
         return raw with { Tables = tables, OverrideWarnings = issues.Select(i => i.ToString()).ToList() };
     }
+
+    /// <summary>FK de una columna de la tabla hacia su propia PK (p. ej. empleado → jefe): las que puede usar el árbol.</summary>
+    public static IReadOnlyList<ForeignKeyInfo> SelfReferences(TableInfo t) => t.PrimaryKey.Count != 1 ? [] :
+        t.ForeignKeys.Where(f => f.IsSingleColumn && Same(f.RefSchema, t.Schema) && Same(f.RefTable, t.Name) && Same(f.RefColumns[0], t.PrimaryKey[0]))
+            .ToList();
 
     /// <summary>Valida un ajuste antes de guardarlo; lanza <see cref="ValidationException"/> con un error por campo.</summary>
     public static void Validate(DatabaseSchema raw, string schema, string table, TableOverride value)
@@ -162,6 +179,14 @@ public static partial class OverrideApplier
             else defaultSort = string.Join(",", specs.Select(s => (s.Descending ? "-" : "") + columns.First(c => Same(c.Name, s.Column)).Name));
         }
 
+        // --- Árbol (P-089) y relaciones N:M (P-087) ---
+        if (o.TreeParent is { Length: > 0 } treeParent &&
+            !SelfReferences(t with { ForeignKeys = fks, PrimaryKey = pk }).Any(f => Same(f.Name, treeParent)))
+            Issue("treeParent", $"'{treeParent}' no es una relación de la tabla consigo misma");
+        foreach (var (name, mode) in o.Links ?? new Dictionary<string, string>())
+            if (!LinkDisplay.All.Contains(mode ?? ""))
+                Issue("links", $"'{mode}' no es válido para '{name}'; use selector, tab o none");
+
         // --- Avisos por correo (D-073) ---
         Notifications.TableNotify? notify = null;
         if (o.Notify is { } no)
@@ -234,6 +259,7 @@ public static partial class OverrideApplier
         if (Blank(o.Widget) is { } w)
         {
             if (!Widgets.Contains(w)) issue($"{field}.widget", $"control desconocido; use: {string.Join(", ", Widgets)}");
+            else if (Same(w, "image") && !c.IsFile) issue($"{field}.widget", "image solo se aplica a columnas de archivo");
             else r = r with { Widget = w.ToLowerInvariant() };
         }
 

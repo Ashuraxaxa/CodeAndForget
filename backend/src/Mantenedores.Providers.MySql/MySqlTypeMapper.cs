@@ -32,9 +32,9 @@ public static partial class MySqlTypeMapper
             "datetime" or "timestamp" => LogicalType.DateTime,
             "time" => LogicalType.Time,
             "binary" or "varbinary" or "tinyblob" or "blob" or "mediumblob" or "longblob" => LogicalType.Binary,
-            // Tipos espaciales (P-018): se leen como WKT y no se editan.
+            // Tipos espaciales (P-018): se leen y se editan como WKT (P-090).
             "geometry" or "point" or "linestring" or "polygon" or "multipoint" or "multilinestring" or "multipolygon"
-                or "geometrycollection" or "geomcollection" => LogicalType.ReadOnlyText,
+                or "geometrycollection" or "geomcollection" => LogicalType.Spatial,
             _ => LogicalType.Unsupported
         };
     }

@@ -149,6 +149,11 @@ export const SERVER: [es: string, en: string, ru: string][] = [
   ['exportar', 'export', 'экспортировать'],
   ['importar en', 'import into', 'импортировать в'],
   ['leer', 'read', 'читать'],
+  ['debe estar en formato WKT, p. ej. POINT (-70.66 -33.45)', 'must be in WKT format, e.g. POINT (-70.66 -33.45)', 'должно быть в формате WKT, напр. POINT (-70.66 -33.45)'],
+  ['\'{name}\' no es una relación de la tabla consigo misma', '\'{name}\' is not a relation of the table to itself', '«{name}» — не связь таблицы с самой собой'],
+  ['\'{mode}\' no es válido para \'{name}\'; use selector, tab o none', '\'{mode}\' is not valid for \'{name}\'; use selector, tab or none', '«{mode}» недопустимо для «{name}»; используйте selector, tab или none'],
+  ['la relación N:M \'{name}\' no existe', 'the N:M relation \'{name}\' does not exist', 'связь N:M «{name}» не существует'],
+  ['image solo se aplica a columnas de archivo', 'image only applies to file columns', 'image применяется только к файловым столбцам'],
 ]
 
 /** Fragmentos que van en {verb}: se reconocen por la lista, porque van pegados a otra variable. */

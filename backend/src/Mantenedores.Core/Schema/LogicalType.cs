@@ -29,5 +29,11 @@ public enum LogicalType
     /// </summary>
     ReadOnlyText,
 
+    /// <summary>
+    /// Geometría o geografía editable como WKT, p. ej. "POINT (-70.66 -33.45)" (P-090). El dialecto la lee como texto
+    /// (<c>SelectExpression</c>) y la arma desde el texto al escribir (<c>ParameterFor</c>). Hoy en SQL Server y MySQL/MariaDB.
+    /// </summary>
+    Spatial,
+
     Unsupported
 }

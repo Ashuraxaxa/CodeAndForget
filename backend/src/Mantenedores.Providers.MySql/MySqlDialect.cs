@@ -28,13 +28,16 @@ public sealed class MySqlDialect : ISqlDialect
     /// <summary>
     /// Números grandes: sin CAST, MySQL compararía texto contra DECIMAL como DOUBLE y perdería precisión.
     /// </summary>
+    /// <summary>Espaciales desde WKT (P-090), sin sistema de referencia (SRID 0, el de una columna sin SRID).</summary>
     public string ParameterFor(ColumnInfo column, string param) =>
-        column is { Type: LogicalType.Decimal, IsLargeNumber: true } ? $"CAST({param} AS DECIMAL(65,30))" : param;
+        column is { Type: LogicalType.Decimal, IsLargeNumber: true } ? $"CAST({param} AS DECIMAL(65,30))"
+        : column.Type == LogicalType.Spatial ? $"ST_GeomFromText({param})"
+        : param;
 
     public string SelectExpression(ColumnInfo column, string columnExpr) =>
         column.IsLargeNumber ? $"CAST({columnExpr} AS CHAR)"
-        // Tipos espaciales (P-018): como WKT, de solo lectura.
-        : column.Type == LogicalType.ReadOnlyText ? $"ST_AsText({columnExpr})"
+        // Tipos espaciales (P-018, P-090): como WKT.
+        : column.Type is LogicalType.ReadOnlyText or LogicalType.Spatial ? $"ST_AsText({columnExpr})"
         : columnExpr;
 
     /// <summary>MySQL no tiene RETURNING (MariaDB sí, pero se usa LAST_INSERT_ID() en ambos, D-040).</summary>

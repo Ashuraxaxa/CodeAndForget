@@ -41,6 +41,16 @@ public sealed record TableOverride
 
     /// <summary>Avisar por correo cuando cambia (P-099, D-073). Solo se envían si la app tiene SMTP configurado.</summary>
     public NotifyOverride? Notify { get; init; }
+
+    /// <summary>Autorreferencia que usa la vista de árbol (P-089), por nombre de la FK. Null = la primera.</summary>
+    public string? TreeParent { get; init; }
+
+    /// <summary>
+    /// Cómo se edita cada relación N:M (P-087), por su nombre: "selector" (selector múltiple en el formulario),
+    /// "tab" (pestaña con la tabla puente, que tiene su propio formulario: útil si el puente tiene columnas propias, p. ej.
+    /// cantidad) o "none". Sin ajuste: selector.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? Links { get; init; }
 }
 
 public sealed record NotifyOverride

@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Tanda 3, parte B (P-085, P-087, P-089, P-090)
+- El dueño fusionó los PR #28 a #32.
+- Árbol: ajuste `treeParent` y arrastrar nodos; en el navegador, mover a "Rita" bajo "Luis" funcionó y el ciclo se rechazó mostrando el motivo (al principio salía "Hay datos inválidos": se corrigió).
+- N:M: ajuste `links` (selector, pestaña, nada); se descartó pasar a pestaña por defecto los puentes con columnas extra, porque rompía la prueba de un puente con una fecha opcional.
+- Imágenes: miniatura en la grilla con `widget: image` y vista previa en el formulario; WKT editable en SQL Server y MySQL/MariaDB, probado en los tres; PostGIS queda en P-104.
+- Editor: FK virtuales compuestas (con sucursal propone las dos columnas de su PK) y columnas que se ordenan arrastrando.
+- Docker del sandbox se detuvo con el reinicio de la sesión; se levantó de nuevo.
+
 ## 2026-10-28 · Tanda 3, parte A (P-094, P-095, P-093, P-101)
 - Auditoría: nombres en FK y N:M, exportación a CSV/Excel con encabezados en el idioma de la interfaz, y filtro por perfil en SQL más enmascarado de columnas (D-081).
 - En el navegador: "categoria_id: Bebidas (1) → Snacks! (2)"; el CSV trae lo mismo; una usuaria con perfil no vio `etiqueta` ni `categoria_id` y el admin vio todo.

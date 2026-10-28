@@ -208,6 +208,9 @@ select.export { width: auto; }
 .tree { list-style: none; margin: 0; padding-left: 0; }
 .tree .tree { padding-left: 22px; border-left: 1px dashed var(--border); margin-left: 10px; }
 .tree-node { display: flex; align-items: center; gap: 8px; padding: 3px 0; flex-wrap: wrap; }
+.tree-node[draggable="true"] { cursor: grab; border-radius: 6px; }
+.tree-node.over, .tree-root.over { outline: 2px dashed var(--primary); outline-offset: 2px; background: rgba(37, 99, 235, .06); }
+.tree-root { padding: 6px 8px; border: 1px dashed var(--border); border-radius: 6px; }
 .tree-toggle { border: none; background: none; width: 22px; padding: 0; font-size: 0.95rem; }
 .tree-toggle:disabled { opacity: 0.5; }
 .tree-indent { margin-left: 32px; }
@@ -238,3 +241,9 @@ select.export { width: auto; }
 /* Idioma */
 .lang { width: auto; padding: 2px 6px; font-size: 0.85rem; }
 .login-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+/* Imágenes de columnas de archivo (P-090) */
+.thumb { height: 36px; max-width: 72px; object-fit: cover; border-radius: 4px; display: block; }
+.file-preview { max-width: 240px; max-height: 180px; object-fit: contain; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 6px; display: block; }
+.col-grip { cursor: grab; color: var(--muted, #888); padding: 0 4px; user-select: none; font-size: 1.1rem; }
+.col-editor.dragging { opacity: .5; }

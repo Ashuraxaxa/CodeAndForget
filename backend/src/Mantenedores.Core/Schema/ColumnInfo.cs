@@ -77,10 +77,10 @@ public sealed record ColumnInfo
     public bool IsFile => Type == LogicalType.Binary && !IsRowVersion && !(Hidden && !IsPrimaryKey);
 
     /// <summary>Se ofrece ordenar por ella (P-022).</summary>
-    public bool IsSortable => IsSelectable && Sortable && Type is not (LogicalType.Array or LogicalType.ReadOnlyText);
+    public bool IsSortable => IsSelectable && Sortable && Type is not (LogicalType.Array or LogicalType.ReadOnlyText or LogicalType.Spatial);
 
     /// <summary>Se ofrece filtrar por ella: "contiene" en textos, igualdad en el resto (P-022).</summary>
-    public bool IsFilterable => IsSelectable && Type is not (LogicalType.Array or LogicalType.ReadOnlyText)
+    public bool IsFilterable => IsSelectable && Type is not (LogicalType.Array or LogicalType.ReadOnlyText or LogicalType.Spatial)
                                 && (Filterable || Type is LogicalType.String or LogicalType.Text);
 
     /// <summary>La UI no permite escribir esta columna.</summary>

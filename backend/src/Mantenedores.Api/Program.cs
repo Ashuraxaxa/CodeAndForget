@@ -53,10 +53,18 @@ builder.Services.AddMetadataStore(builder.Configuration, dataDir);
 builder.Services.AddSingleton<IDatabaseProvider, SqlServerProvider>();
 builder.Services.AddSingleton<IDatabaseProvider, PostgresProvider>();
 builder.Services.AddSingleton<IDatabaseProvider, MySqlProvider>();
+// Motores extra como plugins desde una carpeta (P-064): apagado salvo que se configure Providers:PluginsDirectory.
+var plugins = builder.Configuration[$"{ProviderPlugins.Section}:PluginsDirectory"] is { Length: > 0 } pluginDir
+    ? ProviderPlugins.Load(Path.GetFullPath(pluginDir, builder.Environment.ContentRootPath))
+    : [];
+foreach (var provider in plugins.SelectMany(p => p.Providers)) builder.Services.AddSingleton(provider);
 builder.Services.AddSingleton<ProviderRegistry>();
 
 builder.Services.AddSingleton(builder.Configuration.GetSection("Crud").Get<CrudOptions>() ?? new CrudOptions());
-builder.Services.AddSingleton(new SecretResolver(builder.Configuration.GetSection(SecretOptions.Section).Get<SecretOptions>() ?? new SecretOptions()));
+var secrets = new SecretResolver(builder.Configuration.GetSection(SecretOptions.Section).Get<SecretOptions>() ?? new SecretOptions());
+builder.Services.AddSingleton(secrets);
+// --- Caché compartida (P-050): Memory por defecto; Redis comparte el esquema y los contadores de límites entre instancias ---
+builder.Services.AddSharedCache(builder.Configuration.GetSection(CacheOptions.Section).Get<CacheOptions>() ?? new CacheOptions(), secrets);
 // --- Avisos entre instancias (D-077): con metadata en base, cada instancia revisa cada pocos segundos lo que cambió otra ---
 builder.Services.AddSingleton(sp =>
 {
@@ -102,6 +110,10 @@ builder.Services.AddProblemDetails();
 builder.Services.AddMantenedoresHealthChecks();
 
 var app = builder.Build();
+
+foreach (var p in plugins)
+    app.Logger.LogInformation("Plugin {Plugin} cargado desde {Path}: motores {Engines}", p.Name, p.Path,
+        string.Join(", ", p.Providers.Select(x => x.Engine)));
 
 // Migraciones de la metadata e importación del connections.json de la Fase 1, antes de atender solicitudes.
 await app.Services.InitializeMetadataAsync(dataDir);

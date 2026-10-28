@@ -16,6 +16,9 @@ public static partial class ConnectionEndpoints
     public sealed record ConnectionResponse(string Id, string Name, DatabaseEngine Engine, IReadOnlyList<string> Schemas, string? Server, string? Database);
 
     /// <summary>Resultado de la prueba: tablas vistas, servidor y versión, y ajustes útiles para diagnosticar (P-028).</summary>
+    /// <summary>Motor instalado, para el selector de la interfaz (incluye los cargados como plugin, P-064).</summary>
+    public sealed record EngineResponse(DatabaseEngine Name, string Label, string? Example);
+
     public sealed record TestResult(bool Ok, int Tables, string? Error, string? Server = null,
         bool? Supported = null, IReadOnlyDictionary<string, string>? Settings = null);
 
@@ -40,10 +43,15 @@ public static partial class ConnectionEndpoints
             await store.GetAsync(id, ct) is { } c && (await VisibleAsync(http, access, ct))(c.Id)
                 ? Results.Ok(ToResponse(c)) : Results.NotFound());
 
+        // Fuera de /api/connections para no chocar con una conexión de id "engines".
+        app.MapGet("/api/engines", (ProviderRegistry providers) =>
+            providers.All.Select(p => new EngineResponse(p.Engine, p.DisplayName, p.ExampleConnectionString))).RequireAuthorization();
+
         // Crea o reemplaza. Si al editar no se envía la cadena de conexión, se conserva la anterior.
-        group.MapPut("/{id}", async (string id, ConnectionRequest req, IConnectionStore store, SchemaService schemas, CancellationToken ct) =>
+        group.MapPut("/{id}", async (string id, ConnectionRequest req, IConnectionStore store, SchemaService schemas,
+            ProviderRegistry providers, CancellationToken ct) =>
         {
-            var def = await BuildDefinitionAsync(id, req, store, ct);
+            var def = await BuildDefinitionAsync(id, req, store, providers, ct);
             await store.SaveAsync(def, ct);
             await schemas.SchemaChangedAsync(def.Id, ct);
             return Results.Ok(ToResponse(def));
@@ -60,9 +68,10 @@ public static partial class ConnectionEndpoints
         }).RequireAuthorization(ManageConnectionsPolicy);
 
         // Prueba sin guardar. Un error de conexión es un resultado esperado, no una falla de la API.
-        group.MapPost("/test", async (ConnectionRequest req, IConnectionStore store, SchemaService schemas, CancellationToken ct) =>
+        group.MapPost("/test", async (ConnectionRequest req, IConnectionStore store, SchemaService schemas,
+            ProviderRegistry providers, CancellationToken ct) =>
         {
-            var def = await BuildDefinitionAsync(req.Id, req, store, ct);
+            var def = await BuildDefinitionAsync(req.Id, req, store, providers, ct);
             try
             {
                 var r = await schemas.TestAsync(def, ct);
@@ -85,13 +94,18 @@ public static partial class ConnectionEndpoints
         return mine.CanSeeConnection;
     }
 
-    private static async Task<ConnectionDefinition> BuildDefinitionAsync(string id, ConnectionRequest req, IConnectionStore store, CancellationToken ct)
+    private static async Task<ConnectionDefinition> BuildDefinitionAsync(string id, ConnectionRequest req, IConnectionStore store,
+        ProviderRegistry providers, CancellationToken ct)
     {
         id = (id ?? "").Trim().ToLowerInvariant();
         if (!IdPattern().IsMatch(id))
             throw new ValidationException("id", "use solo minúsculas, números, - o _ (máx. 50)");
         if (string.IsNullOrWhiteSpace(req.Name))
             throw new ValidationException("name", "es obligatorio");
+        if (req.Engine.Name.Length == 0)
+            throw new ValidationException("engine", "es obligatorio");
+        if (!providers.Has(req.Engine))
+            throw new ValidationException("engine", $"el motor {req.Engine} no está instalado");
 
         var connectionString = req.ConnectionString;
         if (string.IsNullOrWhiteSpace(connectionString))
@@ -107,7 +121,7 @@ public static partial class ConnectionEndpoints
         {
             Id = id,
             Name = req.Name.Trim(),
-            Engine = req.Engine,
+            Engine = providers.Get(req.Engine).Engine, // el nombre como lo escribe el proveedor
             ConnectionString = connectionString,
             Schemas = (req.Schemas ?? []).Select(s => s.Trim()).Where(s => s.Length > 0).Distinct().ToList()
         };

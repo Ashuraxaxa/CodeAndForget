@@ -1,7 +1,7 @@
 import type {
   ImportMode, ImportResult, TransferFormat, TreeNode,
   AuditPage, SecurityInfo, SecurityProfile, SecurityUser, ActionResult, Routine,
-  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride,
+  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo,
 } from './types'
 import { t, translateServer } from '../i18n'
 
@@ -180,6 +180,7 @@ export const api = {
   },
 
   connections: () => request<Connection[]>('GET', 'api/connections'),
+  engines: () => request<EngineInfo[]>('GET', 'api/engines'),
   saveConnection: (c: ConnectionInput) => request<Connection>('PUT', `api/connections/${enc(c.id)}`, c),
   deleteConnection: (id: string) => request<void>('DELETE', `api/connections/${enc(id)}`),
   testConnection: (c: ConnectionInput) =>

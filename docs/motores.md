@@ -142,6 +142,27 @@ La prueba de conexión debe mostrar estos valores para diagnosticar rápido (P-0
 4. Agregar el motor a la batería común de pruebas y a la matriz de la CI (P-027).
 5. Documentar sus diferencias en este archivo.
 
+## Motores como plugins
+
+Un motor también puede ir fuera del repositorio, como plugin (P-064, D-092): un proyecto aparte que se compila contra
+`Mantenedores.Core` y se copia a la carpeta de `Providers:PluginsDirectory` (ver [configuracion.md](configuracion.md#motores-como-plugins-providers)).
+Ejemplo completo y probado: `backend/tests/Mantenedores.TestPlugin` (un motor "PgPlugin" que usa PostgreSQL por dentro).
+
+1. Proyecto de biblioteca `net8.0` con `<EnableDynamicLoading>true</EnableDynamicLoading>` (copia el driver a la
+   salida y genera el `.deps.json` que lee el cargador).
+2. Referencia a `Mantenedores.Core` con `<Private>false</Private>` y `<ExcludeAssets>runtime</ExcludeAssets>`: Core
+   lo pone la app. Compile contra la **misma versión** de Core que la app donde se instala.
+3. Una clase pública que implemente `IDatabaseProvider`, con constructor sin parámetros:
+   - `Engine`: un nombre nuevo (`new DatabaseEngine("Sqlite")`; letras, números y `_`). Es el que se guarda en cada
+     conexión, así que no se cambia después.
+   - `DisplayName` y `ExampleConnectionString`: lo que muestra la interfaz al crear una conexión.
+   - El resto igual que un motor de la app: dialecto, catálogo, tipos y errores (pasos 1 y 2 de arriba).
+4. `dotnet publish -c Release -o <carpeta>/<Nombre>`: el `.dll` principal debe llamarse como la carpeta.
+5. Correr la batería común contra el motor (`ProviderContractTests`) antes de usarlo con datos reales (D-033).
+
+Cada plugin carga sus dependencias desde su carpeta, en un contexto propio: su versión del driver no choca con la de
+la app ni con la de otro plugin. `Mantenedores.Core` y lo que Core expone sí se comparten con la app.
+
 ---
 
 ## Oracle (fuera de alcance, D-034)

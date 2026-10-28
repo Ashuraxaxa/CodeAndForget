@@ -28,8 +28,10 @@ public sealed record SchemaDiffResult(
 /// </summary>
 public sealed class SchemaService(
     IConnectionStore store, ProviderRegistry providers, IOverrideStore? overrides = null, ISchemaSnapshotStore? snapshots = null,
-    SecretResolver? secrets = null, IAccessContext? access = null, PoolOptions? pool = null, ChangeStamps? stamps = null)
+    SecretResolver? secrets = null, IAccessContext? access = null, PoolOptions? pool = null, ChangeStamps? stamps = null,
+    ISchemaCache? shared = null)
 {
+    private readonly ISchemaCache _shared = shared ?? new NoSchemaCache();
     private readonly ChangeStamps _stamps = stamps ?? new ChangeStamps();
 
     private readonly SecretResolver _secrets = secrets ?? new SecretResolver();
@@ -117,7 +119,7 @@ public sealed class SchemaService(
         var (def, provider) = await DefinitionAsync(connectionId, ct);
         var schema = await Cached(_applied, def.Id, async () =>
         {
-            var raw = await Cached(_raw, def.Id, () => ReadAsync(def, provider, CancellationToken.None), CancellationToken.None);
+            var raw = await Cached(_raw, def.Id, () => LoadRawAsync(def, provider), CancellationToken.None);
             return OverrideApplier.Apply(raw, await _overrides.ListAsync(def.Id, CancellationToken.None));
         }, ct);
         return new ConnectionContext(def, provider, schema);
@@ -127,7 +129,7 @@ public sealed class SchemaService(
     public async Task<DatabaseSchema> GetRawSchemaAsync(string connectionId, CancellationToken ct)
     {
         var (def, provider) = await DefinitionAsync(connectionId, ct);
-        return await Cached(_raw, def.Id, () => ReadAsync(def, provider, CancellationToken.None), ct);
+        return await Cached(_raw, def.Id, () => LoadRawAsync(def, provider), ct);
     }
 
     private async Task<(ConnectionDefinition, IDatabaseProvider)> DefinitionAsync(string connectionId, CancellationToken ct)
@@ -202,6 +204,7 @@ public sealed class SchemaService(
     public async Task SchemaChangedAsync(string connectionId, CancellationToken ct)
     {
         Invalidate(connectionId);
+        if (await store.GetAsync(connectionId, ct) is { } def) await _shared.RemoveAsync(SchemaCacheKeys.For(def), ct);
         await _stamps.PublishAsync(ChangeStamps.Schema(connectionId), ct);
     }
 
@@ -231,6 +234,7 @@ public sealed class SchemaService(
         if (changes.Count == 0) return [];
         _raw[connectionId] = new Lazy<Task<DatabaseSchema>>(Task.FromResult(fresh));
         _applied.TryRemove(connectionId, out _);
+        await _shared.SetAsync(SchemaCacheKeys.For(def), fresh, ct);
         await _stamps.PublishAsync(ChangeStamps.Schema(connectionId), ct);
         return changes;
     }
@@ -255,6 +259,16 @@ public sealed class SchemaService(
         if (!server.IsSupported) return new ConnectionTestResult(0, server);
         var schema = await provider.Schema.ReadAsync(conn, def.Schemas, ct);
         return new ConnectionTestResult(schema.Tables.Count, server);
+    }
+
+    /// <summary>Primero la caché compartida (si hay, P-050); si no está, el catálogo, y se deja ahí para las demás.</summary>
+    private async Task<DatabaseSchema> LoadRawAsync(ConnectionDefinition def, IDatabaseProvider provider)
+    {
+        var key = SchemaCacheKeys.For(def);
+        if (await _shared.GetAsync(key, CancellationToken.None) is { } cached) return cached;
+        var schema = await ReadAsync(def, provider, CancellationToken.None);
+        await _shared.SetAsync(key, schema, CancellationToken.None);
+        return schema;
     }
 
     private async Task<DatabaseSchema> ReadAsync(ConnectionDefinition def, IDatabaseProvider provider, CancellationToken ct)

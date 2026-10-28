@@ -145,6 +145,10 @@ export interface PagedResult {
   total: number
   page: number
   pageSize: number
+  /** El total sale de las estadísticas del motor (tabla grande sin filtros, D-072): se muestra con "≈". */
+  totalIsEstimate?: boolean
+  /** Hay al menos `total` filas: se dejó de contar ahí (tabla grande con filtros, D-072). */
+  totalIsCapped?: boolean
 }
 
 export interface LookupItem {

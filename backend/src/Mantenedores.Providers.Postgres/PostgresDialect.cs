@@ -8,6 +8,11 @@ public sealed class PostgresDialect : ISqlDialect
 {
     public string Quote(string identifier) => "\"" + identifier.Replace("\"", "\"\"") + "\"";
 
+    /// <summary>reltuples: -1 si la tabla nunca se analizó (PostgreSQL 14+); entonces se cuenta exacto.</summary>
+    public string? EstimatedRowCount(string schemaParam, string tableParam) =>
+        "SELECT CAST(c.reltuples AS bigint) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace " +
+        $"WHERE n.nspname = {schemaParam} AND c.relname = {tableParam} AND c.relkind = 'r'";
+
     public string Paging(string offsetParam, string limitParam) => $"LIMIT {limitParam} OFFSET {offsetParam}";
 
     public string Contains(string columnExpr, string param) =>

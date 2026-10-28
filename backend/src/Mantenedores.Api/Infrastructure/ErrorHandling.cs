@@ -13,6 +13,7 @@ public sealed class ErrorHandler(ILogger<ErrorHandler> logger) : IExceptionHandl
         {
             ValidationException v => Results.ValidationProblem(
                 v.Errors.ToDictionary(e => e.Key, e => new[] { e.Value }), title: v.Message),
+            BusyException b => Busy(http, b),
             ForbiddenException f => Results.Problem(f.Message, statusCode: 403, title: "Sin permiso"),
             // Concurrencia optimista (D-069): se devuelve cómo está ahora, para comparar y decidir.
             ConcurrencyException c => Results.Problem(c.Message, statusCode: 409, title: "El registro cambió",
@@ -33,6 +34,12 @@ public sealed class ErrorHandler(ILogger<ErrorHandler> logger) : IExceptionHandl
 
         await result.ExecuteAsync(http);
         return true;
+    }
+
+    private static IResult Busy(HttpContext http, BusyException b)
+    {
+        http.Response.Headers.RetryAfter = "5";
+        return Results.Problem(b.Message, statusCode: 503, title: "Ocupado");
     }
 
     private IResult LogAndReturn(Exception ex, IResult result)

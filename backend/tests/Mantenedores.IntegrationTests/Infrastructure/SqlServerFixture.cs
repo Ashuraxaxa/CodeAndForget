@@ -27,6 +27,8 @@ public sealed partial class SqlServerFixture : DatabaseFixture
 
     // 13 = SQL Server 2016, 14 = 2017, 15 = 2019, 16 = 2022.
     public override int MinimumMajorVersion => 13;
+    public override string AnalyzeSql(string quotedTable) => "UPDATE STATISTICS " + quotedTable;
+
     protected override string MajorVersionSql => "SELECT CAST(SERVERPROPERTY('ProductMajorVersion') AS int)";
 
     protected override string BuildConnectionString(string host, int port, bool forSeed) =>

@@ -285,7 +285,7 @@ administrar la seguridad. Los puntos de abajo se ajustan a eso.
 1. **Caché del esquema compartida opcional:** `Cache:Provider = Redis` para varias instancias. Con una sola instancia sigue en memoria.
 2. ✅ PR #24 · **Pools de conexión con tope** por conexión y cierre de los inactivos (D-070).
 3. ✅ PR #24 · **Límites de uso** por usuario, para exportar/importar y para el login (D-070).
-4. **Tablas grandes:** paginación por clave (sin OFFSET) y conteo estimado (`reltuples` / `sys.partitions`).
+4. ✅ PR #26 · **Tablas grandes** (hasta ~1 millón de filas, D-072): total estimado (`reltuples` / `sys.partitions` / `information_schema`), conteo con tope y turno para consultas pesadas. La paginación por clave no hizo falta (P-098).
 5. ✅ PR #25 · **Observabilidad:** OpenTelemetry opcional por OTLP, solicitudes lentas en el log y logs en JSON (D-071).
 6. ◐ PR #25 · **Pruebas de carga** con k6 (`tests/load/crud.js`): falta la corrida contra tablas de 10 millones de filas (P-097).
 

@@ -8,6 +8,14 @@ public sealed class SqlServerDialect : ISqlDialect
 {
     public string Quote(string identifier) => "[" + identifier.Replace("]", "]]") + "]";
 
+    /// <summary>Filas del heap o del índice clúster: SQL Server las mantiene al día sin recorrer la tabla.</summary>
+    public string? EstimatedRowCount(string schemaParam, string tableParam) =>
+        "SELECT SUM(p.rows) FROM sys.partitions p JOIN sys.tables t ON t.object_id = p.object_id " +
+        $"JOIN sys.schemas s ON s.schema_id = t.schema_id WHERE s.name = {schemaParam} AND t.name = {tableParam} AND p.index_id IN (0, 1)";
+
+    public string CappedCount(string fromWhere, string limitParam) =>
+        $"SELECT COUNT(*) FROM (SELECT TOP ({limitParam}) 1 AS x FROM {fromWhere}) c";
+
     public string Paging(string offsetParam, string limitParam) =>
         $"OFFSET {offsetParam} ROWS FETCH NEXT {limitParam} ROWS ONLY";
 

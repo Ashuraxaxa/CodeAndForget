@@ -208,6 +208,51 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
 
     // ---------- Escritura ----------
 
+    // ---------- Tablas grandes (D-072) ----------
+
+    [Fact]
+    public async Task En_tablas_grandes_estima_el_total_sin_filtros_y_lo_corta_con_filtros()
+    {
+        var table = $"{Db.Provider.Dialect.Quote(Schema)}.{Db.Provider.Dialect.Quote(N("producto"))}";
+        await Db.ExecuteAsync(Db.AnalyzeSql(table));
+        var exact = await Db.ScalarAsync($"SELECT COUNT(*) FROM {table}");
+        // Con el umbral en 1, toda tabla con estadísticas usa la estimación.
+        var crud = new Core.Services.CrudService(Db.Schemas, new Core.Services.CrudOptions { EstimateCountAbove = 1 });
+
+        var all = await crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { PageSize = 2 }, default);
+        Assert.True(all.TotalIsEstimate);
+        Assert.InRange(all.Total, 1, exact * 3); // una estimación: del orden del real
+        Assert.Equal(2, all.Rows.Count);
+
+        // Con filtros se cuenta, pero hasta el tope: "más de N". La página tiene que venir llena: si no, el total
+        // ya se conoce sin contar.
+        var search = new ListRequest { Search = "a", PageSize = 1 };
+        var exactMatches = (await Db.Crud.ListAsync(Conn, Schema, N("producto"), search, default)).Total;
+        Assert.True(exactMatches >= 2);
+        var capped = await new Core.Services.CrudService(Db.Schemas, new Core.Services.CrudOptions { EstimateCountAbove = 1, FilteredCountCap = 1 })
+            .ListAsync(Conn, Schema, N("producto"), search, default);
+        Assert.False(capped.TotalIsEstimate);
+        Assert.True(capped.TotalIsCapped);
+        Assert.Equal(1, capped.Total);
+        var underCap = await crud.ListAsync(Conn, Schema, N("producto"), search, default);
+        Assert.False(underCap.TotalIsCapped);
+        Assert.Equal(exactMatches, underCap.Total);
+
+        // Página incompleta: el total es exacto sin contar, aunque la tabla sea "grande".
+        var partial = await crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { Search = "a", PageSize = 200 }, default);
+        Assert.False(partial.TotalIsCapped);
+        Assert.Equal(exactMatches, partial.Total);
+
+        var view = await crud.ListAsync(Conn, Schema, N("v_productos"), new ListRequest(), default);
+        Assert.False(view.TotalIsEstimate); // las vistas no tienen estadísticas propias
+
+        // Con el umbral por defecto, una tabla chica se cuenta exacto.
+        var normal = await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest(), default);
+        Assert.False(normal.TotalIsEstimate);
+        Assert.False(normal.TotalIsCapped);
+        Assert.Equal(exact, normal.Total);
+    }
+
     // ---------- Concurrencia optimista (D-069) ----------
 
     [Fact]

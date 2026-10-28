@@ -49,6 +49,29 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         return (new SqlQuery(sql, p.Snapshot(), renames), count);
     }
 
+    /// <summary>Filas estimadas de la tabla según el catálogo (D-072); null si el motor no estima o es una vista.</summary>
+    public SqlQuery? BuildEstimatedCount(TableInfo table)
+    {
+        if (table.Kind != TableKind.Table) return null;
+        var p = new ParamBag(dialect.ParameterPrefix);
+        var schemaParam = p.Add(table.Schema);
+        var sql = dialect.EstimatedRowCount(schemaParam, p.Add(table.Name));
+        return sql is null ? null : new SqlQuery(sql, p.Snapshot());
+    }
+
+    /// <summary>Conteo del listado filtrado que se detiene en <paramref name="cap"/> + 1 filas (D-072).</summary>
+    public SqlQuery BuildCappedCount(TableInfo table, ListRequest request, long cap)
+    {
+        var p = new ParamBag(dialect.ParameterPrefix);
+        var where = BuildWhere(table, request, p);
+        var from = dialect.Table(table.Schema, table.Name) + " " + Base;
+        return new SqlQuery(dialect.CappedCount(from + where, p.Add(cap + 1)), p.Snapshot());
+    }
+
+    /// <summary>¿El listado no filtra nada? Solo entonces sirve el total estimado de la tabla.</summary>
+    public static bool IsUnfiltered(ListRequest r) =>
+        string.IsNullOrWhiteSpace(r.Search) && r.Filters.All(f => string.IsNullOrEmpty(f.Value)) && r.Exact.Count == 0;
+
     public SqlQuery BuildGetByKey(DatabaseSchema schema, TableInfo table, IReadOnlyDictionary<string, object?> key)
     {
         RequireKey(table);

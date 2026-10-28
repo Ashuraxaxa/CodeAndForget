@@ -12,6 +12,10 @@ public sealed class MySqlDialect : ISqlDialect
 {
     public string Quote(string identifier) => "`" + identifier.Replace("`", "``") + "`";
 
+    /// <summary>TABLE_ROWS de InnoDB es una estimación (puede desviarse bastante): por eso la UI la muestra con "≈".</summary>
+    public string? EstimatedRowCount(string schemaParam, string tableParam) =>
+        $"SELECT TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_SCHEMA = {schemaParam} AND TABLE_NAME = {tableParam} AND TABLE_TYPE = 'BASE TABLE'";
+
     public string Paging(string offsetParam, string limitParam) => $"LIMIT {limitParam} OFFSET {offsetParam}";
 
     /// <summary>

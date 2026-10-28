@@ -33,3 +33,6 @@ public sealed class ConcurrencyException(IDictionary<string, object?> current)
 {
     public IDictionary<string, object?> Current { get; } = current;
 }
+
+/// <summary>Demasiadas consultas pesadas a la vez sobre una tabla grande (D-072): reintentar en unos segundos.</summary>
+public sealed class BusyException(string message) : MantenedorException(message);

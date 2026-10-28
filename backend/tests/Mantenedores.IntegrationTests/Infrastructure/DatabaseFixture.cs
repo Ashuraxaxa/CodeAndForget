@@ -67,6 +67,9 @@ public abstract class DatabaseFixture : IAsyncLifetime
     /// <summary>Traduce un nombre lógico (snake_case, como en la base de Postgres) al nombre real del motor.</summary>
     public virtual string Name(string logical) => logical;
 
+    /// <summary>Actualiza las estadísticas de una tabla (ya delimitada), para probar el total estimado (D-072).</summary>
+    public abstract string AnalyzeSql(string quotedTable);
+
     public async Task InitializeAsync()
     {
         var builder = new ContainerBuilder(Image)
@@ -121,6 +124,17 @@ public abstract class DatabaseFixture : IAsyncLifetime
         await using var cmd = db.CreateCommand();
         cmd.CommandText = sql;
         return Convert.ToInt64(await cmd.ExecuteScalarAsync());
+    }
+
+    /// <summary>Ejecuta una sentencia directa, sin leer su resultado (p. ej. ANALYZE TABLE, que en MySQL devuelve filas).</summary>
+    public async Task ExecuteAsync(string sql)
+    {
+        await using var db = Provider.CreateConnection(ConnectionString);
+        await db.OpenAsync();
+        await using var cmd = db.CreateCommand();
+        cmd.CommandText = sql;
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.NextResultAsync()) { }
     }
 
     protected static string SamplePath(string engineFolder)

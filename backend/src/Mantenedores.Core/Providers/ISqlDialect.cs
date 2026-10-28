@@ -51,6 +51,20 @@ public interface ISqlDialect
     /// <summary>Tamaño en bytes de un binario (P-018): para mostrar "12 KB" sin traer el archivo.</summary>
     string ByteLength(string columnExpr) => $"OCTET_LENGTH({columnExpr})";
 
+    /// <summary>
+    /// Consulta que devuelve las filas estimadas de una tabla según las estadísticas del motor (P-052, D-072), sin
+    /// recorrerla. Esquema y tabla llegan como parámetros (son valores del catálogo, no identificadores).
+    /// Null si el motor no tiene estimación: se usa el conteo exacto.
+    /// </summary>
+    string? EstimatedRowCount(string schemaParam, string tableParam) => null;
+
+    /// <summary>
+    /// Cuenta hasta <paramref name="limitParam"/> filas y para (D-072): en una tabla grande, con un término frecuente,
+    /// no recorre toda la tabla. <paramref name="fromWhere"/> es "tabla alias WHERE …" ya armado.
+    /// </summary>
+    string CappedCount(string fromWhere, string limitParam) =>
+        $"SELECT COUNT(*) FROM (SELECT 1 AS x FROM {fromWhere} LIMIT {limitParam}) c";
+
     /// <summary>Expresión que devuelve el último id autogenerado en la sesión (MySQL: LAST_INSERT_ID()). Null si no aplica.</summary>
     string? LastInsertIdExpression => null;
 }

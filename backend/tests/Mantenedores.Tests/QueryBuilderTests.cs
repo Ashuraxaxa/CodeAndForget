@@ -146,4 +146,46 @@ public class QueryBuilderTests
         var (data, _) = new QueryBuilder(new PostgresDialect()).BuildList(_schema, Producto, new ListRequest { PageSize = 100_000 });
         Assert.Equal((long)ListRequest.MaxPageSize, data.Parameters["p1"]);
     }
+
+    [Fact]
+    public void Arbol_por_niveles_con_raices_huerfanas_y_aviso_de_hijos()
+    {
+        var empleado = Arbol();
+        var qb = new QueryBuilder(new PostgresDialect());
+
+        var roots = qb.BuildTreeLevel(empleado, null, 50);
+        Assert.Equal(
+            "SELECT t0.\"id\" AS \"value\", t0.\"nombre\" AS \"label\", " +
+            "CASE WHEN EXISTS (SELECT 1 FROM \"rrhh\".\"empleado\" c WHERE c.\"jefe_id\" = t0.\"id\") THEN 1 ELSE 0 END AS \"children\" " +
+            "FROM \"rrhh\".\"empleado\" t0 WHERE t0.\"jefe_id\" IS NULL OR NOT EXISTS (SELECT 1 FROM \"rrhh\".\"empleado\" p WHERE p.\"id\" = t0.\"jefe_id\") " +
+            "ORDER BY t0.\"nombre\" LIMIT @p1 OFFSET @p0",
+            roots.Sql);
+
+        var children = qb.BuildTreeLevel(empleado, 7, 50);
+        Assert.Contains("WHERE t0.\"jefe_id\" = @p0", children.Sql);
+        Assert.Equal(7, children.Parameters["p0"]);
+
+        Assert.Throws<OperationNotAllowedException>(() => qb.BuildTreeLevel(Producto, null, 50));
+    }
+
+    private static Core.Schema.TableInfo Arbol()
+    {
+        Core.Schema.ColumnInfo C(string n, Core.Schema.LogicalType t, int o, bool identity = false, bool nullable = false) =>
+            new() { Name = n, NativeType = "int4", Type = t, Ordinal = o, IsIdentity = identity, HasDefault = identity, IsNullable = nullable };
+        var raw = Core.Schema.SchemaAssembler.Assemble(
+            [new Core.Schema.RawTable("rrhh", "empleado", Core.Schema.TableKind.Table)],
+            [
+                new Core.Schema.RawColumn("rrhh", "empleado", C("id", Core.Schema.LogicalType.Integer, 1, identity: true)),
+                new Core.Schema.RawColumn("rrhh", "empleado", C("nombre", Core.Schema.LogicalType.String, 2)),
+                new Core.Schema.RawColumn("rrhh", "empleado", C("jefe_id", Core.Schema.LogicalType.Integer, 3, nullable: true))
+            ],
+            [
+                new Core.Schema.RawKeyColumn("empleado_pk", Core.Schema.KeyKind.PrimaryKey, "rrhh", "empleado", "id", 1),
+                new Core.Schema.RawKeyColumn("empleado_jefe_fk", Core.Schema.KeyKind.ForeignKey, "rrhh", "empleado", "jefe_id", 1, "rrhh", "empleado", "id")
+            ]);
+        var s = Core.Overrides.OverrideApplier.Apply(raw, new Dictionary<(string, string), Core.Overrides.TableOverride>());
+        var t = s.FindTable("rrhh", "empleado")!;
+        Assert.Equal("jefe_id", t.SelfReference!.Columns[0]);
+        return t;
+    }
 }

@@ -76,10 +76,12 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
         var keyValues = ParseKey(info, key);
-        var query = new QueryBuilder(ctx.Provider.Dialect).BuildUpdate(info, keyValues, ParseValues(info, body));
+        var values = ParseValues(info, body);
+        var query = new QueryBuilder(ctx.Provider.Dialect).BuildUpdate(info, keyValues, values);
 
         await using (var db = await OpenAsync(ctx, ct))
         {
+            await CheckNoCycleAsync(ctx, info, db, keyValues[info.PrimaryKey[0]], values, ct);
             if (await Translated(ctx, info, DbOperation.Update, () => db.ExecuteAsync(Command(query, ct))) == 0)
                 throw new NotFoundException("El registro no existe.");
         }
@@ -109,6 +111,51 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         catch (DbException ex) when (DbErrorTranslator.Translate(ctx.Provider.ClassifyError(ex), table, op) is { } friendly)
         {
             throw friendly;
+        }
+    }
+
+    // ---------- Árboles (P-016) ----------
+
+    /// <summary>Un nodo del árbol: su clave, su texto y si tiene hijos.</summary>
+    public sealed record TreeNode(object? Value, string? Label, bool HasChildren);
+
+    /// <summary>Un nivel del árbol: los hijos de <paramref name="parent"/>, o las raíces si es null.</summary>
+    public async Task<IReadOnlyList<TreeNode>> TreeAsync(string conn, string schema, string table, string? parent, int take, CancellationToken ct)
+    {
+        var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
+        var fk = info.SelfReference ?? throw new OperationNotAllowedException($"{info.FullName} no tiene una relación consigo misma.");
+        var parentValue = string.IsNullOrEmpty(parent) ? null : ValueConverter.FromString(info.FindColumn(fk.Columns[0])!, parent);
+        var query = new QueryBuilder(ctx.Provider.Dialect).BuildTreeLevel(info, parentValue, take);
+        await using var db = await OpenAsync(ctx, ct);
+        var rows = await db.QueryAsync(Command(query, ct));
+        return rows.Cast<IDictionary<string, object?>>()
+            .Select(r => new TreeNode(r["value"], r["label"]?.ToString(), Convert.ToInt32(r["children"]) == 1))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Un registro no puede quedar como su propio ancestro: se sube desde el nuevo padre hacia la raíz y,
+    /// si se llega al registro, se rechaza. Se usa SQL simple (sin CTE recursivo) para que sea igual en todos los motores.
+    /// </summary>
+    private async Task CheckNoCycleAsync(ConnectionContext ctx, TableInfo table, DbConnection db, object? self,
+        IReadOnlyDictionary<string, object?> values, CancellationToken ct)
+    {
+        if (table.SelfReference is not { } fk) return;
+        var parentName = fk.Columns[0];
+        var entry = values.FirstOrDefault(v => string.Equals(v.Key, parentName, StringComparison.OrdinalIgnoreCase));
+        if (entry.Key is null || entry.Value is null || self is null) return;
+
+        static string K(object? v) => Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture) ?? "";
+        var qb = new QueryBuilder(ctx.Provider.Dialect);
+        var seen = new HashSet<string>();
+        var current = entry.Value;
+        for (var depth = 0; current is not null && depth < 10_000; depth++)
+        {
+            if (K(current) == K(self))
+                throw new ValidationException(parentName, "crearía un ciclo: el registro quedaría como su propio ancestro");
+            if (!seen.Add(K(current))) return; // ya hay un ciclo arriba, ajeno a este registro
+            current = await db.ExecuteScalarAsync<object?>(Command(qb.BuildParentOf(table, current), ct));
+            if (current is DBNull) current = null;
         }
     }
 

@@ -654,4 +654,42 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
                 await Db.Crud.DeleteAsync(Conn, Schema, N("producto"), Key((N("id"), r[N("id")]!)), default);
         }
     }
+    // ---------- Árboles (P-016) ----------
+
+    [Fact]
+    public async Task Arbol_por_autorreferencia_y_sin_ciclos()
+    {
+        var empleado = await TableAsync("empleado");
+        Assert.Equal(N("jefe_id"), empleado.SelfReference!.Columns[0], ignoreCase: true);
+
+        var roots = await Db.Crud.TreeAsync(Conn, Schema, N("empleado"), null, 100, default);
+        var ana = Assert.Single(roots, n => n.Label == "Ana Gerente");
+        Assert.True(ana.HasChildren);
+        var hijos = await Db.Crud.TreeAsync(Conn, Schema, N("empleado"), Convert.ToString(ana.Value), 100, default);
+        var luis = Assert.Single(hijos, n => n.Label == "Luis Vendedor");
+        Assert.False(luis.HasChildren);
+
+        // Ana bajo Luis (que depende de Ana) y Ana bajo sí misma: ciclos rechazados en el campo.
+        foreach (var jefe in new[] { luis.Value, ana.Value })
+        {
+            var ex = await Assert.ThrowsAsync<ValidationException>(() => Db.Crud.UpdateAsync(Conn, Schema, N("empleado"),
+                Key((N("id"), ana.Value!)), Body((N("jefe_id"), Convert.ToInt64(jefe))), default));
+            Assert.Contains("ciclo", ex.Errors.Single(e => string.Equals(e.Key, N("jefe_id"), StringComparison.OrdinalIgnoreCase)).Value);
+        }
+
+        // Un cambio válido sí se guarda: un empleado nuevo bajo Luis, y después se borra.
+        var nuevo = await Db.Crud.CreateAsync(Conn, Schema, N("empleado"),
+            Body((N("nombre"), "Temporal " + UniqueCode()), (N("jefe_id"), Convert.ToInt64(luis.Value))), default);
+        try
+        {
+            Assert.True((await Db.Crud.TreeAsync(Conn, Schema, N("empleado"), Convert.ToString(ana.Value), 100, default))
+                .Single(n => n.Label == "Luis Vendedor").HasChildren);
+            await Db.Crud.UpdateAsync(Conn, Schema, N("empleado"), Key((N("id"), nuevo[N("id")]!)),
+                Body((N("jefe_id"), Convert.ToInt64(ana.Value))), default);
+        }
+        finally
+        {
+            await Db.Crud.DeleteAsync(Conn, Schema, N("empleado"), Key((N("id"), nuevo[N("id")]!)), default);
+        }
+    }
 }

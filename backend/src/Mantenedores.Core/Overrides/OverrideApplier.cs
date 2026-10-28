@@ -65,6 +65,10 @@ public static class OverrideApplier
             {
                 Children = children,
                 ManyToMany = links.GetValueOrDefault(Key(t.Schema, t.Name)) ?? [],
+                SelfReference = t.PrimaryKey.Count == 1
+                    ? t.ForeignKeys.FirstOrDefault(f => f.IsSingleColumn && Same(f.RefSchema, t.Schema) && Same(f.RefTable, t.Name)
+                                                        && Same(f.RefColumns[0], t.PrimaryKey[0]))
+                    : null,
                 IsBridge = bridges.Contains(Key(t.Schema, t.Name))
             };
         }).ToList();

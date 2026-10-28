@@ -109,6 +109,8 @@ export interface TableMeta {
   manyToMany: ManyToManyLink[]
   /** Es la tabla puente de una relación N:M. */
   isBridge: boolean
+  /** FK hacia sí misma (p. ej. jefe_id): habilita la vista de árbol (P-016). */
+  selfReference: ForeignKey | null
   displayColumn: string | null
   isEditable: boolean
   hasPrimaryKey: boolean
@@ -243,4 +245,12 @@ export interface ImportResult {
   errors: ImportError[]
   sample: Record<string, string | null>[]
   imported: number
+}
+
+// ----- Árboles (P-016) -----
+
+export interface TreeNode {
+  value: unknown
+  label: string | null
+  hasChildren: boolean
 }

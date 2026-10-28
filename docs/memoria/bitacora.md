@@ -4,6 +4,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-27 · Fase 2: árboles
+- `SelfReference` en la metadata, `GET /tree` por niveles (raíces = sin padre o con padre inexistente) y validación de ciclos al editar, con SQL portable (D-058).
+- UI: Grilla/Árbol con la vista en la URL, "＋ hijo" con el jefe fijo. Encontrado en el navegador: tras guardar se perdía la vista de árbol; ahora queda en `?vista=arbol`.
+- 149 unitarias y 191 de integración en verde, versión mínima y actual.
+- **Siguiente:** P-018, tipos pendientes. **Nuevo pendiente:** P-089.
+
 ## 2026-10-27 · Fase 2: exportar e importar
 - El dueño pidió sumar JSON y XML a CSV y Excel. Se exportan e importan los cuatro (D-057).
 - Exportación por streaming (`QueryUnbufferedAsync`), con tope y conteo previo; CSV protegido contra inyección de fórmulas; Excel con OpenXml SDK.

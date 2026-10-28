@@ -1,5 +1,5 @@
 import type {
-  ImportResult, TransferFormat,
+  ImportResult, TransferFormat, TreeNode,
   Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride,
 } from './types'
 
@@ -189,6 +189,8 @@ export const api = {
     upload(`${tablePath(conn, schema, table)}/import/preview`, file, mapping),
   importFile: (conn: string, schema: string, table: string, file: File, mapping?: Record<string, string | null>) =>
     upload(`${tablePath(conn, schema, table)}/import`, file, mapping),
+  tree: (conn: string, schema: string, table: string, parent?: unknown) =>
+    request<TreeNode[]>('GET', `${tablePath(conn, schema, table)}/tree${parent == null ? '' : `?${new URLSearchParams({ parent: String(parent) })}`}`),
   lookup: (conn: string, schema: string, table: string, q: string) =>
     request<LookupItem[]>('GET', `${tablePath(conn, schema, table)}/lookup?${new URLSearchParams({ q, take: '20' })}`),
 }

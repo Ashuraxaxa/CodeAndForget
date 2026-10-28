@@ -41,7 +41,8 @@ public class DialectCapabilitiesTests
         var (data, _) = new QueryBuilder(new SinReturningDialect()).BuildList(Schema, Producto,
             new ListRequest { Filters = new Dictionary<string, string> { ["categoria_id"] = "1" } });
         Assert.Contains("`categoria_id` = :p0", data.Sql);
-        Assert.Contains("LIMIT :p2 OFFSET :p1", data.Sql);
+        Assert.Contains("LIKE :p1", data.Sql); // también por la etiqueta (P-032)
+        Assert.Contains("LIMIT :p3 OFFSET :p2", data.Sql);
         Assert.True(data.Parameters.ContainsKey("p0")); // en el diccionario, sin prefijo
     }
 

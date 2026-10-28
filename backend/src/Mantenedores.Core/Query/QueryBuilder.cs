@@ -360,12 +360,11 @@ public sealed class QueryBuilder(ISqlDialect dialect)
                 continue;
             }
             // Una FK se filtra también por el texto que la UI muestra (P-032): "Bebidas" encuentra categoria_id = 1.
-            var byLabel = LabelFilter(schema, table, col, colExpr, raw, p);
-            object? value = null;
-            var isValue = true;
-            try { value = ValueConverter.FromString(col, raw); }
-            catch (ValidationException) when (byLabel is not null) { isValue = false; }
-            var equals = isValue ? $"{colExpr} = {dialect.ParameterFor(col, p.Add(value))}" : null;
+            var labelable = CanFilterByLabel(schema, table, col);
+            string? equals = null;
+            try { equals = $"{colExpr} = {dialect.ParameterFor(col, p.Add(ValueConverter.FromString(col, raw)))}"; }
+            catch (ValidationException) when (labelable) { }
+            var byLabel = labelable ? LabelFilter(schema, table, col, colExpr, raw, p) : null;
             predicates.Add(byLabel is null ? equals! : equals is null ? byLabel : $"({equals} OR {byLabel})");
         }
 
@@ -401,14 +400,22 @@ public sealed class QueryBuilder(ISqlDialect dialect)
     /// </summary>
     private string? LabelFilter(DatabaseSchema schema, TableInfo table, ColumnInfo col, string colExpr, string raw, ParamBag p)
     {
+        if (LabelTarget(schema, table, col) is not var (fk, target, display)) return null;
+        const string alias = "lf";
+        return $"{colExpr} IN (SELECT {alias}.{dialect.Quote(fk.RefColumns[0])} FROM {dialect.Table(target.Schema, target.Name)} {alias} " +
+               $"WHERE {dialect.Contains($"{alias}.{dialect.Quote(display.Name)}", p.Add(LikePattern(raw)))})";
+    }
+
+    private static bool CanFilterByLabel(DatabaseSchema schema, TableInfo table, ColumnInfo col) => LabelTarget(schema, table, col) is not null;
+
+    private static (ForeignKeyInfo Fk, TableInfo Target, ColumnInfo Display)? LabelTarget(DatabaseSchema schema, TableInfo table, ColumnInfo col)
+    {
         var fk = table.ForeignKeys.FirstOrDefault(f => f.IsSingleColumn && string.Equals(f.Columns[0], col.Name, StringComparison.OrdinalIgnoreCase));
         if (fk is null || schema.FindTable(fk.RefSchema, fk.RefTable) is not { } target) return null;
         if (target.DisplayColumn is not { } d || target.FindColumn(d) is not { IsSelectable: true, Type: LogicalType.String or LogicalType.Text } display)
             return null;
         if (string.Equals(display.Name, fk.RefColumns[0], StringComparison.OrdinalIgnoreCase)) return null;
-        const string alias = "lf";
-        return $"{colExpr} IN (SELECT {alias}.{dialect.Quote(fk.RefColumns[0])} FROM {dialect.Table(target.Schema, target.Name)} {alias} " +
-               $"WHERE {dialect.Contains($"{alias}.{dialect.Quote(display.Name)}", p.Add(LikePattern(raw)))})";
+        return (fk, target, display);
     }
 
     private string BuildOrderBy(TableInfo table, IReadOnlyList<SortSpec> sort)

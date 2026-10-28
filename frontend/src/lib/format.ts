@@ -1,4 +1,5 @@
 import type { Column, Row, TableMeta } from '../api/types'
+import { currentDateRegion, t } from '../i18n'
 
 /** Query string con los valores de la PK de una fila: "Id=5" o "PedidoId=1&Linea=2". */
 export function keyQuery(meta: TableMeta, row: Row): string {
@@ -7,25 +8,33 @@ export function keyQuery(meta: TableMeta, row: Row): string {
   return qs.toString()
 }
 
-/** Fechas siempre en formato día/mes/año (P-033), aunque el navegador esté en otro idioma. */
-/** "2026-10-28" → "28/10/2026", sin pasar por zonas horarias (una fecha no tiene hora). */
+/**
+ * Fechas con el formato del idioma elegido (P-033, P-100): 28/10/2026 (es), 10/28/2026 (en), 28.10.2026 (ru).
+ * No depende del idioma del navegador.
+ */
+const DATE: Intl.DateTimeFormatOptions = { year: 'numeric', month: '2-digit', day: '2-digit' }
+const TIME: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' }
+
+/** "2026-10-28" → la fecha en el formato del idioma, sin pasar por zonas horarias (una fecha no tiene hora). */
 function formatDate(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso
+  if (!m) return iso
+  return new Intl.DateTimeFormat(currentDateRegion(), { ...DATE, timeZone: 'UTC' }).format(Date.UTC(+m[1], +m[2] - 1, +m[3]))
 }
 
-/** "2026-10-28T14:05:09" → "28/10/2026 14:05:09", sin convertir: la base no dice en qué zona está. */
+/** "2026-10-28T14:05:09" → fecha y hora en el formato del idioma, sin convertir: la base no dice en qué zona está. */
 function formatNaive(iso: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}:\d{2}(:\d{2})?)/.exec(iso)
-  return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}` : iso.replace('T', ' ').slice(0, 19)
+  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/.exec(iso)
+  if (!m) return iso.replace('T', ' ').slice(0, 19)
+  return new Intl.DateTimeFormat(currentDateRegion(), { ...DATE, ...TIME, timeZone: 'UTC' })
+    .format(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] ?? 0)))
 }
 
-/** Fecha y hora con zona, en la hora local del usuario: "28/10/2026 14:05:09". */
+/** Fecha y hora con zona, en la hora local del usuario y el formato del idioma. */
 export function formatInstant(value: string | Date): string {
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return String(value)
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+  return new Intl.DateTimeFormat(currentDateRegion(), { ...DATE, ...TIME }).format(d)
 }
 
 /** Texto de una celda en la grilla. */
@@ -33,7 +42,7 @@ export function displayValue(col: Column, value: unknown): string {
   if (value === null || value === undefined) return ''
   switch (col.type) {
     case 'Boolean':
-      return value ? 'Sí' : 'No'
+      return value ? t('Sí') : t('No')
     case 'Date':
       return formatDate(String(value))
     case 'DateTime':

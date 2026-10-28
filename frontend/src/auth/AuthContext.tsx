@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { UserManager, type User } from 'oidc-client-ts'
+import { t } from '../i18n'
 import { api, setTokenProvider, setUnauthorizedHandler, tokenStore, type AuthConfig } from '../api/client'
 
 /**
@@ -98,12 +99,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const loginExternal = useCallback(async () => {
-    if (!manager) throw new Error('El proveedor de identidad no está configurado.')
+    if (!manager) throw new Error(t('El proveedor de identidad no está configurado.'))
     await manager.signinRedirect()
   }, [manager])
 
   const completeExternalLogin = useCallback(async () => {
-    if (!manager) throw new Error('El proveedor de identidad no está configurado.')
+    if (!manager) throw new Error(t('El proveedor de identidad no está configurado.'))
     setUser(await manager.signinRedirectCallback())
   }, [manager, setUser])
 

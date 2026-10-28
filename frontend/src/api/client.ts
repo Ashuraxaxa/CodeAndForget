@@ -3,6 +3,7 @@ import type {
   AuditPage, SecurityInfo, SecurityProfile, SecurityUser,
   Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride,
 } from './types'
+import { t } from '../i18n'
 
 /** Error de la API con el formato ProblemDetails de ASP.NET. */
 export class ApiError extends Error {
@@ -49,7 +50,8 @@ let tokenProvider: () => string | null = () => tokenStore.get()
 export function setTokenProvider(fn: () => string | null) { tokenProvider = fn }
 
 async function request<T>(method: string, url: string, body?: unknown, extraHeaders?: Record<string, string>): Promise<T> {
-  const headers: Record<string, string> = { ...extraHeaders }
+  // El idioma va al servidor para cuando traduzca sus mensajes (P-101); hoy responde en español.
+  const headers: Record<string, string> = { 'Accept-Language': document.documentElement.lang || 'es', ...extraHeaders }
   const token = tokenProvider()
   if (token) headers.Authorization = `Bearer ${token}`
   if (body !== undefined) headers['Content-Type'] = 'application/json'
@@ -58,7 +60,7 @@ async function request<T>(method: string, url: string, body?: unknown, extraHead
 
   if (res.status === 401 && !url.endsWith('auth/login')) {
     onUnauthorized()
-    throw new ApiError(401, 'Sesión expirada')
+    throw new ApiError(401, t('Sesión expirada'))
   }
   if (res.status === 204) return undefined as T
 
@@ -72,7 +74,7 @@ async function request<T>(method: string, url: string, body?: unknown, extraHead
 async function download(url: string): Promise<void> {
   const token = tokenProvider()
   const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-  if (res.status === 401) { onUnauthorized(); throw new ApiError(401, 'Sesión expirada') }
+  if (res.status === 401) { onUnauthorized(); throw new ApiError(401, t('Sesión expirada')) }
   if (!res.ok) {
     const data = await res.json().catch(() => undefined)
     throw new ApiError(res.status, data?.title ?? res.statusText, data?.detail, data?.errors)
@@ -96,7 +98,7 @@ async function upload(url: string, file: File, mapping?: Record<string, string |
   if (mode) form.append('mode', mode)
   const token = tokenProvider()
   const res = await fetch(url, { method: 'POST', body: form, headers: token ? { Authorization: `Bearer ${token}` } : {} })
-  if (res.status === 401) { onUnauthorized(); throw new ApiError(401, 'Sesión expirada') }
+  if (res.status === 401) { onUnauthorized(); throw new ApiError(401, t('Sesión expirada')) }
   const data = await res.json().catch(() => undefined)
   if (res.ok || (res.status === 400 && data && Array.isArray(data.headers))) return data as ImportResult
   throw new ApiError(res.status, data?.title ?? res.statusText, data?.detail, data?.errors)

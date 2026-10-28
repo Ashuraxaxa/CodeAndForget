@@ -234,3 +234,7 @@ select.export { width: auto; }
 /* Concurrencia optimista: aviso de conflicto en el formulario */
 .banner.conflict ul { margin: 6px 0 8px 18px; padding: 0; }
 .banner.conflict .actions { margin-top: 6px; }
+
+/* Idioma */
+.lang { width: auto; padding: 2px 6px; font-size: 0.85rem; }
+.login-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }

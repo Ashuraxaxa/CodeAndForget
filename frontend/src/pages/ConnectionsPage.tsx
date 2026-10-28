@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
 import type { Connection, ConnectionInput, Engine } from '../api/types'
 import { useCan } from '../lib/useMe'
+import { useT } from '../i18n'
 
 const EXAMPLES: Record<Engine, string> = {
   SqlServer: 'Server=mi-servidor,1433;Database=MiBase;User Id=usuario;Password=***;TrustServerCertificate=True',
@@ -19,6 +20,7 @@ const ENGINES: Record<Engine, { label: string; badge: string }> = {
 }
 
 export function ConnectionsPage() {
+  const t = useT()
   const qc = useQueryClient()
   const canManage = useCan('ManageConnections')
   const { data, isLoading, error } = useQuery({ queryKey: ['connections'], queryFn: api.connections })
@@ -32,8 +34,8 @@ export function ConnectionsPage() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1>Conexiones</h1>
-        {canManage && <button className="primary" onClick={() => setEditing('new')}>Nueva conexión</button>}
+        <h1>{t('Conexiones')}</h1>
+        {canManage && <button className="primary" onClick={() => setEditing('new')}>{t('Nueva conexión')}</button>}
       </div>
 
       {editing && (
@@ -43,13 +45,13 @@ export function ConnectionsPage() {
         />
       )}
 
-      {isLoading && <p className="muted">Cargando…</p>}
+      {isLoading && <p className="muted">{t('Cargando…')}</p>}
       {error && <div className="alert">{(error as Error).message}</div>}
       {data?.length === 0 && !editing && (
         <div className="empty">
           {canManage
-            ? 'Aún no hay conexiones. Crea una para descubrir sus tablas.'
-            : 'Aún no hay conexiones. Pídele a quien administra las conexiones que agregue una.'}
+            ? t('Aún no hay conexiones. Crea una para descubrir sus tablas.')
+            : t('Aún no hay conexiones. Pídele a quien administra las conexiones que agregue una.')}
         </div>
       )}
 
@@ -64,18 +66,18 @@ export function ConnectionsPage() {
                 </span>{' '}
                 {c.server} / {c.database}
               </div>
-              {c.schemas.length > 0 && <div className="muted small">Esquemas: {c.schemas.join(', ')}</div>}
+              {c.schemas.length > 0 && <div className="muted small">{t('Esquemas: {list}', { list: c.schemas.join(', ') })}</div>}
             </div>
             <div className="actions">
-              <Link className="button primary" to={`/c/${c.id}`}>Abrir</Link>
+              <Link className="button primary" to={`/c/${c.id}`}>{t('Abrir')}</Link>
               {canManage && (
                 <>
-                  <button onClick={() => setEditing(c)}>Editar</button>
+                  <button onClick={() => setEditing(c)}>{t('Editar')}</button>
                   <button
                     className="danger"
-                    onClick={() => confirm(`¿Eliminar la conexión "${c.name}"? No borra datos de la base.`) && remove.mutate(c.id)}
+                    onClick={() => confirm(t('¿Eliminar la conexión "{name}"? No borra datos de la base.', { name: c.name })) && remove.mutate(c.id)}
                   >
-                    Eliminar
+                    {t('Eliminar')}
                   </button>
                 </>
               )}
@@ -88,6 +90,7 @@ export function ConnectionsPage() {
 }
 
 function ConnectionForm({ initial, onClose }: { initial: Connection | null; onClose: () => void }) {
+  const t = useT()
   const qc = useQueryClient()
   const [form, setForm] = useState({
     id: initial?.id ?? '',
@@ -116,10 +119,10 @@ function ConnectionForm({ initial, onClose }: { initial: Connection | null; onCl
     mutationFn: () => api.testConnection(input()),
     onSuccess: r => {
       setFieldErrors({})
-      const server = r.server ? ` Servidor: ${r.server}.` : ''
+      const server = r.server ? ' ' + t('Servidor: {server}.', { server: r.server }) : ''
       setResult(r.ok
-        ? { ok: true, text: `Conexión correcta: ${r.tables} tablas/vistas encontradas.${server}` }
-        : { ok: false, text: r.error ?? 'No se pudo conectar.' })
+        ? { ok: true, text: t('Conexión correcta: {n} tablas/vistas encontradas.', { n: r.tables }) + server }
+        : { ok: false, text: r.error ?? t('No se pudo conectar.') })
     },
     onError: handleError,
   })
@@ -144,21 +147,21 @@ function ConnectionForm({ initial, onClose }: { initial: Connection | null; onCl
 
   return (
     <form className="card form" onSubmit={submit}>
-      <h2>{initial ? `Editar ${initial.name}` : 'Nueva conexión'}</h2>
+      <h2>{initial ? t('Editar {name}', { name: initial.name }) : t('Nueva conexión')}</h2>
       <div className="grid-2">
         <label>
-          Identificador
+          {t('Identificador')}
           <input value={form.id} onChange={set('id')} disabled={!!initial} placeholder="ventas" required />
-          <span className="hint">Se usa en la URL. Minúsculas, números, - o _.</span>
+          <span className="hint">{t('Se usa en la URL. Minúsculas, números, - o _.')}</span>
           {fieldErrors.id && <span className="field-error">{fieldErrors.id}</span>}
         </label>
         <label>
-          Nombre
-          <input value={form.name} onChange={set('name')} placeholder="Ventas producción" required />
+          {t('Nombre')}
+          <input value={form.name} onChange={set('name')} placeholder={t('Ventas producción')} required />
           {fieldErrors.name && <span className="field-error">{fieldErrors.name}</span>}
         </label>
         <label>
-          Motor
+          {t('Motor')}
           <select value={form.engine} onChange={set('engine')}>
             {(Object.keys(ENGINES) as Engine[]).map(e => (
               <option key={e} value={e}>{ENGINES[e].label}</option>
@@ -166,25 +169,25 @@ function ConnectionForm({ initial, onClose }: { initial: Connection | null; onCl
           </select>
         </label>
         <label>
-          Esquemas (opcional)
+          {t('Esquemas (opcional)')}
           <input value={form.schemas} onChange={set('schemas')} placeholder="dbo, ventas" />
           <span className="hint">
             {form.engine === 'MySql'
-              ? 'En MySQL cada esquema es una base de datos. Vacío = la base de la cadena de conexión.'
-              : 'Separados por coma. Vacío = todos.'}
+              ? t('En MySQL cada esquema es una base de datos. Vacío = la base de la cadena de conexión.')
+              : t('Separados por coma. Vacío = todos.')}
           </span>
         </label>
       </div>
       <label>
-        Cadena de conexión
+        {t('Cadena de conexión')}
         <textarea
           rows={2}
           value={form.connectionString}
           onChange={set('connectionString')}
-          placeholder={initial ? 'Déjala vacía para conservar la actual' : EXAMPLES[form.engine]}
+          placeholder={initial ? t('Déjala vacía para conservar la actual') : EXAMPLES[form.engine]}
           required={!initial}
         />
-        <span className="hint">Se guarda cifrada. Usa un usuario de BD con los permisos mínimos necesarios.</span>
+        <span className="hint">{t('Se guarda cifrada. Usa un usuario de BD con los permisos mínimos necesarios.')}</span>
         {fieldErrors.connectionString && <span className="field-error">{fieldErrors.connectionString}</span>}
       </label>
 
@@ -192,10 +195,10 @@ function ConnectionForm({ initial, onClose }: { initial: Connection | null; onCl
 
       <div className="actions">
         <button type="button" onClick={() => test.mutate()} disabled={test.isPending}>
-          {test.isPending ? 'Probando…' : 'Probar conexión'}
+          {test.isPending ? t('Probando…') : t('Probar conexión')}
         </button>
-        <button className="primary" disabled={save.isPending}>{save.isPending ? 'Guardando…' : 'Guardar'}</button>
-        <button type="button" className="link" onClick={onClose}>Cancelar</button>
+        <button className="primary" disabled={save.isPending}>{save.isPending ? t('Guardando…') : t('Guardar')}</button>
+        <button type="button" className="link" onClick={onClose}>{t('Cancelar')}</button>
       </div>
     </form>
   )

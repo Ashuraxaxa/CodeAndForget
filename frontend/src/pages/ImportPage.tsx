@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { labelOf, type ImportMode, type ImportResult } from '../api/types'
+import { useT } from '../i18n'
 
 const ACCEPT = '.csv,.txt,.xlsx,.json,.xml'
 
@@ -13,6 +14,7 @@ const ACCEPT = '.csv,.txt,.xlsx,.json,.xml'
 export function ImportPage() {
   const { conn = '', schema = '', table = '' } = useParams()
   const qc = useQueryClient()
+  const t = useT()
   const meta = useQuery({ queryKey: ['meta', conn, schema, table], queryFn: () => api.table(conn, schema, table) })
   const [file, setFile] = useState<File | null>(null)
   const [mapping, setMapping] = useState<Record<string, string | null> | undefined>(undefined)
@@ -64,57 +66,56 @@ export function ImportPage() {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Importar · {title}</h1>
-          <div className="muted small">CSV, Excel, JSON o XML. La primera fila (o los nombres de los campos) indica las columnas.</div>
+          <h1>{t('Importar · {table}', { table: title })}</h1>
+          <div className="muted small">{t('CSV, Excel, JSON o XML. La primera fila (o los nombres de los campos) indica las columnas.')}</div>
         </div>
-        <Link to={back}>‹ Volver a la lista</Link>
+        <Link to={back}>‹ {t('Volver a la lista')}</Link>
       </div>
 
       <div className="card form">
         <label>
-          <span className="field-label">1. Archivo</span>
+          <span className="field-label">1. {t('Archivo')}</span>
           <input type="file" accept={ACCEPT} onChange={e => choose(e.target.files?.[0] ?? null)} />
         </label>
         <div>
-          <span className="field-label">Qué hacer con cada fila</span>
+          <span className="field-label">{t('Qué hacer con cada fila')}</span>
           <div className="checks">
             <label className="check">
               <input type="radio" name="mode" checked={mode === 'insert'} onChange={() => changeMode('insert')} />
-              Solo agregar registros nuevos
+              {t('Solo agregar registros nuevos')}
             </label>
             <label className="check">
               <input type="radio" name="mode" checked={mode === 'upsert'} onChange={() => changeMode('upsert')} />
-              Agregar y actualizar por clave
+              {t('Agregar y actualizar por clave')}
             </label>
           </div>
           {mode === 'upsert' && meta.data && (
             <span className="hint">
-              Si la fila trae una clave ({meta.data.primaryKey.join(', ')}) que ya existe, se actualiza con lo que trae el archivo;
-              si no trae clave, se crea.
+              {t('Si la fila trae una clave ({key}) que ya existe, se actualiza con lo que trae el archivo; si no trae clave, se crea.', { key: meta.data.primaryKey.join(', ') })}
             </span>
           )}
         </div>
-        {preview.isPending && <p className="muted">Leyendo y validando…</p>}
+        {preview.isPending && <p className="muted">{t('Leyendo y validando…')}</p>}
         {error && <div className="alert">{error.message}</div>}
       </div>
 
       {r && !done && (
         <>
           <div className="card form">
-            <span className="field-label">2. Columnas</span>
+            <span className="field-label">2. {t('Columnas')}</span>
             <div className="table-wrap">
               <table className="grid">
-                <thead><tr><th>En el archivo</th><th>Se guarda en</th></tr></thead>
+                <thead><tr><th>{t('En el archivo')}</th><th>{t('Se guarda en')}</th></tr></thead>
                 <tbody>
                   {r.headers.map(h => (
                     <tr key={h}>
                       <td><code>{h}</code></td>
                       <td>
                         <select value={r.mapping[h] ?? ''} onChange={e => remap(h, e.target.value)}>
-                          <option value="">(ignorar)</option>
-                          {r.targets.map(t => (
-                            <option key={t.name} value={t.name}>
-                              {t.label ? `${t.label} (${t.name})` : t.name}{t.required ? ' *' : ''}{t.isKey ? ' · clave' : ''}
+                          <option value="">{t('(ignorar)')}</option>
+                          {r.targets.map(c => (
+                            <option key={c.name} value={c.name}>
+                              {c.label ? `${c.label} (${c.name})` : c.name}{c.required ? ' *' : ''}{c.isKey ? ' · ' + t('clave') : ''}
                             </option>
                           ))}
                         </select>
@@ -124,26 +125,26 @@ export function ImportPage() {
                 </tbody>
               </table>
             </div>
-            <span className="hint">* obligatoria. Las columnas que genera la base (identity, calculadas) no se importan.</span>
+            <span className="hint">{t('* obligatoria. Las columnas que genera la base (identity, calculadas) no se importan.')}</span>
           </div>
 
           <div className="card form">
-            <span className="field-label">3. Revisión</span>
+            <span className="field-label">3. {t('Revisión')}</span>
             <p>
-              <b>{r.totalRows}</b> filas · <b>{r.validRows}</b> válidas
-              {mode === 'upsert' && r.errors.length === 0 && <> · <b>{r.created}</b> nuevas · <b>{r.updated}</b> se actualizan</>}
-              {r.errors.length > 0 && <> · <span className="field-error">{r.errors.length} errores</span></>}
+              {t('{n} filas', { n: r.totalRows })} · {t('{n} válidas', { n: r.validRows })}
+              {mode === 'upsert' && r.errors.length === 0 && <> · {t('{n} nuevas', { n: r.created })} · {t('{n} se actualizan', { n: r.updated })}</>}
+              {r.errors.length > 0 && <> · <span className="field-error">{t('{n} errores', { n: r.errors.length })}</span></>}
             </p>
             {r.errors.length > 0 && (
               <div className="alert">
                 {r.errors.map((e, i) => (
-                  <div key={i}>{e.line > 0 ? `Línea ${e.line}` : 'General'}{e.column ? ` · ${e.column}` : ''}: {e.message}</div>
+                  <div key={i}>{e.line > 0 ? t('Línea {line}', { line: e.line }) : t('General')}{e.column ? ` · ${e.column}` : ''}: {e.message}</div>
                 ))}
               </div>
             )}
             {r.sample.length > 0 && (
               <>
-                <span className="muted small">Primeras {r.sample.length} filas, como se van a guardar:</span>
+                <span className="muted small">{t('Primeras {n} filas, como se van a guardar:', { n: r.sample.length })}</span>
                 <div className="table-wrap">
                   <table className="grid">
                     <thead><tr>{mapped.map(c => <th key={c}>{c}</th>)}</tr></thead>
@@ -159,11 +160,11 @@ export function ImportPage() {
             <div className="actions">
               <button className="primary" disabled={r.errors.length > 0 || r.totalRows === 0 || commit.isPending || preview.isPending}
                 onClick={() => commit.mutate()}>
-                {commit.isPending ? 'Importando…' : `Importar ${r.totalRows} filas`}
+                {commit.isPending ? t('Importando…') : t('Importar {n} filas', { n: r.totalRows })}
               </button>
-              <Link to={back} className="button">Cancelar</Link>
+              <Link to={back} className="button">{t('Cancelar')}</Link>
             </div>
-            {r.errors.length > 0 && <span className="hint">Corrija el archivo o la asociación de columnas: se importa todo o nada.</span>}
+            {r.errors.length > 0 && <span className="hint">{t('Corrija el archivo o la asociación de columnas: se importa todo o nada.')}</span>}
           </div>
         </>
       )}
@@ -171,11 +172,11 @@ export function ImportPage() {
       {done && (
         <div className="card">
           <div className="alert ok">
-            {r.updated > 0 ? `Se crearon ${r.created} registros y se actualizaron ${r.updated}.` : `Se importaron ${r.imported} registros.`}
+            {r.updated > 0 ? t('Se crearon {created} registros y se actualizaron {updated}.', { created: r.created, updated: r.updated }) : t('Se importaron {n} registros.', { n: r.imported })}
           </div>
           <div className="actions">
-            <Link to={back} className="button primary">Ver la lista</Link>
-            <button onClick={() => choose(null)}>Importar otro archivo</button>
+            <Link to={back} className="button primary">{t('Ver la lista')}</Link>
+            <button onClick={() => choose(null)}>{t('Importar otro archivo')}</button>
           </div>
         </div>
       )}

@@ -318,6 +318,17 @@ Auth__Jwt__Scopes="openid profile api://<client-id-de-la-api>/acceso"
 
 `GET /api/auth/config` (anónimo) devuelve a la UI el modo, el `authority`, el `clientId`, los scopes y el nombre del proveedor; **nunca** devuelve llaves. `GET /api/auth/me` devuelve el nombre, los roles, si es administrador y sus permisos (`permissions`).
 
+## Idioma de la interfaz
+
+No tiene claves en el servidor (D-076). Cada usuario elige español, inglés o ruso en la barra superior o en el
+login; se recuerda en su navegador. Sin elección, se usa el idioma del navegador si es inglés o ruso, si no español.
+Las fechas y los números siguen el formato del idioma elegido: 28/10/2026 (es), 10/28/2026 (en), 28.10.2026 (ru).
+
+Los mensajes que arma el servidor (validaciones, errores de la base) llegan en español por ahora (P-101).
+
+Para agregar un idioma: crear `frontend/src/i18n/<código>.ts` con las mismas claves que `en.ts`, sumarlo a
+`LOCALES`, `REGION` y `DATE_REGION` en `frontend/src/i18n/index.ts` y al chequeo de `scripts/check-i18n.mjs`.
+
 ## Pruebas de integración
 
 | Variable | Por defecto | Qué hace |

@@ -10,11 +10,13 @@ import {
 import { FieldControl } from '../components/FieldControl'
 import { useDebounce } from '../lib/useDebounce'
 import { useMe } from '../lib/useMe'
+import { useT, type Translate } from '../i18n'
 
 /** Editor de ajustes de un mantenedor (P-012): sin editar JSON, con vista previa en vivo. Requiere el permiso ConfigureTables (D-053). */
 export function ConfigPage() {
   const { conn = '', schema = '', table = '' } = useParams()
   const me = useMe()
+  const t = useT()
   const current = useQuery({
     queryKey: ['override', conn, schema, table],
     queryFn: () => api.override(conn, schema, table),
@@ -29,12 +31,12 @@ export function ConfigPage() {
     gcTime: 0,
   })
 
-  if (me.isLoading) return <p className="muted">Cargando…</p>
+  if (me.isLoading) return <p className="muted">{t('Cargando…')}</p>
   if (!me.data?.permissions.includes('ConfigureTables'))
-    return <div className="alert">No tiene permiso para configurar mantenedores (pídale a un administrador el rol correspondiente).</div>
+    return <div className="alert">{t('No tiene permiso para configurar mantenedores (pídale a un administrador el rol correspondiente).')}</div>
   const error = current.error ?? initial.error
   if (error) return <div className="alert">{(error as Error).message}</div>
-  if (!initial.data) return <p className="muted">Cargando…</p>
+  if (!initial.data) return <p className="muted">{t('Cargando…')}</p>
 
   return <Editor conn={conn} initialDoc={current.data!} initialTable={initial.data.table} />
 }
@@ -44,6 +46,7 @@ type Tab = 'table' | 'columns'
 function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: TableOverride; initialTable: TableMeta }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const t = useT()
   const { schema, name } = initialTable
   const back = `/c/${conn}/t/${encodeURIComponent(schema)}/${encodeURIComponent(name)}`
 
@@ -106,16 +109,16 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Configurar · {labelOf(shown)}</h1>
-          <div className="muted small">{schema}.{name} · los cambios se ven en la vista previa antes de guardar</div>
+          <h1>{t('Configurar · {table}', { table: labelOf(shown) })}</h1>
+          <div className="muted small">{schema}.{name} · {t('los cambios se ven en la vista previa antes de guardar')}</div>
         </div>
-        <Link to={back}>‹ Volver a la lista</Link>
+        <Link to={back}>‹ {t('Volver a la lista')}</Link>
       </div>
 
       <div className="tabs">
-        <button className={tab === 'table' ? 'tab active' : 'tab'} onClick={() => setTab('table')}>Tabla</button>
+        <button className={tab === 'table' ? 'tab active' : 'tab'} onClick={() => setTab('table')}>{t('Tabla')}</button>
         <button className={tab === 'columns' ? 'tab active' : 'tab'} onClick={() => setTab('columns')}>
-          Columnas ({order.length})
+          {t('Columnas ({n})', { n: order.length })}
         </button>
       </div>
 
@@ -138,15 +141,15 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
                   />
                 ))}
                 {order.join() !== naturalOrder.join() && (
-                  <button className="link" onClick={() => setOrder(naturalOrder)}>Volver al orden de la tabla</button>
+                  <button className="link" onClick={() => setOrder(naturalOrder)}>{t('Volver al orden de la tabla')}</button>
                 )}
                 {orphans.length > 0 && (
                   <div className="alert">
-                    <b>Ajustes de columnas que ya no existen en la base</b> (se ignoran; quítelos para poder guardar):
+                    <b>{t('Ajustes de columnas que ya no existen en la base')}</b> {t('(se ignoran; quítelos para poder guardar):')}
                     {orphans.map(col => (
                       <div key={col} className="row">
                         <code>{col}</code>
-                        <button className="link danger" onClick={() => removeCol(col)}>Quitar</button>
+                        <button className="link danger" onClick={() => removeCol(col)}>{t('Quitar')}</button>
                       </div>
                     ))}
                   </div>
@@ -165,15 +168,15 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
 
           <div className="actions">
             <button className="primary" disabled={save.isPending} onClick={() => save.mutate()}>
-              {save.isPending ? 'Guardando…' : 'Guardar'}
+              {save.isPending ? t('Guardando…') : t('Guardar')}
             </button>
-            <Link to={back} className="button">Cancelar</Link>
+            <Link to={back} className="button">{t('Cancelar')}</Link>
             <button
               className="link danger"
               disabled={reset.isPending}
-              onClick={() => confirm('¿Quitar todos los ajustes de esta tabla y volver a lo automático?') && reset.mutate()}
+              onClick={() => confirm(t('¿Quitar todos los ajustes de esta tabla y volver a lo automático?')) && reset.mutate()}
             >
-              Restablecer a lo automático
+              {t('Restablecer a lo automático')}
             </button>
           </div>
         </div>
@@ -194,6 +197,7 @@ function TableTab({ conn, doc, setDoc, table, shown, errors }: {
   shown: TableMeta
   errors: Record<string, string>
 }) {
+  const t = useT()
   const set = (patch: Partial<TableOverride>) => setDoc(d => ({ ...d, ...patch }))
   const visible = table.columns.filter(c => c.type !== 'Binary' && c.type !== 'Unsupported')
   const [sortCol, sortDesc] = parseSort(doc.defaultSort)
@@ -202,38 +206,38 @@ function TableTab({ conn, doc, setDoc, table, shown, errors }: {
 
   return (
     <div className="grid-2">
-      <Field label="Nombre visible" hint={`Por defecto: ${table.name}`} error={errors.label}>
+      <Field label={t('Nombre visible')} hint={t('Por defecto: {value}', { value: table.name })} error={errors.label}>
         <input value={doc.label ?? ''} placeholder={table.name} onChange={e => set({ label: e.target.value })} />
       </Field>
-      <Field label="Grupo del menú" hint={`Por defecto: ${table.schema}`} error={errors.group}>
+      <Field label={t('Grupo del menú')} hint={t('Por defecto: {value}', { value: table.schema })} error={errors.group}>
         <input value={doc.group ?? ''} placeholder={table.schema} onChange={e => set({ group: e.target.value })} />
       </Field>
-      <Field label="Columna a mostrar" hint="Se ve en los combos de las tablas que referencian a esta" error={errors.displayColumn}>
+      <Field label={t('Columna a mostrar')} hint={t('Se ve en los combos de las tablas que referencian a esta')} error={errors.displayColumn}>
         <select value={doc.displayColumn ?? ''} onChange={e => set({ displayColumn: e.target.value })}>
-          <option value="">(automática{!doc.displayColumn && shown.displayColumn ? `: ${shown.displayColumn}` : ''})</option>
+          <option value="">({t('automática')}{!doc.displayColumn && shown.displayColumn ? `: ${shown.displayColumn}` : ''})</option>
           {visible.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
         </select>
       </Field>
-      <Field label="Orden por defecto" hint="Cuando el usuario no eligió otro" error={errors.defaultSort}>
+      <Field label={t('Orden por defecto')} hint={t('Cuando el usuario no eligió otro')} error={errors.defaultSort}>
         <div className="row">
           <select value={sortCol} onChange={e => set({ defaultSort: e.target.value ? (sortDesc ? '-' : '') + e.target.value : '' })}>
-            <option value="">(por clave)</option>
+            <option value="">{t('(por clave)')}</option>
             {table.columns.filter(c => c.isSortable).map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
           </select>
           <select value={sortDesc ? 'desc' : 'asc'} disabled={!sortCol}
             onChange={e => set({ defaultSort: (e.target.value === 'desc' ? '-' : '') + sortCol })}>
-            <option value="asc">ascendente</option>
-            <option value="desc">descendente</option>
+            <option value="asc">{t('ascendente')}</option>
+            <option value="desc">{t('descendente')}</option>
           </select>
         </div>
       </Field>
-      <Check label="Ocultar del menú" hint="No es un permiso: se sigue pudiendo abrir por su dirección"
+      <Check label={t('Ocultar del menú')} hint={t('No es un permiso: se sigue pudiendo abrir por su dirección')}
         checked={doc.hidden === true} onChange={v => set({ hidden: v || undefined })} />
-      <Check label="Solo lectura" hint="No se puede crear, editar ni borrar"
+      <Check label={t('Solo lectura')} hint={t('No se puede crear, editar ni borrar')}
         checked={doc.readOnly === true} onChange={v => set({ readOnly: v || undefined })} />
 
       {!declaredPk && (
-        <Field label="Clave virtual" span hint="La base no declara PK: marque las columnas que identifican una sola fila" error={errors.virtualPrimaryKey}>
+        <Field label={t('Clave virtual')} span hint={t('La base no declara PK: marque las columnas que identifican una sola fila')} error={errors.virtualPrimaryKey}>
           <div className="checks">
             {visible.map(c => (
               <label key={c.name} className="check">
@@ -258,9 +262,9 @@ function TableTab({ conn, doc, setDoc, table, shown, errors }: {
   )
 }
 
-const NOTIFY_OPS: { op: NotifyOperation; label: string }[] = [
-  { op: 'create', label: 'Altas' }, { op: 'update', label: 'Ediciones' }, { op: 'delete', label: 'Bajas' },
-  { op: 'import', label: 'Importaciones' }, { op: 'links', label: 'Vínculos N:M' },
+const notifyOps = (t: Translate): { op: NotifyOperation; label: string }[] => [
+  { op: 'create', label: t('Altas') }, { op: 'update', label: t('Ediciones') }, { op: 'delete', label: t('Bajas') },
+  { op: 'import', label: t('Importaciones') }, { op: 'links', label: t('Vínculos N:M') },
 ]
 const DEFAULT_NOTIFY: NotifyOperation[] = ['create', 'update', 'delete']
 
@@ -270,6 +274,7 @@ function NotifyEditor({ value, errors, onChange }: {
   errors: Record<string, string>
   onChange: (v: NotifyOverride | undefined) => void
 }) {
+  const t = useT()
   const status = useQuery({ queryKey: ['notifications-status'], queryFn: api.notificationsStatus, staleTime: 60_000 })
   const [emails, setEmails] = useState((value?.emails ?? []).join(', '))
   const on = value?.on?.length ? value.on : DEFAULT_NOTIFY
@@ -278,17 +283,17 @@ function NotifyEditor({ value, errors, onChange }: {
     onChange(next.emails?.length ? next : undefined)
   }
   return (
-    <Field label="Avisos por correo" span
-      hint="Para tablas críticas: a quién avisar cuando alguien cambia un registro. Vacío = sin avisos."
+    <Field label={t('Avisos por correo')} span
+      hint={t('Para tablas críticas: a quién avisar cuando alguien cambia un registro. Vacío = sin avisos.')}
       error={errors['notify.emails'] ?? errors['notify.on']}>
       {status.data && !status.data.enabled && (
-        <div className="banner small">El envío de correos no está configurado en la app (sección Notifications): los avisos se guardan pero no se envían.</div>
+        <div className="banner small">{t('El envío de correos no está configurado en la app (sección Notifications): los avisos se guardan pero no se envían.')}</div>
       )}
       <input value={emails} placeholder="jefa@empresa.cl, ti@empresa.cl"
         onChange={e => setEmails(e.target.value)}
         onBlur={() => update({ emails: emails.split(/[,;\s]+/).map(x => x.trim()).filter(Boolean) })} />
       <div className="checks">
-        {NOTIFY_OPS.map(({ op, label }) => (
+        {notifyOps(t).map(({ op, label }) => (
           <label key={op} className="check">
             <input type="checkbox" checked={on.includes(op)} disabled={!value?.emails?.length}
               onChange={e => update({ on: e.target.checked ? [...on, op] : on.filter(x => x !== op) })} />
@@ -298,7 +303,7 @@ function NotifyEditor({ value, errors, onChange }: {
         <label className="check">
           <input type="checkbox" checked={value?.includeValues !== false} disabled={!value?.emails?.length}
             onChange={e => update({ includeValues: e.target.checked ? undefined : false })} />
-          Incluir los valores antes y después
+          {t('Incluir los valores antes y después')}
         </label>
       </div>
     </Field>
@@ -312,6 +317,7 @@ function VirtualForeignKeys({ conn, table, value, errors, onChange }: {
   errors: Record<string, string>
   onChange: (v: VirtualForeignKey[]) => void
 }) {
+  const t = useT()
   const [col, setCol] = useState('')
   const [ref, setRef] = useState('') // "esquema.tabla"
   const [refCol, setRefCol] = useState('')
@@ -330,29 +336,29 @@ function VirtualForeignKeys({ conn, table, value, errors, onChange }: {
   }
 
   return (
-    <Field label="Relaciones virtuales" span hint="Relaciones que existen pero la base no declara: dan combo y etiqueta como una FK real">
+    <Field label={t('Relaciones virtuales')} span hint={t('Relaciones que existen pero la base no declara: dan combo y etiqueta como una FK real')}>
       {value.map((v, i) => (
         <div key={i} className="row">
           <span className="chip">{v.columns.join(', ')} → {v.refSchema}.{v.refTable} ({v.refColumns.join(', ')})</span>
-          <button className="link danger" onClick={() => onChange(value.filter((_, j) => j !== i))}>Quitar</button>
+          <button className="link danger" onClick={() => onChange(value.filter((_, j) => j !== i))}>{t('Quitar')}</button>
           {errors[`virtualForeignKeys.${i}`] && <span className="field-error">{errors[`virtualForeignKeys.${i}`]}</span>}
         </div>
       ))}
       <div className="row">
         <select value={col} onChange={e => setCol(e.target.value)}>
-          <option value="">Columna…</option>
+          <option value="">{t('Columna…')}</option>
           {table.columns.filter(c => !declared.has(c.name)).map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
         </select>
         <span>→</span>
         <select value={ref} onChange={e => { setRef(e.target.value); setRefCol('') }}>
-          <option value="">Tabla…</option>
-          {tables.data?.tables.map(t => <option key={`${t.schema}.${t.name}`} value={`${t.schema}.${t.name}`}>{t.schema}.{t.name}</option>)}
+          <option value="">{t('Tabla…')}</option>
+          {tables.data?.tables.map(x => <option key={`${x.schema}.${x.name}`} value={`${x.schema}.${x.name}`}>{x.schema}.{x.name}</option>)}
         </select>
         <select value={refCol} disabled={!target.data} onChange={e => setRefCol(e.target.value)}>
-          <option value="">Columna…</option>
+          <option value="">{t('Columna…')}</option>
           {target.data?.columns.map(c => <option key={c.name} value={c.name}>{c.name}{c.isPrimaryKey ? ' (PK)' : ''}</option>)}
         </select>
-        <button disabled={!col || !refTable || !refCol} onClick={add}>Agregar</button>
+        <button disabled={!col || !refTable || !refCol} onClick={add}>{t('Agregar')}</button>
       </div>
     </Field>
   )
@@ -365,12 +371,13 @@ function ChildrenPicker({ all, value, error, onChange }: {
   error?: string
   onChange: (v: string[] | undefined) => void
 }) {
+  const t = useT()
   const natural = all.map(f => f.name)
   const order = [...(value ?? natural), ...natural.filter(n => value && !value.includes(n))]
   const shown = new Set(value ?? natural)
   const describe = (name: string) => {
     const f = all.find(x => x.name === name)
-    return f ? `${f.schema}.${f.table} (${f.columns.join(', ')})` : `${name} (ya no existe)`
+    return f ? `${f.schema}.${f.table} (${f.columns.join(', ')})` : `${name} (${t('ya no existe')})`
   }
   function emit(nextOrder: string[], nextShown: Set<string>) {
     const picked = nextOrder.filter(n => nextShown.has(n) && natural.includes(n))
@@ -384,12 +391,12 @@ function ChildrenPicker({ all, value, error, onChange }: {
     emit(n, shown)
   }
   return (
-    <Field label="Tablas hijas" span hint="Se muestran en pestañas al editar un registro" error={error}>
+    <Field label={t('Tablas hijas')} span hint={t('Se muestran en pestañas al editar un registro')} error={error}>
       {order.map((name, i) => (
         <div key={name} className="row">
           <div className="col-move">
-            <button title="Subir" disabled={i === 0} onClick={() => move(i, -1)}>↑</button>
-            <button title="Bajar" disabled={i === order.length - 1} onClick={() => move(i, 1)}>↓</button>
+            <button title={t('Subir')} disabled={i === 0} onClick={() => move(i, -1)}>↑</button>
+            <button title={t('Bajar')} disabled={i === order.length - 1} onClick={() => move(i, 1)}>↓</button>
           </div>
           <label className="check">
             <input type="checkbox" checked={shown.has(name)} onChange={e => {
@@ -416,6 +423,7 @@ function ColumnEditor({ column: c, value: v, errors, first, last, onMove, onChan
   onMove: (delta: number) => void
   onChange: (patch: Partial<ColumnOverride>) => void
 }) {
+  const t = useT()
   const isText = c.type === 'String' || c.type === 'Text'
   const isNumber = (c.type === 'Integer' || c.type === 'Decimal') && !c.isLargeNumber
   const prefix = `columns.${c.name}.`
@@ -427,48 +435,48 @@ function ColumnEditor({ column: c, value: v, errors, first, last, onMove, onChan
     <div className={`col-editor${hidden ? ' is-hidden' : ''}`}>
       <div className="col-head">
         <div className="col-move">
-          <button title="Subir" disabled={first} onClick={() => onMove(-1)}>↑</button>
-          <button title="Bajar" disabled={last} onClick={() => onMove(1)}>↓</button>
+          <button title={t('Subir')} disabled={first} onClick={() => onMove(-1)}>↑</button>
+          <button title={t('Bajar')} disabled={last} onClick={() => onMove(1)}>↓</button>
         </div>
         <div className="col-name">
           <b>{c.isPrimaryKey && '🔑 '}{c.name}</b>
-          <span className="muted small"> {c.nativeType}{c.isRequiredOnInsert ? ' · obligatoria' : ''}</span>
+          <span className="muted small"> {c.nativeType}{c.isRequiredOnInsert ? ' · ' + t('obligatoria') : ''}</span>
         </div>
-        <label className="check"><input type="checkbox" checked={!hidden} onChange={e => onChange({ hidden: e.target.checked ? undefined : true })} />Visible</label>
+        <label className="check"><input type="checkbox" checked={!hidden} onChange={e => onChange({ hidden: e.target.checked ? undefined : true })} />{t('Visible')}</label>
         <label className="check"><input type="checkbox" checked={v.showInGrid !== false} disabled={hidden}
-          onChange={e => onChange({ showInGrid: e.target.checked ? undefined : false })} />En la grilla</label>
+          onChange={e => onChange({ showInGrid: e.target.checked ? undefined : false })} />{t('En la grilla')}</label>
         <label className="check"><input type="checkbox" checked={v.readOnly === true || c.isIdentity || c.isComputed} disabled={c.isIdentity || c.isComputed}
-          onChange={e => onChange({ readOnly: e.target.checked || undefined })} />Solo lectura</label>
+          onChange={e => onChange({ readOnly: e.target.checked || undefined })} />{t('Solo lectura')}</label>
         <label className="check"><input type="checkbox" checked={v.required === true || (!c.isNullable && !c.isReadOnly)} disabled={!c.isNullable || c.isReadOnly}
-          onChange={e => onChange({ required: e.target.checked || undefined })} />Obligatoria</label>
+          onChange={e => onChange({ required: e.target.checked || undefined })} />{t('Obligatoria')}</label>
       </div>
 
       {!hidden && (
         <div className="grid-2">
-          <input value={v.label ?? ''} placeholder={`Etiqueta (${c.name})`} onChange={e => onChange({ label: e.target.value })} />
-          <input value={v.helpText ?? ''} placeholder="Ayuda bajo el campo" onChange={e => onChange({ helpText: e.target.value })} />
+          <input value={v.label ?? ''} placeholder={t('Etiqueta ({name})', { name: c.name })} onChange={e => onChange({ label: e.target.value })} />
+          <input value={v.helpText ?? ''} placeholder={t('Ayuda bajo el campo')} onChange={e => onChange({ helpText: e.target.value })} />
         </div>
       )}
 
       {!hidden && !c.isReadOnly && (isText || isNumber) && (
         <>
-          <button className="link small" onClick={() => setOpen(o => !o)}>{open ? '▾' : '▸'} Control y validaciones</button>
+          <button className="link small" onClick={() => setOpen(o => !o)}>{open ? '▾' : '▸'} {t('Control y validaciones')}</button>
           {open && (
             <div className="grid-2">
               {isText && (
                 <label>
-                  <span className="field-label">Control</span>
+                  <span className="field-label">{t('Control')}</span>
                   <select value={v.widget ?? ''} onChange={e => onChange({ widget: e.target.value })}>
-                    <option value="">(automático)</option>
+                    <option value="">{t('(automático)')}</option>
                     {WIDGETS.filter(w => w !== 'money').map(w => <option key={w} value={w}>{w}</option>)}
                   </select>
                 </label>
               )}
               {isNumber && (
                 <label>
-                  <span className="field-label">Control</span>
+                  <span className="field-label">{t('Control')}</span>
                   <select value={v.widget ?? ''} onChange={e => onChange({ widget: e.target.value })}>
-                    <option value="">(automático)</option>
+                    <option value="">{t('(automático)')}</option>
                     <option value="money">money</option>
                   </select>
                 </label>
@@ -476,18 +484,18 @@ function ColumnEditor({ column: c, value: v, errors, first, last, onMove, onChan
               {isText && (
                 <>
                   <label>
-                    <span className="field-label">Formato (expresión regular)</span>
-                    <input className="mono" value={v.pattern ?? ''} placeholder="ej.: [A-Z]{3}-\d{3}" onChange={e => onChange({ pattern: e.target.value })} />
-                    <span className="hint">Debe cumplirlo el texto completo</span>
+                    <span className="field-label">{t('Formato (expresión regular)')}</span>
+                    <input className="mono" value={v.pattern ?? ''} placeholder={t('ej.: {example}', { example: '[A-Z]{3}-\\d{3}' })} onChange={e => onChange({ pattern: e.target.value })} />
+                    <span className="hint">{t('Debe cumplirlo el texto completo')}</span>
                   </label>
                   <label>
-                    <span className="field-label">Largo máximo</span>
+                    <span className="field-label">{t('Largo máximo')}</span>
                     <input type="number" min={1} value={v.maxLength ?? ''} placeholder={c.maxLength ? String(c.maxLength) : ''}
                       onChange={e => onChange({ maxLength: num(e.target.value) })} />
                   </label>
                   <label className="span-2">
-                    <span className="field-label">Valores permitidos</span>
-                    <input value={(v.options ?? []).join(', ')} placeholder="Separados por coma: Pendiente, Pagado, Anulado"
+                    <span className="field-label">{t('Valores permitidos')}</span>
+                    <input value={(v.options ?? []).join(', ')} placeholder={t('Separados por coma: Pendiente, Pagado, Anulado')}
                       onChange={e => onChange({ options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} />
                   </label>
                 </>
@@ -495,11 +503,11 @@ function ColumnEditor({ column: c, value: v, errors, first, last, onMove, onChan
               {isNumber && (
                 <>
                   <label>
-                    <span className="field-label">Mínimo</span>
+                    <span className="field-label">{t('Mínimo')}</span>
                     <input type="number" step="any" value={v.min ?? ''} onChange={e => onChange({ min: num(e.target.value) })} />
                   </label>
                   <label>
-                    <span className="field-label">Máximo</span>
+                    <span className="field-label">{t('Máximo')}</span>
                     <input type="number" step="any" value={v.max ?? ''} onChange={e => onChange({ max: num(e.target.value) })} />
                   </label>
                 </>
@@ -517,18 +525,19 @@ function ColumnEditor({ column: c, value: v, errors, first, last, onMove, onChan
 // ---------- Vista previa ----------
 
 function Preview({ conn, table, loading }: { conn: string; table: TableMeta; loading: boolean }) {
+  const t = useT()
   const grid = table.columns.filter(c => c.isSelectable && !c.hidden && c.showInGrid)
   const form = table.columns.filter(c => c.isSelectable && !c.hidden && !(c.isIdentity || c.isComputed || c.isRowVersion))
   const fkByColumn = new Map(table.foreignKeys.filter(f => f.columns.length === 1).map(f => [f.columns[0], f]))
 
   return (
     <aside className={`card preview${loading ? ' loading' : ''}`}>
-      <div className="muted small">Vista previa</div>
+      <div className="muted small">{t('Vista previa')}</div>
       <h2>{labelOf(table)}</h2>
       <div className="muted small">
-        Menú: {table.group ?? table.schema}{table.hidden && ' · oculta'}
-        {!table.isEditable && ' · solo lectura'}
-        {table.defaultSort && ` · orden: ${table.defaultSort}`}
+        {t('Menú: {group}', { group: table.group ?? table.schema })}{table.hidden && ' · ' + t('oculta')}
+        {!table.isEditable && ' · ' + t('solo lectura')}
+        {table.defaultSort && ' · ' + t('orden: {sort}', { sort: table.defaultSort })}
       </div>
       <div className="table-wrap">
         <table className="grid">

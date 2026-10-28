@@ -673,6 +673,20 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Upsert con `MERGE` o `ON CONFLICT`: la sintaxis es distinta en cada motor, y el `MERGE` de SQL Server tiene problemas conocidos de concurrencia.
   - Etiqueta en la primera columna de la FK compuesta: suele ser la más genérica (el país), que también puede tener su propia FK.
 
+### D-076 · Interfaz en varios idiomas (español, inglés y ruso)
+- **Estado:** Vigente · 2026-10-28 (P-100)
+- **Qué:**
+  - Selector de idioma en la barra superior y en el login; se recuerda en el navegador (`mantenedores.locale`). Sin elección, se usa el primero de los idiomas preferidos del navegador que la app tenga; si no tiene ninguno, **inglés** (decisión del dueño). El español sigue siendo el idioma base del código.
+  - El texto en español del código es la clave: `t('Guardar')`. `src/i18n/en.ts` y `ru.ts` lo traducen; si falta una traducción se ve el español.
+  - Textos con cantidad (`{n}`) con formas por número vía `Intl.PluralRules` (ruso: one/few/many); `es.ts` trae solo los singulares.
+  - Fechas y horas con el formato del idioma, no del navegador: 28/10/2026 14:05 (es), 10/28/2026 02:05 PM (en), 28.10.2026 14:05 (ru). Para el español se usa `es-ES` en fechas (`es-CL` las escribe 28-10-2026 con a. m./p. m.) y `es-CL` en números (agrupa también 1.234).
+  - `npm run lint` corre `scripts/check-i18n.mjs`: falla si algún `t('…')` no está en `en.ts` o `ru.ts`. Por eso las claves se escriben literales, nunca `t(variable)`.
+  - Las peticiones llevan `Accept-Language`, para que el servidor pueda traducir sus mensajes más adelante (P-101). Hoy los mensajes del servidor siguen en español.
+  - Los nombres de tablas y columnas y los ajustes (`label`) no se traducen: son datos del usuario.
+- **Descartado:**
+  - **i18next / react-intl:** agregan dependencias y un formato de mensajes propio para unas 300 frases; con `Intl` del navegador alcanza.
+  - **Claves abstractas** (`table.save`): obligan a mirar otro archivo para saber qué dice la pantalla, y el español ya es el idioma base del proyecto.
+
 ---
 
 ## Propuestas (aún no decididas)

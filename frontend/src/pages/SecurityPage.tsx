@@ -3,42 +3,43 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
 import type { DataOperation, SecurityProfile, SecurityUser } from '../api/types'
 import { useMe } from '../lib/useMe'
+import { useT, type Translate } from '../i18n'
 
-const OP_LABELS: Record<DataOperation, string> = {
-  view: 'Ver', create: 'Crear', update: 'Editar', delete: 'Borrar', export: 'Exportar', import: 'Importar',
-}
+const opLabels = (t: Translate): Record<DataOperation, string> => ({
+  view: t('Ver'), create: t('Crear'), update: t('Editar'), delete: t('Borrar'), export: t('Exportar'), import: t('Importar'),
+})
 const TABLE_OPS: DataOperation[] = ['view', 'create', 'update', 'delete', 'export', 'import']
 const COLUMN_OPS: DataOperation[] = ['view', 'update']
 
-const PERMISSION_LABELS: Record<string, string> = {
-  ConfigureTables: 'Configurar mantenedores',
-  ManageConnections: 'Administrar conexiones',
-  ManageSecurity: 'Administrar seguridad',
-  ViewAudit: 'Ver la auditoría',
-}
+const permissionLabels = (t: Translate): Record<string, string> => ({
+  ConfigureTables: t('Configurar mantenedores'),
+  ManageConnections: t('Administrar conexiones'),
+  ManageSecurity: t('Administrar seguridad'),
+  ViewAudit: t('Ver la auditoría'),
+})
 
 /** Apartado de seguridad (P-040, P-042): perfiles con permisos por conexión, tabla y columna, y usuarios propios. Requiere ManageSecurity (D-066). */
 export function SecurityPage() {
   const me = useMe()
+  const t = useT()
   const allowed = me.data?.permissions.includes('ManageSecurity') === true
   const info = useQuery({ queryKey: ['security-info'], queryFn: api.securityInfo, enabled: allowed })
   const [tab, setTab] = useState<'profiles' | 'users'>('profiles')
 
-  if (me.isLoading) return <p className="muted">Cargando…</p>
-  if (!allowed) return <div className="page"><div className="alert">Necesita el permiso para administrar la seguridad.</div></div>
+  if (me.isLoading) return <p className="muted">{t('Cargando…')}</p>
+  if (!allowed) return <div className="page"><div className="alert">{t('Necesita el permiso para administrar la seguridad.')}</div></div>
 
   return (
     <div className="page">
-      <div className="page-header"><h1>Seguridad</h1></div>
+      <div className="page-header"><h1>{t('Seguridad')}</h1></div>
       {me.data?.securityOpen && (
         <div className="banner">
-          <strong>Seguridad abierta.</strong> No hay perfiles: todos los usuarios ven y editan todos los datos.
-          Al crear el primer perfil, solo los administradores y quienes tengan un perfil verán datos.
+          <strong>{t('Seguridad abierta.')}</strong> {t('No hay perfiles: todos los usuarios ven y editan todos los datos. Al crear el primer perfil, solo los administradores y quienes tengan un perfil verán datos.')}
         </div>
       )}
       <div className="tabs">
-        <button className={tab === 'profiles' ? 'tab active' : 'tab'} onClick={() => setTab('profiles')}>Perfiles</button>
-        <button className={tab === 'users' ? 'tab active' : 'tab'} onClick={() => setTab('users')}>Usuarios</button>
+        <button className={tab === 'profiles' ? 'tab active' : 'tab'} onClick={() => setTab('profiles')}>{t('Perfiles')}</button>
+        <button className={tab === 'users' ? 'tab active' : 'tab'} onClick={() => setTab('users')}>{t('Usuarios')}</button>
       </div>
       {tab === 'profiles' ? <Profiles adminRoles={info.data?.adminRoles ?? []} permissions={info.data?.appPermissions ?? []} />
         : <Users local={info.data?.mode === 'Local'} minPassword={info.data?.minPasswordLength ?? 8} />}
@@ -51,6 +52,9 @@ export function SecurityPage() {
 function Profiles({ adminRoles, permissions }: { adminRoles: string[]; permissions: string[] }) {
   const qc = useQueryClient()
   const profiles = useQuery({ queryKey: ['profiles'], queryFn: api.profiles })
+  const t = useT()
+  const OP_LABELS = opLabels(t)
+  const PERMISSION_LABELS = permissionLabels(t)
   const [editing, setEditing] = useState<SecurityProfile | 'new' | null>(null)
   const remove = useMutation({
     mutationFn: api.deleteProfile,
@@ -63,15 +67,15 @@ function Profiles({ adminRoles, permissions }: { adminRoles: string[]; permissio
     <>
       <div className="page-header">
         <p className="muted small">
-          Un perfil se aplica a los roles y usuarios que indique; si alguien tiene varios, se suman.
-          {adminRoles.length > 0 && <> Los roles {adminRoles.join(', ')} siempre tienen acceso total.</>}
+          {t('Un perfil se aplica a los roles y usuarios que indique; si alguien tiene varios, se suman.')}
+          {adminRoles.length > 0 && <> {t('Los roles {roles} siempre tienen acceso total.', { roles: adminRoles.join(', ') })}</>}
         </p>
-        <button className="primary" onClick={() => setEditing('new')}>Nuevo perfil</button>
+        <button className="primary" onClick={() => setEditing('new')}>{t('Nuevo perfil')}</button>
       </div>
-      {profiles.isLoading && <p className="muted">Cargando…</p>}
+      {profiles.isLoading && <p className="muted">{t('Cargando…')}</p>}
       {profiles.error && <div className="alert">{(profiles.error as Error).message}</div>}
       {remove.error && <div className="alert">{(remove.error as Error).message}</div>}
-      {profiles.data?.length === 0 && <div className="empty">Aún no hay perfiles.</div>}
+      {profiles.data?.length === 0 && <div className="empty">{t('Aún no hay perfiles.')}</div>}
       <div className="cards">
         {profiles.data?.map(p => (
           <div key={p.id} className="card conn-card">
@@ -79,20 +83,20 @@ function Profiles({ adminRoles, permissions }: { adminRoles: string[]; permissio
               <div className="conn-title">{p.name} <span className="muted small">{p.id}</span></div>
               {p.description && <div className="muted small">{p.description}</div>}
               <div className="small">
-                {p.roles.map(r => <span key={r} className="chip">rol {r}</span>)}
+                {p.roles.map(r => <span key={r} className="chip">{t('rol {role}', { role: r })}</span>)}
                 {p.users.map(u => <span key={u} className="chip">👤 {u}</span>)}
-                {p.roles.length === 0 && p.users.length === 0 && <span className="muted">Sin roles ni usuarios: no se aplica a nadie.</span>}
+                {p.roles.length === 0 && p.users.length === 0 && <span className="muted">{t('Sin roles ni usuarios: no se aplica a nadie.')}</span>}
               </div>
               <div className="muted small">
                 {Object.entries(p.connections).map(([c, r]) =>
-                  `${c === '*' ? 'Todas' : c}: ${r.operations.map(o => OP_LABELS[o]).join(', ') || '—'}${Object.keys(r.tables).length ? ` (+${Object.keys(r.tables).length} tablas)` : ''}`,
-                ).join(' · ') || 'Sin permisos sobre datos'}
+                  `${c === '*' ? t('Todas') : c}: ${r.operations.map(o => OP_LABELS[o]).join(', ') || '—'}${Object.keys(r.tables).length ? ` (${t('+{n} tablas', { n: Object.keys(r.tables).length })})` : ''}`,
+                ).join(' · ') || t('Sin permisos sobre datos')}
                 {p.appPermissions.length > 0 && ` · ${p.appPermissions.map(x => PERMISSION_LABELS[x] ?? x).join(', ')}`}
               </div>
             </div>
             <div className="actions">
-              <button onClick={() => setEditing(p)}>Editar</button>
-              <button className="danger" onClick={() => confirm(`¿Eliminar el perfil "${p.name}"?`) && remove.mutate(p.id)}>Eliminar</button>
+              <button onClick={() => setEditing(p)}>{t('Editar')}</button>
+              <button className="danger" onClick={() => confirm(t('¿Eliminar el perfil "{name}"?', { name: p.name })) && remove.mutate(p.id)}>{t('Eliminar')}</button>
             </div>
           </div>
         ))}
@@ -130,6 +134,8 @@ const splitList = (s: string) => s.split(',').map(x => x.trim()).filter(Boolean)
 function ProfileForm({ initial, permissions, onClose }: { initial: SecurityProfile | null; permissions: string[]; onClose: () => void }) {
   const qc = useQueryClient()
   const connections = useQuery({ queryKey: ['connections'], queryFn: api.connections })
+  const t = useT()
+  const PERMISSION_LABELS = permissionLabels(t)
   const [id, setId] = useState(initial?.id ?? '')
   const [name, setName] = useState(initial?.name ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
@@ -165,10 +171,10 @@ function ProfileForm({ initial, permissions, onClose }: { initial: SecurityProfi
 
   return (
     <form className="card form" onSubmit={submit}>
-      <h2>{initial ? `Perfil · ${initial.name}` : 'Nuevo perfil'}</h2>
+      <h2>{initial ? t('Perfil · {name}', { name: initial.name }) : t('Nuevo perfil')}</h2>
       <div className="grid-2">
         <label>
-          <span className="field-label">Nombre</span>
+          <span className="field-label">{t('Nombre')}</span>
           <input value={name} onChange={e => setName(e.target.value)} required />
           {errors.name && <span className="field-error">{errors.name}</span>}
         </label>
@@ -178,23 +184,23 @@ function ProfileForm({ initial, permissions, onClose }: { initial: SecurityProfi
           {errors.id && <span className="field-error">{errors.id}</span>}
         </label>
         <label className="span-2">
-          <span className="field-label">Descripción</span>
+          <span className="field-label">{t('Descripción')}</span>
           <input value={description} onChange={e => setDescription(e.target.value)} />
         </label>
         <label>
-          <span className="field-label">Roles</span>
+          <span className="field-label">{t('Roles')}</span>
           <input value={roles} onChange={e => setRoles(e.target.value)} placeholder="ventas, contabilidad" />
-          <span className="hint">Roles del proveedor de identidad o de Auth:Users, separados por coma.</span>
+          <span className="hint">{t('Roles del proveedor de identidad o de Auth:Users, separados por coma.')}</span>
         </label>
         <label>
-          <span className="field-label">Usuarios</span>
+          <span className="field-label">{t('Usuarios')}</span>
           <input value={users} onChange={e => setUsers(e.target.value)} placeholder="ana, luis@empresa.cl" />
-          <span className="hint">Nombres de usuario, propios o del proveedor, separados por coma.</span>
+          <span className="hint">{t('Nombres de usuario, propios o del proveedor, separados por coma.')}</span>
         </label>
       </div>
 
       <div>
-        <span className="field-label">Permisos de la app</span>
+        <span className="field-label">{t('Permisos de la app')}</span>
         <div className="checks">
           {permissions.map(p => (
             <label key={p} className="check">
@@ -208,10 +214,9 @@ function ProfileForm({ initial, permissions, onClose }: { initial: SecurityProfi
       </div>
 
       <div>
-        <span className="field-label">Datos</span>
+        <span className="field-label">{t('Datos')}</span>
         <p className="hint">
-          Lo que se marca en una conexión vale para todas sus tablas. Si agrega una tabla, sus operaciones reemplazan
-          a las de la conexión; y lo mismo una columna respecto de su tabla (una columna sin "Ver" queda oculta).
+          {t('Lo que se marca en una conexión vale para todas sus tablas. Si agrega una tabla, sus operaciones reemplazan a las de la conexión; y lo mismo una columna respecto de su tabla (una columna sin "Ver" queda oculta).')}
         </p>
         {rules.map((r, i) => (
           <ConnectionRuleEditor key={i} rule={r} connections={(connections.data ?? []).map(c => ({ id: c.id, name: c.name }))}
@@ -219,20 +224,21 @@ function ProfileForm({ initial, permissions, onClose }: { initial: SecurityProfi
         ))}
         {errors.connections && <span className="field-error">{errors.connections}</span>}
         <button type="button" onClick={() => setRules(s => [...s, { conn: used.has('*') ? '' : '*', operations: ['view'], tables: [] }])}>
-          ＋ Conexión
+          ＋ {t('Conexión')}
         </button>
       </div>
 
       {generalError && <div className="alert">{generalError}</div>}
       <div className="actions">
-        <button className="primary" disabled={save.isPending}>{save.isPending ? 'Guardando…' : 'Guardar'}</button>
-        <button type="button" onClick={onClose}>Cancelar</button>
+        <button className="primary" disabled={save.isPending}>{save.isPending ? t('Guardando…') : t('Guardar')}</button>
+        <button type="button" onClick={onClose}>{t('Cancelar')}</button>
       </div>
     </form>
   )
 }
 
 function OpChecks({ ops, value, onChange }: { ops: DataOperation[]; value: DataOperation[]; onChange: (v: DataOperation[]) => void }) {
+  const OP_LABELS = opLabels(useT())
   return (
     <div className="checks">
       {ops.map(o => (
@@ -260,32 +266,33 @@ function ConnectionRuleEditor({ rule, connections, used, onChange, onRemove }: {
     enabled: rule.conn !== '' && rule.conn !== '*',
     retry: false,
   })
+  const t = useT()
   const listId = `tables-${rule.conn}`
-  const setTable = (i: number, t: Partial<TableDraft>) => onChange({ tables: rule.tables.map((x, j) => (j === i ? { ...x, ...t } : x)) })
+  const setTable = (i: number, v: Partial<TableDraft>) => onChange({ tables: rule.tables.map((x, j) => (j === i ? { ...x, ...v } : x)) })
 
   return (
     <div className="card rule">
       <div className="rule-head">
         <select value={rule.conn} onChange={e => onChange({ conn: e.target.value })}>
-          <option value="">— conexión —</option>
-          <option value="*" disabled={used.has('*') && rule.conn !== '*'}>Todas las conexiones</option>
+          <option value="">— {t('conexión')} —</option>
+          <option value="*" disabled={used.has('*') && rule.conn !== '*'}>{t('Todas las conexiones')}</option>
           {connections.map(c => (
             <option key={c.id} value={c.id} disabled={used.has(c.id) && rule.conn !== c.id}>{c.name}</option>
           ))}
           {rule.conn && rule.conn !== '*' && !connections.some(c => c.id === rule.conn) && <option value={rule.conn}>{rule.conn}</option>}
         </select>
         <OpChecks ops={TABLE_OPS} value={rule.operations} onChange={operations => onChange({ operations })} />
-        <button type="button" className="link danger" onClick={onRemove}>Quitar</button>
+        <button type="button" className="link danger" onClick={onRemove}>{t('Quitar')}</button>
       </div>
       <datalist id={listId}>
-        {tables.data?.tables.map(t => <option key={`${t.schema}.${t.name}`} value={`${t.schema}.${t.name}`} />)}
+        {tables.data?.tables.map(x => <option key={`${x.schema}.${x.name}`} value={`${x.schema}.${x.name}`} />)}
       </datalist>
-      {rule.tables.map((t, i) => (
-        <TableRuleEditor key={i} conn={rule.conn} listId={listId} rule={t} onChange={v => setTable(i, v)}
+      {rule.tables.map((x, i) => (
+        <TableRuleEditor key={i} conn={rule.conn} listId={listId} rule={x} onChange={v => setTable(i, v)}
           onRemove={() => onChange({ tables: rule.tables.filter((_, j) => j !== i) })} />
       ))}
       <button type="button" className="link" onClick={() => onChange({ tables: [...rule.tables, { key: '', operations: ['view'], columns: [] }] })}>
-        ＋ Tabla con permisos propios
+        ＋ {t('Tabla con permisos propios')}
       </button>
     </div>
   )
@@ -305,26 +312,27 @@ function TableRuleEditor({ conn, listId, rule, onChange, onRemove }: {
     enabled: conn !== '' && conn !== '*' && schema !== '' && table !== '',
     retry: false,
   })
+  const t = useT()
   const colList = `cols-${conn}-${rule.key}`
   const setColumn = (i: number, c: Partial<ColumnDraft>) => onChange({ columns: rule.columns.map((x, j) => (j === i ? { ...x, ...c } : x)) })
 
   return (
     <div className="rule-table">
       <div className="rule-head">
-        <input list={listId} value={rule.key} placeholder="esquema.tabla" onChange={e => onChange({ key: e.target.value })} />
+        <input list={listId} value={rule.key} placeholder={t('esquema.tabla')} onChange={e => onChange({ key: e.target.value })} />
         <OpChecks ops={TABLE_OPS} value={rule.operations} onChange={operations => onChange({ operations })} />
-        <button type="button" className="link danger" onClick={onRemove}>Quitar</button>
+        <button type="button" className="link danger" onClick={onRemove}>{t('Quitar')}</button>
       </div>
       <datalist id={colList}>{meta.data?.columns.map(c => <option key={c.name} value={c.name} />)}</datalist>
       {rule.columns.map((c, i) => (
         <div key={i} className="rule-head rule-column">
-          <input list={colList} value={c.name} placeholder="columna" onChange={e => setColumn(i, { name: e.target.value })} />
+          <input list={colList} value={c.name} placeholder={t('columna')} onChange={e => setColumn(i, { name: e.target.value })} />
           <OpChecks ops={COLUMN_OPS} value={c.operations} onChange={operations => setColumn(i, { operations })} />
-          <button type="button" className="link danger" onClick={() => onChange({ columns: rule.columns.filter((_, j) => j !== i) })}>Quitar</button>
+          <button type="button" className="link danger" onClick={() => onChange({ columns: rule.columns.filter((_, j) => j !== i) })}>{t('Quitar')}</button>
         </div>
       ))}
       <button type="button" className="link small" onClick={() => onChange({ columns: [...rule.columns, { name: '', operations: ['view'] }] })}>
-        ＋ Columna
+        ＋ {t('Columna')}
       </button>
     </div>
   )
@@ -340,6 +348,7 @@ function splitKey(key: string): [string, string] {
 function Users({ local, minPassword }: { local: boolean; minPassword: number }) {
   const qc = useQueryClient()
   const users = useQuery({ queryKey: ['security-users'], queryFn: api.users })
+  const t = useT()
   const [editing, setEditing] = useState<SecurityUser | 'new' | null>(null)
   const done = () => qc.invalidateQueries({ queryKey: ['security-users'] })
   const remove = useMutation({ mutationFn: api.deleteUser, onSuccess: done })
@@ -350,36 +359,36 @@ function Users({ local, minPassword }: { local: boolean; minPassword: number }) 
       <div className="page-header">
         <p className="muted small">
           {local
-            ? 'Usuarios propios de la app, con contraseña guardada en hash. Los de la configuración (Auth:Users) se editan ahí.'
-            : 'En modo Jwt inician sesión los usuarios del proveedor de identidad: asócielos a un perfil por nombre o por rol.'}
+            ? t('Usuarios propios de la app, con contraseña guardada en hash. Los de la configuración (Auth:Users) se editan ahí.')
+            : t('En modo Jwt inician sesión los usuarios del proveedor de identidad: asócielos a un perfil por nombre o por rol.')}
         </p>
-        {local && <button className="primary" onClick={() => setEditing('new')}>Nuevo usuario</button>}
+        {local && <button className="primary" onClick={() => setEditing('new')}>{t('Nuevo usuario')}</button>}
       </div>
       {editing && <UserForm initial={editing === 'new' ? null : editing} minPassword={minPassword} onClose={() => { setEditing(null); done() }} />}
       {users.error && <div className="alert">{(users.error as Error).message}</div>}
       {(remove.error ?? toggle.error) && <div className="alert">{((remove.error ?? toggle.error) as Error).message}</div>}
       <div className="table-wrap">
         <table className="grid">
-          <thead><tr><th>Usuario</th><th>Nombre</th><th>Origen</th><th>Estado</th><th className="actions-col" /></tr></thead>
+          <thead><tr><th>{t('Usuario')}</th><th>{t('Nombre')}</th><th>{t('Origen')}</th><th>{t('Estado')}</th><th className="actions-col" /></tr></thead>
           <tbody>
             {users.data?.map(u => (
               <tr key={`${u.source}-${u.username}`}>
                 <td>{u.username}</td>
                 <td>{u.displayName}</td>
-                <td>{u.source === 'config' ? 'configuración' : 'propio'}</td>
-                <td>{u.active ? 'activo' : <span className="tag">desactivado</span>}</td>
+                <td>{u.source === 'config' ? t('configuración') : t('propio')}</td>
+                <td>{u.active ? t('activo') : <span className="tag">{t('desactivado')}</span>}</td>
                 <td className="actions-col">
                   {u.source === 'local' && (
                     <>
-                      <button className="link" onClick={() => setEditing(u)}>Editar</button>
-                      <button className="link" onClick={() => toggle.mutate(u)}>{u.active ? 'Desactivar' : 'Activar'}</button>
-                      <button className="link danger" onClick={() => confirm(`¿Eliminar al usuario "${u.username}"?`) && remove.mutate(u.username)}>Eliminar</button>
+                      <button className="link" onClick={() => setEditing(u)}>{t('Editar')}</button>
+                      <button className="link" onClick={() => toggle.mutate(u)}>{u.active ? t('Desactivar') : t('Activar')}</button>
+                      <button className="link danger" onClick={() => confirm(t('¿Eliminar al usuario "{name}"?', { name: u.username })) && remove.mutate(u.username)}>{t('Eliminar')}</button>
                     </>
                   )}
                 </td>
               </tr>
             ))}
-            {users.data?.length === 0 && <tr><td colSpan={5} className="empty">Sin usuarios</td></tr>}
+            {users.data?.length === 0 && <tr><td colSpan={5} className="empty">{t('Sin usuarios')}</td></tr>}
           </tbody>
         </table>
       </div>
@@ -388,6 +397,7 @@ function Users({ local, minPassword }: { local: boolean; minPassword: number }) 
 }
 
 function UserForm({ initial, minPassword, onClose }: { initial: SecurityUser | null; minPassword: number; onClose: () => void }) {
+  const t = useT()
   const [username, setUsername] = useState(initial?.username ?? '')
   const [displayName, setDisplayName] = useState(initial?.displayName ?? '')
   const [password, setPassword] = useState('')
@@ -402,25 +412,25 @@ function UserForm({ initial, minPassword, onClose }: { initial: SecurityUser | n
     <form className="card form" onSubmit={e => { e.preventDefault(); save.mutate() }}>
       <div className="grid-2">
         <label>
-          <span className="field-label">Usuario</span>
+          <span className="field-label">{t('Usuario')}</span>
           <input value={username} onChange={e => setUsername(e.target.value)} disabled={initial !== null} required autoComplete="off" />
           {errors.username && <span className="field-error">{errors.username}</span>}
         </label>
         <label>
-          <span className="field-label">Nombre</span>
+          <span className="field-label">{t('Nombre')}</span>
           <input value={displayName} onChange={e => setDisplayName(e.target.value)} />
         </label>
         <label>
-          <span className="field-label">{initial ? 'Nueva contraseña' : 'Contraseña'}</span>
+          <span className="field-label">{initial ? t('Nueva contraseña') : t('Contraseña')}</span>
           <input type="password" value={password} onChange={e => setPassword(e.target.value)} required={!initial}
-            minLength={minPassword} autoComplete="new-password" placeholder={initial ? 'Sin cambios' : undefined} />
+            minLength={minPassword} autoComplete="new-password" placeholder={initial ? t('Sin cambios') : undefined} />
           {errors.password && <span className="field-error">{errors.password}</span>}
         </label>
       </div>
       {generalError && <div className="alert">{generalError}</div>}
       <div className="actions">
-        <button className="primary" disabled={save.isPending}>{save.isPending ? 'Guardando…' : 'Guardar'}</button>
-        <button type="button" onClick={onClose}>Cancelar</button>
+        <button className="primary" disabled={save.isPending}>{save.isPending ? t('Guardando…') : t('Guardar')}</button>
+        <button type="button" onClick={onClose}>{t('Cancelar')}</button>
       </div>
     </form>
   )

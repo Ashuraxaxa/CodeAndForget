@@ -8,6 +8,7 @@ import { useDebounce } from '../lib/useDebounce'
 import { useCan } from '../lib/useMe'
 import { useTableLabels } from '../lib/useTableLabels'
 import { TreeView } from '../components/TreeView'
+import { useT } from '../i18n'
 
 const PAGE_SIZES = [10, 25, 50, 100]
 
@@ -15,8 +16,9 @@ const PAGE_SIZES = [10, 25, 50, 100]
 export function TablePage() {
   const { conn = '', schema = '', table = '' } = useParams()
   const meta = useQuery({ queryKey: ['meta', conn, schema, table], queryFn: () => api.table(conn, schema, table) })
+  const t = useT()
 
-  if (meta.isLoading) return <p className="muted">Cargando definición…</p>
+  if (meta.isLoading) return <p className="muted">{t('Cargando definición…')}</p>
   if (meta.error) return <div className="alert">{(meta.error as Error).message}</div>
   // La key reinicia el estado (filtros, página) al cambiar de tabla.
   return <Grid key={`${conn}/${schema}/${table}`} conn={conn} meta={meta.data!} />
@@ -33,6 +35,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
   returnTo?: string
 }) {
   const embedded = fixed !== undefined
+  const t = useT()
   const qc = useQueryClient()
   const navigate = useNavigate()
   const canConfigure = useCan('ConfigureTables')
@@ -86,7 +89,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
       // Otra persona lo cambió (D-069): se recarga la grilla para que decida con los datos al día.
       if (isConcurrencyError(err)) {
         qc.invalidateQueries({ queryKey: ['rows', conn, meta.schema, meta.name] })
-        alert('Otra persona cambió este registro mientras lo veía. La lista se actualizó: revíselo y vuelva a intentar.')
+        alert(t('Otra persona cambió este registro mientras lo veía. La lista se actualizó: revíselo y vuelva a intentar.'))
       } else alert((err as Error).message)
     },
   })
@@ -120,8 +123,8 @@ export function Grid({ conn, meta, fixed, returnTo }: {
   const total = rows.data?.total ?? 0
   // En tablas grandes sin filtros el total es una estimación del motor (D-072).
   const totalText = rows.data?.totalIsCapped
-    ? `más de ${total.toLocaleString('es')} registros`
-    : `${rows.data?.totalIsEstimate ? '≈ ' : ''}${total.toLocaleString('es')} registros`
+    ? t('más de {n} registros', { n: total })
+    : `${rows.data?.totalIsEstimate ? '≈ ' : ''}${t('{n} registros', { n: total })}`
   const capped = rows.data?.totalIsCapped === true
   // Con el total cortado no se sabe cuál es la última página: se puede seguir mientras la página venga llena.
   const pages = capped
@@ -134,8 +137,8 @@ export function Grid({ conn, meta, fixed, returnTo }: {
         <div className="page-header">
           <div className="muted small">{totalText}</div>
           <div className="actions">
-            <input className="search" placeholder="Buscar en textos…" value={search} onChange={e => setSearch(e.target.value)} />
-            {meta.canCreate && <Link className="button primary" to={newUrl}>Nuevo</Link>}
+            <input className="search" placeholder={t('Buscar en textos…')} value={search} onChange={e => setSearch(e.target.value)} />
+            {meta.canCreate && <Link className="button primary" to={newUrl}>{t('Nuevo')}</Link>}
           </div>
         </div>
       ) : (
@@ -143,36 +146,36 @@ export function Grid({ conn, meta, fixed, returnTo }: {
         <div>
           <h1>{labelOf(meta)}</h1>
           <div className="muted small">
-            {meta.schema} · <span title={rows.data?.totalIsEstimate ? 'Estimado por la base de datos: la tabla es grande y contar todas sus filas sería lento'
-              : capped ? 'La tabla es grande: se deja de contar en este número. Afine la búsqueda o los filtros.' : undefined}>{totalText}</span>
-            {meta.kind === 'View' && <span className="tag">vista · solo lectura</span>}
-            {meta.kind === 'Table' && !meta.hasPrimaryKey && <span className="tag">sin PK · solo lectura</span>}
-            {meta.kind === 'Table' && meta.hasPrimaryKey && meta.forcedReadOnly && <span className="tag">solo lectura</span>}
-            {meta.isEditable && !meta.canCreate && !meta.canUpdate && !meta.canDelete && <span className="tag">solo consulta</span>}
+            {meta.schema} · <span title={rows.data?.totalIsEstimate ? t('Estimado por la base de datos: la tabla es grande y contar todas sus filas sería lento')
+              : capped ? t('La tabla es grande: se deja de contar en este número. Afine la búsqueda o los filtros.') : undefined}>{totalText}</span>
+            {meta.kind === 'View' && <span className="tag">{t('vista · solo lectura')}</span>}
+            {meta.kind === 'Table' && !meta.hasPrimaryKey && <span className="tag">{t('sin PK · solo lectura')}</span>}
+            {meta.kind === 'Table' && meta.hasPrimaryKey && meta.forcedReadOnly && <span className="tag">{t('solo lectura')}</span>}
+            {meta.isEditable && !meta.canCreate && !meta.canUpdate && !meta.canDelete && <span className="tag">{t('solo consulta')}</span>}
           </div>
         </div>
         <div className="actions">
-          <input className="search" placeholder="Buscar en textos…" value={search} onChange={e => setSearch(e.target.value)} />
-          {meta.canExport && <select className="export" value="" title="Exportar lo que muestra la grilla (filtros, búsqueda y orden)"
+          <input className="search" placeholder={t('Buscar en textos…')} value={search} onChange={e => setSearch(e.target.value)} />
+          {meta.canExport && <select className="export" value="" title={t('Exportar lo que muestra la grilla (filtros, búsqueda y orden)')}
             disabled={exporting} onChange={e => e.target.value && exportAs(e.target.value as TransferFormat)}>
-            <option value="">{exporting ? 'Exportando…' : '⤓ Exportar'}</option>
+            <option value="">{exporting ? t('Exportando…') : '⤓ ' + t('Exportar')}</option>
             <option value="csv">CSV</option>
             <option value="xlsx">Excel</option>
             <option value="json">JSON</option>
             <option value="xml">XML</option>
           </select>}
-          {meta.canImport && <Link className="button" to={`${base}/import`}>⤒ Importar</Link>}
-          {canConfigure && <Link className="button" to={`${base}/config`} title="Ajustar etiquetas, columnas y validaciones">⚙ Configurar</Link>}
-          {meta.canCreate && <Link className="button primary" to={newUrl}>Nuevo</Link>}
+          {meta.canImport && <Link className="button" to={`${base}/import`}>⤒ {t('Importar')}</Link>}
+          {canConfigure && <Link className="button" to={`${base}/config`} title={t('Ajustar etiquetas, columnas y validaciones')}>⚙ {t('Configurar')}</Link>}
+          {meta.canCreate && <Link className="button primary" to={newUrl}>{t('Nuevo')}</Link>}
         </div>
       </div>
       )}
 
       {!embedded && meta.selfReference && (
         <div className="tabs">
-          <button className={view === 'grid' ? 'tab active' : 'tab'} onClick={() => setView('grid')}>Grilla</button>
+          <button className={view === 'grid' ? 'tab active' : 'tab'} onClick={() => setView('grid')}>{t('Grilla')}</button>
           <button className={view === 'tree' ? 'tab active' : 'tab'} onClick={() => setView('tree')}>
-            Árbol <span className="muted small">· {meta.selfReference.columns[0]}</span>
+            {t('Árbol')} <span className="muted small">· {meta.selfReference.columns[0]}</span>
           </button>
         </div>
       )}
@@ -180,7 +183,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
       {showTree ? <TreeView conn={conn} meta={meta} /> : <>
       {!embedded && meta.referencedBy.length > 0 && (
         <div className="related muted small">
-          Referenciada por:{' '}
+          {t('Referenciada por:')}{' '}
           {meta.referencedBy.map(r => (
             <Link key={r.name} className="chip" to={`/c/${conn}/t/${encodeURIComponent(r.schema)}/${encodeURIComponent(r.table)}`}>
               {tableLabel(r.schema, r.table)}
@@ -200,7 +203,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
                   key={c.name}
                   onClick={() => c.isSortable && toggleSort(c.name)}
                   className={c.isSortable ? undefined : 'no-sort'}
-                  title={`${c.label ? c.name + ' · ' : ''}${c.nativeType}${c.isNullable ? '' : ' · obligatorio'}${c.isSortable ? '' : ' · no se puede ordenar'}${c.helpText ? '\n' + c.helpText : ''}`}
+                  title={`${c.label ? c.name + ' · ' : ''}${c.nativeType}${c.isNullable ? '' : ' · ' + t('obligatorio')}${c.isSortable ? '' : ' · ' + t('no se puede ordenar')}${c.helpText ? '\n' + c.helpText : ''}`}
                 >
                   {c.isPrimaryKey && <span className="pk">🔑</span>}
                   {labelOf(c)}
@@ -240,13 +243,13 @@ export function Grid({ conn, meta, fixed, returnTo }: {
                 {meta.isEditable && (
                   <td className="actions-col">
                     {/* Sin permiso de edición el formulario se abre de solo lectura (y muestra las pestañas hijas). */}
-                    <Link to={editUrl(row)}>{meta.canUpdate ? 'Editar' : 'Ver'}</Link>
+                    <Link to={editUrl(row)}>{meta.canUpdate ? t('Editar') : t('Ver')}</Link>
                     {meta.canDelete && (
                       <button
                         className="link danger"
-                        onClick={() => confirm('¿Eliminar este registro?') && remove.mutate(row)}
+                        onClick={() => confirm(t('¿Eliminar este registro?')) && remove.mutate(row)}
                       >
-                        Eliminar
+                        {t('Eliminar')}
                       </button>
                     )}
                   </td>
@@ -254,18 +257,18 @@ export function Grid({ conn, meta, fixed, returnTo }: {
               </tr>
             ))}
             {rows.data?.rows.length === 0 && (
-              <tr><td colSpan={columns.length + 1} className="empty">Sin registros</td></tr>
+              <tr><td colSpan={columns.length + 1} className="empty">{t('Sin registros')}</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
       <div className="pager">
-        <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>‹ Anterior</button>
-        <span>Página {page} {capped ? `de ${pages}+` : `de ${pages}`}</span>
-        <button disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Siguiente ›</button>
+        <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>‹ {t('Anterior')}</button>
+        <span>{capped ? t('Página {page} de {pages}+', { page, pages }) : t('Página {page} de {pages}', { page, pages })}</span>
+        <button disabled={page >= pages} onClick={() => setPage(p => p + 1)}>{t('Siguiente')} ›</button>
         <select value={pageSize} onChange={e => setPageSize(Number(e.target.value))}>
-          {PAGE_SIZES.map(s => <option key={s} value={s}>{s} por página</option>)}
+          {PAGE_SIZES.map(s => <option key={s} value={s}>{t('{n} por página', { n: s })}</option>)}
         </select>
       </div>
       </>}
@@ -276,19 +279,20 @@ export function Grid({ conn, meta, fixed, returnTo }: {
 function FilterInput({ column: c, isForeignKey, value, onChange }: {
   column: Column; isForeignKey: boolean; value: string; onChange: (v: string) => void
 }) {
+  const t = useT()
   if (c.type === 'Boolean') {
     return (
       <select value={value} onChange={e => onChange(e.target.value)}>
-        <option value="">Todos</option>
-        <option value="true">Sí</option>
-        <option value="false">No</option>
+        <option value="">{t('Todos')}</option>
+        <option value="true">{t('Sí')}</option>
+        <option value="false">{t('No')}</option>
       </select>
     )
   }
   if (c.type === 'Enum') {
     return (
       <select value={value} onChange={e => onChange(e.target.value)}>
-        <option value="">Todos</option>
+        <option value="">{t('Todos')}</option>
         {c.enumValues?.map(v => <option key={v} value={v}>{v}</option>)}
       </select>
     )
@@ -298,7 +302,7 @@ function FilterInput({ column: c, isForeignKey, value, onChange }: {
     <input
       value={value}
       // Una FK se filtra por el id o por el texto que muestra (P-032).
-      placeholder={contains ? 'contiene…' : isForeignKey ? 'id o nombre…' : '='}
+      placeholder={contains ? t('contiene…') : isForeignKey ? t('id o nombre…') : '='}
       type={c.type === 'Date' ? 'date' : 'text'}
       onChange={e => onChange(e.target.value)}
     />

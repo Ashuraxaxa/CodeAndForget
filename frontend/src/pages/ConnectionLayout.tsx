@@ -4,9 +4,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { labelOf } from '../api/types'
 import { SchemaChangesBanner } from '../components/SchemaChangesBanner'
+import { useT } from '../i18n'
 
 /** Barra lateral con las tablas descubiertas de la conexión + área de trabajo. */
 export function ConnectionLayout() {
+  const t = useT()
   const { conn = '' } = useParams()
   const qc = useQueryClient()
   const [filter, setFilter] = useState('')
@@ -25,12 +27,12 @@ export function ConnectionLayout() {
   const groups = useMemo(() => {
     const f = filter.toLowerCase()
     const map = new Map<string, NonNullable<typeof data>['tables']>()
-    for (const t of data?.tables ?? []) {
-      if (t.hidden) continue
-      if (f && !`${t.schema}.${t.name} ${t.label ?? ''}`.toLowerCase().includes(f)) continue
+    for (const tb of data?.tables ?? []) {
+      if (tb.hidden) continue
+      if (f && !`${tb.schema}.${tb.name} ${tb.label ?? ''}`.toLowerCase().includes(f)) continue
       // El grupo del ajuste reemplaza al esquema en el menú.
-      const g = t.group ?? t.schema
-      map.set(g, [...(map.get(g) ?? []), t])
+      const g = tb.group ?? tb.schema
+      map.set(g, [...(map.get(g) ?? []), tb])
     }
     for (const list of map.values()) list.sort((a, b) => labelOf(a).localeCompare(labelOf(b)))
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
@@ -40,29 +42,29 @@ export function ConnectionLayout() {
     <div className={`workspace ${menuOpen ? 'menu-open' : ''}`}>
       <aside className="sidebar">
         <div className="sidebar-head">
-          <input placeholder="Buscar tabla…" value={filter} onChange={e => setFilter(e.target.value)} />
-          <button title="Volver a leer el esquema" onClick={() => refresh.mutate()} disabled={refresh.isPending}>
+          <input placeholder={t('Buscar tabla…')} value={filter} onChange={e => setFilter(e.target.value)} />
+          <button title={t('Volver a leer el esquema')} onClick={() => refresh.mutate()} disabled={refresh.isPending}>
             {refresh.isPending ? '…' : '↻'}
           </button>
         </div>
-        {isLoading && <p className="muted pad">Leyendo esquema…</p>}
+        {isLoading && <p className="muted pad">{t('Leyendo esquema…')}</p>}
         {error && <div className="alert pad">{(error as Error).message}</div>}
-        {data && <p className="muted small pad">{data.tables.filter(t => !t.hidden).length} tablas y vistas</p>}
+        {data && <p className="muted small pad">{t('{n} tablas y vistas', { n: data.tables.filter(tb => !tb.hidden).length })}</p>}
         <nav>
           {groups.map(([group, tables]) => (
             <div key={group} className="nav-group">
               <div className="nav-schema">{group}</div>
-              {tables.map(t => (
+              {tables.map(tb => (
                 <NavLink
-                  key={`${t.schema}.${t.name}`}
-                  title={`${t.schema}.${t.name}`}
-                  to={`/c/${conn}/t/${encodeURIComponent(t.schema)}/${encodeURIComponent(t.name)}`}
+                  key={`${tb.schema}.${tb.name}`}
+                  title={`${tb.schema}.${tb.name}`}
+                  to={`/c/${conn}/t/${encodeURIComponent(tb.schema)}/${encodeURIComponent(tb.name)}`}
                   className="nav-item"
                   onClick={() => setMenuOpen(false)}
                 >
-                  <span>{labelOf(t)}</span>
-                  {t.kind === 'View' && <span className="tag">vista</span>}
-                  {t.kind === 'Table' && !t.hasPrimaryKey && <span className="tag">sin PK</span>}
+                  <span>{labelOf(tb)}</span>
+                  {tb.kind === 'View' && <span className="tag">{t('vista')}</span>}
+                  {tb.kind === 'Table' && !tb.hasPrimaryKey && <span className="tag">{t('sin PK')}</span>}
                 </NavLink>
               ))}
             </div>
@@ -70,7 +72,7 @@ export function ConnectionLayout() {
         </nav>
       </aside>
       <section className="content">
-        <button className="menu-toggle" onClick={() => setMenuOpen(o => !o)}>☰ Tablas</button>
+        <button className="menu-toggle" onClick={() => setMenuOpen(o => !o)}>☰ {t('Tablas')}</button>
         <SchemaChangesBanner conn={conn} />
         <Outlet />
       </section>
@@ -79,5 +81,6 @@ export function ConnectionLayout() {
 }
 
 export function PickTable() {
-  return <div className="empty">Elige una tabla en el menú para ver su mantenedor.</div>
+  const t = useT()
+  return <div className="empty">{t('Elige una tabla en el menú para ver su mantenedor.')}</div>
 }

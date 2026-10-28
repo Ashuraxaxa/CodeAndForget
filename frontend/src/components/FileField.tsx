@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '../api/client'
 import type { Column } from '../api/types'
 import { fileSize } from '../lib/format'
+import { useT } from '../i18n'
 
 /**
  * Columna de archivo (P-018): muestra el tamaño, permite descargar el guardado, elegir otro o quitarlo.
@@ -20,6 +21,7 @@ export function FileField({ conn, schema, table, recordKey, column: c, size, val
   disabled: boolean
   onChange: (value: string | null | undefined) => void
 }) {
+  const t = useT()
   const [chosen, setChosen] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const stored = size !== null && size !== undefined && value === undefined
@@ -41,22 +43,22 @@ export function FileField({ conn, schema, table, recordKey, column: c, size, val
   return (
     <div className="file-field">
       <div className="row">
-        {stored && <span>Guardado · {fileSize(size)}</span>}
+        {stored && <span>{t('Guardado')} · {fileSize(size)}</span>}
         {stored && recordKey && (
-          <button type="button" className="link" disabled={busy} onClick={downloadStored}>{busy ? 'Descargando…' : 'Descargar'}</button>
+          <button type="button" className="link" disabled={busy} onClick={downloadStored}>{busy ? t('Descargando…') : t('Descargar')}</button>
         )}
-        {value && chosen && <span>Nuevo: {chosen.name} · {fileSize(chosen.size)}</span>}
-        {value === null && <span className="muted">Se quitará al guardar</span>}
-        {!stored && value === undefined && <span className="muted">Sin archivo</span>}
+        {value && chosen && <span>{t('Nuevo: {name}', { name: chosen.name })} · {fileSize(chosen.size)}</span>}
+        {value === null && <span className="muted">{t('Se quitará al guardar')}</span>}
+        {!stored && value === undefined && <span className="muted">{t('Sin archivo')}</span>}
       </div>
       {!disabled && (
         <div className="row">
           <input type="file" onChange={e => pick(e.target.files?.[0] ?? null)} />
           {c.isNullable && (stored || value) && (
-            <button type="button" className="link danger" onClick={() => { setChosen(null); onChange(null) }}>Quitar</button>
+            <button type="button" className="link danger" onClick={() => { setChosen(null); onChange(null) }}>{t('Quitar')}</button>
           )}
           {value !== undefined && (
-            <button type="button" className="link" onClick={() => { setChosen(null); onChange(undefined) }}>Deshacer</button>
+            <button type="button" className="link" onClick={() => { setChosen(null); onChange(undefined) }}>{t('Deshacer')}</button>
           )}
         </div>
       )}

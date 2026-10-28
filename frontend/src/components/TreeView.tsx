@@ -4,19 +4,21 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { TableMeta, TreeNode } from '../api/types'
 import { FIXED_PREFIX, RETURN_PARAM } from '../lib/format'
+import { useT } from '../i18n'
 
 /**
  * Vista de árbol para tablas con autorreferencia (P-016), p. ej. empleados y su jefe.
  * Carga un nivel por vez: los hijos se piden al expandir un nodo.
  */
 export function TreeView({ conn, meta }: { conn: string; meta: TableMeta }) {
+  const t = useT()
   const roots = useQuery({
     queryKey: ['tree', conn, meta.schema, meta.name, null],
     queryFn: () => api.tree(conn, meta.schema, meta.name),
   })
-  if (roots.isLoading) return <p className="muted">Cargando…</p>
+  if (roots.isLoading) return <p className="muted">{t('Cargando…')}</p>
   if (roots.error) return <div className="alert">{(roots.error as Error).message}</div>
-  if (roots.data?.length === 0) return <div className="empty">Sin registros</div>
+  if (roots.data?.length === 0) return <div className="empty">{t('Sin registros')}</div>
   return (
     <ul className="tree">
       {roots.data?.map(n => <Node key={String(n.value)} conn={conn} meta={meta} node={n} />)}
@@ -26,6 +28,7 @@ export function TreeView({ conn, meta }: { conn: string; meta: TableMeta }) {
 
 function Node({ conn, meta, node }: { conn: string; meta: TableMeta; node: TreeNode }) {
   const [open, setOpen] = useState(false)
+  const t = useT()
   const location = useLocation()
   const children = useQuery({
     queryKey: ['tree', conn, meta.schema, meta.name, node.value],
@@ -42,16 +45,16 @@ function Node({ conn, meta, node }: { conn: string; meta: TableMeta; node: TreeN
     <li>
       <div className="tree-node">
         <button className="tree-toggle" disabled={!node.hasChildren} onClick={() => setOpen(o => !o)}
-          aria-label={open ? 'Contraer' : 'Expandir'}>
+          aria-label={open ? t('Contraer') : t('Expandir')}>
           {node.hasChildren ? (open ? '▾' : '▸') : '·'}
         </button>
         {meta.isEditable
           ? <Link to={`${base}/edit?${key}`}>{node.label ?? String(node.value)}</Link>
           : <span>{node.label ?? String(node.value)}</span>}
-        {meta.canCreate && <Link className="muted small" to={`${base}/new?${child}`} title="Agregar un registro debajo de este">＋ hijo</Link>}
+        {meta.canCreate && <Link className="muted small" to={`${base}/new?${child}`} title={t('Agregar un registro debajo de este')}>＋ {t('hijo')}</Link>}
       </div>
       {open && node.hasChildren && (
-        children.isLoading ? <p className="muted small tree-indent">Cargando…</p>
+        children.isLoading ? <p className="muted small tree-indent">{t('Cargando…')}</p>
           : <ul className="tree">{children.data?.map(n => <Node key={String(n.value)} conn={conn} meta={meta} node={n} />)}</ul>
       )}
     </li>

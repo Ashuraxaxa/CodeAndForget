@@ -11,11 +11,13 @@ import { ManyToManySelect } from '../components/ManyToManySelect'
 import { FileField } from '../components/FileField'
 import { useCan } from '../lib/useMe'
 import { useTableLabels } from '../lib/useTableLabels'
+import { useT } from '../i18n'
 
 /** Formulario de alta y edición generado desde la metadata de la tabla. */
 export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
   const { conn = '', schema = '', table = '' } = useParams()
   const location = useLocation()
+  const t = useT()
   // La query string trae la clave del registro y, desde una pestaña hija, valores fijos y a dónde volver (P-014).
   const { key, fixed, returnTo } = parseRecordSearch(location.search)
 
@@ -37,7 +39,7 @@ export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
     })),
   })
 
-  if (meta.isLoading || row.isLoading || links.some(l => l.isLoading)) return <p className="muted">Cargando…</p>
+  if (meta.isLoading || row.isLoading || links.some(l => l.isLoading)) return <p className="muted">{t('Cargando…')}</p>
   const error = meta.error ?? row.error ?? links.find(l => l.error)?.error
   if (error) return <div className="alert">{(error as Error).message}</div>
   const initialLinks = Object.fromEntries(meta.data!.manyToMany.map((l, i) => [l.name, links[i]?.data ?? []]))
@@ -60,6 +62,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
 }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const t = useT()
   const isEdit = row !== null
   const list = `/c/${conn}/t/${encodeURIComponent(meta.schema)}/${encodeURIComponent(meta.name)}`
   const back = returnTo ?? list
@@ -132,7 +135,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
         try {
           await api.setLinks(conn, meta.schema, meta.name, key, l.name, now.map(v => v.value))
         } catch (e) {
-          throw new Error(`El registro se guardó, pero no ${tableLabel(l.targetSchema, l.targetTable)}: ${(e as Error).message}`)
+          throw new Error(t('El registro se guardó, pero no {relation}: {error}', { relation: tableLabel(l.targetSchema, l.targetTable), error: (e as Error).message }))
         }
       }
       return saved
@@ -169,10 +172,10 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
   return (
     <div className="page">
       <div className="page-header">
-        <h1>{viewOnly && isEdit ? `Registro · ${labelOf(meta)}` : isEdit ? `Editar registro · ${labelOf(meta)}` : `Nuevo registro · ${labelOf(meta)}`}</h1>
+        <h1>{viewOnly && isEdit ? t('Registro · {table}', { table: labelOf(meta) }) : isEdit ? t('Editar registro · {table}', { table: labelOf(meta) }) : t('Nuevo registro · {table}', { table: labelOf(meta) })}</h1>
         <div className="actions">
-          {isEdit && canAudit && <Link to={historyUrl}>Historial</Link>}
-          <Link to={back}>{returnTo ? '‹ Volver' : '‹ Volver a la lista'}</Link>
+          {isEdit && canAudit && <Link to={historyUrl}>{t('Historial')}</Link>}
+          <Link to={back}>{returnTo ? '‹ ' + t('Volver') : '‹ ' + t('Volver a la lista')}</Link>
         </div>
       </div>
 
@@ -224,7 +227,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
                   }}
                 />
                 {c.helpText && <span className="hint">{c.helpText}</span>}
-                {c.isComputed && <span className="hint">Calculada por la base de datos</span>}
+                {c.isComputed && <span className="hint">{t('Calculada por la base de datos')}</span>}
                 {errors[c.name] && <span className="field-error">{errors[c.name]}</span>}
               </label>
             )
@@ -235,7 +238,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
               <div key={c.name} className="field span-2">
                 <span className="field-label">
                   {labelOf(c)}{required && <span className="req"> *</span>}
-                  <span className="muted small"> archivo · {c.nativeType}</span>
+                  <span className="muted small"> {t('archivo')} · {c.nativeType}</span>
                 </span>
                 <FileField conn={conn} schema={meta.schema} table={meta.name} recordKey={isEdit ? recordKey : ''} column={c}
                   size={row?.[c.name + SIZE_SUFFIX]} value={fileValues[c.name]} disabled={viewOnly || c.isReadOnly}
@@ -248,7 +251,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
           {meta.manyToMany.map(l => (
             <label key={l.name} className="span-2">
               <span className="field-label">
-                {tableLabel(l.targetSchema, l.targetTable)}<span className="muted small"> · varios, vía {tableLabel(l.bridgeSchema, l.bridgeTable)}</span>
+                {tableLabel(l.targetSchema, l.targetTable)}<span className="muted small"> · {t('varios, vía {bridge}', { bridge: tableLabel(l.bridgeSchema, l.bridgeTable) })}</span>
               </span>
               <ManyToManySelect id={`m2m-${l.name}`} conn={conn} link={l} value={links[l.name] ?? []} disabled={viewOnly}
                 onChange={v => setLinks(s => ({ ...s, [l.name]: v }))} />
@@ -261,30 +264,30 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
 
         {conflict && (
           <div className="banner conflict">
-            <strong>Otra persona cambió este registro mientras lo editaba.</strong>
+            <strong>{t('Otra persona cambió este registro mientras lo editaba.')}</strong>
             {conflictFields.length > 0 ? (
               <ul>
                 {conflictFields.map(c => (
                   <li key={c.name}>
-                    {labelOf(c)}: ahora <strong>{String(toInputValue(c, conflict[c.name]) || '∅')}</strong>
-                    {values[c.name] !== initialValues[c.name] && <> · usted puso <strong>{String(values[c.name] || '∅')}</strong></>}
+                    {labelOf(c)}: {t('ahora')} <strong>{String(toInputValue(c, conflict[c.name]) || '∅')}</strong>
+                    {values[c.name] !== initialValues[c.name] && <> · {t('usted puso')} <strong>{String(values[c.name] || '∅')}</strong></>}
                   </li>
                 ))}
               </ul>
-            ) : <p className="small">Cambió algo que este formulario no muestra.</p>}
+            ) : <p className="small">{t('Cambió algo que este formulario no muestra.')}</p>}
             <div className="actions">
-              <button type="button" onClick={() => window.location.reload()}>Descartar lo mío y ver lo actual</button>
+              <button type="button" onClick={() => window.location.reload()}>{t('Descartar lo mío y ver lo actual')}</button>
               <button type="button" className="danger" disabled={save.isPending}
                 onClick={() => { const v = conflict[VERSION_FIELD]; setConflict(null); save.mutate(v) }}>
-                Guardar lo mío igual
+                {t('Guardar lo mío igual')}
               </button>
             </div>
           </div>
         )}
 
         <div className="actions">
-          {!viewOnly && <button className="primary" disabled={save.isPending}>{save.isPending ? 'Guardando…' : 'Guardar'}</button>}
-          <Link to={back} className="button">{viewOnly ? 'Volver' : 'Cancelar'}</Link>
+          {!viewOnly && <button className="primary" disabled={save.isPending}>{save.isPending ? t('Guardando…') : t('Guardar')}</button>}
+          <Link to={back} className="button">{viewOnly ? t('Volver') : t('Cancelar')}</Link>
         </div>
       </form>
 

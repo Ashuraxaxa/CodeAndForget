@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-28 · Interfaz en inglés y ruso (P-100)
+- Pedido del dueño antes de seguir con la tanda 2: inglés y ruso intercambiables desde la interfaz, con el formato de fechas de cada idioma.
+- Sistema propio y liviano (D-076): el español del código es la clave, `en.ts`/`ru.ts` traducen 304 textos, plurales con `Intl.PluralRules`, y `npm run lint` falla si falta alguna traducción.
+- Hallazgo en el navegador: `es-CL` escribe las fechas 28-10-2026 y la hora con a. m./p. m.; para fechas se usa `es-ES`, y `es-CL` queda para los números.
+- Navegador: login, grilla, formulario y auditoría en los tres idiomas; el idioma se recuerda al recargar.
+- El dueño confirmó: el idioma inicial sale del navegador y, si no es español, inglés ni ruso, se usa inglés.
+- **Abierto:** traducir los mensajes del servidor (P-101).
+
 ## 2026-10-28 · Tanda 1 de mejoras, parte B (P-088, P-030)
 - Importar en modo "agregar y actualizar por clave": búsqueda de claves por lotes, error claro si la clave es identity y no existe, y conteo de nuevas y actualizadas en la vista previa.
 - FK de varias columnas: etiqueta, `/lookup` con la clave completa y combo único en el formulario. Bases de ejemplo con `sucursal`/`bodega`.

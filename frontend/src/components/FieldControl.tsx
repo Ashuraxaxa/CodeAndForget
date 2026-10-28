@@ -1,5 +1,6 @@
 import type { Column, ForeignKey } from '../api/types'
 import { ForeignKeySelect } from './ForeignKeySelect'
+import { useT } from '../i18n'
 
 interface Props {
   conn: string
@@ -14,6 +15,7 @@ interface Props {
 
 /** Dibuja el control adecuado según el tipo lógico de la columna. */
 export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, required, onChange }: Props) {
+  const t = useT()
   const id = `f-${c.name}`
   const str = typeof value === 'string' ? value : ''
 
@@ -36,7 +38,7 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
   if (c.options && c.options.length > 0) {
     return (
       <select id={id} value={str} disabled={disabled} required={required} onChange={e => onChange(e.target.value)}>
-        <option value="">{required ? 'Seleccionar…' : '(vacío)'}</option>
+        <option value="">{required ? t('Seleccionar…') : t('(vacío)')}</option>
         {/* Un valor guardado antes del ajuste se sigue mostrando. */}
         {str && !c.options.includes(str) && <option value={str}>{str}</option>}
         {c.options.map(v => <option key={v} value={v}>{v}</option>)}
@@ -55,9 +57,9 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
     case 'Boolean':
       return c.isNullable ? (
         <select id={id} value={String(value)} disabled={disabled} onChange={e => onChange(e.target.value)}>
-          <option value="">(vacío)</option>
-          <option value="true">Sí</option>
-          <option value="false">No</option>
+          <option value="">{t('(vacío)')}</option>
+          <option value="true">{t('Sí')}</option>
+          <option value="false">{t('No')}</option>
         </select>
       ) : (
         <input id={id} type="checkbox" checked={value === true} disabled={disabled} onChange={e => onChange(e.target.checked)} />
@@ -66,7 +68,7 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
     case 'Enum':
       return (
         <select id={id} value={str} disabled={disabled} required={required} onChange={e => onChange(e.target.value)}>
-          <option value="">{c.isNullable || c.hasDefault ? '(vacío)' : 'Seleccionar…'}</option>
+          <option value="">{c.isNullable || c.hasDefault ? t('(vacío)') : t('Seleccionar…')}</option>
           {c.enumValues?.map(v => <option key={v} value={v}>{v}</option>)}
         </select>
       )
@@ -74,7 +76,7 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
     case 'Array':
       return (
         <textarea id={id} rows={4} value={str} disabled={disabled} required={required}
-          placeholder="Un valor por línea" onChange={e => onChange(e.target.value)} />
+          placeholder={t('Un valor por línea')} onChange={e => onChange(e.target.value)} />
       )
 
     case 'Text':
@@ -115,7 +117,7 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
           disabled={disabled}
           required={required}
           maxLength={c.maxLength ?? undefined}
-          placeholder={c.type === 'Uuid' ? (c.hasDefault ? 'Se genera automáticamente' : '00000000-0000-0000-0000-000000000000') : undefined}
+          placeholder={c.type === 'Uuid' ? (c.hasDefault ? t('Se genera automáticamente') : '00000000-0000-0000-0000-000000000000') : undefined}
           onChange={e => onChange(e.target.value)}
         />
       )

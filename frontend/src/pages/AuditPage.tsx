@@ -5,15 +5,18 @@ import { formatInstant } from '../lib/format'
 import { api } from '../api/client'
 import type { AuditEntry, AuditOperation } from '../api/types'
 import { useMe } from '../lib/useMe'
+import { useT, type Translate } from '../i18n'
 
-const OPS: Record<AuditOperation, string> = {
-  Create: 'Alta', Update: 'Edición', Delete: 'Baja', Import: 'Importación', Links: 'Vínculos N:M',
-}
+const opLabels = (t: Translate): Record<AuditOperation, string> => ({
+  Create: t('Alta'), Update: t('Edición'), Delete: t('Baja'), Import: t('Importación'), Links: t('Vínculos N:M'),
+})
 const PAGE_SIZE = 50
 
 /** Auditoría de cambios (P-044): filtros en la URL, así "Historial" de un registro llega ya filtrado. Requiere ViewAudit (D-068). */
 export function AuditPage() {
   const me = useMe()
+  const t = useT()
+  const OPS = opLabels(t)
   const allowed = me.data?.permissions.includes('ViewAudit') === true
   const [params, setParams] = useSearchParams()
   const page = Number(params.get('page') ?? '1') || 1
@@ -39,8 +42,8 @@ export function AuditPage() {
   }
   const keyFilter = [...params.entries()].filter(([k]) => k.startsWith('k.'))
 
-  if (me.isLoading) return <p className="muted">Cargando…</p>
-  if (!allowed) return <div className="page"><div className="alert">Necesita el permiso para ver la auditoría.</div></div>
+  if (me.isLoading) return <p className="muted">{t('Cargando…')}</p>
+  if (!allowed) return <div className="page"><div className="alert">{t('Necesita el permiso para ver la auditoría.')}</div></div>
 
   const total = audit.data?.total ?? 0
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
@@ -48,27 +51,27 @@ export function AuditPage() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1>Auditoría</h1>
-        <span className="muted small">{total} cambios</span>
+        <h1>{t('Auditoría')}</h1>
+        <span className="muted small">{t('{n} cambios', { n: total })}</span>
       </div>
 
       <div className="card audit-filters">
-        <select value={params.get('conn') ?? ''} onChange={e => set('conn', e.target.value)} aria-label="Conexión">
-          <option value="">Todas las conexiones</option>
+        <select value={params.get('conn') ?? ''} onChange={e => set('conn', e.target.value)} aria-label={t('Conexión')}>
+          <option value="">{t('Todas las conexiones')}</option>
           {connections.data?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <FilterText label="Esquema" value={params.get('schema') ?? ''} onChange={v => set('schema', v)} />
-        <FilterText label="Tabla" value={params.get('table') ?? ''} onChange={v => set('table', v)} />
-        <FilterText label="Usuario" value={params.get('user') ?? ''} onChange={v => set('user', v)} />
-        <select value={params.get('op') ?? ''} onChange={e => set('op', e.target.value)} aria-label="Operación">
-          <option value="">Todas las operaciones</option>
+        <FilterText label={t('Esquema')} value={params.get('schema') ?? ''} onChange={v => set('schema', v)} />
+        <FilterText label={t('Tabla')} value={params.get('table') ?? ''} onChange={v => set('table', v)} />
+        <FilterText label={t('Usuario')} value={params.get('user') ?? ''} onChange={v => set('user', v)} />
+        <select value={params.get('op') ?? ''} onChange={e => set('op', e.target.value)} aria-label={t('Operación')}>
+          <option value="">{t('Todas las operaciones')}</option>
           {Object.entries(OPS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <label className="check">Desde <input type="date" value={params.get('from') ?? ''} onChange={e => set('from', e.target.value)} /></label>
-        <label className="check">Hasta <input type="date" value={params.get('to') ?? ''} onChange={e => set('to', e.target.value)} /></label>
+        <label className="check">{t('Desde')} <input type="date" value={params.get('from') ?? ''} onChange={e => set('from', e.target.value)} /></label>
+        <label className="check">{t('Hasta')} <input type="date" value={params.get('to') ?? ''} onChange={e => set('to', e.target.value)} /></label>
         {keyFilter.length > 0 && (
           <span className="chip">
-            Registro {keyFilter.map(([k, v]) => `${k.slice(2)}=${v}`).join(', ')}{' '}
+            {t('Registro')} {keyFilter.map(([k, v]) => `${k.slice(2)}=${v}`).join(', ')}{' '}
             <button className="link" onClick={() => {
               const next = new URLSearchParams(params)
               for (const [k] of keyFilter) next.delete(k)
@@ -83,19 +86,19 @@ export function AuditPage() {
       <div className="table-wrap">
         <table className="grid audit">
           <thead>
-            <tr><th>Fecha</th><th>Usuario</th><th>Operación</th><th>Tabla</th><th>Registro</th><th>Cambios</th></tr>
+            <tr><th>{t('Fecha')}</th><th>{t('Usuario')}</th><th>{t('Operación')}</th><th>{t('Tabla')}</th><th>{t('Registro')}</th><th>{t('Cambios')}</th></tr>
           </thead>
           <tbody className={audit.isFetching ? 'loading' : undefined}>
             {audit.data?.entries.map(e => <Entry key={e.id} entry={e} />)}
-            {audit.data?.entries.length === 0 && <tr><td colSpan={6} className="empty">Sin cambios registrados</td></tr>}
+            {audit.data?.entries.length === 0 && <tr><td colSpan={6} className="empty">{t('Sin cambios registrados')}</td></tr>}
           </tbody>
         </table>
       </div>
 
       <div className="pager">
-        <button disabled={page <= 1} onClick={() => set('page', String(page - 1))}>‹ Anterior</button>
-        <span>Página {page} de {pages}</span>
-        <button disabled={page >= pages} onClick={() => set('page', String(page + 1))}>Siguiente ›</button>
+        <button disabled={page <= 1} onClick={() => set('page', String(page - 1))}>‹ {t('Anterior')}</button>
+        <span>{t('Página {page} de {pages}', { page, pages })}</span>
+        <button disabled={page >= pages} onClick={() => set('page', String(page + 1))}>{t('Siguiente')} ›</button>
       </div>
     </div>
   )
@@ -112,6 +115,8 @@ function FilterText({ label, value, onChange }: { label: string; value: string; 
 }
 
 function Entry({ entry: e }: { entry: AuditEntry }) {
+  const t = useT()
+  const OPS = opLabels(t)
   const before = parse(e.oldValues)
   const after = parse(e.newValues)
   const fields = [...new Set([...Object.keys(before), ...Object.keys(after)])]

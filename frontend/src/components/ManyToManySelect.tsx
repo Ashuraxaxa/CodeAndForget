@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { LookupItem, ManyToManyLink } from '../api/types'
 import { useDebounce } from '../lib/useDebounce'
+import { useT } from '../i18n'
 
 /**
  * Selector múltiple de una relación N:M (P-015), p. ej. las etiquetas de un producto:
@@ -17,6 +18,7 @@ export function ManyToManySelect({ conn, link, value, disabled, id, onChange }: 
   onChange: (value: LookupItem[]) => void
 }) {
   const [open, setOpen] = useState(false)
+  const t = useT()
   const [search, setSearch] = useState('')
   const debounced = useDebounce(search, 250)
   const { data, isFetching } = useQuery({
@@ -37,7 +39,7 @@ export function ManyToManySelect({ conn, link, value, disabled, id, onChange }: 
             <span key={String(v.value)} className="chip">
               {v.label ?? String(v.value)}
               {!disabled && (
-                <button type="button" className="link" title="Quitar"
+                <button type="button" className="link" title={t('Quitar')}
                   onClick={() => onChange(value.filter(x => String(x.value) !== String(v.value)))}>×</button>
               )}
             </span>
@@ -49,7 +51,7 @@ export function ManyToManySelect({ conn, link, value, disabled, id, onChange }: 
           <input
             id={id}
             value={search}
-            placeholder={`Agregar ${link.targetTable}…`}
+            placeholder={t('Agregar {table}…', { table: link.targetTable })}
             onFocus={() => setOpen(true)}
             onBlur={() => setTimeout(() => setOpen(false), 150)}
             onClick={() => setOpen(true)}
@@ -58,8 +60,8 @@ export function ManyToManySelect({ conn, link, value, disabled, id, onChange }: 
           />
           {open && (
             <ul className="fk-options">
-              {isFetching && !data && <li className="muted">Buscando…</li>}
-              {options?.length === 0 && <li className="muted">Sin resultados</li>}
+              {isFetching && !data && <li className="muted">{t('Buscando…')}</li>}
+              {options?.length === 0 && <li className="muted">{t('Sin resultados')}</li>}
               {options?.map(item => (
                 <li key={String(item.value)}>
                   <button type="button" onMouseDown={e => e.preventDefault()}

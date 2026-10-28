@@ -5,6 +5,7 @@ import { formatInstant } from '../lib/format'
 import { api } from '../api/client'
 import type { SchemaChange } from '../api/types'
 import { useCan } from '../lib/useMe'
+import { useT } from '../i18n'
 
 /**
  * Aviso de cambios en el esquema desde la foto de referencia y de ajustes que quedaron sin efecto (P-013).
@@ -12,6 +13,7 @@ import { useCan } from '../lib/useMe'
  */
 export function SchemaChangesBanner({ conn }: { conn: string }) {
   const qc = useQueryClient()
+  const t = useT()
   const canConfigure = useCan('ConfigureTables')
   const [open, setOpen] = useState(false)
   const diff = useQuery({ queryKey: ['diff', conn], queryFn: () => api.diff(conn) })
@@ -24,9 +26,8 @@ export function SchemaChangesBanner({ conn }: { conn: string }) {
   if (!d || (d.changes.length === 0 && d.overrideWarnings.length === 0)) return null
 
   const parts = [
-    d.changes.length > 0 && (d.changes.length === 1 ? '1 cambio en el esquema' : `${d.changes.length} cambios en el esquema`),
-    d.overrideWarnings.length > 0 &&
-      (d.overrideWarnings.length === 1 ? '1 ajuste sin efecto' : `${d.overrideWarnings.length} ajustes sin efecto`),
+    d.changes.length > 0 && t('{n} cambios en el esquema', { n: d.changes.length }),
+    d.overrideWarnings.length > 0 && t('{n} ajustes sin efecto', { n: d.overrideWarnings.length }),
   ].filter(Boolean)
 
   const byTable = new Map<string, SchemaChange[]>()
@@ -38,12 +39,12 @@ export function SchemaChangesBanner({ conn }: { conn: string }) {
   return (
     <div className="banner">
       <div className="banner-head">
-        <span>⚠ {parts.join(' · ')} desde el {formatInstant(d.since)}</span>
-        <button className="link" onClick={() => setOpen(o => !o)}>{open ? 'Ocultar' : 'Ver detalle'}</button>
+        <span>⚠ {t('{changes} desde el {date}', { changes: parts.join(' · '), date: formatInstant(d.since) })}</span>
+        <button className="link" onClick={() => setOpen(o => !o)}>{open ? t('Ocultar') : t('Ver detalle')}</button>
         {canConfigure && d.changes.length > 0 && (
           <button disabled={accept.isPending} onClick={() => accept.mutate()}
-            title="Toma el esquema actual como referencia; los avisos de cambios desaparecen">
-            {accept.isPending ? 'Aceptando…' : 'Aceptar cambios'}
+            title={t('Toma el esquema actual como referencia; los avisos de cambios desaparecen')}>
+            {accept.isPending ? t('Aceptando…') : t('Aceptar cambios')}
           </button>
         )}
       </div>
@@ -65,7 +66,7 @@ export function SchemaChangesBanner({ conn }: { conn: string }) {
           })}
           {d.overrideWarnings.length > 0 && (
             <div>
-              <b>Ajustes sin efecto</b> <span className="muted small">(se ignoran; corríjalos en ⚙ Configurar)</span>
+              <b>{t('Ajustes sin efecto')}</b> <span className="muted small">{t('(se ignoran; corríjalos en ⚙ Configurar)')}</span>
               <ul>{d.overrideWarnings.map(w => <li key={w}>{w}</li>)}</ul>
             </div>
           )}

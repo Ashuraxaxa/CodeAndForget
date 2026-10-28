@@ -10,20 +10,23 @@ import { ImportPage } from './pages/ImportPage'
 import { SecurityPage } from './pages/SecurityPage'
 import { AuditPage } from './pages/AuditPage'
 import { useCan } from './lib/useMe'
+import { LanguageSelect, useT } from './i18n'
 
 /** Solo se monta con sesión iniciada: así /me no se pide sin token. */
 function AdminLinks() {
+  const t = useT()
   const canAudit = useCan('ViewAudit')
   const canSecure = useCan('ManageSecurity')
   return <>
-    {canAudit && <Link to="/auditoria">Auditoría</Link>}
-    {canSecure && <Link to="/seguridad">Seguridad</Link>}
+    {canAudit && <Link to="/auditoria">{t('Auditoría')}</Link>}
+    {canSecure && <Link to="/seguridad">{t('Seguridad')}</Link>}
   </>
 }
 
 function Shell() {
   const { config, isAuthenticated, logout } = useAuth()
-  if (!config) return <p className="muted pad">Cargando…</p>
+  const t = useT()
+  if (!config) return <p className="muted pad">{t('Cargando…')}</p>
   if (!isAuthenticated) return <Navigate to="/login" replace />
   return (
     <div className="app">
@@ -31,8 +34,9 @@ function Shell() {
         <Link to="/" className="brand">Mantenedores</Link>
         <nav className="topnav">
           <AdminLinks />
+          <LanguageSelect />
           {/* Con un proxy que maneja la sesión no hay "salir" desde la app. */}
-          {!(config.mode === 'Jwt' && !config.clientId) && <button className="link" onClick={logout}>Salir</button>}
+          {!(config.mode === 'Jwt' && !config.clientId) && <button className="link" onClick={logout}>{t('Salir')}</button>}
         </nav>
       </header>
       <Outlet />

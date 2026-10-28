@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { labelOf, type ForeignKey, type Row } from '../api/types'
 import { Grid } from '../pages/TablePage'
+import { useT } from '../i18n'
 
 /**
  * Maestro-detalle (P-014): una pestaña por tabla hija, con su grilla filtrada por la FK al registro.
@@ -46,8 +47,9 @@ function ChildTabTitle({ conn, fk, detail, active, onClick }: {
 }
 
 function ChildGrid({ conn, row, fk, returnTo }: { conn: string; row: Row; fk: ForeignKey; returnTo: string }) {
+  const t = useT()
   const meta = useQuery({ queryKey: ['meta', conn, fk.schema, fk.table], queryFn: () => api.table(conn, fk.schema, fk.table) })
-  if (meta.isLoading) return <p className="muted">Cargando…</p>
+  if (meta.isLoading) return <p className="muted">{t('Cargando…')}</p>
   if (meta.error) return <div className="alert">{(meta.error as Error).message}</div>
 
   // Valores de la FK: las columnas referenciadas del registro padre (sirve también para FK compuestas).
@@ -55,7 +57,7 @@ function ChildGrid({ conn, row, fk, returnTo }: { conn: string; row: Row; fk: Fo
   for (let i = 0; i < fk.columns.length; i++) {
     const value = row[fk.refColumns[i]]
     if (value === null || value === undefined) {
-      return <p className="muted">Este registro no tiene valor en {fk.refColumns[i]}: no puede tener {labelOf(meta.data!)}.</p>
+      return <p className="muted">{t('Este registro no tiene valor en {column}: no puede tener {table}.', { column: fk.refColumns[i], table: labelOf(meta.data!) })}</p>
     }
     fixed[fk.columns[i]] = String(value)
   }

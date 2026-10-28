@@ -93,6 +93,7 @@ public sealed partial class MySqlProvider : IDatabaseProvider
             4025 => new(DbErrorKind.Check, Backticked(msg)),
             // 1048: Column 'x' cannot be null; 1364: Field 'x' doesn't have a default value.
             1048 or 1364 => new(DbErrorKind.NotNull, Column: FirstQuoted(msg)),
+            1142 or 1143 => new(DbErrorKind.PermissionDenied), // comando o columna denegados al usuario
             _ => DbErrorInfo.Unknown
         };
     }

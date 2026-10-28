@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { formatInstant } from '../lib/format'
 import { api } from '../api/client'
 import type { AuditEntry, AuditOperation } from '../api/types'
 import { useMe } from '../lib/useMe'
@@ -119,7 +120,7 @@ function Entry({ entry: e }: { entry: AuditEntry }) {
     : null
   return (
     <tr>
-      <td className="nowrap">{new Date(e.at).toLocaleString('es')}</td>
+      <td className="nowrap">{formatInstant(e.at)}</td>
       <td>{e.user ?? '—'}</td>
       <td><span className={`tag op-${e.operation.toLowerCase()}`}>{OPS[e.operation]}</span></td>
       <td>{e.connection} · {e.schema}.{e.table}</td>

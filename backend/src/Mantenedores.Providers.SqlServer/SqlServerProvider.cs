@@ -59,6 +59,7 @@ public sealed partial class SqlServerProvider : IDatabaseProvider
             2601 => new(DbErrorKind.Unique, Quoted(sql.Message, 1)),           // índice único: 'tabla', 'índice'
             547 => new(DbErrorKind.ForeignKeyOrCheck, DoubleQuoted(sql.Message, 0)), // FK o CHECK: lo resuelve la metadata
             515 => new(DbErrorKind.NotNull, Column: Quoted(sql.Message, 0)),
+            229 or 230 => new(DbErrorKind.PermissionDenied),                  // permiso denegado en el objeto o la columna
             _ => DbErrorInfo.Unknown
         };
 

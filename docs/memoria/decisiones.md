@@ -644,6 +644,16 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Un paquete de correo como MailKit: `System.Net.Mail` alcanza para SMTP con STARTTLS y no agrega dependencias.
   - Enviar dentro de la solicitud: el usuario esperaría al servidor de correo, y un fallo del correo parecería un fallo al guardar.
 
+### D-074 · Mejoras de uso: filtro de FK por etiqueta, permisos de la base y fechas
+- **Estado:** Vigente · 2026-10-28 (P-032, P-033, P-073, P-084)
+- **Qué:**
+  - **Filtro de una FK** con texto: busca también en la columna a mostrar de la tabla referenciada, con `col IN (SELECT clave FROM referenciada WHERE etiqueta contiene …)`. Si el texto es un valor válido, además compara por igualdad. Solo si el usuario ve la tabla referenciada y su columna a mostrar es de texto.
+  - **Permiso denegado por la base** (`DbErrorKind.PermissionDenied`, también al leer) → 403 con un mensaje que dice qué pedirle al DBA. Lo distingue de un 403 por perfil de la app.
+  - **MySQL/MariaDB:** las claves se leen solo de `KEY_COLUMN_USAGE`, porque MariaDB oculta `TABLE_CONSTRAINTS` a un usuario de solo lectura. Lo encontró la prueba nueva.
+  - **Fechas** en la UI como día/mes/año fijo, sin depender del idioma del navegador; las fechas sin zona no se convierten.
+  - **Nombres visibles de tablas** (ajuste `label`) en "→ tabla", "Referenciada por", N:M y combos, desde la misma consulta del menú.
+- **Descartado:** filtrar la FK con un `JOIN` en la consulta de conteo: el subquery `IN` sirve igual en los cuatro motores y no cambia el conteo.
+
 ---
 
 ## Propuestas (aún no decididas)

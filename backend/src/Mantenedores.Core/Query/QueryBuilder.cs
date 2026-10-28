@@ -30,7 +30,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
     public (SqlQuery Data, SqlQuery Count) BuildList(DatabaseSchema schema, TableInfo table, ListRequest request, int? maxPageSize = null)
     {
         var p = new ParamBag(dialect.ParameterPrefix);
-        var where = BuildWhere(table, request, p);
+        var where = BuildWhere(schema, table, request, p);
         var from = dialect.Table(table.Schema, table.Name) + " " + Base;
 
         var count = new SqlQuery($"SELECT COUNT(*) FROM {from}{where}", p.Snapshot());
@@ -60,10 +60,10 @@ public sealed class QueryBuilder(ISqlDialect dialect)
     }
 
     /// <summary>Conteo del listado filtrado que se detiene en <paramref name="cap"/> + 1 filas (D-072).</summary>
-    public SqlQuery BuildCappedCount(TableInfo table, ListRequest request, long cap)
+    public SqlQuery BuildCappedCount(DatabaseSchema schema, TableInfo table, ListRequest request, long cap)
     {
         var p = new ParamBag(dialect.ParameterPrefix);
-        var where = BuildWhere(table, request, p);
+        var where = BuildWhere(schema, table, request, p);
         var from = dialect.Table(table.Schema, table.Name) + " " + Base;
         return new SqlQuery(dialect.CappedCount(from + where, p.Add(cap + 1)), p.Snapshot());
     }
@@ -343,7 +343,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         return forceAlias || expr != raw ? $"{expr} AS {dialect.Quote(alias)}" : raw;
     }
 
-    private string BuildWhere(TableInfo table, ListRequest request, ParamBag p)
+    private string BuildWhere(DatabaseSchema schema, TableInfo table, ListRequest request, ParamBag p)
     {
         var predicates = new List<string>();
 
@@ -354,9 +354,19 @@ public sealed class QueryBuilder(ISqlDialect dialect)
             if (!col.IsFilterable) throw new ValidationException(col.Name, "no se puede filtrar por esta columna");
 
             var colExpr = $"{Base}.{dialect.Quote(col.Name)}";
-            predicates.Add(col.Type is LogicalType.String or LogicalType.Text
-                ? dialect.Contains(colExpr, p.Add(LikePattern(raw)))
-                : $"{colExpr} = {dialect.ParameterFor(col, p.Add(ValueConverter.FromString(col, raw)))}");
+            if (col.Type is LogicalType.String or LogicalType.Text)
+            {
+                predicates.Add(dialect.Contains(colExpr, p.Add(LikePattern(raw))));
+                continue;
+            }
+            // Una FK se filtra también por el texto que la UI muestra (P-032): "Bebidas" encuentra categoria_id = 1.
+            var byLabel = LabelFilter(schema, table, col, colExpr, raw, p);
+            object? value = null;
+            var isValue = true;
+            try { value = ValueConverter.FromString(col, raw); }
+            catch (ValidationException) when (byLabel is not null) { isValue = false; }
+            var equals = isValue ? $"{colExpr} = {dialect.ParameterFor(col, p.Add(value))}" : null;
+            predicates.Add(byLabel is null ? equals! : equals is null ? byLabel : $"({equals} OR {byLabel})");
         }
 
         foreach (var (name, raw) in request.Exact)
@@ -383,6 +393,22 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         }
 
         return predicates.Count == 0 ? "" : " WHERE " + string.Join(" AND ", predicates);
+    }
+
+    /// <summary>
+    /// <c>columna IN (SELECT clave FROM referenciada WHERE etiqueta contiene …)</c> para una FK de una columna cuya tabla
+    /// referenciada el usuario ve y tiene una columna de texto a mostrar. Null si no aplica.
+    /// </summary>
+    private string? LabelFilter(DatabaseSchema schema, TableInfo table, ColumnInfo col, string colExpr, string raw, ParamBag p)
+    {
+        var fk = table.ForeignKeys.FirstOrDefault(f => f.IsSingleColumn && string.Equals(f.Columns[0], col.Name, StringComparison.OrdinalIgnoreCase));
+        if (fk is null || schema.FindTable(fk.RefSchema, fk.RefTable) is not { } target) return null;
+        if (target.DisplayColumn is not { } d || target.FindColumn(d) is not { IsSelectable: true, Type: LogicalType.String or LogicalType.Text } display)
+            return null;
+        if (string.Equals(display.Name, fk.RefColumns[0], StringComparison.OrdinalIgnoreCase)) return null;
+        const string alias = "lf";
+        return $"{colExpr} IN (SELECT {alias}.{dialect.Quote(fk.RefColumns[0])} FROM {dialect.Table(target.Schema, target.Name)} {alias} " +
+               $"WHERE {dialect.Contains($"{alias}.{dialect.Quote(display.Name)}", p.Add(LikePattern(raw)))})";
     }
 
     private string BuildOrderBy(TableInfo table, IReadOnlyList<SortSpec> sort)

@@ -5,19 +5,15 @@
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Fase 3 decidida con el dueño (D-062 a D-066) y en curso: migraciones con bloqueo y secretos (PR #20), perfiles y permisos (PR #21) auditoría de cambios (PR #22) y concurrencia optimista (PR #23). **Fase 3 completa.** Fase 4 en curso: tope del pool y límites de uso (PR #24), observabilidad y pruebas de carga (PR #25). tablas grandes (PR #26). Fase 5: avisos por correo por tabla (PR #27). Siguiente: pendientes menores (deuda técnica y mejoras ⚪).
+**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Fase 3 decidida con el dueño (D-062 a D-066) y en curso: migraciones con bloqueo y secretos (PR #20), perfiles y permisos (PR #21) auditoría de cambios (PR #22) y concurrencia optimista (PR #23). **Fase 3 completa.** Fase 4 en curso: tope del pool y límites de uso (PR #24), observabilidad y pruebas de carga (PR #25). tablas grandes (PR #26). Fase 5: avisos por correo por tabla (PR #27). Tanda 1 de mejoras: filtro de FK por nombre, permisos de la base, fechas y nombres visibles (PR #28). Siguiente: importar con actualización (P-088) y FK compuestas (P-030).
 
 ## Ramas y PR
 
 | Rama | Estado |
 |---|---|
-| `main` | Rama por defecto. Fase 1, bloque M, Fase 2 y Fase 3 hasta la auditoría: PR #1 a #22. |
-| `feature/f3-concurrencia` | PR #23: concurrencia optimista. |
-| `feature/f4-limites` | PR #24 (sale de la rama del #23): tope del pool y límites de uso. |
-| `feature/f4-observabilidad` | PR #25 (sale de la rama del #24): OpenTelemetry opcional, solicitudes lentas y k6. |
-| `feature/f4-tablas-grandes` | PR #26: total estimado, conteo con tope y turno para consultas pesadas. |
-| `feature/f5-avisos` | PR #27 (sale de la rama del #26): avisos por correo por tabla. |
-| `feature/fase1-*`, `feature/m1-*`, `feature/m3-*`, `feature/f2-*`, `feature/f3-infra`, `-seguridad`, `-auditoria` | Ya fusionadas en `main`; se pueden borrar (P-005). |
+| `main` | Rama por defecto. Fases 1 a 4 completas y Fase 5 con avisos por correo: PR #1 a #27. |
+| `feature/t1-ajustes` | PR #28: filtro de FK por nombre, permisos de la base, fechas y nombres visibles. |
+| `feature/fase1-*`, `feature/m1-*`, `feature/m3-*`, `feature/f2-*`, `feature/f3-*`, `feature/f4-*`, `feature/f5-avisos` | Ya fusionadas en `main`; se pueden borrar (P-005). |
 
 ## Qué funciona hoy
 
@@ -66,7 +62,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 
 - 158 pruebas unitarias (`backend/tests/Mantenedores.Tests`): núcleo (incluidos los ajustes, el traductor de errores y las capacidades del dialecto), API en memoria (`HostingTests`, `AuthTests`, con el permiso de administrador para los ajustes) y metadata en SQLite y archivo (`MetadataStoreTests`), entre ellas dos instancias de la API que comparten base y llaves.
 - Recorrido en navegador con la app publicada en `/mantenedores` contra PostgreSQL 12: login, conexión, alta con FK, recarga directa y salida. Ninguna petición sale de la subruta.
-- 223 pruebas de integración (incluye ajustes, CRUD con un perfil restringido, concurrencia optimista, total estimado y con tope, auditoría del CRUD y su almacén en PG y SQL Server, cambios de esquema, filtro exacto, N:M, exportar/importar, árboles y archivos en la batería común; arreglos, geografía y jerarquía en las pruebas propias de cada motor y el almacén de metadata en PG 12/16 y SQL Server 2017/2022) (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
+- 231 pruebas de integración (incluye ajustes, CRUD con un perfil restringido, usuario de la base de solo lectura, filtro de FK por etiqueta, concurrencia optimista, total estimado y con tope, auditoría del CRUD y su almacén en PG y SQL Server, cambios de esquema, filtro exacto, N:M, exportar/importar, árboles y archivos en la batería común; arreglos, geografía y jerarquía en las pruebas propias de cada motor y el almacén de metadata en PG 12/16 y SQL Server 2017/2022) (`backend/tests/Mantenedores.IntegrationTests`), en verde contra **PostgreSQL 12 y 16**, **SQL Server 2017 y 2022**, **MySQL 8.0 y 8.4** y **MariaDB 10.6 y 11.4** (D-035).
 - Login con **Keycloak 26** en el navegador: PKCE, vuelta a la app, API con el token, roles anidados (`realm_access.roles`), cierre de sesión sin confirmación; el token no queda en `localStorage`.
 - Avisos en navegador contra PostgreSQL 16 y un SMTP de prueba: configurar el aviso de `categoria` desde el editor, editar un registro y recibir el correo con el cambio y el enlace.
 - Tabla de 1 millón de filas en PostgreSQL 16: última página 0,2 s; con 50 usuarios buscando, abrir un registro sigue en p95 13 ms (`docs/carga.md`).

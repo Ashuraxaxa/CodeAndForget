@@ -9,6 +9,7 @@ import { ChildTabs } from '../components/ChildTabs'
 import { ManyToManySelect } from '../components/ManyToManySelect'
 import { FileField } from '../components/FileField'
 import { useCan } from '../lib/useMe'
+import { useTableLabels } from '../lib/useTableLabels'
 
 /** Formulario de alta y edición generado desde la metadata de la tabla. */
 export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
@@ -63,6 +64,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
   const back = returnTo ?? list
   const children = meta.children ?? meta.referencedBy
   const fkByColumn = new Map(meta.foreignKeys.filter(f => f.columns.length === 1).map(f => [f.columns[0], f]))
+  const tableLabel = useTableLabels(conn)
 
   // En alta se ocultan las columnas que genera la BD; en edición se muestran deshabilitadas.
   // Las ocultas por ajuste no se muestran (la PK oculta viaja igual en la clave de la URL).
@@ -125,7 +127,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
         try {
           await api.setLinks(conn, meta.schema, meta.name, key, l.name, now.map(v => v.value))
         } catch (e) {
-          throw new Error(`El registro se guardó, pero no ${l.targetTable}: ${(e as Error).message}`)
+          throw new Error(`El registro se guardó, pero no ${tableLabel(l.targetSchema, l.targetTable)}: ${(e as Error).message}`)
         }
       }
       return saved
@@ -178,7 +180,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
               <label key={c.name} className={c.type === 'Text' || c.type === 'Json' || c.type === 'Array' || c.widget === 'textarea' ? 'span-2' : undefined}>
                 <span className="field-label" title={c.label ? c.name : undefined}>
                   {labelOf(c)}{required && <span className="req"> *</span>}
-                  <span className="muted small"> {fk ? `→ ${fk.refTable}` : c.nativeType}</span>
+                  <span className="muted small"> {fk ? `→ ${tableLabel(fk.refSchema, fk.refTable)}` : c.nativeType}</span>
                 </span>
                 <FieldControl
                   conn={conn}
@@ -218,7 +220,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks 
           {meta.manyToMany.map(l => (
             <label key={l.name} className="span-2">
               <span className="field-label">
-                {l.targetTable}<span className="muted small"> · varios, vía {l.bridgeTable}</span>
+                {tableLabel(l.targetSchema, l.targetTable)}<span className="muted small"> · varios, vía {tableLabel(l.bridgeSchema, l.bridgeTable)}</span>
               </span>
               <ManyToManySelect id={`m2m-${l.name}`} conn={conn} link={l} value={links[l.name] ?? []} disabled={viewOnly}
                 onChange={v => setLinks(s => ({ ...s, [l.name]: v }))} />

@@ -6,6 +6,7 @@ import { LABEL_SUFFIX, VERSION_FIELD, labelOf, type Column, type Row, type Table
 import { FIXED_PREFIX, RETURN_PARAM, displayValue, keyQuery } from '../lib/format'
 import { useDebounce } from '../lib/useDebounce'
 import { useCan } from '../lib/useMe'
+import { useTableLabels } from '../lib/useTableLabels'
 import { TreeView } from '../components/TreeView'
 
 const PAGE_SIZES = [10, 25, 50, 100]
@@ -51,6 +52,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
   // El orden viene del servidor (ajuste Order); las ocultas y las que van solo en el formulario no se muestran.
   const columns = meta.columns.filter(c => c.isSelectable && !c.hidden && c.showInGrid && !(fixed && c.name in fixed))
   const fkByColumn = new Map(meta.foreignKeys.filter(f => f.columns.length === 1).map(f => [f.columns[0], f]))
+  const tableLabel = useTableLabels(conn)
   const base = `/c/${conn}/t/${encodeURIComponent(meta.schema)}/${encodeURIComponent(meta.name)}`
   // Lo que se agrega a los enlaces de alta y edición: los valores fijos y a dónde volver.
   const extra = embedded
@@ -179,7 +181,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
           Referenciada por:{' '}
           {meta.referencedBy.map(r => (
             <Link key={r.name} className="chip" to={`/c/${conn}/t/${encodeURIComponent(r.schema)}/${encodeURIComponent(r.table)}`}>
-              {r.table}
+              {tableLabel(r.schema, r.table)}
             </Link>
           ))}
         </div>
@@ -209,7 +211,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
               {columns.map(c => (
                 <th key={c.name}>
                   {c.isFilterable && (
-                    <FilterInput column={c} value={filters[c.name] ?? ''} onChange={v => setFilters(f => ({ ...f, [c.name]: v }))} />
+                    <FilterInput column={c} isForeignKey={fkByColumn.has(c.name)} value={filters[c.name] ?? ''} onChange={v => setFilters(f => ({ ...f, [c.name]: v }))} />
                   )}
                 </th>
               ))}
@@ -269,7 +271,9 @@ export function Grid({ conn, meta, fixed, returnTo }: {
   )
 }
 
-function FilterInput({ column: c, value, onChange }: { column: Column; value: string; onChange: (v: string) => void }) {
+function FilterInput({ column: c, isForeignKey, value, onChange }: {
+  column: Column; isForeignKey: boolean; value: string; onChange: (v: string) => void
+}) {
   if (c.type === 'Boolean') {
     return (
       <select value={value} onChange={e => onChange(e.target.value)}>
@@ -291,7 +295,8 @@ function FilterInput({ column: c, value, onChange }: { column: Column; value: st
   return (
     <input
       value={value}
-      placeholder={contains ? 'contiene…' : '='}
+      // Una FK se filtra por el id o por el texto que muestra (P-032).
+      placeholder={contains ? 'contiene…' : isForeignKey ? 'id o nombre…' : '='}
       type={c.type === 'Date' ? 'date' : 'text'}
       onChange={e => onChange(e.target.value)}
     />

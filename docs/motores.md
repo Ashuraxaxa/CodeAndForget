@@ -111,7 +111,14 @@ Si no se cumple ninguna, pide el valor de la clave al usuario.
 |---|---|---|
 | SQL Server | `sys.objects`, `sys.columns`, `sys.key_constraints`, `sys.foreign_keys` | Ya implementado |
 | PostgreSQL | `pg_class`, `pg_attribute`, `pg_constraint`, `pg_enum` | Ya implementado |
-| MySQL / MariaDB | `information_schema.TABLES`, `COLUMNS` (`EXTRA` indica `auto_increment` y columnas generadas), `KEY_COLUMN_USAGE`, `TABLE_CONSTRAINTS`, `STATISTICS` (índices únicos) | Las tablas **MyISAM** no tienen FK: se cubren con FK virtuales (P-011) |
+| MySQL / MariaDB | `information_schema.TABLES`, `COLUMNS` (`EXTRA` indica `auto_increment` y columnas generadas), `KEY_COLUMN_USAGE` (PK, UNIQUE y FK; no `TABLE_CONSTRAINTS`, ver abajo), `STATISTICS` (índices únicos) | Las tablas **MyISAM** no tienen FK: se cubren con FK virtuales (P-011) |
+
+**Usuario de la base con solo lectura (P-073).** MariaDB 10.6 no muestra `information_schema.TABLE_CONSTRAINTS` a un
+usuario con solo `SELECT`, pero sí `KEY_COLUMN_USAGE`. Por eso las claves de MySQL y MariaDB se leen solo de
+`KEY_COLUMN_USAGE`: la PK se llama siempre `PRIMARY`, una FK tiene tabla referenciada y el resto son `UNIQUE`.
+
+**Permiso denegado (P-073)**, por código: PostgreSQL `42501`, SQL Server `229`/`230`, MySQL y MariaDB `1142`/`1143`.
+Se traduce a "el usuario con que la app se conecta a la base no tiene permiso para …" (403).
 
 ### Configuración del servidor que cambia el comportamiento (MySQL / MariaDB)
 

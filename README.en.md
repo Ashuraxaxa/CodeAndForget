@@ -41,8 +41,18 @@ Everything else is adjusted from the interface, without code changes or restarts
 | 📤 **Export and import** | CSV, Excel, JSON and XML of the filtered list; imports with a preview, per-row errors and update by key. |
 | 🔐 **Security** | Local login or any OIDC provider (Keycloak, Duende, Entra ID…). Profiles with permissions per connection, table, column and action. |
 | 🕵️ **Audit** | Who changed what and when, with per-record history and export. Concurrent edits never overwrite each other silently. |
-| 🌐 **Languages** | Spanish, English and Russian, with dates and numbers in each one's format. |
+| 🌐 **Languages and theme** | Spanish, English and Russian, with dates and numbers in each one's format. Light, dark or system theme. |
 | 🚀 **Production ready** | Health checks, OpenTelemetry, rate limits, tables with millions of rows, several instances (optional Redis) and extra engines as plugins. |
+
+<details>
+<summary>More screenshots: form with master-detail</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/formulario-oscuro.png">
+  <img alt="Edit form with foreign-key dropdowns, many-to-many and child tabs" src="docs/img/formulario-claro.png" width="900">
+</picture>
+
+</details>
 
 ## Quick start
 

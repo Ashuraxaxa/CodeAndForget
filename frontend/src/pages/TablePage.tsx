@@ -1,3 +1,4 @@
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Download, Eye, KeyRound, Pencil, Plus, Search, Settings2, Trash2, Upload } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -145,8 +146,8 @@ export function Grid({ conn, meta, fixed, returnTo }: {
         <div className="page-header">
           <div className="muted small">{totalText}</div>
           <div className="actions">
-            <input className="search" placeholder={t('Buscar en textos…')} value={search} onChange={e => setSearch(e.target.value)} />
-            {meta.canCreate && <Link className="button primary" to={newUrl}>{t('Nuevo')}</Link>}
+            <label className="input-icon search"><Search size={15} aria-hidden /><input placeholder={t('Buscar en textos…')} value={search} onChange={e => setSearch(e.target.value)} /></label>
+            {meta.canCreate && <Link className="button primary" to={newUrl}><Plus size={16} aria-hidden />{t('Nuevo')}</Link>}
           </div>
         </div>
       ) : (
@@ -163,18 +164,18 @@ export function Grid({ conn, meta, fixed, returnTo }: {
           </div>
         </div>
         <div className="actions">
-          <input className="search" placeholder={t('Buscar en textos…')} value={search} onChange={e => setSearch(e.target.value)} />
-          {meta.canExport && <select className="export" value="" title={t('Exportar lo que muestra la grilla (filtros, búsqueda y orden)')}
+          <label className="input-icon search"><Search size={15} aria-hidden /><input placeholder={t('Buscar en textos…')} value={search} onChange={e => setSearch(e.target.value)} /></label>
+          {meta.canExport && <label className="input-icon export-wrap"><Download size={15} aria-hidden /><select className="export" value="" title={t('Exportar lo que muestra la grilla (filtros, búsqueda y orden)')}
             disabled={exporting} onChange={e => e.target.value && exportAs(e.target.value as TransferFormat)}>
-            <option value="">{exporting ? t('Exportando…') : '⤓ ' + t('Exportar')}</option>
+            <option value="">{exporting ? t('Exportando…') : t('Exportar')}</option>
             <option value="csv">CSV</option>
             <option value="xlsx">Excel</option>
             <option value="json">JSON</option>
             <option value="xml">XML</option>
-          </select>}
-          {meta.canImport && <Link className="button" to={`${base}/import`}>⤒ {t('Importar')}</Link>}
-          {canConfigure && <Link className="button" to={`${base}/config`} title={t('Ajustar etiquetas, columnas y validaciones')}>⚙ {t('Configurar')}</Link>}
-          {meta.canCreate && <Link className="button primary" to={newUrl}>{t('Nuevo')}</Link>}
+          </select></label>}
+          {meta.canImport && <Link className="button" to={`${base}/import`}><Upload size={16} aria-hidden />{t('Importar')}</Link>}
+          {canConfigure && <Link className="button" to={`${base}/config`} title={t('Ajustar etiquetas, columnas y validaciones')}><Settings2 size={16} aria-hidden />{t('Configurar')}</Link>}
+          {meta.canCreate && <Link className="button primary" to={newUrl}><Plus size={16} aria-hidden />{t('Nuevo')}</Link>}
         </div>
       </div>
       )}
@@ -213,9 +214,9 @@ export function Grid({ conn, meta, fixed, returnTo }: {
                   className={c.isSortable ? undefined : 'no-sort'}
                   title={`${c.label ? c.name + ' · ' : ''}${c.nativeType}${c.isNullable ? '' : ' · ' + t('obligatorio')}${c.isSortable ? '' : ' · ' + t('no se puede ordenar')}${helpTextOf(c) ? '\n' + helpTextOf(c) : ''}`}
                 >
-                  {c.isPrimaryKey && <span className="pk">🔑</span>}
+                  {c.isPrimaryKey && <span className="pk" title={t('Clave primaria')}><KeyRound size={13} aria-hidden /></span>}
                   {labelOf(c)}
-                  {sort?.col === c.name && (sort.desc ? ' ▼' : ' ▲')}
+                  {sort?.col === c.name && (sort.desc ? <ArrowDown size={13} className="sort-icon" aria-hidden /> : <ArrowUp size={13} className="sort-icon" aria-hidden />)}
                 </th>
               ))}
               {imageCols.map(c => <th key={c.name} className="no-sort">{labelOf(c)}</th>)}
@@ -259,15 +260,21 @@ export function Grid({ conn, meta, fixed, returnTo }: {
                 {meta.isEditable && (
                   <td className="actions-col">
                     {/* Sin permiso de edición el formulario se abre de solo lectura (y muestra las pestañas hijas). */}
-                    <Link to={editUrl(row)}>{meta.canUpdate ? t('Editar') : t('Ver')}</Link>
-                    {meta.canDelete && (
-                      <button
-                        className="link danger"
-                        onClick={() => confirm(t('¿Eliminar este registro?')) && remove.mutate(row)}
-                      >
-                        {t('Eliminar')}
-                      </button>
-                    )}
+                    <span className="row-actions">
+                      <Link className="button icon-button sm" to={editUrl(row)} title={meta.canUpdate ? t('Editar') : t('Ver')}
+                        aria-label={meta.canUpdate ? t('Editar') : t('Ver')}>
+                        {meta.canUpdate ? <Pencil size={15} aria-hidden /> : <Eye size={15} aria-hidden />}
+                      </Link>
+                      {meta.canDelete && (
+                        <button
+                          className="icon-button sm danger"
+                          title={t('Eliminar')} aria-label={t('Eliminar')}
+                          onClick={() => confirm(t('¿Eliminar este registro?')) && remove.mutate(row)}
+                        >
+                          <Trash2 size={15} aria-hidden />
+                        </button>
+                      )}
+                    </span>
                   </td>
                 )}
               </tr>
@@ -280,14 +287,14 @@ export function Grid({ conn, meta, fixed, returnTo }: {
       </div>
 
       <div className="pager">
-        <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>‹ {t('Anterior')}</button>
+        <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16} aria-hidden />{t('Anterior')}</button>
         <span>{capped ? t('Página {page} de {pages}+', { page, pages }) : t('Página {page} de {pages}', { page, pages })}</span>
         <button disabled={page >= pages} onClick={() => {
           const list = rows.data?.rows ?? []
           const last = list[list.length - 1]
           if (keyset && last) setCursors(c => ({ ...c, [page + 1]: String(last[meta.primaryKey[0]]) }))
           setPage(p => p + 1)
-        }}>{t('Siguiente')} ›</button>
+        }}>{t('Siguiente')}<ChevronRight size={16} aria-hidden /></button>
         <select value={pageSize} onChange={e => setPageSize(Number(e.target.value))}>
           {PAGE_SIZES.map(s => <option key={s} value={s}>{t('{n} por página', { n: s })}</option>)}
         </select>

@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { LogIn } from 'lucide-react'
 import { LanguageSelect, useT } from '../i18n'
+import { Brand } from '../components/Brand'
+import { ThemeToggle } from '../components/ThemeToggle'
 
 export function LoginPage() {
   const { config, configError, isAuthenticated, login, loginExternal } = useAuth()
@@ -31,8 +34,12 @@ export function LoginPage() {
 
   return (
     <div className="login">
+      <div className="login-tools"><ThemeToggle /><LanguageSelect /></div>
       <div className="card login-card">
-        <div className="login-head"><h1>Mantenedores</h1><LanguageSelect /></div>
+        <div className="login-head">
+          <Brand />
+          <h1>{t('Bienvenido')}</h1>
+        </div>
         {configError && <div className="alert">{t('No se pudo leer la configuración de acceso: {error}', { error: configError })}</div>}
         {!config && !configError && <p className="muted">{t('Cargando…')}</p>}
 
@@ -48,7 +55,7 @@ export function LoginPage() {
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required />
             </label>
             {error && <div className="alert">{error}</div>}
-            <button className="primary" disabled={busy}>{busy ? t('Ingresando…') : t('Ingresar')}</button>
+            <button className="primary block" disabled={busy}><LogIn size={16} aria-hidden />{busy ? t('Ingresando…') : t('Ingresar')}</button>
           </form>
         )}
 
@@ -56,7 +63,8 @@ export function LoginPage() {
           <>
             <p className="muted">{t('El acceso se valida con {provider}.', { provider: config.providerName ?? '' })}</p>
             {error && <div className="alert">{error}</div>}
-            <button className="primary" disabled={busy} onClick={() => run(loginExternal)}>
+            <button className="primary block" disabled={busy} onClick={() => run(loginExternal)}>
+              <LogIn size={16} aria-hidden />
               {busy ? t('Redirigiendo…') : t('Ingresar con {provider}', { provider: config.providerName ?? '' })}
             </button>
           </>

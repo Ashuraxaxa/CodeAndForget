@@ -4,6 +4,7 @@ import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@ta
 import App from './App'
 import { isSchemaChangedError } from './api/client'
 import { I18nProvider } from './i18n'
+import '@fontsource-variable/inter'
 import './index.css'
 
 // La tabla cambió en la base (P-086): el servidor ya descartó el esquema viejo; se vuelve a pedir la definición.

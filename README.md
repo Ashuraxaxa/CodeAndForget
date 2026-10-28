@@ -39,8 +39,18 @@ Todo lo demás se ajusta desde la interfaz, sin tocar código ni reiniciar.
 | 📤 **Exportar e importar** | CSV, Excel, JSON y XML del listado filtrado; importación con vista previa, errores por fila y actualización por clave. |
 | 🔐 **Seguridad** | Login local o cualquier proveedor OIDC (Keycloak, Duende, Entra ID…). Perfiles con permisos por conexión, tabla, columna y acción. [seguridad.md](docs/seguridad.md) |
 | 🕵️ **Auditoría** | Quién cambió qué y cuándo, con historial por registro y exportación. Edición simultánea sin pisar cambios ajenos. |
-| 🌐 **Idiomas** | Interfaz en español, inglés y ruso, con fechas y números en el formato de cada uno. |
+| 🌐 **Idiomas y tema** | Interfaz en español, inglés y ruso, con fechas y números en el formato de cada uno. Modo día, noche o el del sistema. |
 | 🚀 **Listo para producción** | Health checks, OpenTelemetry, límites de uso, tablas de millones de filas, varias instancias (Redis opcional) y motores extra como plugins. |
+
+<details>
+<summary>Más capturas: formulario con maestro-detalle</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/formulario-oscuro.png">
+  <img alt="Formulario de edición con combos de FK, N:M y pestañas hijas" src="docs/img/formulario-claro.png" width="900">
+</picture>
+
+</details>
 
 ## Inicio rápido
 

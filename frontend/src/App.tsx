@@ -1,4 +1,6 @@
-import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Link, Navigate, NavLink, Outlet, Route, Routes } from 'react-router-dom'
+import { History, LogOut, ShieldCheck } from 'lucide-react'
+import { Brand } from './components/Brand'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { AuthCallbackPage, LoginPage } from './pages/LoginPage'
 import { ConnectionsPage } from './pages/ConnectionsPage'
@@ -9,7 +11,8 @@ import { ConfigPage } from './pages/ConfigPage'
 import { ImportPage } from './pages/ImportPage'
 import { SecurityPage } from './pages/SecurityPage'
 import { AuditPage } from './pages/AuditPage'
-import { useCan } from './lib/useMe'
+import { useCan, useMe } from './lib/useMe'
+import { ThemeToggle } from './components/ThemeToggle'
 import { LanguageSelect, useT } from './i18n'
 
 /** Solo se monta con sesión iniciada: así /me no se pide sin token. */
@@ -18,9 +21,16 @@ function AdminLinks() {
   const canAudit = useCan('ViewAudit')
   const canSecure = useCan('ManageSecurity')
   return <>
-    {canAudit && <Link to="/auditoria">{t('Auditoría')}</Link>}
-    {canSecure && <Link to="/seguridad">{t('Seguridad')}</Link>}
+    {canAudit && <NavLink to="/auditoria" className="topnav-link"><History size={16} aria-hidden />{t('Auditoría')}</NavLink>}
+    {canSecure && <NavLink to="/seguridad" className="topnav-link"><ShieldCheck size={16} aria-hidden />{t('Seguridad')}</NavLink>}
   </>
+}
+
+/** Nombre del usuario con su inicial, como en cualquier app. */
+function UserChip() {
+  const name = useMe().data?.name
+  if (!name) return null
+  return <span className="user-chip" title={name}><span className="avatar" aria-hidden>{name[0].toUpperCase()}</span><span className="user-name">{name}</span></span>
 }
 
 function Shell() {
@@ -31,13 +41,19 @@ function Shell() {
   return (
     <div className="app">
       <header className="topbar">
-        <Link to="/" className="brand">Mantenedores</Link>
+        <Link to="/" className="brand-link"><Brand /></Link>
         <nav className="topnav">
           <AdminLinks />
-          <LanguageSelect />
-          {/* Con un proxy que maneja la sesión no hay "salir" desde la app. */}
-          {!(config.mode === 'Jwt' && !config.clientId) && <button className="link" onClick={logout}>{t('Salir')}</button>}
         </nav>
+        <div className="topbar-tools">
+          <ThemeToggle />
+          <LanguageSelect />
+          <UserChip />
+          {/* Con un proxy que maneja la sesión no hay "salir" desde la app. */}
+          {!(config.mode === 'Jwt' && !config.clientId) && (
+            <button className="icon-button" onClick={logout} title={t('Salir')} aria-label={t('Salir')}><LogOut size={17} aria-hidden /></button>
+          )}
+        </div>
       </header>
       <Outlet />
     </div>

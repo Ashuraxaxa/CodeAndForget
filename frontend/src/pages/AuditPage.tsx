@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -64,7 +65,7 @@ export function AuditPage() {
           <span className="muted small">{t('{n} cambios', { n: total })}</span>
           <select className="export" value="" title={t('Exportar lo que muestran los filtros')} disabled={exporting || total === 0}
             onChange={e => e.target.value && exportAs(e.target.value as TransferFormat)}>
-            <option value="">{exporting ? t('Exportando…') : '⤓ ' + t('Exportar')}</option>
+            <option value="">{exporting ? t('Exportando…') : t('Exportar')}</option>
             <option value="csv">CSV</option>
             <option value="xlsx">Excel</option>
           </select>
@@ -112,9 +113,9 @@ export function AuditPage() {
       </div>
 
       <div className="pager">
-        <button disabled={page <= 1} onClick={() => set('page', String(page - 1))}>‹ {t('Anterior')}</button>
+        <button disabled={page <= 1} onClick={() => set('page', String(page - 1))}><ChevronLeft size={16} aria-hidden />{t('Anterior')}</button>
         <span>{t('Página {page} de {pages}', { page, pages })}</span>
-        <button disabled={page >= pages} onClick={() => set('page', String(page + 1))}>{t('Siguiente')} ›</button>
+        <button disabled={page >= pages} onClick={() => set('page', String(page + 1))}>{t('Siguiente')}<ChevronRight size={16} aria-hidden /></button>
       </div>
     </div>
   )

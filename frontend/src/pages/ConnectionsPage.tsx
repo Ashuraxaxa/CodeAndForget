@@ -1,3 +1,4 @@
+import { ArrowRight, Database, Pencil, Plug, Plus, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -46,7 +47,7 @@ export function ConnectionsPage() {
     <div className="page">
       <div className="page-header">
         <h1>{t('Conexiones')}</h1>
-        {canManage && <button className="primary" onClick={() => setEditing('new')}>{t('Nueva conexión')}</button>}
+        {canManage && <button className="primary" onClick={() => setEditing('new')}><Plus size={16} aria-hidden />{t('Nueva conexión')}</button>}
       </div>
 
       {editing && (
@@ -60,6 +61,7 @@ export function ConnectionsPage() {
       {error && <div className="alert">{(error as Error).message}</div>}
       {data?.length === 0 && !editing && (
         <div className="empty">
+          <Database size={36} strokeWidth={1.5} className="empty-icon" aria-hidden />
           {canManage
             ? t('Aún no hay conexiones. Crea una para descubrir sus tablas.')
             : t('Aún no hay conexiones. Pídele a quien administra las conexiones que agregue una.')}
@@ -69,7 +71,9 @@ export function ConnectionsPage() {
       <div className="cards">
         {data?.map(c => (
           <div key={c.id} className="card conn-card">
-            <div>
+            <div className="conn-main">
+              <span className={`conn-icon ${ENGINES[c.engine]?.badge ?? ''}`} aria-hidden><Database size={20} /></span>
+              <div>
               <div className="conn-title">{c.name}</div>
               <div className="muted small">
                 <span className={`badge ${ENGINES[c.engine]?.badge ?? ''}`}>
@@ -78,17 +82,19 @@ export function ConnectionsPage() {
                 {c.server} / {c.database}
               </div>
               {c.schemas.length > 0 && <div className="muted small">{t('Esquemas: {list}', { list: c.schemas.join(', ') })}</div>}
+              </div>
             </div>
             <div className="actions">
-              <Link className="button primary" to={`/c/${c.id}`}>{t('Abrir')}</Link>
+              <Link className="button primary" to={`/c/${c.id}`}>{t('Abrir')}<ArrowRight size={16} aria-hidden /></Link>
               {canManage && (
                 <>
-                  <button onClick={() => setEditing(c)}>{t('Editar')}</button>
+                  <button className="icon-button" title={t('Editar')} aria-label={t('Editar')} onClick={() => setEditing(c)}><Pencil size={16} aria-hidden /></button>
                   <button
-                    className="danger"
+                    className="icon-button danger"
+                    title={t('Eliminar')} aria-label={t('Eliminar')}
                     onClick={() => confirm(t('¿Eliminar la conexión "{name}"? No borra datos de la base.', { name: c.name })) && remove.mutate(c.id)}
                   >
-                    {t('Eliminar')}
+                    <Trash2 size={16} aria-hidden />
                   </button>
                 </>
               )}
@@ -210,6 +216,7 @@ function ConnectionForm({ initial, onClose }: { initial: Connection | null; onCl
 
       <div className="actions">
         <button type="button" onClick={() => test.mutate()} disabled={test.isPending}>
+          <Plug size={16} aria-hidden />
           {test.isPending ? t('Probando…') : t('Probar conexión')}
         </button>
         <button className="primary" disabled={save.isPending}>{save.isPending ? t('Guardando…') : t('Guardar')}</button>

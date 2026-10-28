@@ -1,3 +1,4 @@
+import { ArrowDown, ArrowLeft, ArrowUp, ChevronDown, ChevronRight, GripVertical, KeyRound, Play, Plus } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -122,7 +123,7 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
           <h1>{t('Configurar · {table}', { table: labelOf(shown) })}</h1>
           <div className="muted small">{schema}.{name} · {t('los cambios se ven en la vista previa antes de guardar')}</div>
         </div>
-        <Link to={back}>‹ {t('Volver a la lista')}</Link>
+        <Link className="back-link" to={back}><ArrowLeft size={16} aria-hidden />{t('Volver a la lista')}</Link>
       </div>
 
       <div className="tabs">
@@ -398,7 +399,7 @@ function ActionsEditor({ conn, table, value, errors, onChange }: {
     <Field label={t('Acciones')} span hint={t('Botones del formulario que llaman a un procedimiento o función de la base, sobre el registro abierto.')}>
       {value.map((a, i) => (
         <div key={a.name} className="row">
-          <span className="chip">▶ {a.label ?? a.name} → {a.routine}({Object.entries(a.parameters ?? {}).map(([k, p]) =>
+          <span className="chip"><Play size={12} aria-hidden /> {a.label ?? a.name} → {a.routine}({Object.entries(a.parameters ?? {}).map(([k, p]) =>
             `${k} = ${p.column ?? (p.ask ? '?' : JSON.stringify(p.value))}`).join(', ')})</span>
           <button className="link danger" onClick={() => onChange(value.filter((_, j) => j !== i))}>{t('Quitar')}</button>
           {errors[`actions.${i}`] && <span className="field-error">{errors[`actions.${i}`]}</span>}
@@ -504,7 +505,7 @@ function VirtualForeignKeys({ conn, table, value, errors, onChange }: {
         </div>
       ))}
       <div className="row">
-        <button className="link" disabled={!target.data} onClick={() => setPairs(s => [...s, { col: '', refCol: '' }])}>＋ {t('Otra columna (relación compuesta)')}</button>
+        <button className="link" disabled={!target.data} onClick={() => setPairs(s => [...s, { col: '', refCol: '' }])}><Plus size={14} aria-hidden />{t('Otra columna (relación compuesta)')}</button>
         <button disabled={!complete} onClick={add}>{t('Agregar')}</button>
       </div>
     </Field>
@@ -542,8 +543,8 @@ function ChildrenPicker({ all, value, error, onChange }: {
       {order.map((name, i) => (
         <div key={name} className="row">
           <div className="col-move">
-            <button title={t('Subir')} disabled={i === 0} onClick={() => move(i, -1)}>↑</button>
-            <button title={t('Bajar')} disabled={i === order.length - 1} onClick={() => move(i, 1)}>↓</button>
+            <button className="icon-button sm" title={t('Subir')} aria-label={t('Subir')} disabled={i === 0} onClick={() => move(i, -1)}><ArrowUp size={15} aria-hidden /></button>
+            <button className="icon-button sm" title={t('Bajar')} aria-label={t('Bajar')} disabled={i === order.length - 1} onClick={() => move(i, 1)}><ArrowDown size={15} aria-hidden /></button>
           </div>
           <label className="check">
             <input type="checkbox" checked={shown.has(name)} onChange={e => {
@@ -588,13 +589,13 @@ function ColumnEditor({ column: c, value: v, errors, first, last, onMove, onChan
       <div className="col-head">
         <span className="col-grip" draggable title={t('Arrastrar para ordenar')}
           onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', c.name); onDragStart() }}
-          onDragEnd={onDragEnd}>⠿</span>
+          onDragEnd={onDragEnd}><GripVertical size={16} aria-hidden /></span>
         <div className="col-move">
-          <button title={t('Subir')} disabled={first} onClick={() => onMove(-1)}>↑</button>
-          <button title={t('Bajar')} disabled={last} onClick={() => onMove(1)}>↓</button>
+          <button className="icon-button sm" title={t('Subir')} aria-label={t('Subir')} disabled={first} onClick={() => onMove(-1)}><ArrowUp size={15} aria-hidden /></button>
+          <button className="icon-button sm" title={t('Bajar')} aria-label={t('Bajar')} disabled={last} onClick={() => onMove(1)}><ArrowDown size={15} aria-hidden /></button>
         </div>
         <div className="col-name">
-          <b>{c.isPrimaryKey && '🔑 '}{c.name}</b>
+          <b>{c.isPrimaryKey && <span className="pk"><KeyRound size={13} aria-hidden /></span>}{c.name}</b>
           <span className="muted small"> {c.nativeType}{c.isRequiredOnInsert ? ' · ' + t('obligatoria') : ''}</span>
         </div>
         <label className="check"><input type="checkbox" checked={!hidden} onChange={e => onChange({ hidden: e.target.checked ? undefined : true })} />{t('Visible')}</label>
@@ -624,7 +625,7 @@ function ColumnEditor({ column: c, value: v, errors, first, last, onMove, onChan
 
       {!hidden && !c.isReadOnly && (isText || isNumber) && (
         <>
-          <button className="link small" onClick={() => setOpen(o => !o)}>{open ? '▾' : '▸'} {t('Control y validaciones')}</button>
+          <button className="link small" onClick={() => setOpen(o => !o)}>{open ? <ChevronDown size={15} aria-hidden /> : <ChevronRight size={15} aria-hidden />}{t('Control y validaciones')}</button>
           {open && (
             <div className="grid-2">
               {isText && (
@@ -705,7 +706,7 @@ function Preview({ conn, table, loading }: { conn: string; table: TableMeta; loa
       </div>
       <div className="table-wrap">
         <table className="grid">
-          <thead><tr>{grid.map(c => <th key={c.name}>{c.isPrimaryKey && <span className="pk">🔑</span>}{labelOf(c)}</th>)}</tr></thead>
+          <thead><tr>{grid.map(c => <th key={c.name}>{c.isPrimaryKey && <span className="pk"><KeyRound size={13} aria-hidden /></span>}{labelOf(c)}</th>)}</tr></thead>
         </table>
       </div>
       <div className="form">

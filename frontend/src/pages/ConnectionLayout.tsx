@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Eye, Menu, RefreshCw, Search, Table2 } from 'lucide-react'
 import { NavLink, Outlet, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
@@ -42,9 +43,13 @@ export function ConnectionLayout() {
     <div className={`workspace ${menuOpen ? 'menu-open' : ''}`}>
       <aside className="sidebar">
         <div className="sidebar-head">
-          <input placeholder={t('Buscar tabla…')} value={filter} onChange={e => setFilter(e.target.value)} />
-          <button title={t('Volver a leer el esquema')} onClick={() => refresh.mutate()} disabled={refresh.isPending}>
-            {refresh.isPending ? '…' : '↻'}
+          <label className="input-icon">
+            <Search size={15} aria-hidden />
+            <input placeholder={t('Buscar tabla…')} value={filter} onChange={e => setFilter(e.target.value)} />
+          </label>
+          <button className="icon-button" title={t('Volver a leer el esquema')} aria-label={t('Volver a leer el esquema')}
+            onClick={() => refresh.mutate()} disabled={refresh.isPending}>
+            <RefreshCw size={16} className={refresh.isPending ? 'spin' : ''} aria-hidden />
           </button>
         </div>
         {isLoading && <p className="muted pad">{t('Leyendo esquema…')}</p>}
@@ -62,7 +67,8 @@ export function ConnectionLayout() {
                   className="nav-item"
                   onClick={() => setMenuOpen(false)}
                 >
-                  <span>{labelOf(tb)}</span>
+                  {tb.kind === 'View' ? <Eye size={15} className="nav-icon" aria-hidden /> : <Table2 size={15} className="nav-icon" aria-hidden />}
+                  <span className="nav-label">{labelOf(tb)}</span>
                   {tb.kind === 'View' && <span className="tag">{t('vista')}</span>}
                   {tb.kind === 'Table' && !tb.hasPrimaryKey && <span className="tag">{t('sin PK')}</span>}
                 </NavLink>
@@ -72,7 +78,7 @@ export function ConnectionLayout() {
         </nav>
       </aside>
       <section className="content">
-        <button className="menu-toggle" onClick={() => setMenuOpen(o => !o)}>☰ {t('Tablas')}</button>
+        <button className="menu-toggle" onClick={() => setMenuOpen(o => !o)}><Menu size={16} aria-hidden />{t('Tablas')}</button>
         <SchemaChangesBanner conn={conn} />
         <Outlet />
       </section>

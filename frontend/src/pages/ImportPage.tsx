@@ -1,3 +1,4 @@
+import { ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -69,7 +70,7 @@ export function ImportPage() {
           <h1>{t('Importar · {table}', { table: title })}</h1>
           <div className="muted small">{t('CSV, Excel, JSON o XML. La primera fila (o los nombres de los campos) indica las columnas.')}</div>
         </div>
-        <Link to={back}>‹ {t('Volver a la lista')}</Link>
+        <Link className="back-link" to={back}><ArrowLeft size={16} aria-hidden />{t('Volver a la lista')}</Link>
       </div>
 
       <div className="card form">

@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronRight, Dot, Plus } from 'lucide-react'
 import { useState, type DragEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -91,12 +92,12 @@ function Node({ conn, meta, node, canMove, onDrop }: {
         onDrop={e => { setOver(false); onDrop(node.value)(e) }}>
         <button className="tree-toggle" disabled={!node.hasChildren} onClick={() => setOpen(o => !o)}
           aria-label={open ? t('Contraer') : t('Expandir')}>
-          {node.hasChildren ? (open ? '▾' : '▸') : '·'}
+          {node.hasChildren ? (open ? <ChevronDown size={16} aria-hidden /> : <ChevronRight size={16} aria-hidden />) : <Dot size={16} aria-hidden />}
         </button>
         {meta.isEditable
           ? <Link to={`${base}/edit?${key}`} draggable={false}>{node.label ?? String(node.value)}</Link>
           : <span>{node.label ?? String(node.value)}</span>}
-        {meta.canCreate && <Link className="muted small" to={`${base}/new?${child}`} draggable={false} title={t('Agregar un registro debajo de este')}>＋ {t('hijo')}</Link>}
+        {meta.canCreate && <Link className="muted small" to={`${base}/new?${child}`} draggable={false} title={t('Agregar un registro debajo de este')}><Plus size={13} aria-hidden /> {t('hijo')}</Link>}
       </div>
       {open && node.hasChildren && (
         children.isLoading ? <p className="muted small tree-indent">{t('Cargando…')}</p>

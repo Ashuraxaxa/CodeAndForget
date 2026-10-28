@@ -1,3 +1,4 @@
+import { CircleCheck, Play } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
 import { labelOf, type ActionResult, type TableAction, type TableMeta } from '../api/types'
@@ -46,7 +47,7 @@ export function RecordActions({ conn, meta, recordKey, onDone, setResult }: {
     <>
       {meta.actions.map(a => (
         <button key={a.name} type="button" disabled={run.isPending} onClick={() => start(a)} title={a.routine}>
-          ▶ {actionLabel(a)}
+          <Play size={14} aria-hidden />{actionLabel(a)}
         </button>
       ))}
     </>
@@ -65,7 +66,7 @@ export function ActionResultCard({ result, onClose }: { result: ActionRun | null
       {(
         <div className="card action-result">
           <div className="row">
-            <strong>✓ {t('{action}: listo', { action: actionLabel(result.action) })}</strong>
+            <strong className="with-icon"><CircleCheck size={16} aria-hidden />{t('{action}: listo', { action: actionLabel(result.action) })}</strong>
             <button type="button" className="link" onClick={onClose}>{t('Cerrar')}</button>
           </div>
           {columns.length > 0 && (

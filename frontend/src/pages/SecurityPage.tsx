@@ -1,3 +1,4 @@
+import { Plus, User } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
@@ -74,7 +75,7 @@ function Profiles({ adminRoles, permissions }: { adminRoles: string[]; permissio
           {t('Un perfil se aplica a los roles y usuarios que indique; si alguien tiene varios, se suman.')}
           {adminRoles.length > 0 && <> {t('Los roles {roles} siempre tienen acceso total.', { roles: adminRoles.join(', ') })}</>}
         </p>
-        <button className="primary" onClick={() => setEditing('new')}>{t('Nuevo perfil')}</button>
+        <button className="primary" onClick={() => setEditing('new')}><Plus size={16} aria-hidden />{t('Nuevo perfil')}</button>
       </div>
       {profiles.isLoading && <p className="muted">{t('Cargando…')}</p>}
       {profiles.error && <div className="alert">{(profiles.error as Error).message}</div>}
@@ -88,7 +89,7 @@ function Profiles({ adminRoles, permissions }: { adminRoles: string[]; permissio
               {p.description && <div className="muted small">{p.description}</div>}
               <div className="small">
                 {p.roles.map(r => <span key={r} className="chip">{t('rol {role}', { role: r })}</span>)}
-                {p.users.map(u => <span key={u} className="chip">👤 {u}</span>)}
+                {p.users.map(u => <span key={u} className="chip"><User size={12} aria-hidden /> {u}</span>)}
                 {p.roles.length === 0 && p.users.length === 0 && <span className="muted">{t('Sin roles ni usuarios: no se aplica a nadie.')}</span>}
               </div>
               <div className="muted small">
@@ -232,7 +233,7 @@ function ProfileForm({ initial, copy = false, permissions, onClose }: {
         ))}
         {errors.connections && <span className="field-error">{errors.connections}</span>}
         <button type="button" onClick={() => setRules(s => [...s, { conn: used.has('*') ? '' : '*', operations: ['view'], tables: [] }])}>
-          ＋ {t('Conexión')}
+          <Plus size={14} aria-hidden />{t('Conexión')}
         </button>
       </div>
 
@@ -304,7 +305,7 @@ function ConnectionRuleEditor({ rule, connections, used, onChange, onRemove }: {
           onRemove={() => onChange({ tables: rule.tables.filter((_, j) => j !== i) })} />
       ))}
       <button type="button" className="link" onClick={() => onChange({ tables: [...rule.tables, { key: '', operations: ['view'], columns: [] }] })}>
-        ＋ {t('Tabla con permisos propios')}
+        <Plus size={14} aria-hidden />{t('Tabla con permisos propios')}
       </button>
     </div>
   )
@@ -344,7 +345,7 @@ function TableRuleEditor({ conn, listId, rule, onChange, onRemove }: {
         </div>
       ))}
       <button type="button" className="link small" onClick={() => onChange({ columns: [...rule.columns, { name: '', operations: ['view'] }] })}>
-        ＋ {t('Columna')}
+        <Plus size={14} aria-hidden />{t('Columna')}
       </button>
     </div>
   )
@@ -374,7 +375,7 @@ function Users({ local, minPassword }: { local: boolean; minPassword: number }) 
             ? t('Usuarios propios de la app, con contraseña guardada en hash. Los de la configuración (Auth:Users) se editan ahí.')
             : t('En modo Jwt inician sesión los usuarios del proveedor de identidad: asócielos a un perfil por nombre o por rol.')}
         </p>
-        {local && <button className="primary" onClick={() => setEditing('new')}>{t('Nuevo usuario')}</button>}
+        {local && <button className="primary" onClick={() => setEditing('new')}><Plus size={16} aria-hidden />{t('Nuevo usuario')}</button>}
       </div>
       {editing && <UserForm initial={editing === 'new' ? null : editing} minPassword={minPassword} onClose={() => { setEditing(null); done() }} />}
       {users.error && <div className="alert">{(users.error as Error).message}</div>}

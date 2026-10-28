@@ -1,3 +1,4 @@
+import { TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -39,7 +40,7 @@ export function SchemaChangesBanner({ conn }: { conn: string }) {
   return (
     <div className="banner">
       <div className="banner-head">
-        <span>⚠ {t('{changes} desde el {date}', { changes: parts.join(' · '), date: formatInstant(d.since) })}</span>
+        <span className="with-icon"><TriangleAlert size={16} aria-hidden />{t('{changes} desde el {date}', { changes: parts.join(' · '), date: formatInstant(d.since) })}</span>
         <button className="link" onClick={() => setOpen(o => !o)}>{open ? t('Ocultar') : t('Ver detalle')}</button>
         {canConfigure && d.changes.length > 0 && (
           <button disabled={accept.isPending} onClick={() => accept.mutate()}
@@ -66,7 +67,7 @@ export function SchemaChangesBanner({ conn }: { conn: string }) {
           })}
           {d.overrideWarnings.length > 0 && (
             <div>
-              <b>{t('Ajustes sin efecto')}</b> <span className="muted small">{t('(se ignoran; corríjalos en ⚙ Configurar)')}</span>
+              <b>{t('Ajustes sin efecto')}</b> <span className="muted small">{t('(se ignoran; corríjalos en Configurar)')}</span>
               <ul>{d.overrideWarnings.map(w => <li key={w}>{w}</li>)}</ul>
             </div>
           )}

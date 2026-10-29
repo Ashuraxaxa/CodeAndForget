@@ -72,6 +72,9 @@ public sealed class TokenService(IOptions<AuthOptions> options, ISecurityStore s
 
     public bool IsConfigUser(string username) => ConfigUser(username) is not null;
 
+    /// <summary>Roles actuales de un usuario del modo Local (los de la configuración; los propios no tienen, usan perfiles).</summary>
+    public IReadOnlyList<string> RolesOf(string username) => ConfigUser(username)?.Roles ?? [];
+
     private AuthUser? ConfigUser(string username) => options.Value.Users.FirstOrDefault(u =>
         string.Equals(u.Username, username.Trim(), StringComparison.OrdinalIgnoreCase));
 

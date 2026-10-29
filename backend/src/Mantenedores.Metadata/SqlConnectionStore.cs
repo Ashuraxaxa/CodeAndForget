@@ -21,7 +21,7 @@ public sealed class SqlConnectionStore(MetadataDatabase db, IDataProtectionProvi
     {
         await using var conn = await db.OpenAsync(ct);
         var rows = await conn.QueryAsync<Row>(new CommandDefinition(
-            "SELECT id AS Id, name AS Name, engine AS Engine, protected_connection_string AS Protected, schemas AS Schemas " +
+            "SELECT id AS Id, name AS Name, engine AS Engine, protected_connection_string AS Protected, schemas AS Schemas, allow_samples AS AllowSamples " +
             "FROM mnt_connection ORDER BY id", cancellationToken: ct));
         return rows.Select(ToDefinition).ToList();
     }
@@ -30,7 +30,7 @@ public sealed class SqlConnectionStore(MetadataDatabase db, IDataProtectionProvi
     {
         await using var conn = await db.OpenAsync(ct);
         var row = await conn.QuerySingleOrDefaultAsync<Row>(new CommandDefinition(
-            "SELECT id AS Id, name AS Name, engine AS Engine, protected_connection_string AS Protected, schemas AS Schemas " +
+            "SELECT id AS Id, name AS Name, engine AS Engine, protected_connection_string AS Protected, schemas AS Schemas, allow_samples AS AllowSamples " +
             "FROM mnt_connection WHERE id = @id", new { id = Normalize(id) }, cancellationToken: ct));
         return row is null ? null : ToDefinition(row);
     }
@@ -44,6 +44,7 @@ public sealed class SqlConnectionStore(MetadataDatabase db, IDataProtectionProvi
             engine = connection.Engine.ToString(),
             prot = _protector.Protect(connection.ConnectionString),
             schemas = JsonSerializer.Serialize(connection.Schemas),
+            samples = connection.AllowSamples ? 1 : 0,
             now = DateTimeOffset.UtcNow
         };
 
@@ -51,12 +52,12 @@ public sealed class SqlConnectionStore(MetadataDatabase db, IDataProtectionProvi
         await using var tx = await conn.BeginTransactionAsync(ct);
         var updated = await conn.ExecuteAsync(new CommandDefinition(
             "UPDATE mnt_connection SET name = @name, engine = @engine, protected_connection_string = @prot, " +
-            "schemas = @schemas, updated_at = @now WHERE id = @id", args, tx, cancellationToken: ct));
+            "schemas = @schemas, allow_samples = @samples, updated_at = @now WHERE id = @id", args, tx, cancellationToken: ct));
         if (updated == 0)
         {
             await conn.ExecuteAsync(new CommandDefinition(
-                "INSERT INTO mnt_connection (id, name, engine, protected_connection_string, schemas, created_at, updated_at) " +
-                "VALUES (@id, @name, @engine, @prot, @schemas, @now, @now)", args, tx, cancellationToken: ct));
+                "INSERT INTO mnt_connection (id, name, engine, protected_connection_string, schemas, allow_samples, created_at, updated_at) " +
+                "VALUES (@id, @name, @engine, @prot, @schemas, @samples, @now, @now)", args, tx, cancellationToken: ct));
         }
         await tx.CommitAsync(ct);
     }
@@ -84,7 +85,8 @@ public sealed class SqlConnectionStore(MetadataDatabase db, IDataProtectionProvi
         Name = r.Name,
         Engine = DatabaseEngine.Parse(r.Engine),
         ConnectionString = _protector.Unprotect(r.Protected),
-        Schemas = JsonSerializer.Deserialize<List<string>>(r.Schemas) ?? []
+        Schemas = JsonSerializer.Deserialize<List<string>>(r.Schemas) ?? [],
+        AllowSamples = r.AllowSamples != 0
     };
 
     private sealed class Row
@@ -94,5 +96,6 @@ public sealed class SqlConnectionStore(MetadataDatabase db, IDataProtectionProvi
         public string Engine { get; set; } = "";
         public string Protected { get; set; } = "";
         public string Schemas { get; set; } = "[]";
+        public long AllowSamples { get; set; }
     }
 }

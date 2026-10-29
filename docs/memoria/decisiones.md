@@ -924,6 +924,26 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Que la IA guarde ajustes directamente: el dueño prefirió propuestas que alguien acepta.
   - Sugerir autorreferencias por nombre (Parent, Jefe): demasiado ambiguo sin datos.
 
+### D-100 · Tokens de acceso, propuestas de ajustes y muestra de datos para la IA
+- **Estado:** Vigente · 2026-10-29 (P-113, parte 2 de 3; decisiones del dueño)
+- **Qué:**
+  - **Tokens de acceso** (`mnt_` + 32 bytes aleatorios):
+    - solo se guarda su SHA-256, en `mnt_access_token` (migración 007) o en `tokens.json` con metadata `File`;
+    - un esquema de autenticación propio los atiende cuando el `Authorization` empieza con `mnt_`; el resto sigue por el JWT de siempre;
+    - **tienen el acceso de quien los creó**: en `Local`, roles actuales y que siga activo; en `Jwt`, los roles al crearlo, más los perfiles por usuario;
+    - con un token no se administran tokens.
+  - **Propuestas** (`mnt_override_proposal`):
+    - una IA con `ConfigureTables` propone el ajuste completo de una tabla y su motivo; se valida como un ajuste y queda pendiente;
+    - en Configurar se carga en la edición, y al guardarla queda aceptada (o se descarta). Nunca se aplica sola.
+  - **Muestra** (`ConnectionDefinition.AllowSamples`, apagado por defecto):
+    - hasta las **1.000 filas más recientes**: por fecha de modificación, si no de creación (incluye nombres en español como `creado_en`), y si no por la PK descendente, que también desempata;
+    - con los permisos del usuario; los archivos no viajan;
+    - cuenta en el límite de operaciones pesadas.
+- **Descartado:**
+  - Guardar el token en claro o cifrado: con el hash alcanza para validarlo y no se puede recuperar.
+  - Que el token tenga permisos propios: el dueño pidió que tenga el mismo acceso que su creador.
+  - Muestras al azar: las filas recientes reflejan mejor cómo se usa hoy la tabla.
+
 ---
 
 ## Propuestas (aún no decididas)

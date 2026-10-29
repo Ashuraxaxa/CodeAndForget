@@ -1,6 +1,7 @@
 import { SearchSelect } from '../components/Combo'
 import { ArrowDown, ArrowLeft, ArrowUp, ChevronDown, ChevronRight, GripVertical, KeyRound, Play, Plus, Sparkles } from 'lucide-react'
 import { SuggestionsPanel } from '../components/SuggestionsPanel'
+import { ProposalsPanel } from '../components/ProposalsPanel'
 import { mergeOverride } from '../lib/mergeOverride'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -57,6 +58,8 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
   const [tab, setTab] = useState<Tab>('table')
   const [doc, setDoc] = useState<TableOverride>(initialDoc)
   const [suggesting, setSuggesting] = useState(false)
+  // Propuesta de la IA cargada en la edición (P-113): al guardar queda aceptada.
+  const [proposalId, setProposalId] = useState<string | null>(null)
   const [order, setOrder] = useState<string[]>(() => initialTable.columns.map(c => c.name))
   const byName = useMemo(() => new Map(initialTable.columns.map(c => [c.name, c])), [initialTable])
   const naturalOrder = useMemo(
@@ -81,7 +84,14 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
     navigate(back)
   }
 
-  const save = useMutation({ mutationFn: () => api.saveOverride(conn, schema, name, built), onSuccess: done })
+  const save = useMutation({
+    mutationFn: async () => {
+      const saved = await api.saveOverride(conn, schema, name, built)
+      if (proposalId) await api.resolveProposal(conn, proposalId, 'accept')
+      return saved
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['proposals', conn] }); done() },
+  })
   const reset = useMutation({
     mutationFn: async () => {
       try { await api.resetOverride(conn, schema, name) }
@@ -132,6 +142,8 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
           <Link className="back-link" to={back}><ArrowLeft size={16} aria-hidden />{t('Volver a la lista')}</Link>
         </div>
       </div>
+      <ProposalsPanel conn={conn} schema={schema} table={name} loaded={proposalId}
+        onLoad={p => { setDoc(p.value); setProposalId(p.id) }} />
       {suggesting && (
         <SuggestionsPanel conn={conn} schema={schema} table={name} onClose={() => setSuggesting(false)}
           onApply={patches => setDoc(d => patches.reduce(mergeOverride, d))} />

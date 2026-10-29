@@ -22,6 +22,8 @@ export interface Connection {
   schemas: string[]
   server?: string | null
   database?: string | null
+  /** La IA (MCP) puede ver las 1.000 filas más recientes de cada tabla (P-113). */
+  allowSamples?: boolean
 }
 
 export interface ConnectionInput {
@@ -30,6 +32,7 @@ export interface ConnectionInput {
   engine: Engine
   connectionString?: string
   schemas: string[]
+  allowSamples?: boolean
 }
 
 export interface TableSummary {
@@ -471,4 +474,27 @@ export interface Suggestion {
   localColumn?: string | null
   /** Otra sugerencia sin la cual esta no aplica (un filtro sobre una relación también sugerida). */
   requires?: string | null
+}
+
+/** Token de acceso del usuario, p. ej. para una IA por MCP (P-113). El secreto solo se ve al crearlo. */
+export interface AccessTokenInfo {
+  id: string
+  name: string
+  prefix: string
+  createdAt: string
+  expiresAt?: string | null
+  lastUsedAt?: string | null
+}
+
+/** Ajuste propuesto por una IA, pendiente de que alguien lo acepte (P-113). */
+export interface OverrideProposal {
+  id: string
+  connection: string
+  schema: string
+  table: string
+  value: TableOverride
+  reason?: string | null
+  createdBy?: string | null
+  createdAt: string
+  status: 'pending' | 'accepted' | 'discarded'
 }

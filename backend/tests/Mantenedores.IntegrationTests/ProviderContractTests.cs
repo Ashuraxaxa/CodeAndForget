@@ -264,6 +264,30 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         finally { await Db.Crud.DeleteAsync(Conn, Schema, N("bodega"), Key((N("id"), created[N("id")]!)), default); }
     }
 
+    // ---------- Muestra para la IA (P-113) ----------
+
+    [Fact]
+    public async Task La_muestra_trae_lo_mas_reciente_solo_si_la_conexion_lo_permite()
+    {
+        Core.Services.SchemaService Schemas(bool allow) => new(new InMemoryConnectionStore(new Core.Connections.ConnectionDefinition
+        {
+            Id = "muestra", Name = "Muestra", Engine = Db.Engine, ConnectionString = Db.ConnectionString, Schemas = [Schema], AllowSamples = allow
+        }), new Core.Providers.ProviderRegistry([Db.Provider]));
+
+        var off = new Core.Services.CrudService(Schemas(false), new Core.Services.CrudOptions());
+        var denied = await Assert.ThrowsAsync<OperationNotAllowedException>(() => off.SampleAsync("muestra", Schema, N("categoria"), 10, default));
+        Assert.Contains("muestra", denied.Message);
+
+        var on = new Core.Services.CrudService(Schemas(true), new Core.Services.CrudOptions());
+        var sample = await on.SampleAsync("muestra", Schema, N("categoria"), 2, default);
+        Assert.Equal(2, sample.Rows.Count);
+        Assert.Equal([N("id")], sample.OrderedBy, StringComparer.OrdinalIgnoreCase); // sin fecha: por la PK, de mayor a menor
+        var max = await Db.ScalarAsync($"SELECT MAX({Db.Provider.Dialect.Quote(N("id"))}) FROM {Db.Provider.Dialect.Table(Schema, N("categoria"))}");
+        Assert.Equal(max, Convert.ToInt64(sample.Rows[0][N("id")]));
+        Assert.True(Convert.ToInt64(sample.Rows[0][N("id")]) > Convert.ToInt64(sample.Rows[1][N("id")]));
+        Assert.Equal(1000, Core.Services.CrudService.MaxSampleRows);
+    }
+
     // ---------- Copiar ajustes entre conexiones (P-111) ----------
 
     [Fact]

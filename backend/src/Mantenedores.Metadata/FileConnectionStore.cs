@@ -43,6 +43,7 @@ public sealed class FileConnectionStore : IConnectionStore
                 Name = connection.Name,
                 Engine = connection.Engine,
                 Schemas = connection.Schemas.ToList(),
+                AllowSamples = connection.AllowSamples,
                 ProtectedConnectionString = _protector.Protect(connection.ConnectionString)
             });
             await WriteAsync(entries, ct);
@@ -69,6 +70,7 @@ public sealed class FileConnectionStore : IConnectionStore
         Name = e.Name,
         Engine = e.Engine,
         Schemas = e.Schemas,
+        AllowSamples = e.AllowSamples,
         ConnectionString = _protector.Unprotect(e.ProtectedConnectionString)
     };
 
@@ -94,6 +96,7 @@ public sealed class FileConnectionStore : IConnectionStore
         public string Name { get; set; } = "";
         public DatabaseEngine Engine { get; set; }
         public List<string> Schemas { get; set; } = [];
+        public bool AllowSamples { get; set; }
         public string ProtectedConnectionString { get; set; } = "";
     }
 }

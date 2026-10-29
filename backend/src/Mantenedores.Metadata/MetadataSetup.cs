@@ -42,6 +42,8 @@ public static class MetadataSetup
             services.AddSingleton<ISchemaSnapshotStore>(new FileSnapshotStore(Path.Combine(dataDirectory, "snapshots")));
             services.AddSingleton<ISecurityStore>(new FileSecurityStore(Path.Combine(dataDirectory, "security.json")));
             services.AddSingleton<IAuditStore>(new FileAuditStore(Path.Combine(dataDirectory, "audit.jsonl")));
+            services.AddSingleton<IAccessTokenStore>(new FileAccessTokenStore(Path.Combine(dataDirectory, "tokens.json")));
+            services.AddSingleton<IProposalStore>(new FileProposalStore(Path.Combine(dataDirectory, "proposals.json")));
             return;
         }
 
@@ -52,6 +54,8 @@ public static class MetadataSetup
         services.AddSingleton<ISchemaSnapshotStore, SqlSnapshotStore>();
         services.AddSingleton<ISecurityStore, SqlSecurityStore>();
         services.AddSingleton<IAuditStore, SqlAuditStore>();
+        services.AddSingleton<IAccessTokenStore, SqlAccessTokenStore>();
+        services.AddSingleton<IProposalStore, SqlProposalStore>();
         // Con metadata compartida, las instancias se avisan los cambios de ajustes, esquema y seguridad (D-077).
         services.AddSingleton<IChangeStampStore, SqlChangeStampStore>();
 

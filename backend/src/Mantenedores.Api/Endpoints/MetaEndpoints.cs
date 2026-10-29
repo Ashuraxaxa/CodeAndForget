@@ -117,6 +117,48 @@ public static class MetaEndpoints
             return OverrideSuggester.Valid(raw, info.Schema, info.Name, current, OverrideSuggester.For(applied, mine, current));
         }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
 
+        // Propuestas de ajustes (P-113): una IA propone y una persona las carga en la edición y las guarda o descarta.
+        group.MapGet("/proposals", async (string conn, string? status, IProposalStore proposals, SchemaService schemas, CancellationToken ct) =>
+        {
+            await schemas.GetDefinitionAsync(conn, ct);
+            return await proposals.ListAsync(conn, status ?? ProposalStatus.Pending, ct);
+        }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
+
+        group.MapPost("/proposals", async (string conn, ProposalRequest body, IProposalStore proposals, SchemaService schemas,
+            ClaimsPrincipal user, CancellationToken ct) =>
+        {
+            var raw = await schemas.GetRawSchemaAsync(conn, ct);
+            var info = await RawTableAsync(schemas, conn, body.Schema, body.Table, ct);
+            // Se valida como al guardarlo a mano: no se guarda una propuesta que no se podría aplicar.
+            OverrideApplier.Validate(raw, info.Schema, info.Name, body.Value);
+            if (body.Value.Actions is { Count: > 0 } &&
+                OverrideApplier.ValidateActions(body.Value.Actions, await schemas.GetRoutinesAsync(conn, ct)) is { Count: > 0 } actionErrors)
+                throw new Core.Errors.ValidationException(actionErrors);
+            var proposal = new OverrideProposal
+            {
+                Id = Guid.NewGuid().ToString("N"), Connection = conn, Schema = info.Schema, Table = info.Name, Value = body.Value,
+                Reason = body.Reason?.Trim() is { Length: > 0 } r ? r[..Math.Min(r.Length, 4000)] : null,
+                CreatedBy = user.Identity?.Name, CreatedAt = DateTimeOffset.UtcNow
+            };
+            await proposals.SaveAsync(proposal, ct);
+            return proposal;
+        }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
+
+        group.MapPost("/proposals/{id}/{action}", async (string conn, string id, string action, IProposalStore proposals,
+            ClaimsPrincipal user, CancellationToken ct) =>
+        {
+            var p = await proposals.GetAsync(id, ct);
+            if (p is null || !Same(p.Connection, conn)) return Results.NotFound();
+            var status = action switch
+            {
+                "accept" => ProposalStatus.Accepted,
+                "discard" => ProposalStatus.Discarded,
+                _ => throw new Core.Errors.ValidationException("action", "use accept o discard")
+            };
+            await proposals.SaveAsync(p with { Status = status, ResolvedBy = user.Identity?.Name, ResolvedAt = DateTimeOffset.UtcNow }, ct);
+            return Results.NoContent();
+        }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
+
         // Copiar los ajustes de otra conexión (P-111), p. ej. la misma base en otro servidor. Con apply=false es una vista
         // previa: dice qué se crea, qué se reemplaza y qué no se puede copiar, sin guardar nada.
         group.MapPost("/overrides/copy", async (string conn, OverrideCopyRequest body, OverrideCopier copier, ClaimsPrincipal user, CancellationToken ct) =>
@@ -166,5 +208,8 @@ public static class MetaEndpoints
 }
 
 /// <summary>Cuerpo de <c>POST /api/meta/{conn}/overrides/copy</c>: de qué conexión, esquemas que cambian de nombre, si se borra lo que el origen no tiene y si se guarda.</summary>
+/// <summary>Cuerpo de <c>POST /api/meta/{conn}/proposals</c>: el ajuste completo propuesto para la tabla y por qué.</summary>
+public sealed record ProposalRequest(string Schema, string Table, TableOverride Value, string? Reason);
+
 public sealed record OverrideCopyRequest(string From, Dictionary<string, string>? SchemaMap, bool ReplaceAll = false, bool Apply = false,
     List<string>? Parts = null, List<string>? Tables = null);

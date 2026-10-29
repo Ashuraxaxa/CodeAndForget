@@ -12,6 +12,7 @@ namespace Mantenedores.Api.Auth;
 public static class AuthSetup
 {
     public const string AdminPolicy = "admin";
+    private const string SelectorScheme = "Mantenedores";
 
     /// <summary>Valida la configuración al arrancar, con mensajes que dicen qué falta.</summary>
     public static void Validate(AuthOptions auth)
@@ -39,7 +40,12 @@ public static class AuthSetup
     {
         Validate(auth);
 
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o =>
+        // Un esquema que elige: los tokens de acceso (mnt_…) van a su manejador; el resto, al JWT de siempre.
+        services.AddAuthentication(SelectorScheme)
+            .AddPolicyScheme(SelectorScheme, null, o => o.ForwardDefaultSelector = ctx =>
+                AccessTokenHandler.HasToken(ctx.Request) ? AccessTokenHandler.SchemeName : JwtBearerDefaults.AuthenticationScheme)
+            .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, AccessTokenHandler>(AccessTokenHandler.SchemeName, null)
+            .AddJwtBearer(o =>
         {
             // Se conservan los nombres originales de los claims (sin el mapeo de Microsoft) para leerlos tal cual.
             o.MapInboundClaims = false;

@@ -1,7 +1,7 @@
 # API
 
 Referencia de las rutas HTTP. Todas, salvo `auth/config`, `auth/login` y los health checks, requieren
-`Authorization: Bearer <token>`: el del login local o el del proveedor de identidad (ver
+`Authorization: Bearer <token>`: el del login local, el del proveedor de identidad o un token de acceso `mnt_…` ([seguridad.md](seguridad.md#tokens-de-acceso)) (ver
 [configuracion.md](configuracion.md#autenticación-auth)). Los permisos se explican en [seguridad.md](seguridad.md).
 
 Los errores siguen el formato *Problem Details* (`application/problem+json`); las validaciones traen `errors` por campo.
@@ -25,6 +25,10 @@ Los errores siguen el formato *Problem Details* (`application/problem+json`); la
 | POST | `/api/meta/{conn}/overrides/{schema}/{table}/preview` | Vista previa de un ajuste sin guardarlo. Permiso `ConfigureTables` |
 | POST | `/api/meta/{conn}/overrides/copy` | Copia a `{conn}` los ajustes de otra conexión del mismo motor: `{ from, schemaMap?, parts?, tables?, replaceAll?, apply }`. Con `apply: false` solo dice qué pasaría con cada tabla. Permiso `ConfigureTables` |
 | GET | `/api/meta/{conn}/suggestions/{schema}/{table}` | Sugerencias de ajustes sin IA (relaciones, filtros de combos, columnas técnicas, correos), cada una con el ajuste parcial que se suma al aceptarla. Permiso `ConfigureTables` |
+| GET / POST | `/api/meta/{conn}/proposals` | Propuestas de ajustes de una IA. POST `{ schema, table, value, reason }` se valida como un ajuste y queda pendiente; GET lista las pendientes. Permiso `ConfigureTables` |
+| POST | `/api/meta/{conn}/proposals/{id}/accept` · `/discard` | Cierra una propuesta (la UI la acepta al guardar el ajuste). Permiso `ConfigureTables` |
+| GET | `/api/data/{conn}/{schema}/{table}/sample?take=1000` | Las filas más recientes (por fecha de modificación o creación, si no por la PK), hasta 1.000, con los permisos del usuario. Solo si la conexión tiene `allowSamples` |
+| GET / POST / DELETE | `/api/tokens[/{id}]` | Tokens de acceso del usuario de la sesión. POST `{ name, days? }` devuelve el secreto una sola vez. No se aceptan con un token |
 | GET | `/api/data/{conn}/{schema}/{table}` | Lista. `?page=1&pageSize=25&sort=nombre,-precio&q=texto&f.categoria_id=2`. `f.` = contiene (textos) o igual; `e.` = igual exacto, también en textos (`e.pedido_id=5`) |
 | GET | `/api/data/{conn}/{schema}/{table}/row?{pk}=…` | Un registro. PK compuesta: `?PedidoId=1&Linea=2` |
 | POST | `/api/data/{conn}/{schema}/{table}` | Crea. Devuelve la fila creada |

@@ -4,6 +4,15 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-29 · Combos con búsqueda (P-108)
+- El dueño reportó que en el combo de Acciones no se leían las opciones y que con muchos registros costaba encontrar una. Pidió autocompletar, además de elegir, en todos los controles de ese tipo.
+- Causa del texto invisible: las opciones nativas con fondo transparente se veían blancas en Windows, con el texto claro del modo noche.
+- Un combo propio reemplazó a los `<select>` y `<datalist>` de toda la app, incluidas las FK (que buscan en el servidor).
+- En el navegador:
+  - 61 procedimientos: "subir" dejó uno y ↓ Enter eligió con el teclado;
+  - el filtro Sí/No de la grilla no quedó cortado, el idioma cambió escribiendo "engl", y en Seguridad la conexión ya usada apareció desactivada.
+- Hallazgo: la búsqueda de FK en el servidor distingue tildes ("lact" no encuentra "Lácteos"); quedó como P-109.
+
 ## 2026-10-29 · Navegación de la grilla (P-107)
 - El dueño notó que llegar a la página 30 o a la última obligaba a pulsar "Siguiente" una y otra vez, y que las acciones quedaban al final de la grilla. Pidió además un indicador de carga.
 - Paginador con primera, última, números e "Ir a página", también en la auditoría. Acciones como primera columna, fijas al desplazar.

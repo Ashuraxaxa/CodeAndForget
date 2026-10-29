@@ -1,3 +1,4 @@
+import { SearchSelect } from '../components/Combo'
 import { ArrowRight, Database, Pencil, Plug, Plus, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
@@ -183,11 +184,8 @@ function ConnectionForm({ initial, onClose }: { initial: Connection | null; onCl
         </label>
         <label>
           {t('Motor')}
-          <select value={form.engine} onChange={set('engine')}>
-            {options.map(e => (
-              <option key={e.name} value={e.name}>{ENGINES[e.name]?.label ?? e.label}</option>
-            ))}
-          </select>
+          <SearchSelect value={form.engine} onChange={v => setForm(f => ({ ...f, engine: v }))}
+            options={options.map(e => ({ value: e.name, label: ENGINES[e.name]?.label ?? e.label }))} />
         </label>
         <label>
           {t('Esquemas (opcional)')}

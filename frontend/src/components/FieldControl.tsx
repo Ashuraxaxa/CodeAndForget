@@ -1,5 +1,6 @@
 import type { Column, ForeignKey } from '../api/types'
 import { ForeignKeySelect } from './ForeignKeySelect'
+import { SearchSelect } from './Combo'
 import { useT } from '../i18n'
 
 interface Props {
@@ -37,12 +38,13 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
   // Lista fija de valores (ajuste Options).
   if (c.options && c.options.length > 0) {
     return (
-      <select id={id} value={str} disabled={disabled} required={required} onChange={e => onChange(e.target.value)}>
-        <option value="">{required ? t('Seleccionar…') : t('(vacío)')}</option>
-        {/* Un valor guardado antes del ajuste se sigue mostrando. */}
-        {str && !c.options.includes(str) && <option value={str}>{str}</option>}
-        {c.options.map(v => <option key={v} value={v}>{v}</option>)}
-      </select>
+      <SearchSelect id={id} value={str} disabled={disabled} required={required} onChange={onChange}
+        options={[
+          { value: '', label: required ? t('Seleccionar…') : t('(vacío)') },
+          // Un valor guardado antes del ajuste se sigue mostrando.
+          ...(str && !c.options.includes(str) ? [{ value: str, label: str }] : []),
+          ...c.options.map(v => ({ value: v, label: v })),
+        ]} />
     )
   }
 
@@ -56,21 +58,19 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
   switch (c.type) {
     case 'Boolean':
       return c.isNullable ? (
-        <select id={id} value={String(value)} disabled={disabled} onChange={e => onChange(e.target.value)}>
-          <option value="">{t('(vacío)')}</option>
-          <option value="true">{t('Sí')}</option>
-          <option value="false">{t('No')}</option>
-        </select>
+        <SearchSelect id={id} value={value == null ? '' : String(value)} disabled={disabled} onChange={onChange}
+          options={[{ value: '', label: t('(vacío)') }, { value: 'true', label: t('Sí') }, { value: 'false', label: t('No') }]} />
       ) : (
         <input id={id} type="checkbox" checked={value === true} disabled={disabled} onChange={e => onChange(e.target.checked)} />
       )
 
     case 'Enum':
       return (
-        <select id={id} value={str} disabled={disabled} required={required} onChange={e => onChange(e.target.value)}>
-          <option value="">{c.isNullable || c.hasDefault ? t('(vacío)') : t('Seleccionar…')}</option>
-          {c.enumValues?.map(v => <option key={v} value={v}>{v}</option>)}
-        </select>
+        <SearchSelect id={id} value={str} disabled={disabled} required={required} onChange={onChange}
+          options={[
+            { value: '', label: c.isNullable || c.hasDefault ? t('(vacío)') : t('Seleccionar…') },
+            ...(c.enumValues ?? []).map(v => ({ value: v, label: v })),
+          ]} />
       )
 
     case 'Spatial':

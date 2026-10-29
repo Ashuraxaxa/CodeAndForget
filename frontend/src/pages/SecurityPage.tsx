@@ -1,4 +1,5 @@
 import { Plus, User } from 'lucide-react'
+import { SearchSelect, SuggestInput, type ComboOption } from '../components/Combo'
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
@@ -280,28 +281,23 @@ function ConnectionRuleEditor({ rule, connections, used, onChange, onRemove }: {
     if (!owner.has(key)) owner.set(key, sources[i])
   }))
   const t = useT()
-  const listId = `tables-${rule.conn}`
+  const tableKeys = [...owner.keys()].sort().map(key => ({ value: key, label: key }))
   const setTable = (i: number, v: Partial<TableDraft>) => onChange({ tables: rule.tables.map((x, j) => (j === i ? { ...x, ...v } : x)) })
 
   return (
     <div className="card rule">
       <div className="rule-head">
-        <select value={rule.conn} onChange={e => onChange({ conn: e.target.value })}>
-          <option value="">— {t('conexión')} —</option>
-          <option value="*" disabled={used.has('*') && rule.conn !== '*'}>{t('Todas las conexiones')}</option>
-          {connections.map(c => (
-            <option key={c.id} value={c.id} disabled={used.has(c.id) && rule.conn !== c.id}>{c.name}</option>
-          ))}
-          {rule.conn && rule.conn !== '*' && !connections.some(c => c.id === rule.conn) && <option value={rule.conn}>{rule.conn}</option>}
-        </select>
+        <SearchSelect value={rule.conn} onChange={v => onChange({ conn: v })} placeholder={`— ${t('conexión')} —`} ariaLabel={t('conexión')}
+          options={[
+            { value: '*', label: t('Todas las conexiones'), disabled: used.has('*') && rule.conn !== '*' },
+            ...connections.map(c => ({ value: c.id, label: c.name, hint: c.id, disabled: used.has(c.id) && rule.conn !== c.id })),
+            ...(rule.conn && rule.conn !== '*' && !connections.some(c => c.id === rule.conn) ? [{ value: rule.conn, label: rule.conn }] : []),
+          ]} />
         <OpChecks ops={TABLE_OPS} value={rule.operations} onChange={operations => onChange({ operations })} />
         <button type="button" className="link danger" onClick={onRemove}>{t('Quitar')}</button>
       </div>
-      <datalist id={listId}>
-        {[...owner.keys()].sort().map(key => <option key={key} value={key} />)}
-      </datalist>
       {rule.tables.map((x, i) => (
-        <TableRuleEditor key={i} conn={owner.get(x.key.trim()) ?? rule.conn} listId={listId} rule={x} onChange={v => setTable(i, v)}
+        <TableRuleEditor key={i} conn={owner.get(x.key.trim()) ?? rule.conn} tableKeys={tableKeys} rule={x} onChange={v => setTable(i, v)}
           onRemove={() => onChange({ tables: rule.tables.filter((_, j) => j !== i) })} />
       ))}
       <button type="button" className="link" onClick={() => onChange({ tables: [...rule.tables, { key: '', operations: ['view'], columns: [] }] })}>
@@ -311,9 +307,9 @@ function ConnectionRuleEditor({ rule, connections, used, onChange, onRemove }: {
   )
 }
 
-function TableRuleEditor({ conn, listId, rule, onChange, onRemove }: {
+function TableRuleEditor({ conn, tableKeys, rule, onChange, onRemove }: {
   conn: string
-  listId: string
+  tableKeys: ComboOption[]
   rule: TableDraft
   onChange: (t: Partial<TableDraft>) => void
   onRemove: () => void
@@ -326,20 +322,19 @@ function TableRuleEditor({ conn, listId, rule, onChange, onRemove }: {
     retry: false,
   })
   const t = useT()
-  const colList = `cols-${conn}-${rule.key}`
   const setColumn = (i: number, c: Partial<ColumnDraft>) => onChange({ columns: rule.columns.map((x, j) => (j === i ? { ...x, ...c } : x)) })
 
   return (
     <div className="rule-table">
       <div className="rule-head">
-        <input list={listId} value={rule.key} placeholder={t('esquema.tabla')} onChange={e => onChange({ key: e.target.value })} />
+        <SuggestInput value={rule.key} placeholder={t('esquema.tabla')} ariaLabel={t('esquema.tabla')} suggestions={tableKeys} onChange={key => onChange({ key })} />
         <OpChecks ops={TABLE_OPS} value={rule.operations} onChange={operations => onChange({ operations })} />
         <button type="button" className="link danger" onClick={onRemove}>{t('Quitar')}</button>
       </div>
-      <datalist id={colList}>{meta.data?.columns.map(c => <option key={c.name} value={c.name} />)}</datalist>
       {rule.columns.map((c, i) => (
         <div key={i} className="rule-head rule-column">
-          <input list={colList} value={c.name} placeholder={t('columna')} onChange={e => setColumn(i, { name: e.target.value })} />
+          <SuggestInput value={c.name} placeholder={t('columna')} ariaLabel={t('columna')} onChange={name => setColumn(i, { name })}
+            suggestions={(meta.data?.columns ?? []).map(col => ({ value: col.name, label: col.name, hint: col.nativeType }))} />
           <OpChecks ops={COLUMN_OPS} value={c.operations} onChange={operations => setColumn(i, { operations })} />
           <button type="button" className="link danger" onClick={() => onChange({ columns: rule.columns.filter((_, j) => j !== i) })}>{t('Quitar')}</button>
         </div>

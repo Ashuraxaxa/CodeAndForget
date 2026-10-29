@@ -1,3 +1,4 @@
+import { SearchSelect } from '../components/Combo'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { I18nContext, LOCALES, currentLocale, setCurrentLocale, translate, useI18n, type I18n, type Locale } from '.'
 
@@ -20,8 +21,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 export function LanguageSelect() {
   const { locale, setLocale, t } = useI18n()
   return (
-    <select className="lang" value={locale} aria-label={t('Idioma')} onChange={e => setLocale(e.target.value as Locale)}>
-      {LOCALES.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-    </select>
+    <SearchSelect className="lang" value={locale} ariaLabel={t('Idioma')} onChange={v => setLocale(v as Locale)}
+      options={LOCALES.map(l => ({ value: l.id, label: l.name, hint: l.id }))} />
   )
 }

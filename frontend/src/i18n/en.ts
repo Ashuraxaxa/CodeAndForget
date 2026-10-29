@@ -356,4 +356,6 @@ export const en: Messages = {
   'Página {page}': 'Page {page}',
   'Registros por página': 'Records per page',
   'Última página': 'Last page',
+  // Combos con búsqueda (P-108)
+  '{n} opciones más: siga escribiendo para acotar': '{n} more options: keep typing to narrow down',
 }

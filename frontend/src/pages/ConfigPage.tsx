@@ -1,3 +1,4 @@
+import { SearchSelect } from '../components/Combo'
 import { ArrowDown, ArrowLeft, ArrowUp, ChevronDown, ChevronRight, GripVertical, KeyRound, Play, Plus } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -238,22 +239,22 @@ function TableTab({ conn, doc, setDoc, table, shown, errors }: {
         <input value={doc.group ?? ''} placeholder={table.schema} onChange={e => set({ group: e.target.value })} />
       </Field>
       <Field label={t('Columna a mostrar')} hint={t('Se ve en los combos de las tablas que referencian a esta')} error={errors.displayColumn}>
-        <select value={doc.displayColumn ?? ''} onChange={e => set({ displayColumn: e.target.value })}>
-          <option value="">({t('automática')}{!doc.displayColumn && shown.displayColumn ? `: ${shown.displayColumn}` : ''})</option>
-          {visible.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-        </select>
+        <SearchSelect value={doc.displayColumn ?? ''} onChange={v => set({ displayColumn: v })}
+          options={[
+            { value: '', label: `(${t('automática')}${!doc.displayColumn && shown.displayColumn ? `: ${shown.displayColumn}` : ''})` },
+            ...visible.map(c => ({ value: c.name, label: c.name, hint: c.nativeType })),
+          ]} />
       </Field>
       <Field label={t('Orden por defecto')} hint={t('Cuando el usuario no eligió otro')} error={errors.defaultSort}>
         <div className="row">
-          <select value={sortCol} onChange={e => set({ defaultSort: e.target.value ? (sortDesc ? '-' : '') + e.target.value : '' })}>
-            <option value="">{t('(por clave)')}</option>
-            {table.columns.filter(c => c.isSortable).map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-          </select>
-          <select value={sortDesc ? 'desc' : 'asc'} disabled={!sortCol}
-            onChange={e => set({ defaultSort: (e.target.value === 'desc' ? '-' : '') + sortCol })}>
-            <option value="asc">{t('ascendente')}</option>
-            <option value="desc">{t('descendente')}</option>
-          </select>
+          <SearchSelect value={sortCol} onChange={v => set({ defaultSort: v ? (sortDesc ? '-' : '') + v : '' })}
+            options={[
+              { value: '', label: t('(por clave)') },
+              ...table.columns.filter(c => c.isSortable).map(c => ({ value: c.name, label: c.name, hint: c.nativeType })),
+            ]} />
+          <SearchSelect value={sortDesc ? 'desc' : 'asc'} disabled={!sortCol}
+            onChange={v => set({ defaultSort: (v === 'desc' ? '-' : '') + sortCol })}
+            options={[{ value: 'asc', label: t('ascendente') }, { value: 'desc', label: t('descendente') }]} />
         </div>
       </Field>
       <Check label={t('Ocultar del menú')} hint={t('No es un permiso: se sigue pudiendo abrir por su dirección')}
@@ -281,10 +282,11 @@ function TableTab({ conn, doc, setDoc, table, shown, errors }: {
 
       {selfRefs.length > 1 && (
         <Field label={t('Relación del árbol')} hint={t('Cuál de las relaciones de la tabla consigo misma arma la vista de árbol')} error={errors.treeParent}>
-          <select value={doc.treeParent ?? ''} onChange={e => set({ treeParent: e.target.value || undefined })}>
-            <option value="">({t('automática')}: {selfRefs[0].columns.join(', ')})</option>
-            {selfRefs.map(f => <option key={f.name} value={f.name}>{f.columns.join(', ')} ({f.name})</option>)}
-          </select>
+          <SearchSelect value={doc.treeParent ?? ''} onChange={v => set({ treeParent: v || undefined })}
+            options={[
+              { value: '', label: `(${t('automática')}: ${selfRefs[0].columns.join(', ')})` },
+              ...selfRefs.map(f => ({ value: f.name, label: f.columns.join(', '), hint: f.name })),
+            ]} />
         </Field>
       )}
 
@@ -294,11 +296,12 @@ function TableTab({ conn, doc, setDoc, table, shown, errors }: {
           {shown.manyToMany.map(l => (
             <div key={l.name} className="row">
               <span>{l.targetSchema}.{l.targetTable} <span className="muted small">· {t('vía {bridge}', { bridge: l.bridgeTable })}</span></span>
-              <select value={doc.links?.[l.name] ?? 'selector'} onChange={e => setLink(l.name, e.target.value as LinkDisplay)}>
-                <option value="selector">{t('Selector múltiple')}</option>
-                <option value="tab">{t('Pestaña')}</option>
-                <option value="none">{t('No mostrar')}</option>
-              </select>
+              <SearchSelect value={doc.links?.[l.name] ?? 'selector'} onChange={v => setLink(l.name, v as LinkDisplay)}
+                options={[
+                  { value: 'selector', label: t('Selector múltiple') },
+                  { value: 'tab', label: t('Pestaña') },
+                  { value: 'none', label: t('No mostrar') },
+                ]} />
             </div>
           ))}
         </Field>
@@ -406,23 +409,21 @@ function ActionsEditor({ conn, table, value, errors, onChange }: {
         </div>
       ))}
       <div className="row">
-        <select value={routine} onChange={e => choose(e.target.value)} disabled={!routines.data?.length}>
-          <option value="">{routines.data?.length === 0 ? t('La base no tiene procedimientos disponibles') : t('Procedimiento o función…')}</option>
-          {routines.data?.map(x => <option key={x.fullName} value={x.fullName}>{x.fullName} ({x.parameters.map(p => p.name).join(', ')})</option>)}
-        </select>
+        <SearchSelect value={routine} onChange={choose} disabled={!routines.data?.length}
+          placeholder={routines.data?.length === 0 ? t('La base no tiene procedimientos disponibles') : t('Procedimiento o función…')}
+          options={(routines.data ?? []).map(x => ({ value: x.fullName, label: x.fullName, hint: `(${x.parameters.map(p => p.name).join(', ')})` }))} />
         <input value={label} placeholder={t('Texto del botón')} onChange={e => setLabel(e.target.value)} />
       </div>
       {r?.parameters.map(p => (
         <div key={p.name} className="row">
           <code>{p.name}</code> <span className="muted small">{p.nativeType}</span> <span>←</span>
-          <select value={source(params[p.name])} onChange={e => {
-            const v = e.target.value
-            setParams(s => ({ ...s, [p.name]: v === 'ask' ? { ask: true } : v === 'value' ? { value: '' } : { column: v.slice(4) } }))
-          }}>
-            <option value="ask">{t('Preguntar al ejecutar')}</option>
-            <option value="value">{t('Valor fijo')}</option>
-            {table.columns.filter(c => c.isSelectable).map(c => <option key={c.name} value={`col:${c.name}`}>{t('Columna {name}', { name: c.name })}</option>)}
-          </select>
+          <SearchSelect value={source(params[p.name])}
+            onChange={v => setParams(s => ({ ...s, [p.name]: v === 'ask' ? { ask: true } : v === 'value' ? { value: '' } : { column: v.slice(4) } }))}
+            options={[
+              { value: 'ask', label: t('Preguntar al ejecutar') },
+              { value: 'value', label: t('Valor fijo') },
+              ...table.columns.filter(c => c.isSelectable).map(c => ({ value: `col:${c.name}`, label: t('Columna {name}', { name: c.name }), hint: c.nativeType })),
+            ]} />
           {source(params[p.name]) === 'value' && (
             <input value={params[p.name]?.value ?? ''} onChange={e => setParams(s => ({ ...s, [p.name]: { value: e.target.value } }))} />
           )}
@@ -485,22 +486,16 @@ function VirtualForeignKeys({ conn, table, value, errors, onChange }: {
         </div>
       ))}
       <div className="row">
-        <select value={ref} onChange={e => chooseTable(e.target.value)}>
-          <option value="">{t('Tabla…')}</option>
-          {tables.data?.tables.map(x => <option key={`${x.schema}.${x.name}`} value={`${x.schema}.${x.name}`}>{x.schema}.{x.name}</option>)}
-        </select>
+        <SearchSelect value={ref} onChange={chooseTable} placeholder={t('Tabla…')}
+          options={(tables.data?.tables ?? []).map(x => ({ value: `${x.schema}.${x.name}`, label: `${x.schema}.${x.name}`, hint: labelOf(x) !== x.name ? labelOf(x) : undefined }))} />
       </div>
       {pairs.map((p, i) => (
         <div key={i} className="row">
-          <select value={p.col} onChange={e => setPair(i, { col: e.target.value })}>
-            <option value="">{t('Columna…')}</option>
-            {table.columns.filter(c => !declared.has(c.name)).map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-          </select>
+          <SearchSelect value={p.col} onChange={v => setPair(i, { col: v })} placeholder={t('Columna…')}
+            options={table.columns.filter(c => !declared.has(c.name)).map(c => ({ value: c.name, label: c.name, hint: c.nativeType }))} />
           <span>→</span>
-          <select value={p.refCol} disabled={!target.data} onChange={e => setPair(i, { refCol: e.target.value })}>
-            <option value="">{t('Columna…')}</option>
-            {target.data?.columns.map(c => <option key={c.name} value={c.name}>{c.name}{c.isPrimaryKey ? ' (PK)' : ''}</option>)}
-          </select>
+          <SearchSelect value={p.refCol} disabled={!target.data} onChange={v => setPair(i, { refCol: v })} placeholder={t('Columna…')}
+            options={(target.data?.columns ?? []).map(c => ({ value: c.name, label: c.name, hint: c.isPrimaryKey ? 'PK' : c.nativeType }))} />
           {pairs.length > 1 && <button className="link danger" onClick={() => setPairs(s => s.filter((_, j) => j !== i))}>{t('Quitar')}</button>}
         </div>
       ))}
@@ -631,19 +626,15 @@ function ColumnEditor({ column: c, value: v, errors, first, last, onMove, onChan
               {isText && (
                 <label>
                   <span className="field-label">{t('Control')}</span>
-                  <select value={v.widget ?? ''} onChange={e => onChange({ widget: e.target.value })}>
-                    <option value="">{t('(automático)')}</option>
-                    {WIDGETS.filter(w => w !== 'money').map(w => <option key={w} value={w}>{w}</option>)}
-                  </select>
+                  <SearchSelect value={v.widget ?? ''} onChange={w => onChange({ widget: w })}
+                    options={[{ value: '', label: t('(automático)') }, ...WIDGETS.filter(w => w !== 'money').map(w => ({ value: w, label: w }))]} />
                 </label>
               )}
               {isNumber && (
                 <label>
                   <span className="field-label">{t('Control')}</span>
-                  <select value={v.widget ?? ''} onChange={e => onChange({ widget: e.target.value })}>
-                    <option value="">{t('(automático)')}</option>
-                    <option value="money">money</option>
-                  </select>
+                  <SearchSelect value={v.widget ?? ''} onChange={w => onChange({ widget: w })}
+                    options={[{ value: '', label: t('(automático)') }, { value: 'money', label: 'money' }]} />
                 </label>
               )}
               {isText && (

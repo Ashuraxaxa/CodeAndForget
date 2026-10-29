@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import type { LookupItem, ManyToManyLink } from '../api/types'
 import { useDebounce } from '../lib/useDebounce'
 import { useT } from '../i18n'
+import { ComboBox } from './Combo'
 
 /**
  * Selector múltiple de una relación N:M (P-015), p. ej. las etiquetas de un producto:
@@ -47,33 +48,16 @@ export function ManyToManySelect({ conn, link, value, disabled, id, onChange }: 
         </div>
       )}
       {!disabled && (
-        <div className="fk-select">
-          <input
-            id={id}
-            value={search}
-            placeholder={t('Agregar {table}…', { table: link.targetTable })}
-            onFocus={() => setOpen(true)}
-            onBlur={() => setTimeout(() => setOpen(false), 150)}
-            onClick={() => setOpen(true)}
-            onChange={e => { setSearch(e.target.value); setOpen(true) }}
-            autoComplete="off"
-          />
-          {open && (
-            <ul className="fk-options">
-              {isFetching && !data && <li className="muted">{t('Buscando…')}</li>}
-              {options?.length === 0 && <li className="muted">{t('Sin resultados')}</li>}
-              {options?.map(item => (
-                <li key={String(item.value)}>
-                  <button type="button" onMouseDown={e => e.preventDefault()}
-                    onClick={() => { onChange([...value, item]); setSearch(''); setOpen(false) }}>
-                    {item.label ?? String(item.value)}
-                    <span className="muted small"> · {String(item.value)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <ComboBox
+          id={id}
+          value=""
+          placeholder={t('Agregar {table}…', { table: link.targetTable })}
+          loading={isFetching}
+          options={(open ? options ?? [] : []).map(item => ({ value: item, label: item.label ?? String(item.value), hint: String(item.value), key: String(item.value) }))}
+          query={search}
+          onQueryChange={q => { setSearch(q); setOpen(true) }}
+          onPick={o => { onChange([...value, o.value]); setSearch('') }}
+        />
       )}
     </div>
   )

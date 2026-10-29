@@ -12,8 +12,13 @@ import { TreeView } from '../components/TreeView'
 import { useT } from '../i18n'
 import { StoredImage } from '../components/ImagePreview'
 import { Pager } from '../components/Pager'
+import { SearchSelect } from '../components/Combo'
 
 const PAGE_SIZES = [10, 25, 50, 100]
+/** Formatos de exportación (D-057). */
+const EXPORT_FORMATS = [
+  { value: 'csv', label: 'CSV' }, { value: 'xlsx', label: 'Excel' }, { value: 'json', label: 'JSON' }, { value: 'xml', label: 'XML' },
+]
 
 /** Grilla genérica: orden, filtros por columna, búsqueda, paginación y acciones por fila. */
 export function TablePage() {
@@ -180,14 +185,10 @@ export function Grid({ conn, meta, fixed, returnTo }: {
         </div>
         <div className="actions">
           <label className="input-icon search"><Search size={15} aria-hidden /><input placeholder={t('Buscar en textos…')} value={search} onChange={e => setSearch(e.target.value)} /></label>
-          {meta.canExport && <label className="input-icon export-wrap"><Download size={15} aria-hidden /><select className="export" value="" title={t('Exportar lo que muestra la grilla (filtros, búsqueda y orden)')}
-            disabled={exporting} onChange={e => e.target.value && exportAs(e.target.value as TransferFormat)}>
-            <option value="">{exporting ? t('Exportando…') : t('Exportar')}</option>
-            <option value="csv">CSV</option>
-            <option value="xlsx">Excel</option>
-            <option value="json">JSON</option>
-            <option value="xml">XML</option>
-          </select></label>}
+          {meta.canExport && <label className="input-icon export-wrap"><Download size={15} aria-hidden />
+            <SearchSelect className="export" value="" disabled={exporting} title={t('Exportar lo que muestra la grilla (filtros, búsqueda y orden)')}
+              placeholder={exporting ? t('Exportando…') : t('Exportar')} ariaLabel={t('Exportar')}
+              onChange={v => v && exportAs(v as TransferFormat)} options={EXPORT_FORMATS} /></label>}
           {meta.canImport && <Link className="button" to={`${base}/import`}><Upload size={16} aria-hidden />{t('Importar')}</Link>}
           {canConfigure && <Link className="button" to={`${base}/config`} title={t('Ajustar etiquetas, columnas y validaciones')}><Settings2 size={16} aria-hidden />{t('Configurar')}</Link>}
           {meta.canCreate && <Link className="button primary" to={newUrl}><Plus size={16} aria-hidden />{t('Nuevo')}</Link>}
@@ -305,9 +306,8 @@ export function Grid({ conn, meta, fixed, returnTo }: {
       </div>
 
       <Pager page={page} pages={pages} lastUnknown={lastUnknown} busy={loading} onGo={goTo}>
-        <select value={pageSize} aria-label={t('Registros por página')} onChange={e => setPageSize(Number(e.target.value))}>
-          {PAGE_SIZES.map(s => <option key={s} value={s}>{t('{n} por página', { n: s })}</option>)}
-        </select>
+        <SearchSelect className="narrow" value={String(pageSize)} ariaLabel={t('Registros por página')} onChange={v => setPageSize(Number(v))}
+          options={PAGE_SIZES.map(n => ({ value: String(n), label: t('{n} por página', { n }) }))} />
       </Pager>
       </>}
     </div>
@@ -320,19 +320,14 @@ function FilterInput({ column: c, isForeignKey, value, onChange }: {
   const t = useT()
   if (c.type === 'Boolean') {
     return (
-      <select value={value} onChange={e => onChange(e.target.value)}>
-        <option value="">{t('Todos')}</option>
-        <option value="true">{t('Sí')}</option>
-        <option value="false">{t('No')}</option>
-      </select>
+      <SearchSelect value={value} onChange={onChange} ariaLabel={labelOf(c)}
+        options={[{ value: '', label: t('Todos') }, { value: 'true', label: t('Sí') }, { value: 'false', label: t('No') }]} />
     )
   }
   if (c.type === 'Enum') {
     return (
-      <select value={value} onChange={e => onChange(e.target.value)}>
-        <option value="">{t('Todos')}</option>
-        {c.enumValues?.map(v => <option key={v} value={v}>{v}</option>)}
-      </select>
+      <SearchSelect value={value} onChange={onChange} ariaLabel={labelOf(c)}
+        options={[{ value: '', label: t('Todos') }, ...(c.enumValues ?? []).map(v => ({ value: v, label: v }))]} />
     )
   }
   const contains = c.type === 'String' || c.type === 'Text'

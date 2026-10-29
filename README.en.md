@@ -6,7 +6,7 @@
 No screens or queries to write: the app reads the schema and builds the list, filters, form and permissions.
 
 [![CI](https://github.com/Ashuraxaxa/CodeAndForget/actions/workflows/ci.yml/badge.svg)](https://github.com/Ashuraxaxa/CodeAndForget/actions/workflows/ci.yml)
-![.NET 8](https://img.shields.io/badge/.NET-8-512BD4?logo=dotnet&logoColor=white)
+![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
 ![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
 ![SQL Server · PostgreSQL · MySQL · MariaDB](https://img.shields.io/badge/engines-SQL%20Server%20·%20PostgreSQL%20·%20MySQL%20·%20MariaDB-2f6feb)
 
@@ -94,13 +94,13 @@ For a real installation (Docker, Kubernetes, IIS, Windows service or systemd): [
 `SELECT`, `INSERT`, `UPDATE` and `DELETE` on the schemas to expose. If the database denies a permission, the app says
 so and what to ask the DBA for.
 
-**To run the service:** Docker 20+, or the ASP.NET Core 8 runtime without Docker.
+**To run the service:** Docker 20+, or the ASP.NET Core 10 runtime without Docker.
 
 ## How it works
 
 ```mermaid
 flowchart LR
-    UI["React + Vite<br/>dynamic grid and form"] -->|/api| API[".NET 8 API"]
+    UI["React + Vite<br/>dynamic grid and form"] -->|/api| API[".NET 10 API"]
     API --> Schema["SchemaService<br/>cached schema"]
     API --> Crud["CrudService"]
     Crud --> QB["QueryBuilder + dialect"]
@@ -134,7 +134,7 @@ Every key and its default value: [docs/configuracion.md](docs/configuracion.md).
 
 ## Development
 
-Requirements: .NET 8 SDK, Node 20+ and Docker (for the integration tests).
+Requirements: .NET 10 SDK, Node 20+ and Docker (for the integration tests).
 
 ```bash
 cd backend && dotnet run --project src/Mantenedores.Api   # API on :5080 (admin / admin in Development)

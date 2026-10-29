@@ -24,7 +24,7 @@
 
 ## Backend (.NET)
 
-- .NET 8, `Nullable` habilitado y namespaces de archivo.
+- .NET 10, `Nullable` habilitado y namespaces de archivo.
 - Identificadores en inglés; comentarios, mensajes y textos de error en español.
 - Errores de negocio con las excepciones de `Mantenedores.Core.Errors`. `ErrorHandler` las traduce a ProblemDetails:
   - `ValidationException` → 400 con errores por campo.

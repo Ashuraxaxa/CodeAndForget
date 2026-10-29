@@ -5,7 +5,7 @@
     desde su carpeta de salida, como se cargaría un plugin real. Ejemplo de .csproj para un plugin propio.
   -->
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Copia las dependencias (el driver) a la salida y genera el .deps.json que lee el cargador. -->

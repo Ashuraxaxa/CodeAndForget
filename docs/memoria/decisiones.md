@@ -832,6 +832,15 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Una librería de componentes (Tailwind + shadcn/ui, Mantine): obligaba a rehacer casi todas las pantallas y sumaba peso y dependencias para un resultado parecido.
   - Seguir solo a `prefers-color-scheme` como antes: no dejaba elegir.
 
+### D-094 · Backend en .NET 10
+- **Estado:** Vigente · 2026-10-29 (P-106, pedido del dueño)
+- **Qué:**
+  - Todos los proyectos en `net10.0` (LTS, soporte hasta 2028). Los paquetes de Microsoft van a 10.0.13; la imagen Docker usa `sdk:10.0` y `aspnet:10.0`, y la CI usa `10.0.x`.
+  - **Paquetes vulnerables:** el SDK 10 audita también las dependencias indirectas. Encontró `System.IO.Packaging` 8.0.0 (lo trae OpenXml) y `System.Security.Cryptography.Pkcs` 9.0.18 (lo trae SqlClient), con vulnerabilidades conocidas que ya estaban con .NET 8. Se fijan a 10.0.13 con referencia directa.
+  - **APIs obsoletas en .NET 10:** `KnownNetworks` pasa a `KnownIPNetworks` con `System.Net.IPNetwork`, que rechaza CIDR con bits de host; `HostingSetup.ParseNetwork` los limpia para no romper configuraciones (`192.168.1.5/24` → `192.168.1.0/24`). El certificado de DataProtection se carga con `X509CertificateLoader`.
+  - El host de prueba de Duende pasa a .NET 10 con Duende 8.0.9; se repitió la prueba en vivo.
+- **Descartado:** quedarse en .NET 8, que tiene soporte solo hasta noviembre de 2026.
+
 ---
 
 ## Propuestas (aún no decididas)

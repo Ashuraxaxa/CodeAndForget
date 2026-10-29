@@ -6,7 +6,7 @@
 Sin escribir pantallas ni consultas: la app lee el esquema y genera listado, filtros, formulario y permisos.
 
 [![CI](https://github.com/Ashuraxaxa/CodeAndForget/actions/workflows/ci.yml/badge.svg)](https://github.com/Ashuraxaxa/CodeAndForget/actions/workflows/ci.yml)
-![.NET 8](https://img.shields.io/badge/.NET-8-512BD4?logo=dotnet&logoColor=white)
+![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
 ![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
 ![SQL Server · PostgreSQL · MySQL · MariaDB](https://img.shields.io/badge/motores-SQL%20Server%20·%20PostgreSQL%20·%20MySQL%20·%20MariaDB-2f6feb)
 
@@ -92,13 +92,13 @@ Para instalarla en serio (Docker, Kubernetes, IIS, servicio de Windows o systemd
 `SELECT`, `INSERT`, `UPDATE` y `DELETE` sobre los esquemas a exponer. Si a la base le falta un permiso, la app lo
 dice y explica qué pedirle al DBA.
 
-**Para ejecutar el servicio:** Docker 20+, o el runtime de ASP.NET Core 8 sin Docker.
+**Para ejecutar el servicio:** Docker 20+, o el runtime de ASP.NET Core 10 sin Docker.
 
 ## Cómo funciona
 
 ```mermaid
 flowchart LR
-    UI["React + Vite<br/>grilla y formulario dinámicos"] -->|/api| API["API .NET 8"]
+    UI["React + Vite<br/>grilla y formulario dinámicos"] -->|/api| API["API .NET 10"]
     API --> Schema["SchemaService<br/>esquema en caché"]
     API --> Crud["CrudService"]
     Crud --> QB["QueryBuilder + dialecto"]
@@ -132,7 +132,7 @@ Todas las claves y sus valores por defecto: [docs/configuracion.md](docs/configu
 
 ## Desarrollo
 
-Requisitos: .NET 8 SDK, Node 20+ y Docker (para las pruebas de integración).
+Requisitos: .NET 10 SDK, Node 20+ y Docker (para las pruebas de integración).
 
 ```bash
 cd backend && dotnet run --project src/Mantenedores.Api   # API en :5080 (admin / admin en Development)

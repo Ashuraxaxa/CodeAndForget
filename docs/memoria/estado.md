@@ -5,14 +5,14 @@
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Fase 3 decidida con el dueño (D-062 a D-066) y en curso: migraciones con bloqueo y secretos (PR #20), perfiles y permisos (PR #21) auditoría de cambios (PR #22) y concurrencia optimista (PR #23). **Fase 3 completa.** Fase 4 en curso: tope del pool y límites de uso (PR #24), observabilidad y pruebas de carga (PR #25). tablas grandes (PR #26). Fase 5: avisos por correo por tabla (PR #27). Tanda 1 de mejoras: filtro de FK por nombre, permisos de la base, fechas y nombres visibles (PR #28). Importar con actualización y FK compuestas (PR #29). Interfaz en español, inglés y ruso (PR #30). Tanda 2 de operación: avisos entre instancias, cambios de esquema detectados solos y health check sin curl (PR #31). Tanda 3, parte A: auditoría con nombres, exportación y filtro por perfil, perfiles copiables y mensajes del servidor traducidos (PR #32). Tanda 3, parte B: árbol con arrastre, N:M en pestaña, imágenes y WKT, editor con FK compuestas y orden arrastrando (PR #33). Lote A de pendientes: índices únicos, búsqueda sin CAST, tipos propios de PG, bloqueo de fila, PostGIS y SRID (PR #34). Lote B: nombres por idioma, renovación silenciosa, acciones con procedimientos y paginación por clave (PR #35). Lote C: Redis opcional, motores como plugins y Duende probado en vivo (PR #36). Interfaz renovada con tema día/noche y README en español e inglés (PR #37). **Sin pendientes de código**; quedan P-097 (dueño) y P-062 (a pedido).
+**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Fase 3 decidida con el dueño (D-062 a D-066) y en curso: migraciones con bloqueo y secretos (PR #20), perfiles y permisos (PR #21) auditoría de cambios (PR #22) y concurrencia optimista (PR #23). **Fase 3 completa.** Fase 4 en curso: tope del pool y límites de uso (PR #24), observabilidad y pruebas de carga (PR #25). tablas grandes (PR #26). Fase 5: avisos por correo por tabla (PR #27). Tanda 1 de mejoras: filtro de FK por nombre, permisos de la base, fechas y nombres visibles (PR #28). Importar con actualización y FK compuestas (PR #29). Interfaz en español, inglés y ruso (PR #30). Tanda 2 de operación: avisos entre instancias, cambios de esquema detectados solos y health check sin curl (PR #31). Tanda 3, parte A: auditoría con nombres, exportación y filtro por perfil, perfiles copiables y mensajes del servidor traducidos (PR #32). Tanda 3, parte B: árbol con arrastre, N:M en pestaña, imágenes y WKT, editor con FK compuestas y orden arrastrando (PR #33). Lote A de pendientes: índices únicos, búsqueda sin CAST, tipos propios de PG, bloqueo de fila, PostGIS y SRID (PR #34). Lote B: nombres por idioma, renovación silenciosa, acciones con procedimientos y paginación por clave (PR #35). Lote C: Redis opcional, motores como plugins y Duende probado en vivo (PR #36). Interfaz renovada con tema día/noche y README en español e inglés (PR #37). Backend en .NET 10 (PR #38). **Sin pendientes de código**; quedan P-097 (dueño) y P-062 (a pedido).
 
 ## Ramas y PR
 
 | Rama | Estado |
 |---|---|
-| `main` | Rama por defecto: PR #1 a #36 fusionados. |
-| `feature/ui-moderna` | PR #37: README nuevo (es/en), tema día/noche, íconos y estilos renovados. |
+| `main` | Rama por defecto: PR #1 a #37 fusionados. |
+| `feature/net10` | PR #38: backend en .NET 10, paquetes vulnerables corregidos. |
 
 ## Qué funciona hoy
 
@@ -113,7 +113,7 @@ Ver detalle en `pendientes.md`:
 
 ## Notas del entorno de desarrollo remoto (sesiones de Claude Code en la nube)
 
-- .NET 8 no viene instalado: `apt-get update && apt-get install -y dotnet-sdk-8.0`.
+- El SDK de .NET 10 no viene instalado y el proxy bloquea `builds.dotnet.microsoft.com`. Se copia de la imagen oficial: `docker pull mcr.microsoft.com/dotnet/sdk:10.0`, `docker create` y `docker cp <id>:/usr/share/dotnet /usr/share/dotnet10`; luego `/usr/share/dotnet10/dotnet build`.
 - Postgres 16 local disponible en `/usr/lib/postgresql/16/bin` (`initdb` + `pg_ctl` como usuario `postgres`).
 - quay.io está bloqueado: Keycloak se baja como `mirror.gcr.io/keycloak/keycloak:26.0`.
 - Docker requiere iniciar el daemon a mano (`dockerd &`); si no arranca por "process with PID … is still running", borrar `/var/run/docker.pid`. Docker Hub responde 429 (límite de descargas): usar el espejo `mirror.gcr.io/library/<imagen>` (postgres, mysql, mariadb) vía `MANTENEDORES_*_IMAGE` y `TESTCONTAINERS_RYUK_DISABLED=true`. Las imágenes de SQL Server (mcr.microsoft.com) bajan sin problema.

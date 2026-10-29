@@ -148,7 +148,7 @@ Un motor también puede ir fuera del repositorio, como plugin (P-064, D-092): un
 `Mantenedores.Core` y se copia a la carpeta de `Providers:PluginsDirectory` (ver [configuracion.md](configuracion.md#motores-como-plugins-providers)).
 Ejemplo completo y probado: `backend/tests/Mantenedores.TestPlugin` (un motor "PgPlugin" que usa PostgreSQL por dentro).
 
-1. Proyecto de biblioteca `net8.0` con `<EnableDynamicLoading>true</EnableDynamicLoading>` (copia el driver a la
+1. Proyecto de biblioteca `net10.0` con `<EnableDynamicLoading>true</EnableDynamicLoading>` (copia el driver a la
    salida y genera el `.deps.json` que lee el cargador).
 2. Referencia a `Mantenedores.Core` con `<Private>false</Private>` y `<ExcludeAssets>runtime</ExcludeAssets>`: Core
    lo pone la app. Compile contra la **misma versión** de Core que la app donde se instala.

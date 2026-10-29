@@ -544,3 +544,44 @@ button.link { display: inline-flex; align-items: center; gap: 4px; }
 .grid tbody tr:hover .actions-col { background: var(--hover); }
 .grid tbody tr[title] { cursor: default; }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: spin 1.6s linear infinite !important; } .grid-loader { opacity: 1; } }
+
+/* ---------- Combos con búsqueda (P-108, D-096) ---------- */
+.combo { position: relative; display: flex; align-items: center; min-width: 0; flex: 1 1 auto; }
+.combo > input { padding-right: 30px; text-overflow: ellipsis; cursor: pointer; }
+.combo > input:focus { cursor: text; }
+.combo-chevron { position: absolute; right: 9px; color: var(--muted); cursor: pointer; transition: transform 0.15s; }
+.combo > input[aria-expanded='true'] ~ .combo-chevron { transform: rotate(180deg); color: var(--primary); }
+.combo-clear {
+  position: absolute; right: 4px; border: none; background: none; box-shadow: none; min-height: 0;
+  width: 24px; height: 24px; padding: 0; color: var(--muted); border-radius: var(--radius-sm);
+}
+.combo-clear:hover { color: var(--danger); background: var(--danger-soft); }
+.combo.is-disabled .combo-chevron { opacity: 0.5; cursor: default; }
+.combo.narrow { flex: 0 0 auto; width: 150px; }
+.combo.lang { flex: 0 0 auto; width: 118px; }
+.combo.lang > input { min-height: 32px; padding: 4px 26px 4px 12px; font-size: 0.85rem; border-radius: 999px; background: var(--surface-2); border-color: var(--border); }
+.combo.export { flex: 0 0 auto; width: 136px; }
+.combo.export > input { padding-left: 32px; font-weight: 500; }
+.combo.export > input::placeholder { color: var(--text); opacity: 1; }
+.export-wrap > .combo { position: static; }
+.export-wrap { position: relative; }
+.export-wrap > svg { z-index: 1; }
+.grid tr.filters .combo > input { padding: 4px 26px 4px 8px; min-height: 30px; font-size: 0.85rem; min-width: 90px; }
+.row > .combo, .rule-head > .combo { flex: 0 1 260px; }
+.combo-options {
+  position: fixed; z-index: 1000; margin: 0; padding: 4px; list-style: none; overflow-y: auto;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow-lg); font-size: 0.92rem;
+}
+.combo-option {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 7px 10px; border-radius: var(--radius-sm); cursor: pointer; line-height: 1.3;
+}
+.combo-option.active { background: var(--hover); }
+.combo-option.chosen { color: var(--primary); font-weight: 600; }
+.combo-option.disabled { opacity: 0.45; cursor: not-allowed; }
+.combo-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combo-hint { flex: none; color: var(--muted); font-size: 0.8rem; font-weight: 400; }
+.combo-note { padding: 7px 10px; color: var(--muted); font-size: 0.85rem; cursor: default; }
+/* Si queda algún <select> nativo, sus opciones siguen al tema (en Windows el fondo transparente se veía blanco). */
+select option { background-color: var(--surface); color: var(--text); }

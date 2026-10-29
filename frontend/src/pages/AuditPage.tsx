@@ -1,4 +1,6 @@
+import { Download } from 'lucide-react'
 import { Pager } from '../components/Pager'
+import { SearchSelect } from '../components/Combo'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -63,27 +65,21 @@ export function AuditPage() {
         <h1>{t('Auditoría')}</h1>
         <div className="actions">
           <span className="muted small">{t('{n} cambios', { n: total })}</span>
-          <select className="export" value="" title={t('Exportar lo que muestran los filtros')} disabled={exporting || total === 0}
-            onChange={e => e.target.value && exportAs(e.target.value as TransferFormat)}>
-            <option value="">{exporting ? t('Exportando…') : t('Exportar')}</option>
-            <option value="csv">CSV</option>
-            <option value="xlsx">Excel</option>
-          </select>
+          <label className="input-icon export-wrap"><Download size={15} aria-hidden />
+            <SearchSelect className="export" value="" disabled={exporting || total === 0} title={t('Exportar lo que muestran los filtros')}
+              placeholder={exporting ? t('Exportando…') : t('Exportar')} ariaLabel={t('Exportar')}
+              onChange={v => v && exportAs(v as TransferFormat)} options={[{ value: 'csv', label: 'CSV' }, { value: 'xlsx', label: 'Excel' }]} /></label>
         </div>
       </div>
 
       <div className="card audit-filters">
-        <select value={params.get('conn') ?? ''} onChange={e => set('conn', e.target.value)} aria-label={t('Conexión')}>
-          <option value="">{t('Todas las conexiones')}</option>
-          {connections.data?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        <SearchSelect value={params.get('conn') ?? ''} onChange={v => set('conn', v)} ariaLabel={t('Conexión')}
+          options={[{ value: '', label: t('Todas las conexiones') }, ...(connections.data ?? []).map(c => ({ value: c.id, label: c.name, hint: c.id }))]} />
         <FilterText label={t('Esquema')} value={params.get('schema') ?? ''} onChange={v => set('schema', v)} />
         <FilterText label={t('Tabla')} value={params.get('table') ?? ''} onChange={v => set('table', v)} />
         <FilterText label={t('Usuario')} value={params.get('user') ?? ''} onChange={v => set('user', v)} />
-        <select value={params.get('op') ?? ''} onChange={e => set('op', e.target.value)} aria-label={t('Operación')}>
-          <option value="">{t('Todas las operaciones')}</option>
-          {Object.entries(OPS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
+        <SearchSelect value={params.get('op') ?? ''} onChange={v => set('op', v)} ariaLabel={t('Operación')}
+          options={[{ value: '', label: t('Todas las operaciones') }, ...Object.entries(OPS).map(([k, v]) => ({ value: k, label: v }))]} />
         <label className="check">{t('Desde')} <input type="date" value={params.get('from') ?? ''} onChange={e => set('from', e.target.value)} /></label>
         <label className="check">{t('Hasta')} <input type="date" value={params.get('to') ?? ''} onChange={e => set('to', e.target.value)} /></label>
         {keyFilter.length > 0 && (

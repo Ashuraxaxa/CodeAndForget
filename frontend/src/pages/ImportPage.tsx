@@ -1,3 +1,4 @@
+import { SearchSelect } from '../components/Combo'
 import { ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -112,14 +113,15 @@ export function ImportPage() {
                     <tr key={h}>
                       <td><code>{h}</code></td>
                       <td>
-                        <select value={r.mapping[h] ?? ''} onChange={e => remap(h, e.target.value)}>
-                          <option value="">{t('(ignorar)')}</option>
-                          {r.targets.map(c => (
-                            <option key={c.name} value={c.name}>
-                              {c.label ? `${c.label} (${c.name})` : c.name}{c.required ? ' *' : ''}{c.isKey ? ' · ' + t('clave') : ''}
-                            </option>
-                          ))}
-                        </select>
+                        <SearchSelect value={r.mapping[h] ?? ''} onChange={v => remap(h, v)} ariaLabel={h}
+                          options={[
+                            { value: '', label: t('(ignorar)') },
+                            ...r.targets.map(c => ({
+                              value: c.name,
+                              label: `${c.label ? `${c.label} (${c.name})` : c.name}${c.required ? ' *' : ''}`,
+                              hint: c.isKey ? t('clave') : undefined,
+                            })),
+                          ]} />
                       </td>
                     </tr>
                   ))}

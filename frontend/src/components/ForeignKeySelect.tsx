@@ -5,6 +5,7 @@ import { useTableLabels } from '../lib/useTableLabels'
 import type { ForeignKey } from '../api/types'
 import { useDebounce } from '../lib/useDebounce'
 import { useT } from '../i18n'
+import { ComboBox } from './Combo'
 
 interface Props {
   conn: string
@@ -50,39 +51,20 @@ export function ForeignKeySelect({ conn, fk, value, label, nullable, disabled, i
   const current = value == null || value === '' ? '' : label ?? String(value)
 
   return (
-    <div className="fk-select">
-      <input
-        id={id}
-        value={open ? search : current}
-        placeholder={open ? t('Escribe para buscar…') : t('Seleccionar {table}…', { table: tableLabel(fk.refSchema, fk.refTable) })}
-        disabled={disabled}
-        onFocus={() => { setSearch(''); setOpen(true) }}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        onChange={e => setSearch(e.target.value)}
-        autoComplete="off"
-      />
-      {nullable && current && !disabled && (
-        <button type="button" className="fk-clear" title={t('Quitar')} onClick={() => onChange(null, null)}>×</button>
-      )}
-      {open && (
-        <ul className="fk-options">
-          {isFetching && !data && <li className="muted">{t('Buscando…')}</li>}
-          {data?.length === 0 && <li className="muted">{t('Sin resultados')}</li>}
-          {data?.map(item => (
-            <li key={String(item.value)}>
-              <button
-                type="button"
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => { onChange(item.value, item.label); setOpen(false) }}
-              >
-                {item.label ?? String(item.value)}
-                <span className="muted small"> · {String(item.value)}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <ComboBox
+      id={id}
+      value={current}
+      title={current ? `${current} · ${String(value)}` : undefined}
+      placeholder={t('Seleccionar {table}…', { table: tableLabel(fk.refSchema, fk.refTable) })}
+      disabled={disabled}
+      loading={isFetching}
+      options={(open ? data ?? [] : []).map(item => ({ value: item.value, label: item.label ?? String(item.value), hint: String(item.value) }))}
+      query={search}
+      onQueryChange={q => { setSearch(q); setOpen(true) }}
+      onPick={o => onChange(o.value, o.label)}
+      clearable={nullable}
+      onClear={() => onChange(null, null)}
+    />
   )
 }
 
@@ -122,39 +104,24 @@ export function CompositeForeignKeySelect({ conn, fk, values, label, nullable, d
 
   return (
     <div className="fk-select">
-      <input
-        value={open ? search : current}
-        placeholder={open ? t('Escribe para buscar…') : t('Seleccionar {table}…', { table: tableLabel(fk.refSchema, fk.refTable) })}
-        disabled={disabled}
-        onFocus={() => { setSearch(''); setOpen(true) }}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        onChange={e => setSearch(e.target.value)}
-        autoComplete="off"
+      <ComboBox
+        value={current}
         title={keyText}
+        placeholder={t('Seleccionar {table}…', { table: tableLabel(fk.refSchema, fk.refTable) })}
+        disabled={disabled}
+        loading={isFetching}
+        options={(open ? data ?? [] : []).map(item => {
+          const local = toLocal(item.value)
+          const text = Object.values(local).join(' · ')
+          return { value: local, label: item.label ?? text, hint: text, key: text }
+        })}
+        query={search}
+        onQueryChange={q => { setSearch(q); setOpen(true) }}
+        onPick={o => onChange(o.value, o.label)}
+        clearable={nullable}
+        onClear={() => onChange(Object.fromEntries(fk.columns.map(c => [c, ''])), null)}
       />
-      {nullable && current && !disabled && (
-        <button type="button" className="fk-clear" title={t('Quitar')}
-          onClick={() => onChange(Object.fromEntries(fk.columns.map(c => [c, ''])), null)}>×</button>
-      )}
-      {open && (
-        <ul className="fk-options">
-          {isFetching && !data && <li className="muted">{t('Buscando…')}</li>}
-          {data?.length === 0 && <li className="muted">{t('Sin resultados')}</li>}
-          {data?.map(item => {
-            const local = toLocal(item.value)
-            const text = Object.values(local).join(' · ')
-            return (
-              <li key={text}>
-                <button type="button" onMouseDown={e => e.preventDefault()}
-                  onClick={() => { onChange(local, item.label); setOpen(false) }}>
-                  {item.label ?? text}<span className="muted small"> · {text}</span>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-      {keyText && !open && <span className="hint">{fk.columns.map(c => `${c}: ${values[c] ?? ''}`).join(' · ')}</span>}
+      {keyText && <span className="hint">{fk.columns.map(c => `${c}: ${values[c] ?? ''}`).join(' · ')}</span>}
     </div>
   )
 }

@@ -356,4 +356,6 @@ export const ru: Messages = {
   'Página {page}': 'Страница {page}',
   'Registros por página': 'Записей на странице',
   'Última página': 'Последняя страница',
+  // Combos con búsqueda (P-108)
+  '{n} opciones más: siga escribiendo para acotar': 'Ещё {n} вариантов: продолжайте вводить, чтобы сузить список',
 }

@@ -857,6 +857,23 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Calcular la última página con el total estimado: podría mostrar una página vacía o equivocada.
   - Abrir el registro con un solo clic: se abriría sin querer al seleccionar texto.
 
+### D-096 · Un solo combo con búsqueda para todas las listas
+- **Estado:** Vigente · 2026-10-29 (P-108, pedido del dueño: "todos los controles de ese tipo con la misma configuración")
+- **Qué:**
+  - `components/Combo.tsx` tiene la base común `ComboBox`, sobre la que se arman tres combos:
+    - `SearchSelect`, para listas conocidas; filtra en el navegador, sin tildes ni mayúsculas, por todas las palabras escritas;
+    - `SuggestInput`, para texto libre con sugerencias (tablas y columnas de los perfiles, donde vale `*`);
+    - los de FK, simples, compuestas y N:M, que buscan en el servidor.
+  - Reemplaza a todos los `<select>` y `<datalist>`: formularios, filtros de la grilla, configurar, seguridad, auditoría, importar, conexiones, idioma, registros por página y "Exportar".
+  - **Uso:** se escribe para filtrar y se elige con el mouse o con ↑ ↓ Enter; Esc cierra.
+  - **Lista:** va en un portal con posición fija, así no la corta una grilla con scroll; se abre hacia arriba si no hay lugar abajo.
+  - **Muchas opciones:** se dibujan hasta 200, con aviso de seguir escribiendo.
+  - **Formularios:** `required` sigue funcionando.
+  - **Causa del texto invisible:** las opciones nativas quedaban con fondo transparente, y en Windows se dibujaban blancas con el texto claro del modo noche. Se fija `select option` con los colores del tema por si queda alguno.
+- **Descartado:**
+  - Una librería de combos (react-select, Downshift): suma dependencias y estilos propios para lo que resuelven unas 200 líneas con los colores de la app.
+  - Mantener `<select>` en las listas cortas: el dueño pidió el mismo control en todas.
+
 ---
 
 ## Propuestas (aún no decididas)

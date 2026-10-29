@@ -841,6 +841,22 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - El host de prueba de Duende pasa a .NET 10 con Duende 8.0.9; se repitió la prueba en vivo.
 - **Descartado:** quedarse en .NET 8, que tiene soporte solo hasta noviembre de 2026.
 
+### D-095 · Navegación de la grilla: paginador completo y acciones a la izquierda
+- **Estado:** Vigente · 2026-10-29 (P-107, pedido del dueño)
+- **Qué:**
+  - **Paginador** (`components/Pager.tsx`, también en la auditoría):
+    - botones de primera, anterior, siguiente y última, y números alrededor de la actual (`1 … 28 29 [30] 31 32 … 50`);
+    - un campo "Ir a página";
+    - en el teléfono quedan solo las flechas y la página actual.
+  - **Siguiente** sigue usando la clave de la última fila (D-089). Un salto pide la página directo con OFFSET, más lento en tablas enormes (en 1 millón de filas, la página 39.999 tarda unos segundos en frío).
+  - **Total estimado o con tope** (D-072): no se ofrece "Última" porque no se sabe cuál es; "Siguiente" sigue mientras la página venga llena.
+  - **Acciones** (ver/editar/eliminar): primera columna, fija al desplazar la grilla hacia los lados. El doble clic en la fila abre el registro (ya existía); ahora se avisa al pasar el mouse.
+  - **Indicador "Cargando…"** sobre la grilla mientras llega una página. Aparece a los 250 ms, para no parpadear en cargas rápidas.
+- **Descartado:**
+  - Dejar las acciones a la derecha fijas: el dueño prefirió verlas de entrada.
+  - Calcular la última página con el total estimado: podría mostrar una página vacía o equivocada.
+  - Abrir el registro con un solo clic: se abriría sin querer al seleccionar texto.
+
 ---
 
 ## Propuestas (aún no decididas)

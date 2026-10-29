@@ -311,11 +311,8 @@ a.chip:hover { border-color: var(--primary); background: var(--primary-soft); }
 .grid .cell { display: inline-block; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
 .grid td.t-integer, .grid td.t-decimal { text-align: right; font-variant-numeric: tabular-nums; }
 .grid td.t-json .cell, .grid td.t-uuid .cell { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.8rem; color: var(--muted); }
-.grid .actions-col { white-space: nowrap; width: 1%; text-align: right; }
 .grid .actions-col .row-actions { display: inline-flex; gap: 2px; }
 .pk { display: inline-flex; vertical-align: -2px; margin-right: 4px; color: #d97706; }
-.pager { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: var(--muted); }
-.pager select { width: auto; }
 
 .fk-select { position: relative; }
 .fk-clear {
@@ -496,3 +493,54 @@ a.button.icon-button:hover { color: var(--primary); }
 .icon-button.danger:hover { color: var(--danger); background: var(--danger-soft); }
 button.link { display: inline-flex; align-items: center; gap: 4px; }
 .chip svg { vertical-align: -1px; }
+
+/* ---------- Paginador (P-107) ---------- */
+.pager { display: flex; gap: 10px 16px; align-items: center; flex-wrap: wrap; color: var(--muted); }
+.pager-buttons { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.pager-buttons .icon-button { width: 34px; height: 34px; min-height: 34px; }
+.pager-num {
+  min-width: 34px; height: 34px; min-height: 34px; padding: 0 8px; box-shadow: none;
+  font-variant-numeric: tabular-nums; color: var(--text);
+}
+.pager-num.on { background: var(--primary); border-color: var(--primary); color: var(--primary-text); font-weight: 600; cursor: default; }
+.pager-gap { padding: 0 2px; color: var(--muted); user-select: none; }
+.pager-go { display: flex; align-items: center; gap: 6px; }
+.pager-go label { display: flex; align-items: center; gap: 6px; }
+.pager-go input { width: 78px; min-height: 34px; padding: 4px 8px; }
+.pager-go button { min-height: 34px; }
+.pager-info { display: inline-flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+.pager select { width: auto; min-height: 34px; }
+@media (max-width: 760px) {
+  .pager-num:not(.on), .pager-gap, .pager-go-label, .pager-info { display: none; }
+}
+
+/* ---------- Carga (P-107) ---------- */
+.spinner {
+  display: inline-block; width: 18px; height: 18px; border-radius: 50%; flex: none;
+  border: 2px solid color-mix(in srgb, var(--primary) 25%, transparent); border-top-color: var(--primary);
+  animation: spin 0.7s linear infinite;
+}
+.spinner.sm { width: 14px; height: 14px; }
+.grid-area { position: relative; }
+.grid-area.is-loading .table-wrap { min-height: 140px; }
+.grid-loader {
+  position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; pointer-events: none;
+  border-radius: var(--radius); background: color-mix(in srgb, var(--surface) 35%, transparent);
+  opacity: 0; animation: loader-in 0.15s ease 0.25s forwards; /* solo si la espera se nota */
+}
+.grid-loader-pill {
+  display: inline-flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-lg); color: var(--text); font-weight: 500;
+}
+@keyframes loader-in { to { opacity: 1; } }
+
+/* ---------- Acciones de fila a la izquierda y siempre visibles (P-107) ---------- */
+.grid .actions-col {
+  position: sticky; left: 0; z-index: 1; width: 1%; white-space: nowrap; text-align: left;
+  background: var(--surface); box-shadow: 1px 0 0 var(--border);
+}
+.grid thead .actions-col { z-index: 3; background: var(--surface-2); }
+.grid tr.filters .actions-col { background: var(--surface); }
+.grid tbody tr:hover .actions-col { background: var(--hover); }
+.grid tbody tr[title] { cursor: default; }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: spin 1.6s linear infinite !important; } .grid-loader { opacity: 1; } }

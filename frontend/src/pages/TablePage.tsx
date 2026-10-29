@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Download, Eye, KeyRound, Pencil, Plus, Search, Settings2, Trash2, Upload } from 'lucide-react'
+import { ArrowDown, ArrowUp, Download, Eye, KeyRound, Pencil, Plus, Search, Settings2, Trash2, Upload } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -11,6 +11,7 @@ import { useTableLabels } from '../lib/useTableLabels'
 import { TreeView } from '../components/TreeView'
 import { useT } from '../i18n'
 import { StoredImage } from '../components/ImagePreview'
+import { Pager } from '../components/Pager'
 
 const PAGE_SIZES = [10, 25, 50, 100]
 
@@ -135,10 +136,24 @@ export function Grid({ conn, meta, fixed, returnTo }: {
     ? t('más de {n} registros', { n: total })
     : `${rows.data?.totalIsEstimate ? '≈ ' : ''}${t('{n} registros', { n: total })}`
   const capped = rows.data?.totalIsCapped === true
-  // Con el total cortado no se sabe cuál es la última página: se puede seguir mientras la página venga llena.
-  const pages = capped
-    ? Math.max(page + ((rows.data?.rows.length ?? 0) === pageSize ? 1 : 0), Math.ceil(total / pageSize))
+  // Con el total cortado o estimado (D-072) no se sabe cuál es la última página: se puede seguir mientras la
+  // página venga llena, y "Última" no se ofrece (P-107).
+  const lastUnknown = capped || rows.data?.totalIsEstimate === true
+  const full = (rows.data?.rows.length ?? 0) === pageSize
+  const pages = lastUnknown
+    ? (full ? Math.max(page + 1, Math.ceil(total / pageSize)) : page)
     : Math.max(1, Math.ceil(total / pageSize))
+
+  /** Ir a una página. La siguiente usa la clave de la última fila (D-089); un salto pide la página directo. */
+  function goTo(n: number) {
+    const list = rows.data?.rows ?? []
+    const last = list[list.length - 1]
+    if (n === page + 1 && keyset && last) setCursors(c => ({ ...c, [page + 1]: String(last[meta.primaryKey[0]]) }))
+    setPage(n)
+  }
+  // El indicador aparece solo si la espera se nota (la clase lo muestra con un pequeño retraso).
+  const loading = rows.isFetching
+  const openHint = meta.isEditable ? (meta.canUpdate ? t('Doble clic para editar') : t('Doble clic para ver')) : undefined
 
   return (
     <div className={embedded ? 'embedded-grid' : 'page'}>
@@ -203,10 +218,13 @@ export function Grid({ conn, meta, fixed, returnTo }: {
 
       {rows.error && <div className="alert">{(rows.error as Error).message}</div>}
 
+      <div className={`grid-area ${loading ? 'is-loading' : ''}`} aria-busy={loading}>
+      {loading && <div className="grid-loader" role="status"><span className="grid-loader-pill"><span className="spinner" />{t('Cargando…')}</span></div>}
       <div className="table-wrap">
         <table className="grid">
           <thead>
             <tr>
+              {meta.isEditable && <th className="actions-col no-sort" aria-label={t('Acciones')} />}
               {columns.map(c => (
                 <th
                   key={c.name}
@@ -220,9 +238,9 @@ export function Grid({ conn, meta, fixed, returnTo }: {
                 </th>
               ))}
               {imageCols.map(c => <th key={c.name} className="no-sort">{labelOf(c)}</th>)}
-              {meta.isEditable && <th className="actions-col" />}
             </tr>
             <tr className="filters">
+              {meta.isEditable && <th className="actions-col" />}
               {columns.map(c => (
                 <th key={c.name}>
                   {c.isFilterable && (
@@ -231,32 +249,12 @@ export function Grid({ conn, meta, fixed, returnTo }: {
                 </th>
               ))}
               {imageCols.map(c => <th key={c.name} />)}
-              {meta.isEditable && <th />}
             </tr>
           </thead>
-          <tbody className={rows.isFetching ? 'loading' : undefined}>
+          <tbody className={loading ? 'loading' : undefined}>
             {rows.data?.rows.map((row, i) => (
-              <tr key={meta.hasPrimaryKey ? keyQuery(meta, row) : i}
+              <tr key={meta.hasPrimaryKey ? keyQuery(meta, row) : i} title={openHint}
                   onDoubleClick={() => meta.isEditable && navigate(editUrl(row))}>
-                {columns.map(c => {
-                  const fk = fkByLabelColumn.get(c.name)
-                  const label = row[c.name + LABEL_SUFFIX]
-                  return (
-                    <td key={c.name} className={fk ? 't-fk' : `t-${c.type.toLowerCase()}`}>
-                      {fk && label != null ? (
-                        <span title={String(row[c.name])}>{String(label)}</span>
-                      ) : (
-                        <span className="cell">{displayValue(c, row[c.name])}</span>
-                      )}
-                    </td>
-                  )
-                })}
-                {imageCols.map(c => (
-                  <td key={c.name} className="t-image">
-                    {row[c.name + SIZE_SUFFIX] != null && meta.hasPrimaryKey &&
-                      <StoredImage conn={conn} schema={meta.schema} table={meta.name} recordKey={keyQuery(meta, row)} column={c.name} className="thumb" />}
-                  </td>
-                ))}
                 {meta.isEditable && (
                   <td className="actions-col">
                     {/* Sin permiso de edición el formulario se abre de solo lectura (y muestra las pestañas hijas). */}
@@ -277,6 +275,25 @@ export function Grid({ conn, meta, fixed, returnTo }: {
                     </span>
                   </td>
                 )}
+                {columns.map(c => {
+                  const fk = fkByLabelColumn.get(c.name)
+                  const label = row[c.name + LABEL_SUFFIX]
+                  return (
+                    <td key={c.name} className={fk ? 't-fk' : `t-${c.type.toLowerCase()}`}>
+                      {fk && label != null ? (
+                        <span title={String(row[c.name])}>{String(label)}</span>
+                      ) : (
+                        <span className="cell">{displayValue(c, row[c.name])}</span>
+                      )}
+                    </td>
+                  )
+                })}
+                {imageCols.map(c => (
+                  <td key={c.name} className="t-image">
+                    {row[c.name + SIZE_SUFFIX] != null && meta.hasPrimaryKey &&
+                      <StoredImage conn={conn} schema={meta.schema} table={meta.name} recordKey={keyQuery(meta, row)} column={c.name} className="thumb" />}
+                  </td>
+                ))}
               </tr>
             ))}
             {rows.data?.rows.length === 0 && (
@@ -285,20 +302,13 @@ export function Grid({ conn, meta, fixed, returnTo }: {
           </tbody>
         </table>
       </div>
+      </div>
 
-      <div className="pager">
-        <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16} aria-hidden />{t('Anterior')}</button>
-        <span>{capped ? t('Página {page} de {pages}+', { page, pages }) : t('Página {page} de {pages}', { page, pages })}</span>
-        <button disabled={page >= pages} onClick={() => {
-          const list = rows.data?.rows ?? []
-          const last = list[list.length - 1]
-          if (keyset && last) setCursors(c => ({ ...c, [page + 1]: String(last[meta.primaryKey[0]]) }))
-          setPage(p => p + 1)
-        }}>{t('Siguiente')}<ChevronRight size={16} aria-hidden /></button>
-        <select value={pageSize} onChange={e => setPageSize(Number(e.target.value))}>
+      <Pager page={page} pages={pages} lastUnknown={lastUnknown} busy={loading} onGo={goTo}>
+        <select value={pageSize} aria-label={t('Registros por página')} onChange={e => setPageSize(Number(e.target.value))}>
           {PAGE_SIZES.map(s => <option key={s} value={s}>{t('{n} por página', { n: s })}</option>)}
         </select>
-      </div>
+      </Pager>
       </>}
     </div>
   )

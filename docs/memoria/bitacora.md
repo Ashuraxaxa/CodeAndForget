@@ -4,6 +4,18 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-29 · Copiar ajustes entre conexiones (P-111)
+- El dueño pidió copiar la configuración entre conexiones para bases idénticas en servidores distintos. Precisó que sirva también entre dos conexiones ya existentes (por ejemplo, solo las relaciones virtuales) y solo entre el mismo motor.
+- Copia con vista previa y validación contra el destino; partes y tablas elegibles; esquemas mapeables. Los nombres de FK de pestañas y árbol se traducen por columnas.
+- "Duplicar" crea la conexión con el mismo motor y copia sus ajustes.
+- En el navegador:
+  - solo se ofreció la conexión PostgreSQL como origen;
+  - copiar solo "Relaciones" llevó las FK virtuales y el filtro de área y dejó el nombre propio de producto en el destino;
+  - duplicar copió 2 ajustes;
+  - por la API, Postgres → MySQL respondió 400.
+- Hallazgo de diseño: un combo dentro de una etiqueta se estiraba hacia abajo; se corrigió para todos.
+- 243 unitarias y 285 de integración en verde.
+
 ## 2026-10-29 · Combos de FK filtrados (P-110)
 - El dueño mostró CentroCosto, con EmpresaID → Empresa y AreaID → Area, donde Area también tiene EmpresaID. Pidió que el combo de área ofrezca solo las de la empresa del registro y que quede bloqueado sin empresa cuando el filtro está configurado.
 - Ajuste `lookupFilters`, combo con `e.<columna>`, y validación al guardar (también por la API).

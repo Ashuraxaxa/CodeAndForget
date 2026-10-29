@@ -113,6 +113,20 @@ Todo es opcional; lo que no se indica queda automático. Los nombres de columnas
 Las reglas (`required`, `pattern`, `options`, `min`, `max`, `maxLength`) se validan **en el servidor** al crear y
 editar, junto con las de la base, y los errores vuelven por campo. Los filtros del listado no las aplican.
 
+## Copiar ajustes entre conexiones
+
+Para la misma base en otro servidor o instancia (P-111). En **Conexiones**:
+
+- **Copiar ajustes** (ícono de copiar) en la tarjeta de destino: se elige la conexión de origen, entre las del mismo motor. Después se marca qué copiar:
+  - relaciones (FK y PK virtuales, filtros de combos, pestañas, árbol, N:M);
+  - tabla (nombre, grupo, columna a mostrar, orden, oculta, solo lectura);
+  - columnas, acciones y avisos.
+
+  Lo no marcado queda como estaba. Una vista previa muestra, tabla por tabla, si el ajuste se crea, se reemplaza o no se puede copiar (la tabla no existe o el ajuste no es válido en el destino), y deja desmarcar tablas.
+- **Duplicar**: crea la conexión nueva con el mismo motor y esquemas (se indica el identificador y la cadena) y copia todos los ajustes al guardarla.
+
+Solo entre conexiones del mismo motor. Si los esquemas se llaman distinto (en MySQL el esquema es la base: `ventas` → `ventas_qa`), se indica a cuál corresponde cada uno. Las relaciones elegidas por nombre se buscan en el destino por sus columnas, porque los nombres automáticos de las FK cambian entre servidores. *Reemplazar todo* borra además los ajustes del destino en tablas que el origen no tiene.
+
 ## Ejemplo con curl
 
 ```bash

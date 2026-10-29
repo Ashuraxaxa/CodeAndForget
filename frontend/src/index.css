@@ -590,3 +590,13 @@ select option { background-color: var(--surface); color: var(--text); }
 .lookup-filter { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-bottom: 1px dashed var(--border); }
 .lookup-filter:last-of-type { border-bottom: none; }
 .lookup-filter .chip button { padding: 0 4px; min-height: 0; }
+
+/* ---------- Copiar ajustes entre conexiones (P-111) ---------- */
+.checks.column { flex-direction: column; gap: 6px; }
+.copy-overrides .table-wrap { max-height: 360px; }
+.badge.copy-new { background: var(--ok-bg); color: var(--ok-text); }
+.badge.copy-replace { background: var(--primary-soft); color: var(--primary); }
+.badge.copy-missingtable, .badge.copy-invalid { background: var(--warn-bg); color: var(--warn-text); }
+.badge.copy-removed { background: var(--err-bg); color: var(--err-text); }
+/* En una etiqueta o campo en columna, el combo no se estira hacia abajo. */
+label > .combo, .field > .combo { flex: none; }

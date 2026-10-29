@@ -890,6 +890,21 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Dejar el combo libre cuando falta el valor que filtra: el dueño pidió bloquearlo cuando el filtro está configurado.
   - Solo filtrar en la pantalla: un dato por la API podría romper la regla.
 
+### D-098 · Copiar ajustes entre conexiones del mismo motor
+- **Estado:** Vigente · 2026-10-29 (P-111, pedido del dueño)
+- **Qué:**
+  - `OverrideCopier` copia los ajustes de una conexión a otra. `POST /api/meta/{destino}/overrides/copy` con `apply: false` es una vista previa.
+  - **Validación:** cada ajuste se valida contra el catálogo del destino, como al guardarlo a mano. Lo que no aplica (tabla inexistente, columna faltante, rutina que no está) no se copia y se informa.
+  - **Solo entre conexiones del mismo motor:** se comprueba antes de conectarse a las bases.
+  - **Esquemas:** se pueden mapear (`schemaMap`), y se ajustan las FK virtuales y las rutinas de las acciones que nombran otro esquema.
+  - **Nombres de FK:** las pestañas hijas y el árbol guardan nombres de FK, que pueden ser automáticos y cambiar entre servidores. Se traducen buscando en el destino la FK con las mismas tablas y columnas.
+  - **Copia parcial:** `parts` elige qué partes (relaciones, tabla, columnas, acciones, avisos) y `tables` qué tablas. Lo no elegido queda como estaba en el destino. *Reemplazar todo* (borrar lo que el origen no tiene) solo vale copiando todo de todas las tablas.
+  - **UI:** en Conexiones, "Copiar ajustes" en la tarjeta de destino, y "Duplicar", que crea la conexión con el mismo motor (bloqueado) y esquemas y copia todo al guardar.
+- **Descartado:**
+  - Exportar e importar un archivo de ajustes: dos pasos para lo que es una copia directa entre conexiones de la misma app.
+  - Copiar entre motores distintos: tipos, nombres y rutinas no se traducen de un motor a otro.
+  - Copiar sin validar: dejaría ajustes rotos que solo aparecen como aviso.
+
 ---
 
 ## Propuestas (aún no decididas)

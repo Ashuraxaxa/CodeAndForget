@@ -106,6 +106,12 @@ public static class MetaEndpoints
             return new OverridePreview(OverrideApplier.Apply(raw, others).FindTable(info.Schema, info.Name)!, errors);
         }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
 
+        // Copiar los ajustes de otra conexión (P-111), p. ej. la misma base en otro servidor. Con apply=false es una vista
+        // previa: dice qué se crea, qué se reemplaza y qué no se puede copiar, sin guardar nada.
+        group.MapPost("/overrides/copy", async (string conn, OverrideCopyRequest body, OverrideCopier copier, ClaimsPrincipal user, CancellationToken ct) =>
+            await copier.CopyAsync(body.From, conn, body.SchemaMap, body.ReplaceAll, body.Apply, user.Identity?.Name, ct, body.Parts, body.Tables))
+            .RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
+
         group.MapDelete("/overrides/{schema}/{table}", async (string conn, string schema, string table, SchemaService schemas, CancellationToken ct) =>
         {
             var info = await RawTableAsync(schemas, conn, schema, table, ct);
@@ -147,3 +153,7 @@ public static class MetaEndpoints
             t.Label, t.Group, t.Hidden, Mantenedores.Core.Security.DataOperations.ToNames(t.Access), t.Labels)).ToList(),
         s.OverrideWarnings);
 }
+
+/// <summary>Cuerpo de <c>POST /api/meta/{conn}/overrides/copy</c>: de qué conexión, esquemas que cambian de nombre, si se borra lo que el origen no tiene y si se guarda.</summary>
+public sealed record OverrideCopyRequest(string From, Dictionary<string, string>? SchemaMap, bool ReplaceAll = false, bool Apply = false,
+    List<string>? Parts = null, List<string>? Tables = null);

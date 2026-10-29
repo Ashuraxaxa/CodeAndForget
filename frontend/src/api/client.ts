@@ -1,7 +1,7 @@
 import type {
   ImportMode, ImportResult, TransferFormat, TreeNode,
   AuditPage, SecurityInfo, SecurityProfile, SecurityUser, ActionResult, Routine,
-  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo,
+  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult,
 } from './types'
 import { t, translateServer } from '../i18n'
 
@@ -181,6 +181,9 @@ export const api = {
 
   connections: () => request<Connection[]>('GET', 'api/connections'),
   engines: () => request<EngineInfo[]>('GET', 'api/engines'),
+  /** Copia los ajustes de otra conexión a <c>to</c> (P-111); sin <c>apply</c> es una vista previa. */
+  copyOverrides: (to: string, body: OverrideCopyRequest) =>
+    request<OverrideCopyResult>('POST', `api/meta/${enc(to)}/overrides/copy`, body),
   saveConnection: (c: ConnectionInput) => request<Connection>('PUT', `api/connections/${enc(c.id)}`, c),
   deleteConnection: (id: string) => request<void>('DELETE', `api/connections/${enc(id)}`),
   testConnection: (c: ConnectionInput) =>

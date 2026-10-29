@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Pager } from '../components/Pager'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -112,11 +112,7 @@ export function AuditPage() {
         </table>
       </div>
 
-      <div className="pager">
-        <button disabled={page <= 1} onClick={() => set('page', String(page - 1))}><ChevronLeft size={16} aria-hidden />{t('Anterior')}</button>
-        <span>{t('Página {page} de {pages}', { page, pages })}</span>
-        <button disabled={page >= pages} onClick={() => set('page', String(page + 1))}>{t('Siguiente')}<ChevronRight size={16} aria-hidden /></button>
-      </div>
+      <Pager page={page} pages={pages} busy={audit.isFetching} onGo={n => set('page', String(n))} />
     </div>
   )
 }

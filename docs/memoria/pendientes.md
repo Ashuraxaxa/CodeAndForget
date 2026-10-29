@@ -81,6 +81,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-061 | Procedimientos almacenados y funciones como acciones de una tabla, con permiso `execute` (D-088) | ⚪ | ✅ PR #35 |
 | P-062 | Otros motores (Oracle, SQLite, Db2, Firebird…) solo si un equipo los pide; ahora pueden ir como plugin (D-092) | ⚪ | ⏳ a pedido |
 | P-063 | Guía "cómo agregar un motor" | ✅ 2026-10-27 · en `docs/motores.md` (la batería común pasó a P-002) |
+| P-107 | Grilla: paginador con primera, última, números e "Ir a página"; acciones a la izquierda fijas; indicador de carga (D-095) | 🟡 | ✅ PR #39 |
 | P-106 | Backend en .NET 10, con las dependencias vulnerables que encontró la auditoría del SDK corregidas (D-094) | 🟡 | ✅ PR #38 |
 | P-105 | Interfaz renovada: tema día/noche con selector, íconos, fuente propia, README nuevo en español e inglés (D-093) | 🟡 | ✅ PR #37 |
 | P-064 | Cargar proveedores como plugins desde una carpeta, sin recompilar; nombre de motor abierto (D-092) | ⚪ | ✅ PR #36 |

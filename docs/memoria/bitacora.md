@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-29 · Navegación de la grilla (P-107)
+- El dueño notó que llegar a la página 30 o a la última obligaba a pulsar "Siguiente" una y otra vez, y que las acciones quedaban al final de la grilla. Pidió además un indicador de carga.
+- Paginador con primera, última, números e "Ir a página", también en la auditoría. Acciones como primera columna, fijas al desplazar.
+- En el navegador, con 1.234 filas:
+  - "Ir a 30" mostró desde el id 726, y "Siguiente" siguió con `after=750`;
+  - la última página trajo 9 filas, y las acciones quedaron en el borde tras desplazar 400 px.
+- En 1 millón de filas: sin "Última" (el total es estimado); el salto a la página 39.999 mostró el indicador y luego los ids desde 999.951.
+
 ## 2026-10-29 · Backend en .NET 10 (P-106)
 - El dueño pidió pasar el backend a .NET 10. El SDK no se podía bajar (proxy); se copió de la imagen `mcr.microsoft.com/dotnet/sdk:10.0`.
 - Hallazgo: el SDK 10 audita también las dependencias indirectas y marcó `System.IO.Packaging` 8.0.0 y `System.Security.Cryptography.Pkcs` 9.0.18, vulnerables. Ya estaban con .NET 8. Se fijaron a 10.0.13.

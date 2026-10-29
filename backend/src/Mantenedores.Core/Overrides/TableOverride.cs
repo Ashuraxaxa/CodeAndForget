@@ -34,6 +34,13 @@ public sealed record TableOverride
     public IReadOnlyList<VirtualForeignKey>? VirtualForeignKeys { get; init; }
 
     /// <summary>
+    /// Filtros de los combos de FK (P-110), por columnas locales de la relación (separadas por coma si es compuesta):
+    /// columna de la tabla referenciada → columna de este registro. <c>{"AreaID": {"EmpresaID": "EmpresaID"}}</c>:
+    /// el combo de AreaID solo ofrece áreas de la EmpresaID elegida, y queda bloqueado mientras no haya una.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? LookupFilters { get; init; }
+
+    /// <summary>
     /// Tablas hijas que se muestran en pestañas al editar un registro (P-014), por nombre de la FK que las une,
     /// en el orden en que se muestran. Null = todas; lista vacía = ninguna.
     /// </summary>

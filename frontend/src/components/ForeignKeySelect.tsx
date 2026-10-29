@@ -15,6 +15,9 @@ interface Props {
   nullable: boolean
   disabled?: boolean
   id?: string
+  /** Filtros del combo (P-110). Null = falta el valor que filtra: el combo queda bloqueado con <c>blockedText</c>. */
+  equals?: Record<string, string> | null
+  blockedText?: string
   onChange: (value: unknown, label: string | null) => void
 }
 
@@ -22,17 +25,18 @@ interface Props {
  * Combo con búsqueda para una FK: consulta /lookup de la tabla referenciada
  * y guarda el valor de su PK mostrando la columna descriptiva.
  */
-export function ForeignKeySelect({ conn, fk, value, label, nullable, disabled, id, onChange }: Props) {
+export function ForeignKeySelect({ conn, fk, value, label, nullable, disabled, id, equals, blockedText, onChange }: Props) {
   const [open, setOpen] = useState(false)
   const t = useT()
   const [search, setSearch] = useState('')
   const debounced = useDebounce(search, 250)
 
   const tableLabel = useTableLabels(conn)
+  const blocked = equals === null
   const { data, isFetching, error } = useQuery({
-    queryKey: ['lookup', conn, fk.refSchema, fk.refTable, debounced],
-    queryFn: () => api.lookup(conn, fk.refSchema, fk.refTable, debounced),
-    enabled: open,
+    queryKey: ['lookup', conn, fk.refSchema, fk.refTable, debounced, equals ?? {}],
+    queryFn: () => api.lookup(conn, fk.refSchema, fk.refTable, debounced, equals ?? undefined),
+    enabled: open && !blocked,
     staleTime: 30_000,
   })
 
@@ -55,8 +59,8 @@ export function ForeignKeySelect({ conn, fk, value, label, nullable, disabled, i
       id={id}
       value={current}
       title={current ? `${current} · ${String(value)}` : undefined}
-      placeholder={t('Seleccionar {table}…', { table: tableLabel(fk.refSchema, fk.refTable) })}
-      disabled={disabled}
+      placeholder={blocked ? blockedText : t('Seleccionar {table}…', { table: tableLabel(fk.refSchema, fk.refTable) })}
+      disabled={disabled || blocked}
       loading={isFetching}
       options={(open ? data ?? [] : []).map(item => ({ value: item.value, label: item.label ?? String(item.value), hint: String(item.value) }))}
       query={search}
@@ -72,13 +76,15 @@ export function ForeignKeySelect({ conn, fk, value, label, nullable, disabled, i
  * Combo para una FK de varias columnas (P-030): /lookup devuelve la clave completa ({pais, codigo}) y al elegir se
  * llenan todas las columnas locales, cada una con su columna referenciada.
  */
-export function CompositeForeignKeySelect({ conn, fk, values, label, nullable, disabled, onChange }: {
+export function CompositeForeignKeySelect({ conn, fk, values, label, nullable, disabled, equals, blockedText, onChange }: {
   conn: string
   fk: ForeignKey
   values: Record<string, unknown>
   label: string | null
   nullable: boolean
   disabled?: boolean
+  equals?: Record<string, string> | null
+  blockedText?: string
   onChange: (values: Record<string, string>, label: string | null) => void
 }) {
   const [open, setOpen] = useState(false)
@@ -86,10 +92,11 @@ export function CompositeForeignKeySelect({ conn, fk, values, label, nullable, d
   const [search, setSearch] = useState('')
   const debounced = useDebounce(search, 250)
   const tableLabel = useTableLabels(conn)
+  const blocked = equals === null
   const { data, isFetching } = useQuery({
-    queryKey: ['lookup', conn, fk.refSchema, fk.refTable, debounced],
-    queryFn: () => api.lookup(conn, fk.refSchema, fk.refTable, debounced),
-    enabled: open,
+    queryKey: ['lookup', conn, fk.refSchema, fk.refTable, debounced, equals ?? {}],
+    queryFn: () => api.lookup(conn, fk.refSchema, fk.refTable, debounced, equals ?? undefined),
+    enabled: open && !blocked,
     staleTime: 30_000,
   })
 
@@ -107,8 +114,8 @@ export function CompositeForeignKeySelect({ conn, fk, values, label, nullable, d
       <ComboBox
         value={current}
         title={keyText}
-        placeholder={t('Seleccionar {table}…', { table: tableLabel(fk.refSchema, fk.refTable) })}
-        disabled={disabled}
+        placeholder={blocked ? blockedText : t('Seleccionar {table}…', { table: tableLabel(fk.refSchema, fk.refTable) })}
+        disabled={disabled || blocked}
         loading={isFetching}
         options={(open ? data ?? [] : []).map(item => {
           const local = toLocal(item.value)

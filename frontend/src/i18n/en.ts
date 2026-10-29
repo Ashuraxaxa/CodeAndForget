@@ -358,4 +358,11 @@ export const en: Messages = {
   'Última página': 'Last page',
   // Combos con búsqueda (P-108)
   '{n} opciones más: siga escribiendo para acotar': '{n} more options: keep typing to narrow down',
+  // Filtros de los combos (P-110)
+  'Filtros de los combos': 'Combo filters',
+  'Acota un combo con un valor de este registro, p. ej. que AreaID solo ofrezca las áreas de la EmpresaID elegida. Mientras ese valor esté vacío, el combo queda bloqueado.': 'Narrows a combo with a value of this record, e.g. AreaID only offers the areas of the chosen EmpresaID. While that value is empty, the combo is locked.',
+  'Filtrar por {local} ({table}.{column})': 'Filter by {local} ({table}.{column})',
+  'Columna de {table}…': 'Column of {table}…',
+  'Columna de este registro…': 'Column of this record…',
+  'Elija primero {field}': 'Choose {field} first',
 }

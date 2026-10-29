@@ -259,6 +259,9 @@ export const api = {
     download(`${tablePath(conn, schema, table)}/row/file/${enc(column)}?${key}&download=1`),
   tree: (conn: string, schema: string, table: string, parent?: unknown) =>
     request<TreeNode[]>('GET', `${tablePath(conn, schema, table)}/tree${parent == null ? '' : `?${new URLSearchParams({ parent: String(parent) })}`}`),
-  lookup: (conn: string, schema: string, table: string, q: string) =>
-    request<LookupItem[]>('GET', `${tablePath(conn, schema, table)}/lookup?${new URLSearchParams({ q, take: '20' })}`),
+  /** Opciones de un combo de FK. <c>equals</c> acota por columnas de la tabla referenciada (P-110). */
+  lookup: (conn: string, schema: string, table: string, q: string, equals?: Record<string, string>) =>
+    request<LookupItem[]>('GET', `${tablePath(conn, schema, table)}/lookup?${new URLSearchParams([
+      ['q', q], ['take', '20'], ...Object.entries(equals ?? {}).map(([k, v]) => [`e.${k}`, v]),
+    ])}`),
 }

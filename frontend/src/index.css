@@ -585,3 +585,8 @@ button.link { display: inline-flex; align-items: center; gap: 4px; }
 .combo-note { padding: 7px 10px; color: var(--muted); font-size: 0.85rem; cursor: default; }
 /* Si queda algún <select> nativo, sus opciones siguen al tema (en Windows el fondo transparente se veía blanco). */
 select option { background-color: var(--surface); color: var(--text); }
+
+/* ---------- Filtros de los combos (P-110) ---------- */
+.lookup-filter { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-bottom: 1px dashed var(--border); }
+.lookup-filter:last-of-type { border-bottom: none; }
+.lookup-filter .chip button { padding: 0 4px; min-height: 0; }

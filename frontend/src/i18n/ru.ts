@@ -358,4 +358,11 @@ export const ru: Messages = {
   'Última página': 'Последняя страница',
   // Combos con búsqueda (P-108)
   '{n} opciones más: siga escribiendo para acotar': 'Ещё {n} вариантов: продолжайте вводить, чтобы сузить список',
+  // Filtros de los combos (P-110)
+  'Filtros de los combos': 'Фильтры списков',
+  'Acota un combo con un valor de este registro, p. ej. que AreaID solo ofrezca las áreas de la EmpresaID elegida. Mientras ese valor esté vacío, el combo queda bloqueado.': 'Сужает список значением этой записи, напр. AreaID предлагает только области выбранной EmpresaID. Пока это значение пустое, список заблокирован.',
+  'Filtrar por {local} ({table}.{column})': 'Фильтровать по {local} ({table}.{column})',
+  'Columna de {table}…': 'Столбец {table}…',
+  'Columna de este registro…': 'Столбец этой записи…',
+  'Elija primero {field}': 'Сначала выберите {field}',
 }

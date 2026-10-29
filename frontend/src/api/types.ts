@@ -115,6 +115,13 @@ export interface ForeignKey {
   refColumns: string[]
   /** Columna local que lleva la etiqueta (`<columna>__label`): la única, o la última de una FK compuesta (P-030). */
   labelColumn: string
+  /** Filtros del combo (P-110): columna de la tabla referenciada = columna de este registro. */
+  lookupFilters?: LookupFilter[]
+}
+
+export interface LookupFilter {
+  refColumn: string
+  localColumn: string
 }
 
 export interface TableMeta {
@@ -231,6 +238,8 @@ export interface TableOverride {
   group?: string
   virtualPrimaryKey?: string[]
   virtualForeignKeys?: VirtualForeignKey[]
+  /** Filtros de los combos de FK (P-110): columnas locales de la FK → (columna referenciada → columna local). */
+  lookupFilters?: Record<string, Record<string, string>>
   /** Hijas en pestañas, por nombre de FK y en orden. Sin definir = todas; [] = ninguna. */
   children?: string[]
   columns?: Record<string, ColumnOverride>

@@ -310,6 +310,11 @@ function TableTab({ conn, doc, setDoc, table, shown, errors }: {
       <VirtualForeignKeys conn={conn} table={table} value={doc.virtualForeignKeys ?? []} errors={errors}
         onChange={v => set({ virtualForeignKeys: v })} />
 
+      {shown.foreignKeys.length > 0 && (
+        <LookupFiltersEditor conn={conn} table={shown} value={doc.lookupFilters ?? {}} errors={errors}
+          onChange={v => set({ lookupFilters: Object.keys(v).length ? v : undefined })} />
+      )}
+
       <NotifyEditor value={doc.notify} errors={errors} onChange={v => set({ notify: v })} />
 
       <ActionsEditor conn={conn} table={table} value={doc.actions ?? []} errors={errors}
@@ -436,6 +441,98 @@ function ActionsEditor({ conn, table, value, errors, onChange }: {
         </div>
       )}
     </Field>
+  )
+}
+
+/**
+ * Filtros de los combos de FK (P-110): en CentroCosto, el combo de AreaID solo ofrece las áreas de la EmpresaID
+ * elegida. Se proponen solos cuando la tabla referenciada tiene una columna que va a la misma tabla que otra de esta
+ * (las dos EmpresaID → Empresa) o que se llama igual.
+ */
+function LookupFiltersEditor({ conn, table, value, errors, onChange }: {
+  conn: string
+  table: TableMeta
+  value: Record<string, Record<string, string>>
+  errors: Record<string, string>
+  onChange: (v: Record<string, Record<string, string>>) => void
+}) {
+  const t = useT()
+  const setFk = (key: string, map: Record<string, string>) => {
+    const next = { ...value }
+    if (Object.keys(map).length) next[key] = map; else delete next[key]
+    onChange(next)
+  }
+  return (
+    <Field label={t('Filtros de los combos')} span
+      hint={t('Acota un combo con un valor de este registro, p. ej. que AreaID solo ofrezca las áreas de la EmpresaID elegida. Mientras ese valor esté vacío, el combo queda bloqueado.')}>
+      {table.foreignKeys.map(fk => (
+        <LookupFilterRow key={fk.columns.join(',')} conn={conn} table={table} fk={fk} value={value[fk.columns.join(',')] ?? {}}
+          error={errors[`lookupFilters.${fk.columns.join(',')}`]} onChange={m => setFk(fk.columns.join(','), m)} />
+      ))}
+    </Field>
+  )
+}
+
+function LookupFilterRow({ conn, table, fk, value, error, onChange }: {
+  conn: string
+  table: TableMeta
+  fk: ForeignKey
+  value: Record<string, string>
+  error?: string
+  onChange: (v: Record<string, string>) => void
+}) {
+  const t = useT()
+  const target = useQuery({ queryKey: ['meta', conn, fk.refSchema, fk.refTable], queryFn: () => api.table(conn, fk.refSchema, fk.refTable) })
+  const [refCol, setRefCol] = useState('')
+  const [localCol, setLocalCol] = useState('')
+  const own = new Set(fk.columns.map(c => c.toLowerCase()))
+  const locals = table.columns.filter(c => !own.has(c.name.toLowerCase()) && c.isSelectable)
+
+  // Sugerencias: columna de la tabla referenciada que va a la misma tabla que una de esta, o que se llama igual.
+  const suggestions: { refColumn: string; localColumn: string }[] = []
+  const add = (refColumn: string, localColumn: string) => {
+    if (!value[refColumn] && !suggestions.some(x => x.refColumn === refColumn && x.localColumn === localColumn))
+      suggestions.push({ refColumn, localColumn })
+  }
+  for (const tf of target.data?.foreignKeys ?? []) {
+    if (tf.columns.length !== 1) continue
+    for (const lf of table.foreignKeys)
+      if (lf !== fk && lf.columns.length === 1 && lf.refSchema === tf.refSchema && lf.refTable === tf.refTable) add(tf.columns[0], lf.columns[0])
+  }
+  for (const c of target.data?.columns ?? [])
+    for (const lf of table.foreignKeys)
+      if (lf !== fk && lf.columns.length === 1 && lf.columns[0].toLowerCase() === c.name.toLowerCase()) add(c.name, lf.columns[0])
+
+  const entries = Object.entries(value)
+  return (
+    <div className="lookup-filter">
+      <div className="row">
+        <span className="chip">{fk.columns.join(', ')} → {fk.refSchema}.{fk.refTable}</span>
+        {entries.map(([r, l]) => (
+          <span key={r} className="chip">
+            {fk.refTable}.{r} = {l}
+            <button type="button" className="link danger" title={t('Quitar')} aria-label={t('Quitar')}
+              onClick={() => { const n = { ...value }; delete n[r]; onChange(n) }}>×</button>
+          </span>
+        ))}
+        {suggestions.map(sg => (
+          <button key={sg.refColumn + sg.localColumn} type="button" className="link"
+            onClick={() => onChange({ ...value, [sg.refColumn]: sg.localColumn })}>
+            <Plus size={14} aria-hidden />{t('Filtrar por {local} ({table}.{column})', { local: sg.localColumn, table: fk.refTable, column: sg.refColumn })}
+          </button>
+        ))}
+      </div>
+      <div className="row">
+        <SearchSelect value={refCol} onChange={setRefCol} placeholder={t('Columna de {table}…', { table: fk.refTable })} disabled={!target.data}
+          options={(target.data?.columns ?? []).filter(c => !(c.name in value)).map(c => ({ value: c.name, label: c.name, hint: c.nativeType }))} />
+        <span>=</span>
+        <SearchSelect value={localCol} onChange={setLocalCol} placeholder={t('Columna de este registro…')}
+          options={locals.map(c => ({ value: c.name, label: c.name, hint: c.nativeType }))} />
+        <button type="button" disabled={!refCol || !localCol}
+          onClick={() => { onChange({ ...value, [refCol]: localCol }); setRefCol(''); setLocalCol('') }}>{t('Agregar')}</button>
+      </div>
+      {error && <span className="field-error">{error}</span>}
+    </div>
   )
 }
 

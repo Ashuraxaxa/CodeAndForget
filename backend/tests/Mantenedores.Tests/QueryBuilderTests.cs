@@ -147,6 +147,24 @@ public class QueryBuilderTests
     }
 
     [Fact]
+    public void Lookup_con_filtros_por_igualdad_y_conteo_para_validar()
+    {
+        // P-110: el combo se acota por columnas de la tabla referenciada; los valores van como parámetros.
+        var categoria = _schema.FindTable("ventas", "categoria")!;
+        var q = new QueryBuilder(new PostgresDialect()).BuildLookup(categoria, "beb", 20, new Dictionary<string, string> { ["id"] = "3" });
+        Assert.Equal(
+            "SELECT t0.\"id\" AS \"value\", t0.\"nombre\" AS \"label\" FROM \"ventas\".\"categoria\" t0 " +
+            "WHERE t0.\"id\" = @p0 AND t0.\"nombre\" ILIKE @p1 ESCAPE '!' ORDER BY t0.\"nombre\" LIMIT @p3 OFFSET @p2",
+            q.Sql);
+        Assert.Equal(3, q.Parameters["p0"]);
+        Assert.Throws<ValidationException>(() => new QueryBuilder(new PostgresDialect())
+            .BuildLookup(categoria, null, 20, new Dictionary<string, string> { ["no_existe"] = "1" }));
+
+        var count = new QueryBuilder(new PostgresDialect()).BuildCountWhere(categoria, [("id", 3), ("nombre", null)]);
+        Assert.Equal("SELECT COUNT(*) FROM \"ventas\".\"categoria\" t0 WHERE t0.\"id\" = @p0 AND t0.\"nombre\" IS NULL", count.Sql);
+    }
+
+    [Fact]
     public void El_tamano_de_pagina_tiene_tope()
     {
         var (data, _) = new QueryBuilder(new PostgresDialect()).BuildList(_schema, Producto, new ListRequest { PageSize = 100_000 });

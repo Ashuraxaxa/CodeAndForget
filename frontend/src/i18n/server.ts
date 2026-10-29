@@ -114,6 +114,12 @@ export const SERVER: [es: string, en: string, ru: string][] = [
   ['la columna \'{column}\' no existe en {table}', 'the column \'{column}\' does not exist in {table}', 'столбца «{column}» нет в {table}'],
   ['esas columnas ya tienen una FK declarada en la base', 'those columns already have a FK declared in the database', 'у этих столбцов уже есть FK, объявленный в базе'],
   ['formato inválido', 'invalid format', 'неверный формат'],
+  // Filtros de los combos (P-110)
+  ['elija primero {columns}', 'choose {columns} first', 'сначала выберите {columns}'],
+  ['no corresponde a {columns} del registro', 'does not match {columns} of the record', 'не соответствует {columns} записи'],
+  ['no hay una relación con las columnas \'{columns}\'', 'there is no relation with the columns \'{columns}\'', 'нет связи со столбцами «{columns}»'],
+  ['\'{column}\' es la misma relación: no puede filtrarla', '\'{column}\' is the same relation: it cannot filter it', '«{column}» — та же связь: она не может её фильтровать'],
+  ['no se puede filtrar por \'{column}\'', 'cannot filter by \'{column}\'', 'нельзя фильтровать по «{column}»'],
   ['el motor {name} no está instalado', 'the {name} engine is not installed', 'СУБД {name} не установлена'],
   ['la variable de entorno \'{name}\' no existe', 'the environment variable \'{name}\' does not exist', 'переменная окружения «{name}» не существует'],
   ['las referencias a archivos están desactivadas (Secrets:FilesDirectory)', 'file references are disabled (Secrets:FilesDirectory)', 'ссылки на файлы отключены (Secrets:FilesDirectory)'],

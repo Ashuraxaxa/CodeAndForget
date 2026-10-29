@@ -874,6 +874,22 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Una librería de combos (react-select, Downshift): suma dependencias y estilos propios para lo que resuelven unas 200 líneas con los colores de la app.
   - Mantener `<select>` en las listas cortas: el dueño pidió el mismo control en todas.
 
+### D-097 · Combos de FK filtrados por otra columna del registro
+- **Estado:** Vigente · 2026-10-29 (P-110, pedido del dueño con CentroCosto, Empresa y Área)
+- **Qué:**
+  - **Ajuste:** `lookupFilters` por relación (clave: sus columnas locales), con la forma columna de la tabla referenciada → columna de este registro. En CentroCosto, `{"AreaID": {"EmpresaID": "EmpresaID"}}`. Se valida al guardar el ajuste: que la relación exista, que las columnas existan, y que no se filtre por la misma relación ni por tipos no comparables.
+  - **Combo** (`GET /lookup?e.<columna>=valor`): usa la misma regla de igualdad exacta que la grilla, incluida la de columnas ocultas.
+  - **En el formulario:**
+    - con el filtro configurado y el valor que filtra vacío, el combo queda bloqueado ("Elija primero EmpresaID"); sin filtro configurado, queda libre como antes;
+    - si cambia la empresa, el área se vacía.
+  - **Al guardar** (alta y edición): se cuenta en la tabla referenciada que la FK y los filtros coincidan. En una edición, lo que no se envió sale del registro actual. Un área de otra empresa, o un área sin empresa, se rechaza también por la API. La importación no pasa por esta revisión.
+  - **En Configurar:** se proponen solos los filtros por columnas de la tabla referenciada que van a la misma tabla que otra relación de este registro, o que se llaman igual que una columna con relación.
+  - No hay código por motor: Core arma `col = @p` y `COUNT(*)` con el dialecto (D-031).
+- **Descartado:**
+  - Aplicar el filtro solo, sin confirmarlo: a veces la columna con el mismo nombre no significa lo mismo.
+  - Dejar el combo libre cuando falta el valor que filtra: el dueño pidió bloquearlo cuando el filtro está configurado.
+  - Solo filtrar en la pantalla: un dato por la API podría romper la regla.
+
 ---
 
 ## Propuestas (aún no decididas)

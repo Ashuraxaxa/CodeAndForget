@@ -4,6 +4,17 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-29 · Sugerencias de ajustes, primera parte de la IA (P-112)
+- El dueño preguntó por un MCP para que una IA escanee y recomiende configuraciones. Se aprobó el plan en tres partes: sugerencias sin IA, tokens y propuestas, y servidor MCP.
+- Decisiones del dueño:
+  - la IA solo propone;
+  - puede ver las 1.000 filas más recientes en las conexiones donde se active;
+  - los tokens tienen el acceso de quien los crea.
+- Sugerencias por reglas: relaciones, filtros de combos, columnas técnicas y correos.
+- Hallazgo: el filtro se descartaba al validarse solo, porque su relación también era sugerida. Ahora se valida junto con ella.
+- En el navegador, una tabla con empresa_id, area_id y tipo_gasto_id dio 7 sugerencias; se aplicaron y guardaron, y no quedó ninguna.
+- 246 unitarias y 285 de integración en verde.
+
 ## 2026-10-29 · Copiar ajustes entre conexiones (P-111)
 - El dueño pidió copiar la configuración entre conexiones para bases idénticas en servidores distintos. Precisó que sirva también entre dos conexiones ya existentes (por ejemplo, solo las relaciones virtuales) y solo entre el mismo motor.
 - Copia con vista previa y validación contra el destino; partes y tablas elegibles; esquemas mapeables. Los nombres de FK de pestañas y árbol se traducen por columnas.

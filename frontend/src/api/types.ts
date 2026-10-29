@@ -457,3 +457,18 @@ export interface OverrideCopyRequest {
   /** "esquema.tabla" del origen; sin indicar = todas. */
   tables?: string[]
 }
+
+/** Sugerencia de ajuste sin IA (P-112). La UI arma el texto con los datos; <c>patch</c> se suma al ajuste. */
+export type SuggestionKind = 'Relation' | 'LookupFilter' | 'Technical' | 'Email'
+export interface Suggestion {
+  id: string
+  kind: SuggestionKind
+  column: string
+  patch: TableOverride
+  refSchema?: string | null
+  refTable?: string | null
+  refColumn?: string | null
+  localColumn?: string | null
+  /** Otra sugerencia sin la cual esta no aplica (un filtro sobre una relación también sugerida). */
+  requires?: string | null
+}

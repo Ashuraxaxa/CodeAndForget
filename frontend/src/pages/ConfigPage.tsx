@@ -1,5 +1,7 @@
 import { SearchSelect } from '../components/Combo'
-import { ArrowDown, ArrowLeft, ArrowUp, ChevronDown, ChevronRight, GripVertical, KeyRound, Play, Plus } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowUp, ChevronDown, ChevronRight, GripVertical, KeyRound, Play, Plus, Sparkles } from 'lucide-react'
+import { SuggestionsPanel } from '../components/SuggestionsPanel'
+import { mergeOverride } from '../lib/mergeOverride'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -54,6 +56,7 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
 
   const [tab, setTab] = useState<Tab>('table')
   const [doc, setDoc] = useState<TableOverride>(initialDoc)
+  const [suggesting, setSuggesting] = useState(false)
   const [order, setOrder] = useState<string[]>(() => initialTable.columns.map(c => c.name))
   const byName = useMemo(() => new Map(initialTable.columns.map(c => [c.name, c])), [initialTable])
   const naturalOrder = useMemo(
@@ -124,8 +127,15 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
           <h1>{t('Configurar · {table}', { table: labelOf(shown) })}</h1>
           <div className="muted small">{schema}.{name} · {t('los cambios se ven en la vista previa antes de guardar')}</div>
         </div>
-        <Link className="back-link" to={back}><ArrowLeft size={16} aria-hidden />{t('Volver a la lista')}</Link>
+        <div className="actions">
+          <button type="button" onClick={() => setSuggesting(v => !v)}><Sparkles size={16} aria-hidden />{t('Sugerir ajustes')}</button>
+          <Link className="back-link" to={back}><ArrowLeft size={16} aria-hidden />{t('Volver a la lista')}</Link>
+        </div>
       </div>
+      {suggesting && (
+        <SuggestionsPanel conn={conn} schema={schema} table={name} onClose={() => setSuggesting(false)}
+          onApply={patches => setDoc(d => patches.reduce(mergeOverride, d))} />
+      )}
 
       <div className="tabs">
         <button className={tab === 'table' ? 'tab active' : 'tab'} onClick={() => setTab('table')}>{t('Tabla')}</button>

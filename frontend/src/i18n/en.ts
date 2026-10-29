@@ -397,4 +397,15 @@ export const en: Messages = {
   'copia': 'copy',
   '{n} ajustes del destino se borraron.': '{n} target settings were deleted.',
   '{n} no se copiaron (tabla inexistente o ajuste no válido en la nueva base).': '{n} were not copied (missing table or invalid setting in the new database).',
+  // Sugerencias de ajustes (P-112)
+  'Aplicar {n} a la edición': 'Apply {n} to the draft',
+  'Buscando sugerencias…': 'Looking for suggestions…',
+  'Detectadas por los nombres y tipos de las columnas, sin mirar datos. Revise antes de guardar.': 'Detected from column names and types, without looking at data. Review before saving.',
+  'Filtrar el combo de {column} por {local} ({table}.{ref})': 'Filter the {column} combo by {local} ({table}.{ref})',
+  'No hay sugerencias para esta tabla.': 'There are no suggestions for this table.',
+  'Relación: {column} → {table} ({key})': 'Relation: {column} → {table} ({key})',
+  'Sugerencias': 'Suggestions',
+  'Sugerir ajustes': 'Suggest settings',
+  '{column}: columna técnica, solo lectura y fuera de la grilla': '{column}: technical column, read-only and out of the grid',
+  '{column}: validar como correo electrónico': '{column}: validate as an email address',
 }

@@ -600,3 +600,7 @@ select option { background-color: var(--surface); color: var(--text); }
 .badge.copy-removed { background: var(--err-bg); color: var(--err-text); }
 /* En una etiqueta o campo en columna, el combo no se estira hacia abajo. */
 label > .combo, .field > .combo { flex: none; }
+
+/* ---------- Sugerencias de ajustes (P-112) ---------- */
+.suggestions { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.suggestions h2 svg { color: var(--accent); }

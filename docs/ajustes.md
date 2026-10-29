@@ -113,6 +113,17 @@ Todo es opcional; lo que no se indica queda automático. Los nombres de columnas
 Las reglas (`required`, `pattern`, `options`, `min`, `max`, `maxLength`) se validan **en el servidor** al crear y
 editar, junto con las de la base, y los errores vuelven por campo. Los filtros del listado no las aplican.
 
+## Sugerencias de ajustes
+
+En Configurar, **Sugerir ajustes** propone, sin IA y sin mirar datos, a partir de los nombres y tipos de las columnas (P-112):
+
+- **Relaciones virtuales** para columnas sin FK cuyo nombre es la PK de otra tabla (`TipoGastoID` → `TipoGasto.TipoGastoID`) o nombra a otra tabla (`empresa_id` → `empresa`), con el mismo tipo. Si hay dos tablas igual de probables, no se propone.
+- **Filtros de combos**, cuando la tabla referenciada tiene una columna que va a la misma tabla que otra de este registro (`Area.EmpresaID` y `CentroCosto.EmpresaID` → `Empresa`). Marcar el filtro marca también su relación.
+- **Columnas técnicas** (`CreationDate`, `ModifiedBy`, `HostName`, `RowStatus`…): solo lectura y fuera de la grilla.
+- **Correos**: patrón de validación.
+
+Las marcadas pasan a la edición; se revisan en la vista previa y se guardan con **Guardar**. Lo ya ajustado no se vuelve a proponer, y lo que el usuario decidió en una columna no se pisa.
+
 ## Copiar ajustes entre conexiones
 
 Para la misma base en otro servidor o instancia (P-111). En **Conexiones**:

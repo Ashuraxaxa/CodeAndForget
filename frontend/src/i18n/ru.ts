@@ -397,4 +397,15 @@ export const ru: Messages = {
   'copia': 'копия',
   '{n} ajustes del destino se borraron.': 'Удалено настроек целевой базы: {n}.',
   '{n} no se copiaron (tabla inexistente o ajuste no válido en la nueva base).': 'Не скопировано: {n} (нет таблицы или настройка недопустима в новой базе).',
+  // Sugerencias de ajustes (P-112)
+  'Aplicar {n} a la edición': 'Применить к редактированию: {n}',
+  'Buscando sugerencias…': 'Поиск предложений…',
+  'Detectadas por los nombres y tipos de las columnas, sin mirar datos. Revise antes de guardar.': 'Найдены по именам и типам столбцов, без просмотра данных. Проверьте перед сохранением.',
+  'Filtrar el combo de {column} por {local} ({table}.{ref})': 'Фильтровать список {column} по {local} ({table}.{ref})',
+  'No hay sugerencias para esta tabla.': 'Для этой таблицы нет предложений.',
+  'Relación: {column} → {table} ({key})': 'Связь: {column} → {table} ({key})',
+  'Sugerencias': 'Предложения',
+  'Sugerir ajustes': 'Предложить настройки',
+  '{column}: columna técnica, solo lectura y fuera de la grilla': '{column}: служебный столбец, только чтение и не в таблице',
+  '{column}: validar como correo electrónico': '{column}: проверять как адрес электронной почты',
 }

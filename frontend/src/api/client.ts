@@ -1,7 +1,7 @@
 import type {
   ImportMode, ImportResult, TransferFormat, TreeNode,
   AuditPage, SecurityInfo, SecurityProfile, SecurityUser, ActionResult, Routine,
-  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult,
+  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult, Suggestion,
 } from './types'
 import { t, translateServer } from '../i18n'
 
@@ -181,6 +181,9 @@ export const api = {
 
   connections: () => request<Connection[]>('GET', 'api/connections'),
   engines: () => request<EngineInfo[]>('GET', 'api/engines'),
+  /** Sugerencias de ajustes sin IA para una tabla (P-112). */
+  suggestions: (conn: string, schema: string, table: string) =>
+    request<Suggestion[]>('GET', `api/meta/${enc(conn)}/suggestions/${enc(schema)}/${enc(table)}`),
   /** Copia los ajustes de otra conexión a <c>to</c> (P-111); sin <c>apply</c> es una vista previa. */
   copyOverrides: (to: string, body: OverrideCopyRequest) =>
     request<OverrideCopyResult>('POST', `api/meta/${enc(to)}/overrides/copy`, body),

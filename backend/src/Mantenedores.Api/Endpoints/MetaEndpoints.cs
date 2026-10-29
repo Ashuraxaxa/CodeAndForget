@@ -106,6 +106,17 @@ public static class MetaEndpoints
             return new OverridePreview(OverrideApplier.Apply(raw, others).FindTable(info.Schema, info.Name)!, errors);
         }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
 
+        // Sugerencias de ajustes sin IA (P-112): reglas sobre el catálogo. Solo las que son válidas sobre el ajuste actual.
+        group.MapGet("/suggestions/{schema}/{table}", async (string conn, string schema, string table, SchemaService schemas, CancellationToken ct) =>
+        {
+            var raw = await schemas.GetRawSchemaAsync(conn, ct);
+            var info = await RawTableAsync(schemas, conn, schema, table, ct);
+            var current = await FindAsync(schemas, conn, info, ct) ?? new TableOverride();
+            var applied = (await schemas.GetUnrestrictedContextAsync(conn, ct)).Schema;
+            var mine = applied.FindTable(info.Schema, info.Name) ?? info;
+            return OverrideSuggester.Valid(raw, info.Schema, info.Name, current, OverrideSuggester.For(applied, mine, current));
+        }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
+
         // Copiar los ajustes de otra conexión (P-111), p. ej. la misma base en otro servidor. Con apply=false es una vista
         // previa: dice qué se crea, qué se reemplaza y qué no se puede copiar, sin guardar nada.
         group.MapPost("/overrides/copy", async (string conn, OverrideCopyRequest body, OverrideCopier copier, ClaimsPrincipal user, CancellationToken ct) =>

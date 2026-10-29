@@ -905,6 +905,25 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Copiar entre motores distintos: tipos, nombres y rutinas no se traducen de un motor a otro.
   - Copiar sin validar: dejaría ajustes rotos que solo aparecen como aviso.
 
+### D-099 · Sugerencias de ajustes sin IA, y plan para la IA por MCP
+- **Estado:** Vigente · 2026-10-29 (P-112, primera de tres partes; el dueño aprobó el plan)
+- **Qué:**
+  - `OverrideSuggester` propone ajustes con reglas sobre el catálogo, sin mirar datos ni salir de la app:
+    - relaciones por nombre de PK o de tabla, con el mismo tipo;
+    - filtros de combos, que dependen de su relación si esta también es sugerida;
+    - columnas técnicas, en solo lectura y fuera de la grilla;
+    - patrones de correo.
+  - `GET /api/meta/{conn}/suggestions/{schema}/{table}` devuelve solo las sugerencias válidas sobre el ajuste actual. Cada una trae su ajuste parcial (`Merge`), y lo que el usuario ya decidió no se pisa.
+  - En la UI se aplican a la edición, no se guardan solas.
+- **Plan aprobado para las partes siguientes:**
+  - **(2) Tokens de acceso:** con **el mismo acceso que el usuario que los crea**, calculado en cada uso.
+  - **(2) Propuestas pendientes:** la IA solo propone y la persona acepta en Configurar con la vista previa.
+  - **(2) Muestra de datos:** hasta las **1.000 filas más recientes**, solo en las conexiones donde se active.
+  - **(3) Servidor MCP:** en `/mcp`, apagado por defecto, con herramientas de lectura, sugerencias, muestra, vista previa y proponer.
+- **Descartado:**
+  - Que la IA guarde ajustes directamente: el dueño prefirió propuestas que alguien acepta.
+  - Sugerir autorreferencias por nombre (Parent, Jefe): demasiado ambiguo sin datos.
+
 ---
 
 ## Propuestas (aún no decididas)

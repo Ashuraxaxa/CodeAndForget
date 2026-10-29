@@ -24,6 +24,7 @@ Los errores siguen el formato *Problem Details* (`application/problem+json`); la
 | PUT / DELETE | `/api/meta/{conn}/overrides/{schema}/{table}` | Guarda o quita el ajuste de una tabla. Permiso `ConfigureTables` |
 | POST | `/api/meta/{conn}/overrides/{schema}/{table}/preview` | Vista previa de un ajuste sin guardarlo. Permiso `ConfigureTables` |
 | POST | `/api/meta/{conn}/overrides/copy` | Copia a `{conn}` los ajustes de otra conexión del mismo motor: `{ from, schemaMap?, parts?, tables?, replaceAll?, apply }`. Con `apply: false` solo dice qué pasaría con cada tabla. Permiso `ConfigureTables` |
+| GET | `/api/meta/{conn}/suggestions/{schema}/{table}` | Sugerencias de ajustes sin IA (relaciones, filtros de combos, columnas técnicas, correos), cada una con el ajuste parcial que se suma al aceptarla. Permiso `ConfigureTables` |
 | GET | `/api/data/{conn}/{schema}/{table}` | Lista. `?page=1&pageSize=25&sort=nombre,-precio&q=texto&f.categoria_id=2`. `f.` = contiene (textos) o igual; `e.` = igual exacto, también en textos (`e.pedido_id=5`) |
 | GET | `/api/data/{conn}/{schema}/{table}/row?{pk}=…` | Un registro. PK compuesta: `?PedidoId=1&Linea=2` |
 | POST | `/api/data/{conn}/{schema}/{table}` | Crea. Devuelve la fila creada |

@@ -360,7 +360,7 @@ Auth__Jwt__ClientId=mantenedores-spa
 Auth__Jwt__ProviderName=Keycloak
 ```
 
-**Duende IdentityServer** (probado con Duende 7 y la app con tokens de 70 s; host de ejemplo en `samples/duende/`):
+**Duende IdentityServer** (probado con Duende 7 y 8 y la app con tokens de 70 s; host de ejemplo en `samples/duende/`):
 
 ```bash
 Auth__Mode=Jwt

@@ -4,6 +4,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-29 · Backend en .NET 10 (P-106)
+- El dueño pidió pasar el backend a .NET 10. El SDK no se podía bajar (proxy); se copió de la imagen `mcr.microsoft.com/dotnet/sdk:10.0`.
+- Hallazgo: el SDK 10 audita también las dependencias indirectas y marcó `System.IO.Packaging` 8.0.0 y `System.Security.Cryptography.Pkcs` 9.0.18, vulnerables. Ya estaban con .NET 8. Se fijaron a 10.0.13.
+- Dos APIs obsoletas reemplazadas. `System.Net.IPNetwork` rechaza `192.168.1.5/24`; se limpia para no romper configuraciones, con prueba.
+- 237 unitarias y 277 de integración en verde en `net10.0`. Duende 8 con la API en .NET 10 en vivo: login PKCE, token y renovación silenciosa.
+
 ## 2026-10-28 · README nuevo e interfaz renovada (P-105)
 - El dueño fusionó los PR #33 a #36 y borró las ramas viejas (P-005). Pidió un README moderno, que se eligió bilingüe (español e inglés), y una interfaz con modo día/noche, con CSS propio y sin librería de componentes.
 - README con capturas que cambian con el tema de GitHub, inicio rápido y funciones. La tabla de rutas pasó a `docs/api.md`, con las rutas nuevas.

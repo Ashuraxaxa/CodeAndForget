@@ -2,7 +2,7 @@
 
 Servicio de **mantenedores dinámicos**: se conecta a SQL Server, PostgreSQL, MySQL o MariaDB
 (Oracle fuera de alcance, D-034), lee su esquema y genera el CRUD de cada tabla.
-Backend .NET 8 + Dapper, frontend React + Vite. Diferencias entre motores: `docs/motores.md`.
+Backend .NET 10 + Dapper, frontend React + Vite. Diferencias entre motores: `docs/motores.md`.
 
 ## Antes de cualquier tarea: leer la memoria del proyecto
 

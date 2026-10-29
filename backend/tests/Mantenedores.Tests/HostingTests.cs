@@ -89,4 +89,24 @@ public class HealthProbeTests
     [Fact]
     public async Task Falla_si_no_hay_nadie_escuchando() =>
         Assert.Equal(1, await Mantenedores.Api.Infrastructure.HealthProbe.RunAsync("http://127.0.0.1:1/api/health/ready"));
+
+}
+
+/// <summary>Redes de confianza del proxy (Hosting:ForwardedHeaders:KnownNetworks).</summary>
+public class ForwardedNetworkTests
+{
+    [Theory]
+    [InlineData("10.0.0.0/8", "10.0.0.0/8")]
+    [InlineData("192.168.1.5/24", "192.168.1.0/24")] // con bits de host, como se aceptaba antes de .NET 10
+    [InlineData("172.16.5.9/12", "172.16.0.0/12")]
+    [InlineData("fd00::1/64", "fd00::/64")]
+    public void Las_redes_del_proxy_aceptan_cidr_con_o_sin_bits_de_host(string cidr, string expected) =>
+        Assert.Equal(expected, Mantenedores.Api.Infrastructure.HostingSetup.ParseNetwork(cidr).ToString());
+
+    [Theory]
+    [InlineData("10.0.0.0")]
+    [InlineData("10.0.0.0/33")]
+    [InlineData("no-es-ip/8")]
+    public void Una_red_mal_escrita_dice_cual(string cidr) =>
+        Assert.Contains(cidr, Assert.Throws<FormatException>(() => Mantenedores.Api.Infrastructure.HostingSetup.ParseNetwork(cidr)).Message);
 }

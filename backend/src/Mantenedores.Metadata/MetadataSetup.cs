@@ -31,7 +31,7 @@ public static class MetadataSetup
         if (protection.KeyStore == KeyStore.FileSystem)
             dp.PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(dataDirectory, "keys")));
         if (protection.CertificatePath.Length > 0)
-            dp.ProtectKeysWithCertificate(new X509Certificate2(protection.CertificatePath, protection.CertificatePassword));
+            dp.ProtectKeysWithCertificate(X509CertificateLoader.LoadPkcs12FromFile(protection.CertificatePath, protection.CertificatePassword));
 
         // --- Almacén de conexiones ---
         if (options.Provider == MetadataProvider.File)

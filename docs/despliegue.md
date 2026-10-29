@@ -127,7 +127,7 @@ Si nginx está en la misma máquina no hace falta más: por defecto se confía e
 
 ## 5. IIS (Windows Server)
 
-1. Instalar el **ASP.NET Core 8 Hosting Bundle**.
+1. Instalar el **ASP.NET Core 10 Hosting Bundle**.
 2. Publicar: `dotnet publish backend/src/Mantenedores.Api -c Release -o C:\apps\mantenedores` y copiar `frontend/dist` a `C:\apps\mantenedores\wwwroot`.
 3. Crear el sitio, o una **aplicación** dentro de un sitio (p. ej. `/mantenedores`), con un *Application Pool* sin código administrado.
 4. Configurar las variables en el `web.config` generado:

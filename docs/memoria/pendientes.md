@@ -81,6 +81,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-061 | Procedimientos almacenados y funciones como acciones de una tabla, con permiso `execute` (D-088) | ⚪ | ✅ PR #35 |
 | P-062 | Otros motores (Oracle, SQLite, Db2, Firebird…) solo si un equipo los pide; ahora pueden ir como plugin (D-092) | ⚪ | ⏳ a pedido |
 | P-063 | Guía "cómo agregar un motor" | ✅ 2026-10-27 · en `docs/motores.md` (la batería común pasó a P-002) |
+| P-111 | Copiar ajustes entre conexiones del mismo motor (todo o por partes y tablas, con vista previa) y duplicar una conexión con sus ajustes (D-098) | 🟡 | ✅ PR #42 |
 | P-110 | Combos de FK filtrados por otra columna del registro (AreaID según EmpresaID), bloqueados hasta elegir y validados al guardar (D-097) | 🟡 | ✅ PR #41 |
 | P-108 | Combos con búsqueda (autocompletar) en todas las listas, con el texto visible en modo noche (D-096) | 🟡 | ✅ PR #40 |
 | P-109 | La búsqueda de FK en el servidor distingue tildes ("lact" no encuentra "Lácteos"): depende de la intercalación de cada motor | ⚪ | ⏳ |

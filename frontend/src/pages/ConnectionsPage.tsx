@@ -1,5 +1,6 @@
 import { SearchSelect } from '../components/Combo'
-import { ArrowRight, Database, Pencil, Plug, Plus, Trash2 } from 'lucide-react'
+import { ArrowRight, Copy, CopyPlus, Database, Pencil, Plug, Plus, Trash2 } from 'lucide-react'
+import { CopyOverridesPanel } from '../components/CopyOverrides'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -34,6 +35,10 @@ export function ConnectionsPage() {
   const t = useT()
   const qc = useQueryClient()
   const canManage = useCan('ManageConnections')
+  const canConfigure = useCan('ConfigureTables')
+  const [copying, setCopying] = useState<Connection | null>(null)
+  const [duplicating, setDuplicating] = useState<Connection | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const { data, isLoading, error } = useQuery({ queryKey: ['connections'], queryFn: api.connections })
   const engines = useEngines()
   const engineLabel = (e: Engine) => ENGINES[e]?.label ?? engines.find(x => x.name === e)?.label ?? e
@@ -51,11 +56,19 @@ export function ConnectionsPage() {
         {canManage && <button className="primary" onClick={() => setEditing('new')}><Plus size={16} aria-hidden />{t('Nueva conexión')}</button>}
       </div>
 
+      {notice && <div className="alert ok">{notice}</div>}
       {editing && (
         <ConnectionForm
           initial={editing === 'new' ? null : editing}
           onClose={() => setEditing(null)}
         />
+      )}
+      {duplicating && (
+        <ConnectionForm initial={null} template={duplicating}
+          onClose={() => setDuplicating(null)} onSaved={setNotice} />
+      )}
+      {copying && data && (
+        <CopyOverridesPanel target={copying} connections={data} onClose={() => setCopying(null)} onDone={setNotice} />
       )}
 
       {isLoading && <p className="muted">{t('Cargando…')}</p>}
@@ -87,8 +100,14 @@ export function ConnectionsPage() {
             </div>
             <div className="actions">
               <Link className="button primary" to={`/c/${c.id}`}>{t('Abrir')}<ArrowRight size={16} aria-hidden /></Link>
+              {canConfigure && (data?.length ?? 0) > 1 && (
+                <button className="icon-button" title={t('Copiar ajustes desde otra conexión')} aria-label={t('Copiar ajustes desde otra conexión')}
+                  onClick={() => { setNotice(null); setCopying(c) }}><Copy size={16} aria-hidden /></button>
+              )}
               {canManage && (
                 <>
+                  <button className="icon-button" title={t('Duplicar: la misma base en otro servidor, con sus ajustes')}
+                    aria-label={t('Duplicar')} onClick={() => { setNotice(null); setDuplicating(c) }}><CopyPlus size={16} aria-hidden /></button>
                   <button className="icon-button" title={t('Editar')} aria-label={t('Editar')} onClick={() => setEditing(c)}><Pencil size={16} aria-hidden /></button>
                   <button
                     className="icon-button danger"
@@ -107,15 +126,25 @@ export function ConnectionsPage() {
   )
 }
 
-function ConnectionForm({ initial, onClose }: { initial: Connection | null; onClose: () => void }) {
+/**
+ * Alta o edición de una conexión. Con <c>template</c> es "Duplicar" (P-111): mismo motor y esquemas, otro servidor;
+ * al guardar se copian los ajustes de la original.
+ */
+function ConnectionForm({ initial, template, onClose, onSaved }: {
+  initial: Connection | null
+  template?: Connection
+  onClose: () => void
+  onSaved?: (message: string) => void
+}) {
   const t = useT()
   const qc = useQueryClient()
+  const base = initial ?? template
   const [form, setForm] = useState({
     id: initial?.id ?? '',
-    name: initial?.name ?? '',
-    engine: (initial?.engine ?? 'SqlServer') as Engine,
+    name: template ? `${template.name} (${t('copia')})` : initial?.name ?? '',
+    engine: (base?.engine ?? 'SqlServer') as Engine,
     connectionString: '',
-    schemas: initial?.schemas.join(', ') ?? '',
+    schemas: base?.schemas.join(', ') ?? '',
   })
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -150,10 +179,19 @@ function ConnectionForm({ initial, onClose }: { initial: Connection | null; onCl
   })
 
   const save = useMutation({
-    mutationFn: () => api.saveConnection(input()),
-    onSuccess: () => {
+    mutationFn: async () => {
+      const saved = await api.saveConnection(input())
+      // Duplicar: los ajustes de la original pasan a la nueva (lo que no aplica se informa).
+      return template ? { saved, copy: await api.copyOverrides(saved.id, { from: template.id, apply: true }) } : { saved, copy: null }
+    },
+    onSuccess: ({ saved, copy }) => {
       qc.invalidateQueries({ queryKey: ['connections'] })
       qc.invalidateQueries({ queryKey: ['tables', form.id] })
+      if (copy) {
+        const skipped = copy.items.filter(i => i.status === 'MissingTable' || i.status === 'Invalid').length
+        onSaved?.(t('Conexión {name} creada con {n} ajustes copiados.', { name: saved.name, n: copy.copied })
+          + (skipped ? ' ' + t('{n} no se copiaron (tabla inexistente o ajuste no válido en la nueva base).', { n: skipped }) : ''))
+      }
       onClose()
     },
     onError: handleError,
@@ -169,7 +207,8 @@ function ConnectionForm({ initial, onClose }: { initial: Connection | null; onCl
 
   return (
     <form className="card form" onSubmit={submit}>
-      <h2>{initial ? t('Editar {name}', { name: initial.name }) : t('Nueva conexión')}</h2>
+      <h2>{initial ? t('Editar {name}', { name: initial.name }) : template ? t('Duplicar {name}', { name: template.name }) : t('Nueva conexión')}</h2>
+      {template && <p className="muted small">{t('Misma base en otro servidor o instancia: indique el identificador y la cadena de conexión nuevos. Al guardar se copian los ajustes de {name}.', { name: template.name })}</p>}
       <div className="grid-2">
         <label>
           {t('Identificador')}
@@ -184,7 +223,7 @@ function ConnectionForm({ initial, onClose }: { initial: Connection | null; onCl
         </label>
         <label>
           {t('Motor')}
-          <SearchSelect value={form.engine} onChange={v => setForm(f => ({ ...f, engine: v }))}
+          <SearchSelect value={form.engine} disabled={!!template} onChange={v => setForm(f => ({ ...f, engine: v }))}
             options={options.map(e => ({ value: e.name, label: ENGINES[e.name]?.label ?? e.label }))} />
         </label>
         <label>

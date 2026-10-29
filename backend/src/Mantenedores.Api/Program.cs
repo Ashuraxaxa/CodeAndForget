@@ -97,6 +97,7 @@ builder.Services.AddSingleton<SmtpChangeNotifier>();
 builder.Services.AddSingleton<IChangeNotifier>(sp => sp.GetRequiredService<SmtpChangeNotifier>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SmtpChangeNotifier>());
 builder.Services.AddSingleton<CrudService>();
+builder.Services.AddSingleton<OverrideCopier>();
 
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 // --- Límites de uso por usuario, para exportar/importar y para el login (P-051, P-091) ---

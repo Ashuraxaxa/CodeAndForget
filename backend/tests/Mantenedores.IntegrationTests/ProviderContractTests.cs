@@ -264,6 +264,82 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         finally { await Db.Crud.DeleteAsync(Conn, Schema, N("bodega"), Key((N("id"), created[N("id")]!)), default); }
     }
 
+    // ---------- Copiar ajustes entre conexiones (P-111) ----------
+
+    [Fact]
+    public async Task Copia_los_ajustes_de_una_conexion_a_otra_con_vista_previa()
+    {
+        // Dos conexiones a la misma base: como la misma base en dos servidores.
+        var store = new InMemoryConnectionStore(
+            new Core.Connections.ConnectionDefinition { Id = "origen", Name = "Origen", Engine = Db.Engine, ConnectionString = Db.ConnectionString, Schemas = [Schema] },
+            new Core.Connections.ConnectionDefinition { Id = "destino", Name = "Destino", Engine = Db.Engine, ConnectionString = Db.ConnectionString, Schemas = [Schema] });
+        var overrides = new InMemoryOverrideStore();
+        var schemas = new Core.Services.SchemaService(store, new Core.Providers.ProviderRegistry([Db.Provider]), overrides);
+        var copier = new Core.Services.OverrideCopier(schemas);
+
+        var producto = (await schemas.GetRawSchemaAsync("origen", default)).FindTable(Schema, N("producto"))!;
+        var child = (await schemas.GetRawSchemaAsync("origen", default)).Tables.SelectMany(t => t.ForeignKeys)
+            .First(f => Same(f.RefTable, producto.Name) && Same(f.Table, N("pedido_detalle")));
+        await overrides.SaveAsync("origen", producto.Schema, producto.Name,
+            new Core.Overrides.TableOverride { Label = "Productos copiados", Children = [child.Name] }, "prueba", default);
+        await overrides.SaveAsync("origen", Schema, "no_existe_en_destino", new Core.Overrides.TableOverride { Label = "x" }, "prueba", default);
+        await overrides.SaveAsync("origen", Schema, N("categoria"), new Core.Overrides.TableOverride
+        {
+            Columns = new Dictionary<string, Core.Overrides.ColumnOverride> { ["columna_inexistente"] = new() { Label = "x" } }
+        }, "prueba", default);
+        var cliente = (await schemas.GetRawSchemaAsync("destino", default)).FindTable(Schema, N("cliente"))!;
+        await overrides.SaveAsync("destino", cliente.Schema, cliente.Name, new Core.Overrides.TableOverride { Label = "Solo en destino" }, "prueba", default);
+
+        // Vista previa: no guarda nada.
+        var preview = await copier.CopyAsync("origen", "destino", null, replaceAll: true, apply: false, "prueba", default);
+        Assert.False(preview.Applied);
+        Assert.Equal(Core.Services.OverrideCopyStatus.New, preview.Items.Single(i => Same(i.Table, producto.Name)).Status);
+        Assert.Equal(Core.Services.OverrideCopyStatus.MissingTable, preview.Items.Single(i => i.Table == "no_existe_en_destino").Status);
+        var invalid = preview.Items.Single(i => Same(i.Table, N("categoria")));
+        Assert.Equal(Core.Services.OverrideCopyStatus.Invalid, invalid.Status);
+        Assert.Contains("columns.columna_inexistente", invalid.Errors!.Keys);
+        Assert.Equal(Core.Services.OverrideCopyStatus.Removed, preview.Items.Single(i => Same(i.Table, cliente.Name)).Status);
+        Assert.Single(await overrides.ListAsync("destino", default));
+
+        // Sin "reemplazar todo", lo propio del destino se mantiene.
+        var merge = await copier.CopyAsync("origen", "destino", null, replaceAll: false, apply: true, "prueba", default);
+        Assert.Equal(1, merge.Copied);
+        var destino = (await schemas.GetContextAsync("destino", default)).Schema;
+        Assert.Equal("Productos copiados", destino.FindTable(producto.Schema, producto.Name)!.Label);
+        Assert.Equal([child.Name], destino.FindTable(producto.Schema, producto.Name)!.Children!.Select(f => f.Name));
+        Assert.Equal("Solo en destino", destino.FindTable(cliente.Schema, cliente.Name)!.Label);
+
+        // Con "reemplazar todo", se borra lo que el origen no tiene; un esquema inexistente deja todo sin tabla.
+        await copier.CopyAsync("origen", "destino", null, replaceAll: true, apply: true, "prueba", default);
+        Assert.Null((await schemas.GetContextAsync("destino", default)).Schema.FindTable(cliente.Schema, cliente.Name)!.Label);
+        var mapped = await copier.CopyAsync("origen", "destino", new Dictionary<string, string> { [Schema] = "otro_esquema" }, false, false, null, default);
+        Assert.All(mapped.Items, i => Assert.Equal(Core.Services.OverrideCopyStatus.MissingTable, i.Status));
+        await Assert.ThrowsAsync<ValidationException>(() => copier.CopyAsync("destino", "DESTINO", null, false, false, null, default));
+
+        // Solo algunas partes: las relaciones del origen, sin tocar el nombre que el destino ya tenía.
+        await overrides.SaveAsync("destino", producto.Schema, producto.Name, new Core.Overrides.TableOverride { Label = "Nombre del destino" }, "prueba", default);
+        await overrides.SaveAsync("origen", producto.Schema, producto.Name, new Core.Overrides.TableOverride
+        {
+            Label = "Nombre del origen", VirtualPrimaryKey = null, Children = [child.Name], Group = "Del origen"
+        }, "prueba", default);
+        var partial = await copier.CopyAsync("origen", "destino", null, replaceAll: true, apply: true, "prueba", default,
+            parts: ["relations"], tables: [$"{producto.Schema}.{producto.Name}"]);
+        Assert.Equal(Core.Services.OverrideCopyStatus.Replace, Assert.Single(partial.Items).Status); // "reemplazar todo" no aplica a una copia parcial
+        var merged = (await overrides.ListAsync("destino", default)).Single(kv => Same(kv.Key.Table, producto.Name)).Value;
+        Assert.Equal("Nombre del destino", merged.Label);
+        Assert.Null(merged.Group);
+        Assert.Equal([child.Name], merged.Children);
+        await Assert.ThrowsAsync<ValidationException>(() => copier.CopyAsync("origen", "destino", null, false, false, null, default, parts: ["nada"]));
+
+        // Solo entre conexiones del mismo motor.
+        var otherEngine = Db.Engine == Core.Providers.DatabaseEngine.Postgres ? Core.Providers.DatabaseEngine.SqlServer : Core.Providers.DatabaseEngine.Postgres;
+        await store.SaveAsync(new Core.Connections.ConnectionDefinition { Id = "otro_motor", Name = "Otro", Engine = otherEngine, ConnectionString = "Host=nadie" }, default);
+        var engine = await Assert.ThrowsAsync<ValidationException>(() => copier.CopyAsync("otro_motor", "destino", null, false, false, null, default));
+        Assert.Contains("mismo motor", engine.Errors["from"]);
+    }
+
+    private static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
     // ---------- Combo de FK filtrado por otra columna (P-110) ----------
 
     [Fact]

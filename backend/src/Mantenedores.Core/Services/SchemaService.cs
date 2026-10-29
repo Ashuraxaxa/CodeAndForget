@@ -132,6 +132,10 @@ public sealed class SchemaService(
         return await Cached(_raw, def.Id, () => LoadRawAsync(def, provider), ct);
     }
 
+    /// <summary>La definición guardada de la conexión (sin conectarse a la base). 404 si no existe.</summary>
+    public async Task<ConnectionDefinition> GetDefinitionAsync(string connectionId, CancellationToken ct) =>
+        await store.GetAsync(connectionId, ct) ?? throw new NotFoundException($"La conexión '{connectionId}' no existe.");
+
     private async Task<(ConnectionDefinition, IDatabaseProvider)> DefinitionAsync(string connectionId, CancellationToken ct)
     {
         var def = await store.GetAsync(connectionId, ct)

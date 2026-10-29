@@ -432,3 +432,28 @@ export interface AuditPage {
   page: number
   pageSize: number
 }
+
+/** Copiar ajustes entre conexiones (P-111). */
+export type OverrideCopyStatus = 'New' | 'Replace' | 'MissingTable' | 'Invalid' | 'Removed'
+export interface OverrideCopyItem {
+  schema: string
+  table: string
+  targetSchema: string
+  status: OverrideCopyStatus
+  errors?: Record<string, string> | null
+}
+export interface OverrideCopyResult {
+  items: OverrideCopyItem[]
+  applied: boolean
+  copied: number
+}
+export interface OverrideCopyRequest {
+  from: string
+  schemaMap?: Record<string, string>
+  replaceAll?: boolean
+  apply?: boolean
+  /** relations, table, columns, actions, notify; sin indicar = todo. */
+  parts?: string[]
+  /** "esquema.tabla" del origen; sin indicar = todas. */
+  tables?: string[]
+}

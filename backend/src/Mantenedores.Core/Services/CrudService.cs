@@ -154,11 +154,13 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
         Require(info, DataOperation.Create, "crear registros en");
-        var insert = new QueryBuilder(ctx.Provider.Dialect).BuildInsert(info, ParseValues(info, body, MaxFileBytes));
+        var values = ParseValues(info, body, MaxFileBytes);
+        var insert = new QueryBuilder(ctx.Provider.Dialect).BuildInsert(info, values);
 
         IReadOnlyDictionary<string, object?> keys;
         await using (var db = await OpenAsync(ctx, ct))
         {
+            await CheckLookupFiltersAsync(ctx, info, db, values, null, ct);
             if (insert.ProvidedKeys is { } provided)
             {
                 // El motor no devuelve la clave: es la que vino en el alta (P-020).
@@ -191,6 +193,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         var before = await WriteAsync(ctx, info, keyValues, expectedVersion, TracksChanges(info), async (db, tx) =>
         {
             await CheckNoCycleAsync(ctx, info, db, keyValues[info.PrimaryKey[0]], values, ct, tx);
+            await CheckLookupFiltersAsync(ctx, info, db, values, keyValues, ct, tx);
             if (await Translated(ctx, info, DbOperation.Update, () => db.ExecuteAsync(Command(query, ct, tx))) == 0)
                 throw new NotFoundException("El registro no existe.");
         }, ct);
@@ -306,6 +309,44 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         return rows.Cast<IDictionary<string, object?>>()
             .Select(r => new TreeNode(r["value"], r["label"]?.ToString(), Convert.ToInt32(r["children"]) == 1))
             .ToList();
+    }
+
+    /// <summary>
+    /// Filtros de los combos (P-110): el valor de la FK tiene que estar entre los que el combo ofrece. En CentroCosto,
+    /// AreaID tiene que ser de la EmpresaID del registro, y sin EmpresaID no se acepta un área (el combo está bloqueado).
+    /// Así el filtro se cumple también si el dato llega por la API. Solo se revisa si cambió la FK o algo que la filtra.
+    /// </summary>
+    private async Task CheckLookupFiltersAsync(ConnectionContext ctx, TableInfo table, DbConnection db,
+        IReadOnlyDictionary<string, object?> values, IReadOnlyDictionary<string, object?>? key, CancellationToken ct, DbTransaction? tx = null)
+    {
+        var filtered = table.ForeignKeys.Where(f => f.LookupFilters.Count > 0).ToList();
+        if (filtered.Count == 0) return;
+        bool Sent(string c) => values.Keys.Contains(c, StringComparer.OrdinalIgnoreCase);
+        IDictionary<string, object?>? current = null;
+        foreach (var fk in filtered)
+        {
+            var involved = fk.Columns.Concat(fk.LookupFilters.Select(f => f.LocalColumn)).ToList();
+            if (!involved.Any(Sent)) continue;
+            // En una edición, lo que no se envió se toma del registro actual.
+            if (key is not null && current is null && !involved.All(Sent))
+                current = await GetByKeyAsync(ctx, table, key, ct, db, tx);
+            object? Get(string c) => values.FirstOrDefault(v => string.Equals(v.Key, c, StringComparison.OrdinalIgnoreCase)) is { Key: not null } e
+                ? e.Value
+                : current?.FirstOrDefault(v => string.Equals(v.Key, c, StringComparison.OrdinalIgnoreCase)).Value;
+
+            var fkValues = fk.Columns.Select(Get).ToList();
+            if (fkValues.All(v => v is null)) continue;
+            var locals = string.Join(", ", fk.LookupFilters.Select(f => f.LocalColumn));
+            if (fk.LookupFilters.Any(f => Get(f.LocalColumn) is null))
+                throw new ValidationException(fk.LabelColumn, $"elija primero {locals}");
+
+            var target = (await schemas.GetRawSchemaAsync(ctx.Definition.Id, ct)).FindTable(fk.RefSchema, fk.RefTable);
+            if (target is null) continue;
+            var query = new QueryBuilder(ctx.Provider.Dialect).BuildCountWhere(target,
+                fk.RefColumns.Select((c, i) => (c, fkValues[i])).Concat(fk.LookupFilters.Select(f => (f.RefColumn, Get(f.LocalColumn)))));
+            if (Convert.ToInt64(await db.ExecuteScalarAsync<object>(Command(query, ct, tx))) == 0)
+                throw new ValidationException(fk.LabelColumn, $"no corresponde a {locals} del registro");
+        }
     }
 
     /// <summary>
@@ -487,10 +528,11 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
     }
 
     public async Task<IReadOnlyList<LookupItem>> LookupAsync(
-        string conn, string schema, string table, string? search, int take, CancellationToken ct)
+        string conn, string schema, string table, string? search, int take, CancellationToken ct,
+        IReadOnlyDictionary<string, string>? equals = null)
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
-        var query = new QueryBuilder(ctx.Provider.Dialect).BuildLookup(info, search, take);
+        var query = new QueryBuilder(ctx.Provider.Dialect).BuildLookup(info, search, take, equals);
 
         await using var db = await OpenAsync(ctx, ct);
         var rows = await db.QueryAsync(Command(query, ct));

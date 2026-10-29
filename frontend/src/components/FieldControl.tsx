@@ -11,11 +11,14 @@ interface Props {
   fkLabel?: string | null
   disabled: boolean
   required: boolean
+  /** Filtros del combo de FK (P-110); null = bloqueado hasta elegir lo que filtra. */
+  fkEquals?: Record<string, string> | null
+  fkBlockedText?: string
   onChange: (value: string | boolean, label?: string | null) => void
 }
 
 /** Dibuja el control adecuado según el tipo lógico de la columna. */
-export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, required, onChange }: Props) {
+export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, required, fkEquals, fkBlockedText, onChange }: Props) {
   const t = useT()
   const id = `f-${c.name}`
   const str = typeof value === 'string' ? value : ''
@@ -28,6 +31,8 @@ export function FieldControl({ conn, column: c, fk, value, fkLabel, disabled, re
         fk={fk}
         value={str}
         label={fkLabel ?? null}
+        equals={fkEquals}
+        blockedText={fkBlockedText}
         nullable={c.isNullable}
         disabled={disabled}
         onChange={(v, l) => onChange(v == null ? '' : String(v), l)}

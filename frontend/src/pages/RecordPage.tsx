@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError, isConcurrencyError } from '../api/client'
-import { LABEL_SUFFIX, SIZE_SUFFIX, VERSION_FIELD, helpTextOf, labelOf, selectorLinks, type Column, type LookupItem, type Row, type TableMeta } from '../api/types'
+import { LABEL_SUFFIX, SIZE_SUFFIX, VERSION_FIELD, helpTextOf, labelOf, selectorLinks, type Column, type ForeignKey, type LookupItem, type Row, type TableMeta } from '../api/types'
 import { FieldControl } from '../components/FieldControl'
 import { CompositeForeignKeySelect } from '../components/ForeignKeySelect'
 import { fromInputValue, keyQuery, parseRecordSearch, toInputValue } from '../lib/format'
@@ -100,6 +100,37 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks,
   const [labels, setLabels] = useState<Record<string, string | null>>(() =>
     Object.fromEntries(fields.map(c => [c.name, (row?.[c.name + LABEL_SUFFIX] as string | null) ?? null])))
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Combos filtrados por otra columna (P-110): AreaID solo ofrece áreas de la EmpresaID elegida.
+  const fieldName = (name: string) => { const f = meta.columns.find(x => x.name === name); return f ? labelOf(f) : name }
+  /** Filtros del combo con los valores del registro; null si falta alguno (el combo queda bloqueado). */
+  const equalsFor = (fk: ForeignKey | undefined): Record<string, string> | null | undefined => {
+    if (!fk?.lookupFilters?.length) return undefined
+    const out: Record<string, string> = {}
+    for (const f of fk.lookupFilters) {
+      const v = values[f.localColumn]
+      if (v === undefined || v === '') return null
+      out[f.refColumn] = String(v)
+    }
+    return out
+  }
+  const blockedText = (fk: ForeignKey | undefined) =>
+    t('Elija primero {field}', { field: (fk?.lookupFilters ?? []).map(f => fieldName(f.localColumn)).join(', ') })
+  /** Cambia campos y, si cambió algo que filtra un combo, vacía ese combo: lo elegido puede no corresponder. */
+  function change(changes: Record<string, string | boolean>, label?: { column: string; text: string | null }) {
+    const cleared = meta.foreignKeys.filter(fk => fk.lookupFilters?.some(f => f.localColumn in changes && changes[f.localColumn] !== values[f.localColumn]))
+    setValues(s => {
+      const n = { ...s, ...changes }
+      for (const fk of cleared) for (const c of fk.columns) if (!(c in changes)) n[c] = ''
+      return n
+    })
+    setLabels(s => {
+      const n = { ...s }
+      if (label) n[label.column] = label.text
+      for (const fk of cleared) if (!fk.columns.some(c => c in changes)) n[fk.labelColumn] = null
+      return n
+    })
+  }
   const [links, setLinks] = useState(initialLinks)
   // Archivos (P-018): no vienen con el registro; solo se envían si se eligió otro o se quitó.
   const files = meta.columns.filter(c => c.isFile && !c.hidden)
@@ -210,10 +241,8 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks,
                   <CompositeForeignKeySelect conn={conn} fk={composite} disabled={locked}
                     values={Object.fromEntries(composite.columns.map(n => [n, values[n]]))} label={labels[c.name]}
                     nullable={cols.every(x => x.isNullable)}
-                    onChange={(picked, l) => {
-                      setValues(s => ({ ...s, ...Object.fromEntries(composite.columns.map(n => [n, picked[n] ?? ''])) }))
-                      setLabels(s => ({ ...s, [c.name]: l }))
-                    }} />
+                    equals={equalsFor(composite)} blockedText={blockedText(composite)}
+                    onChange={(picked, l) => change(Object.fromEntries(composite.columns.map(n => [n, picked[n] ?? ''])), { column: c.name, text: l })} />
                   {composite.columns.map(n => errors[n] && <span key={n} className="field-error">{n}: {errors[n]}</span>)}
                 </label>
               )
@@ -233,10 +262,9 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks,
                   fkLabel={labels[c.name]}
                   disabled={isLocked(c)}
                   required={required}
-                  onChange={(v, l) => {
-                    setValues(s => ({ ...s, [c.name]: v }))
-                    if (l !== undefined) setLabels(s => ({ ...s, [c.name]: l }))
-                  }}
+                  fkEquals={equalsFor(fk)}
+                  fkBlockedText={blockedText(fk)}
+                  onChange={(v, l) => change({ [c.name]: v }, l !== undefined ? { column: c.name, text: l } : undefined)}
                 />
                 {helpTextOf(c) && <span className="hint">{helpTextOf(c)}</span>}
                 {c.isComputed && <span className="hint">{t('Calculada por la base de datos')}</span>}

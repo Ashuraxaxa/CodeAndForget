@@ -345,4 +345,38 @@ public class OverrideLanguageTests
             new Mantenedores.Core.Overrides.TableOverride { Labels = new Dictionary<string, string> { ["inglés"] = "x" } }));
         Assert.Contains("labels", ex.Errors.Keys);
     }
+
+}
+
+/// <summary>Filtros de los combos de FK (P-110).</summary>
+public class LookupFilterOverrideTests
+{
+    private static readonly DatabaseSchema Raw = TestSchema.Build();
+
+    private static DatabaseSchema Apply(string schema, string table, TableOverride o) =>
+        OverrideApplier.Apply(Raw, new Dictionary<(string, string), TableOverride> { [(schema, table)] = o });
+
+    private static TableOverride Filters(string fk, params (string Ref, string Local)[] map) => new()
+    {
+        LookupFilters = new Dictionary<string, IReadOnlyDictionary<string, string>> { [fk] = map.ToDictionary(m => m.Ref, m => m.Local) }
+    };
+
+    [Fact]
+    public void Los_filtros_del_combo_quedan_en_la_relacion()
+    {
+        var producto = Apply("ventas", "producto", Filters("CATEGORIA_ID", ("NOMBRE", "codigo"))).FindTable("ventas", "producto")!;
+        var fk = producto.ForeignKeys.Single(f => f.Columns[0] == "categoria_id");
+        Assert.Equal([new LookupFilter("nombre", "codigo")], fk.LookupFilters); // nombres como en el catálogo
+    }
+
+    [Theory]
+    [InlineData("precio", "nombre", "codigo", "no hay una relación")]
+    [InlineData("categoria_id", "no_existe", "codigo", "no existe en ventas.categoria")]
+    [InlineData("categoria_id", "nombre", "no_existe", "'no_existe' no existe")]
+    [InlineData("categoria_id", "id", "categoria_id", "misma relación")]
+    public void Un_filtro_mal_armado_dice_por_que(string fk, string refCol, string local, string message)
+    {
+        var ex = Assert.Throws<ValidationException>(() => OverrideApplier.Validate(Raw, "ventas", "producto", Filters(fk, (refCol, local))));
+        Assert.Contains(message, ex.Errors[$"lookupFilters.{fk}"]);
+    }
 }

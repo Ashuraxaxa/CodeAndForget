@@ -264,6 +264,64 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         finally { await Db.Crud.DeleteAsync(Conn, Schema, N("bodega"), Key((N("id"), created[N("id")]!)), default); }
     }
 
+    // ---------- Combo de FK filtrado por otra columna (P-110) ----------
+
+    [Fact]
+    public async Task El_combo_de_area_solo_ofrece_las_de_la_empresa_y_se_valida_al_guardar()
+    {
+        // Como CentroCosto (EmpresaID, AreaID) y Area (EmpresaID): tablas propias de la prueba, con DDL común a los motores.
+        string T(string name) => $"{Schema}.{name}";
+        await Db.ExecuteAsync($"CREATE TABLE {T("lf_area")} (id int NOT NULL PRIMARY KEY, empresa int NOT NULL, nombre varchar(40) NOT NULL)");
+        await Db.ExecuteAsync($"CREATE TABLE {T("lf_centro")} (id int NOT NULL PRIMARY KEY, empresa int NULL, area_id int NULL, nombre varchar(40) NOT NULL)");
+        try
+        {
+            await Db.ExecuteAsync($"INSERT INTO {T("lf_area")} (id, empresa, nombre) VALUES (1, 1, 'Producción'), (2, 1, 'Ventas'), (3, 2, 'Bodega')");
+            await Db.Schemas.RefreshAsync(Conn, default);
+            var value = new Core.Overrides.TableOverride
+            {
+                VirtualForeignKeys = [new(["area_id"], Schema, "lf_area", ["id"])],
+                LookupFilters = new Dictionary<string, IReadOnlyDictionary<string, string>> { ["area_id"] = new Dictionary<string, string> { ["empresa"] = "empresa" } }
+            };
+            Core.Overrides.OverrideApplier.Validate(await Db.Schemas.GetRawSchemaAsync(Conn, default), Schema, "lf_centro", value);
+            await Db.Overrides.SaveAsync(Conn, Schema, "lf_centro", value, "prueba", default);
+            Db.Schemas.InvalidateOverrides(Conn);
+
+            var fk = Assert.Single((await Db.Schemas.GetTableAsync(Conn, Schema, "lf_centro", default)).Table.ForeignKeys);
+            Assert.Equal([new LookupFilter("empresa", "empresa")], fk.LookupFilters);
+
+            // El combo: solo las áreas de la empresa pedida.
+            var empresa1 = await Db.Crud.LookupAsync(Conn, Schema, "lf_area", null, 20, default, new Dictionary<string, string> { ["empresa"] = "1" });
+            Assert.Equal(["Producción", "Ventas"], empresa1.Select(i => i.Label).Order());
+            var empresa2 = await Db.Crud.LookupAsync(Conn, Schema, "lf_area", "bod", 20, default, new Dictionary<string, string> { ["empresa"] = "2" });
+            Assert.Equal("Bodega", Assert.Single(empresa2).Label);
+
+            // Al guardar: un área de otra empresa, o un área sin empresa, se rechaza aunque llegue por la API.
+            var otra = await Assert.ThrowsAsync<ValidationException>(() => Db.Crud.CreateAsync(Conn, Schema, "lf_centro",
+                Body(("id", 1), ("empresa", 1), ("area_id", 3), ("nombre", "Centro 1")), default));
+            Assert.Contains("no corresponde", otra.Errors["area_id"]);
+            var sinEmpresa = await Assert.ThrowsAsync<ValidationException>(() => Db.Crud.CreateAsync(Conn, Schema, "lf_centro",
+                Body(("id", 1), ("empresa", null), ("area_id", 1), ("nombre", "Centro 1")), default));
+            Assert.Contains("elija primero empresa", sinEmpresa.Errors["area_id"]);
+
+            await Db.Crud.CreateAsync(Conn, Schema, "lf_centro", Body(("id", 1), ("empresa", 1), ("area_id", 2), ("nombre", "Centro 1")), default);
+            await Db.Crud.CreateAsync(Conn, Schema, "lf_centro", Body(("id", 2), ("empresa", 2), ("area_id", null), ("nombre", "Sin área")), default);
+
+            // Cambiar solo la empresa: el área que ya tenía (de la empresa 1) se revisa con el registro actual.
+            var cambio = await Assert.ThrowsAsync<ValidationException>(() => Db.Crud.UpdateAsync(Conn, Schema, "lf_centro",
+                Key(("id", 1)), Body(("empresa", 2)), default));
+            Assert.Contains("area_id", cambio.Errors.Keys);
+            await Db.Crud.UpdateAsync(Conn, Schema, "lf_centro", Key(("id", 1)), Body(("empresa", 2), ("area_id", 3)), default);
+            Assert.Equal(1L, await Db.ScalarAsync($"SELECT COUNT(*) FROM {T("lf_centro")} WHERE empresa = 2 AND area_id = 3"));
+        }
+        finally
+        {
+            await Db.Overrides.DeleteAllAsync(Conn, default);
+            await Db.ExecuteAsync($"DROP TABLE {T("lf_centro")}");
+            await Db.ExecuteAsync($"DROP TABLE {T("lf_area")}");
+            await Db.Schemas.RefreshAsync(Conn, default);
+        }
+    }
+
     // ---------- Filtro de una FK por su etiqueta (P-032) ----------
 
     [Fact]

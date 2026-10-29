@@ -226,7 +226,8 @@ public sealed class QueryBuilder(ISqlDialect dialect)
     }
 
     /// <summary>Opciones para un combo de FK: valor de la PK + texto de la columna a mostrar.</summary>
-    public SqlQuery BuildLookup(TableInfo table, string? search, int take)
+    /// <param name="equals">Filtros por igualdad del combo (P-110), p. ej. EmpresaID = 3 al buscar áreas.</param>
+    public SqlQuery BuildLookup(TableInfo table, string? search, int take, IReadOnlyDictionary<string, string>? equals = null)
     {
         RequireKey(table);
         var p = new ParamBag(dialect.ParameterPrefix);
@@ -234,9 +235,10 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         var displayCol = (table.DisplayColumn is { } d ? table.FindColumn(d) : null) ?? keyCols[^1];
         var display = $"{Base}.{dialect.Quote(displayCol.Name)}";
 
-        var where = "";
+        var predicates = (equals ?? new Dictionary<string, string>()).Select(kv => ExactPredicate(table, kv.Key, kv.Value, p)).ToList();
         if (!string.IsNullOrWhiteSpace(search))
-            where = $" WHERE {dialect.Contains(display, p.Add(LikePattern(search)), IsText(displayCol))}";
+            predicates.Add(dialect.Contains(display, p.Add(LikePattern(search)), IsText(displayCol)));
+        var where = predicates.Count == 0 ? "" : " WHERE " + string.Join(" AND ", predicates);
 
         // Se ordena por la columna a mostrar solo si el motor puede ordenarla.
         var orderBy = displayCol.IsSortable ? display : string.Join(", ", keyCols.Select(k => $"{Base}.{dialect.Quote(k.Name)}"));
@@ -250,6 +252,38 @@ public sealed class QueryBuilder(ISqlDialect dialect)
                   $"FROM {dialect.Table(table.Schema, table.Name)} {Base}{where} " +
                   $"ORDER BY {orderBy} {dialect.Paging(offset, limit)}";
         return new SqlQuery(sql, p.Snapshot());
+    }
+
+    /// <summary>
+    /// Cuántas filas cumplen todas las igualdades (P-110: el área elegida es de la empresa del registro). Un valor
+    /// nulo se compara con IS NULL. Las columnas salen del catálogo y los valores van como parámetros.
+    /// </summary>
+    public SqlQuery BuildCountWhere(TableInfo table, IEnumerable<(string Column, object? Value)> equals)
+    {
+        var p = new ParamBag(dialect.ParameterPrefix);
+        var predicates = equals.Select(e =>
+        {
+            var col = RequireColumn(table, e.Column);
+            var expr = $"{Base}.{dialect.Quote(col.Name)}";
+            return e.Value is null ? $"{expr} IS NULL" : $"{expr} = {dialect.ParameterFor(col, p.Add(e.Value))}";
+        }).ToList();
+        if (predicates.Count == 0) throw new ArgumentException("Hace falta al menos una condición.", nameof(equals));
+        var sql = $"SELECT COUNT(*) FROM {dialect.Table(table.Schema, table.Name)} {Base} WHERE {string.Join(" AND ", predicates)}";
+        return new SqlQuery(sql, p.Snapshot());
+    }
+
+    /// <summary>
+    /// Igualdad exacta por una columna (grilla con <c>e.</c> y filtros del combo). Una columna oculta solo se acepta si
+    /// es parte de una FK o de la PK: así no se puede adivinar su valor probando. Vacío = IS NULL.
+    /// </summary>
+    private string ExactPredicate(TableInfo table, string name, string raw, ParamBag p)
+    {
+        var col = RequireColumn(table, name);
+        var inForeignKey = table.ForeignKeys.Any(f => f.Columns.Contains(col.Name, StringComparer.OrdinalIgnoreCase));
+        if (col.Type is LogicalType.Unsupported or LogicalType.Binary or LogicalType.Json || (col.Hidden && !inForeignKey && !col.IsPrimaryKey))
+            throw new ValidationException(col.Name, "no se puede filtrar por esta columna");
+        var colExpr = $"{Base}.{dialect.Quote(col.Name)}";
+        return raw.Length == 0 ? $"{colExpr} IS NULL" : $"{colExpr} = {dialect.ParameterFor(col, p.Add(ValueConverter.FromString(col, raw)))}";
     }
 
     /// <summary>
@@ -439,15 +473,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         }
 
         foreach (var (name, raw) in request.Exact)
-        {
-            var col = RequireColumn(table, name);
-            // Una columna oculta solo se acepta si es parte de una FK: así no se puede adivinar su valor probando.
-            var inForeignKey = table.ForeignKeys.Any(f => f.Columns.Contains(col.Name, StringComparer.OrdinalIgnoreCase));
-            if (col.Type is LogicalType.Unsupported or LogicalType.Binary or LogicalType.Json || (col.Hidden && !inForeignKey && !col.IsPrimaryKey))
-                throw new ValidationException(col.Name, "no se puede filtrar por esta columna");
-            var colExpr = $"{Base}.{dialect.Quote(col.Name)}";
-            predicates.Add($"{colExpr} = {dialect.ParameterFor(col, p.Add(ValueConverter.FromString(col, raw)))}");
-        }
+            predicates.Add(ExactPredicate(table, name, raw, p));
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {

@@ -201,6 +201,29 @@ public static partial class OverrideApplier
             });
         }
 
+        // --- Filtros de los combos de FK (P-110) ---
+        foreach (var (fkKey, map) in o.LookupFilters ?? new Dictionary<string, IReadOnlyDictionary<string, string>>())
+        {
+            var field = $"lookupFilters.{fkKey}";
+            var cols = fkKey.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            var i = fks.FindIndex(f => f.Columns.SequenceEqual(cols, StringComparer.OrdinalIgnoreCase));
+            if (i < 0) { Issue(field, $"no hay una relación con las columnas '{fkKey}'"); continue; }
+            var fk = fks[i];
+            var target = raw.FindTable(fk.RefSchema, fk.RefTable);
+            var filters = new List<LookupFilter>();
+            foreach (var (refName, localName) in map ?? new Dictionary<string, string>())
+            {
+                var refCol = target?.FindColumn(refName ?? "");
+                var local = columns.FirstOrDefault(c => Same(c.Name, localName ?? ""));
+                if (refCol is null) Issue(field, $"la columna '{refName}' no existe en {fk.RefSchema}.{fk.RefTable}");
+                else if (local is null) Issue(field, $"la columna '{localName}' no existe");
+                else if (fk.Columns.Contains(local.Name, StringComparer.OrdinalIgnoreCase)) Issue(field, $"'{local.Name}' es la misma relación: no puede filtrarla");
+                else if (refCol.Type is LogicalType.Unsupported or LogicalType.Binary or LogicalType.Json) Issue(field, $"no se puede filtrar por '{refCol.Name}'");
+                else filters.Add(new LookupFilter(refCol.Name, local.Name));
+            }
+            fks[i] = fk with { LookupFilters = filters };
+        }
+
         // --- Columna a mostrar: la del ajuste, o se vuelve a elegir (pudo quedar oculta) ---
         var display = DisplayColumnResolver.Resolve(columns, fks.SelectMany(f => f.Columns).ToHashSet(StringComparer.OrdinalIgnoreCase));
         if (o.DisplayColumn is { Length: > 0 } dc)

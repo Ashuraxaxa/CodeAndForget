@@ -4,6 +4,17 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-29 · Combos de FK filtrados (P-110)
+- El dueño mostró CentroCosto, con EmpresaID → Empresa y AreaID → Area, donde Area también tiene EmpresaID. Pidió que el combo de área ofrezca solo las de la empresa del registro y que quede bloqueado sin empresa cuando el filtro está configurado.
+- Ajuste `lookupFilters`, combo con `e.<columna>`, y validación al guardar (también por la API).
+- Prueba en los cuatro motores, con tablas propias de DDL común: pasó a la primera.
+- En el navegador, sin FK declaradas en la base:
+  - el editor propuso "Filtrar por empresa_id (area.empresa_id)";
+  - el área quedó bloqueada hasta elegir la empresa;
+  - la empresa 1 ofreció sus 3 áreas, y al pasar a la 2 el área se vació y ofreció las 2 suyas;
+  - por la API, un área de otra empresa dio 400.
+- 243 unitarias y 281 de integración en verde.
+
 ## 2026-10-29 · Combos con búsqueda (P-108)
 - El dueño reportó que en el combo de Acciones no se leían las opciones y que con muchos registros costaba encontrar una. Pidió autocompletar, además de elegir, en todos los controles de ese tipo.
 - Causa del texto invisible: las opciones nativas con fondo transparente se veían blancas en Windows, con el texto claro del modo noche.

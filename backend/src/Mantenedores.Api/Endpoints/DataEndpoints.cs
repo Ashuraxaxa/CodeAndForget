@@ -118,8 +118,11 @@ public static class DataEndpoints
         }).RequireRateLimiting(Infrastructure.RateLimiting.Heavy);
 
         // Opciones para combos de FK: [{ value, label }]
-        group.MapGet("/lookup", (string conn, string schema, string table, string? q, int? take, CrudService crud, CancellationToken ct) =>
-            crud.LookupAsync(conn, schema, table, q, take ?? 20, ct));
+        // ?q=texto&take=20 y filtros por igualdad como e.<columna>=valor (P-110: áreas de una empresa).
+        group.MapGet("/lookup", (string conn, string schema, string table, string? q, int? take, HttpContext http, CrudService crud, CancellationToken ct) =>
+            crud.LookupAsync(conn, schema, table, q, take ?? 20, ct,
+                http.Request.Query.Where(kv => kv.Key.StartsWith("e.", StringComparison.Ordinal) && kv.Key.Length > 2)
+                    .ToDictionary(kv => kv.Key[2..], kv => kv.Value.ToString())));
     }
 
     private static ListRequest ParseList(IQueryCollection q)

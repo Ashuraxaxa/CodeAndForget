@@ -76,7 +76,7 @@ public sealed class McpTests : IDisposable
             protocolVersion = "2025-06-18", capabilities = new { }, clientInfo = new { name = "pruebas", version = "1" }
         });
         Assert.Equal(HttpStatusCode.OK, status);
-        Assert.Equal("mantenedores", init.GetProperty("result").GetProperty("serverInfo").GetProperty("name").GetString());
+        Assert.Equal("celdo", init.GetProperty("result").GetProperty("serverInfo").GetProperty("name").GetString());
         Assert.Contains("propose_settings", init.GetProperty("result").GetProperty("instructions").GetString());
 
         var tools = (await Rpc(ia, "tools/list")).Body.GetProperty("result").GetProperty("tools").EnumerateArray()
@@ -108,7 +108,7 @@ public sealed class McpTests : IDisposable
         }, http);
         await using var mcp = await McpClient.CreateAsync(transport);
 
-        Assert.Equal("mantenedores", mcp.ServerInfo.Name);
+        Assert.Equal("celdo", mcp.ServerInfo.Name);
         var tools = await mcp.ListToolsAsync();
         Assert.Contains(tools, t => t.Name == "propose_settings");
         // Lo que solo lee se anuncia así, para que el cliente no pida confirmación de más.

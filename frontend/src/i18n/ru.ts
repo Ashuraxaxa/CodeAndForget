@@ -65,7 +65,7 @@ export const ru: Messages = {
   'Cambios': 'Изменения',
   'Sin cambios registrados': 'Изменений не зарегистрировано',
   'Página {page} de {pages}': 'Страница {page} из {pages}',
-  'No tiene permiso para configurar mantenedores (pídale a un administrador el rol correspondiente).': 'У вас нет права настраивать справочники (попросите администратора выдать соответствующую роль).',
+  'No tiene permiso para configurar tablas (pídale a un administrador el rol correspondiente).': 'У вас нет права настраивать справочники (попросите администратора выдать соответствующую роль).',
   'Configurar · {table}': 'Настройка · {table}',
   'los cambios se ven en la vista previa antes de guardar': 'изменения видны в предпросмотре до сохранения',
   'Volver a la lista': 'К списку',
@@ -231,7 +231,7 @@ export const ru: Messages = {
   'Borrar': 'Удаление',
   'Exportar': 'Экспорт',
   'Importar': 'Импорт',
-  'Configurar mantenedores': 'Настройка справочников',
+  'Configurar tablas': 'Настройка таблиц',
   'Administrar conexiones': 'Управление подключениями',
   'Administrar seguridad': 'Управление безопасностью',
   'Ver la auditoría': 'Просмотр аудита',
@@ -431,6 +431,7 @@ export const ru: Messages = {
   // Revisión de idiomas (D-102)
   'el proveedor de identidad': 'поставщика удостоверений',
   // Plan y licencia (P-116)
+  'Hecho con Celdo': 'Сделано на Celdo',
   'Prueba Pro · {n} días': { one: 'Пробный Pro · {n} день', few: 'Пробный Pro · {n} дня', many: 'Пробный Pro · {n} дней', other: 'Пробный Pro · {n} дня' },
   'Plan': 'Тариф',
   'Esta instalación usa funciones del plan Empresa: {list}. Activa una licencia Empresa para seguir.': 'Эта установка использует функции тарифа «Бизнес»: {list}. Активируйте лицензию «Бизнес», чтобы продолжить.',

@@ -22,7 +22,7 @@ public static class McpSetup
     public const string Path = "/api/mcp";
 
     private const string Instructions =
-        "Servicio de mantenedores: genera pantallas CRUD a partir del esquema de una base de datos. Usted ayuda a configurarlas. " +
+        "Celdo: genera pantallas CRUD a partir del esquema de una base de datos. Usted ayuda a configurarlas. " +
         "Flujo sugerido: list_connections → list_tables → get_table → suggest_settings (reglas sin IA) → sample_rows si la conexión lo " +
         "permite → preview_settings hasta que no haya errores → propose_settings con un motivo claro. No puede guardar ajustes: " +
         "sus propuestas quedan pendientes hasta que una persona las acepte en Configurar. Revise list_proposals para no repetirlas. " +
@@ -43,7 +43,7 @@ public static class McpSetup
         };
         services.AddMcpServer(s =>
             {
-                s.ServerInfo = new Implementation { Name = "mantenedores", Version = typeof(McpSetup).Assembly.GetName().Version?.ToString() ?? "1.0" };
+                s.ServerInfo = new Implementation { Name = "celdo", Version = typeof(McpSetup).Assembly.GetName().Version?.ToString() ?? "1.0" };
                 s.ServerInstructions = Instructions;
             })
             // Sin estado: cada llamada es una solicitud HTTP con su usuario, así los permisos se revisan cada vez.

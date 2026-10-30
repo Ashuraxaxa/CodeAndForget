@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-30 · Celdo en la app (P-117)
+- Paleta grafito y marcador en los dos temas: en Día manda el grafito; en Noche, el amarillo toma su lugar.
+- Logo y favicon nuevos; "Configurar mantenedores" pasa a "Configurar tablas".
+- "Hecho con Celdo" al pie, solo en Gratis.
+- README en español e inglés con el logo y capturas nuevas.
+- Se mantienen los nombres internos que invalidarían llaves, conexiones o sesiones.
+- Revisado en el navegador en Día y en Noche: login, grilla, formulario y pie de Gratis.
+
 ## 2026-10-30 · Licencias y planes (P-116)
 - **Decisiones del dueño:**
   - código cerrado, factura desde Perú y dominio `celdo.app` (D-105);

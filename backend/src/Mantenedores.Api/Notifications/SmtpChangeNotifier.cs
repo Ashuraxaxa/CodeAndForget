@@ -23,7 +23,7 @@ public sealed class NotificationOptions
     /// <summary>Remitente, p. ej. <c>Mantenedores &lt;no-responder@empresa.cl&gt;</c>.</summary>
     public string From { get; set; } = "";
 
-    public string SubjectPrefix { get; set; } = "[Mantenedores]";
+    public string SubjectPrefix { get; set; } = "[Celdo]";
 
     /// <summary>Dirección pública de la app, para incluir un enlace al registro (opcional).</summary>
     public string AppUrl { get; set; } = "";

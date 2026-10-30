@@ -1,14 +1,19 @@
 <div align="center">
 
-# Mantenedores dinámicos
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/comercial/marca/celdo-logo-oscuro.svg">
+  <img alt="Celdo" src="docs/comercial/marca/celdo-logo.svg" width="220">
+</picture>
 
-**Conecta una base de datos y obtén al instante el mantenedor de cada tabla.**
-Sin escribir pantallas ni consultas: la app lee el esquema y genera listado, filtros, formulario y permisos.
+# Tu base de datos, lista para trabajar
+
+**Celdo convierte tu SQL Server, PostgreSQL, MySQL o MariaDB en una aplicación para ver, buscar, crear y editar datos.**
+Sin escribir pantallas ni consultas: lee el esquema y genera listado, filtros, formulario y permisos. Se instala en tu red.
 
 [![CI](https://github.com/Ashuraxaxa/CodeAndForget/actions/workflows/ci.yml/badge.svg)](https://github.com/Ashuraxaxa/CodeAndForget/actions/workflows/ci.yml)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
 ![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
-![SQL Server · PostgreSQL · MySQL · MariaDB](https://img.shields.io/badge/motores-SQL%20Server%20·%20PostgreSQL%20·%20MySQL%20·%20MariaDB-2f6feb)
+![SQL Server · PostgreSQL · MySQL · MariaDB](https://img.shields.io/badge/motores-SQL%20Server%20·%20PostgreSQL%20·%20MySQL%20·%20MariaDB-1e2328)
 
 **Español** · [English](README.en.md)
 
@@ -32,7 +37,7 @@ Todo lo demás se ajusta desde la interfaz, sin tocar código ni reiniciar.
 
 | | |
 |---|---|
-| 🧩 **Mantenedores generados** | Grilla, formulario y validaciones a partir del esquema. PK compuestas, vistas y tablas sin PK (solo lectura), identity, columnas calculadas. |
+| 🧩 **Pantallas generadas** | Grilla, formulario y validaciones a partir del esquema. PK compuestas, vistas y tablas sin PK (solo lectura), identity, columnas calculadas. |
 | 🔗 **Relaciones** | Combos de FK con búsqueda (también FK de varias columnas), maestro-detalle en pestañas, N:M con selector múltiple y árboles con arrastre para tablas con autorreferencia. |
 | ⚙️ **Ajustes sin código** | Nombres visibles por idioma, columnas ocultas u obligatorias, orden, controles, FK y PK virtuales, y botones que llaman a procedimientos almacenados. [ajustes.md](docs/ajustes.md) |
 | 🗂️ **Tipos especiales** | JSON, enums, arreglos, archivos con vista previa de imágenes, datos geográficos en WKT (PostGIS incluido) y números de más de 28 dígitos. |
@@ -42,6 +47,7 @@ Todo lo demás se ajusta desde la interfaz, sin tocar código ni reiniciar.
 | 🕵️ **Auditoría** | Quién cambió qué y cuándo, con historial por registro y exportación. Edición simultánea sin pisar cambios ajenos. |
 | 🌐 **Idiomas y tema** | Interfaz en español, inglés y ruso, con fechas y números en el formato de cada uno. Modo día, noche o el del sistema. |
 | 🚀 **Listo para producción** | Health checks, OpenTelemetry, límites de uso, tablas de millones de filas, varias instancias (Redis opcional) y motores extra como plugins. |
+| 💳 **Planes** | Gratis para siempre (2 usuarios, 1 conexión y 15 tablas), Pro y Empresa con una licencia que se valida sin internet. [licencias.md](docs/licencias.md) |
 
 <details>
 <summary>Más capturas: formulario con maestro-detalle</summary>

@@ -28,7 +28,7 @@ que el resto de la API (P-007). Ejemplo: `https://mi-servidor/mantenedores/api/m
 **Claude Code:**
 
 ```bash
-claude mcp add --transport http mantenedores https://mi-servidor/api/mcp --header "Authorization: Bearer mnt_…"
+claude mcp add --transport http celdo https://mi-servidor/api/mcp --header "Authorization: Bearer mnt_…"
 ```
 
 **Claude Desktop, Cursor, VS Code y otros clientes** con un archivo de configuración (el nombre de las claves cambia
@@ -37,7 +37,7 @@ un poco de un cliente a otro; vea su documentación):
 ```json
 {
   "mcpServers": {
-    "mantenedores": {
+    "celdo": {
       "type": "http",
       "url": "https://mi-servidor/api/mcp",
       "headers": { "Authorization": "Bearer mnt_…" }

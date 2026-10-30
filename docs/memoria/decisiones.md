@@ -989,6 +989,7 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Qué:**
   - El producto se vende como **Celdo**, de *celda* más *do* (hacer), con el lema *Tu base de datos, lista para trabajar*.
   - El código interno (`Mantenedores.*`) no cambia; la interfaz, el README y la imagen Docker pasan a Celdo (P-117).
+  - Tampoco cambian el nombre de las llaves de cifrado (`ApplicationName`), el propósito que protege las cadenas de conexión, el emisor de los tokens ni las claves del navegador (`mantenedores.*`): cambiarlos invalidaría las llaves, las conexiones guardadas y las sesiones. Sí cambian el servidor MCP (`celdo`), el asunto de los correos (`[Celdo]`) y el servicio de telemetría (`celdo`).
   - Marca: símbolo de una tabla de 2 × 2 con una celda activa amarilla. Paleta **Grafito y marcador** (`#1E2328` y `#FFD23F`), elegida por el dueño entre cuatro. Descartadas: azul ("no convence"), pino y ámbar, petróleo y coral, berenjena y lima. Tipografías Bricolage Grotesque, Inter y JetBrains Mono. Detalle en `docs/comercial/manual-de-marca.md`.
 - **Descartado:**
   - **Mantio:** se parece a Maintio, un software de mantenimiento.

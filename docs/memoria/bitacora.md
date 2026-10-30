@@ -4,6 +4,16 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-30 · Parte comercial: Celdo (P-120)
+- El dueño pidió nombre comercial, manual de marca, plan Gratis / Pro / Empresa y un landing para monetizar.
+- Se buscaron en la web los nombres candidatos y los precios de la competencia (Retool, Appsmith, Budibase, Forest Admin).
+- El dueño eligió **Celdo**, con el producto autoalojado con licencia y Latinoamérica en USD (D-103, D-104).
+- Entregado:
+  - `docs/comercial/plan-comercial.md`;
+  - `docs/comercial/manual-de-marca.md`, con los SVG del logo;
+  - `landing/index.html` en español e inglés, revisado en escritorio y en celular sin desborde ni errores.
+- Siguen: licencias (P-116), el nombre en la app (P-117), el landing en línea (P-118) y el registro de la marca (P-119). Preguntas Q-009 a Q-011.
+
 ## 2026-10-30 · Revisión completa de idiomas (P-115)
 - El dueño vio mensajes en español con otro idioma elegido y pidió que se respete el idioma en el frontend y en el backend.
 - Se midió con un script: de 209 mensajes del servidor que llegan al usuario, 36 no tenían traducción. Ahora es un chequeo de `npm run lint` (D-102).

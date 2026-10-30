@@ -3,8 +3,8 @@
 **Versión:** 1 · 2026-10-30 · decisiones D-103 y D-104.
 
 Celdo es el nombre comercial de lo que en el código se llama "mantenedores". Este plan define a quién se le vende,
-qué se le promete, cuánto cuesta y cómo se llega a las primeras ventas. Los precios son el punto de partida: se revisan
-con datos de uso a los 90 días.
+qué se le promete, cuánto cuesta y cómo se llega a las primeras ventas. Los planes y precios son **preliminares** (el dueño los
+afinará): se revisan con datos de uso a los 90 días.
 
 ---
 

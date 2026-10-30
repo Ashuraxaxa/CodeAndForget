@@ -998,7 +998,7 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Falta la búsqueda formal en la oficina de marcas (P-119).
 
 ### D-104 · Modelo comercial: autoalojado con licencia, Gratis / Pro / Empresa
-- **Estado:** Vigente · 2026-10-30 (decisión del dueño sobre la recomendación)
+- **Estado:** Vigente, **preliminar** · 2026-10-30 (decisión del dueño sobre la recomendación). El dueño los afinará más adelante: los topes y precios pueden cambiar. En el código, los topes están en un solo lugar: `PlanLimits` (Core/Licensing) y `PlanLimits.Requires` para qué función va en qué plan.
 - **Qué:**
   - Celdo se instala siempre en la red del cliente. El plan se activa con una clave de licencia firmada que se valida sin internet (P-116).
   - **Primer mercado:** Latinoamérica, con precios en USD.

@@ -984,6 +984,43 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Traducir en el servidor con `Accept-Language` (catálogo en C#): sería un segundo sistema de traducción y obligaría a cambiar unos 200 `throw` (ver D-080).
   - El idioma del correo según quien hace el cambio: lo leen otras personas, y la lista de destinatarios es de la tabla.
 
+### D-103 · Nombre comercial: Celdo
+- **Estado:** Vigente · 2026-10-30 (elegido por el dueño entre cuatro opciones)
+- **Qué:**
+  - El producto se vende como **Celdo**, de *celda* más *do* (hacer), con el lema *Tu base de datos, lista para trabajar*.
+  - El código interno (`Mantenedores.*`) no cambia; la interfaz, el README y la imagen Docker pasan a Celdo (P-117).
+  - Marca: símbolo de una tabla de 2 × 2 con una celda activa amarilla. Paleta **Grafito y marcador** (`#1E2328` y `#FFD23F`), elegida por el dueño entre cuatro. Descartadas: azul ("no convence"), pino y ámbar, petróleo y coral, berenjena y lima. Tipografías Bricolage Grotesque, Inter y JetBrains Mono. Detalle en `docs/comercial/manual-de-marca.md`.
+- **Descartado:**
+  - **Mantio:** se parece a Maintio, un software de mantenimiento.
+  - **Schemo:** se confunde con Schema App y con Schema, un cliente de bases de datos.
+  - **Kerno:** queda como plan B si la marca no se puede registrar.
+  - Falta la búsqueda formal en la oficina de marcas (P-119).
+
+### D-104 · Modelo comercial: autoalojado con licencia, Gratis / Pro / Empresa
+- **Estado:** Vigente · 2026-10-30 (decisión del dueño sobre la recomendación)
+- **Qué:**
+  - Celdo se instala siempre en la red del cliente. El plan se activa con una clave de licencia firmada que se valida sin internet (P-116).
+  - **Primer mercado:** Latinoamérica, con precios en USD.
+  - **Planes** (por instalación, no por usuario):
+    - **Gratis:** 2 usuarios, 1 conexión y 15 tablas elegidas una vez y fijas, con auditoría de 7 días (ajuste del dueño el 2026-10-30).
+    - **Pro:** USD 49 al mes o USD 490 al año. 25 usuarios, permisos, auditoría de 1 año, Excel, avisos, acciones e IA por MCP.
+    - **Empresa:** desde USD 299 al mes, facturado anual. SSO, varias instancias, plugins, SLA e implementación.
+  - **Cobro:** con tarjeta mediante un *merchant of record* (Paddle o Lemon Squeezy); Empresa, contra factura.
+  - Plan completo en `docs/comercial/plan-comercial.md`; landing en `landing/`.
+- **Descartado:**
+  - **Solo nube (SaaS):** conectarse por internet a las bases internas de los clientes es la objeción principal de TI.
+  - **Nube y autoalojado a la vez:** obliga a operar servidores y dar soporte de disponibilidad desde el inicio. Se puede sumar más adelante.
+  - **Cobrar por usuario:** encarece al sumar al equipo; el precio por instalación es el argumento contra Retool y Forest Admin.
+
+### D-105 · Código cerrado, facturación desde Perú y dominio celdo.app
+- **Estado:** Vigente · 2026-10-30 (respuestas del dueño a Q-009, Q-010 y Q-011)
+- **Qué:**
+  - **Código cerrado:** se distribuyen la imagen Docker y los binarios.
+  - **Factura una empresa peruana.** Pro se cobra con tarjeta por un *merchant of record*; Empresa, con comprobante electrónico de SUNAT. La marca se registra en INDECOPI.
+  - **Dominio:** `celdo.app`.
+- **Descartado:**
+  - **Núcleo abierto o código visible:** más visibilidad, pero facilita copiar el producto y saltarse la licencia.
+
 ---
 
 ## Propuestas (aún no decididas)

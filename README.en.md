@@ -161,6 +161,7 @@ The integration tests use the minimum versions; for another one, `MANTENEDORES_P
 | [ajustes.md](docs/ajustes.md) | Per-table and per-column settings |
 | [seguridad.md](docs/seguridad.md) | Profiles, permissions and audit |
 | [mcp.md](docs/mcp.md) | Connecting an AI through MCP to review the schema and propose settings |
+| [comercial/](docs/comercial/plan-comercial.md) | Celdo: business plan, brand manual and landing page (`landing/`), in Spanish |
 | [api.md](docs/api.md) | API routes |
 | [motores.md](docs/motores.md) | Engine differences and how to add one |
 | [carga.md](docs/carga.md) | Load tests and results |

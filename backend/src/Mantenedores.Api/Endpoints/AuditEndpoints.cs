@@ -38,12 +38,14 @@ public static class AuditEndpoints
             var query = AuditAccess.Restrict(Parse(http.Request.Query), user, user.Unrestricted ? [] : await audit.Store.TablesAsync(ct))
                 with { CountTotal = false, PageSize = AuditQuery.MaxPageSize };
             var max = config.GetValue("Audit:ExportMaxRows", DefaultExportMax);
-            var names = AuditLabels.Headers(http.Request.Headers.AcceptLanguage.ToString());
+            // Encabezados, operaciones y nombre del archivo en el idioma de la interfaz (D-102).
+            var lang = Infrastructure.ServerText.Language(http.Request.Headers.AcceptLanguage.ToString());
+            var names = AuditLabels.Headers(lang);
 
             http.Response.ContentType = TransferFormats.ContentType(fmt);
             http.Response.Headers[HeaderNames.ContentDisposition] = new ContentDispositionHeaderValue("attachment")
             {
-                FileNameStar = $"auditoria-{DateTime.UtcNow:yyyyMMdd-HHmm}.{TransferFormats.Extension(fmt)}"
+                FileNameStar = $"{Infrastructure.ServerText.Pick(lang, "auditoria", "audit", "audit")}-{DateTime.UtcNow:yyyyMMdd-HHmm}.{TransferFormats.Extension(fmt)}"
             }.ToString();
             await using var writer = TableWriter.Create(fmt, http.Response.Body, "auditoria");
             await writer.WriteHeaderAsync(names, ct);
@@ -57,7 +59,7 @@ public static class AuditEndpoints
                 foreach (var e in entries.Take(max - written))
                 {
                     var l = labels.GetValueOrDefault(e.Id);
-                    await writer.WriteRowAsync([e.At.UtcDateTime, e.User, e.Operation.ToString(), e.Connection, e.Schema, e.Table,
+                    await writer.WriteRowAsync([e.At.UtcDateTime, e.User, Infrastructure.ServerText.Operation(e.Operation, lang), e.Connection, e.Schema, e.Table,
                         e.RowKey is null ? null : AuditLabels.KeyText(e.RowKey), AuditLabels.ValuesText(e.OldValues, l), AuditLabels.ValuesText(e.NewValues, l)], ct);
                     written++;
                 }

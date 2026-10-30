@@ -61,11 +61,11 @@ export function LoginPage() {
 
         {config?.mode === 'Jwt' && config.clientId && (
           <>
-            <p className="muted">{t('El acceso se valida con {provider}.', { provider: config.providerName ?? '' })}</p>
+            <p className="muted">{t('El acceso se valida con {provider}.', { provider: config.providerName || t('el proveedor de identidad') })}</p>
             {error && <div className="alert">{error}</div>}
             <button className="primary block" disabled={busy} onClick={() => run(loginExternal)}>
               <LogIn size={16} aria-hidden />
-              {busy ? t('Redirigiendo…') : t('Ingresar con {provider}', { provider: config.providerName ?? '' })}
+              {busy ? t('Redirigiendo…') : t('Ingresar con {provider}', { provider: config.providerName || t('el proveedor de identidad') })}
             </button>
           </>
         )}

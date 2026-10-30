@@ -72,6 +72,23 @@ public sealed class NotificationTests
         Assert.Contains("notas: (vacío)", import.Body);
     }
 
+    [Theory]
+    [InlineData("en", "[Mantenedores] Productos (ventas.producto): update by ana", "ana edited a record of Productos (ventas.producto), connection demo.", "Record: id=1")]
+    [InlineData("ru", "[Mantenedores] Productos (ventas.producto): изменение — ana", "ana изменил(а) запись в Productos (ventas.producto), подключение demo.", "Запись: id=1")]
+    [InlineData("pt", "[Mantenedores] Productos (ventas.producto): edición por ana", "ana editó un registro de Productos (ventas.producto), conexión demo.", "Registro: id=1")]
+    public void El_correo_va_en_el_idioma_configurado(string language, string subject, string line, string record)
+    {
+        var options = Options(); options.Language = language;
+        var n = new SmtpChangeNotifier(options, NullLogger<SmtpChangeNotifier>.Instance);
+        using var edit = n.Compose(Notice(AuditOperation.Update));
+        Assert.Equal(subject, edit.Subject);
+        Assert.Contains(line, edit.Body);
+        Assert.Contains(record, edit.Body);
+
+        using var import = n.Compose(Notice(AuditOperation.Import, rows: 25));
+        Assert.DoesNotContain(language == "pt" ? "(empty)" : "(vacío)", import.Body);
+    }
+
     [Fact]
     public void Sin_smtp_o_apagado_no_hay_avisos()
     {

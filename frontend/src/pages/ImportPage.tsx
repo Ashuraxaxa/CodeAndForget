@@ -3,7 +3,7 @@ import { ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from '../api/client'
+import { api, ApiError } from '../api/client'
 import { labelOf, type ImportMode, type ImportResult } from '../api/types'
 import { translateServer, useT } from '../i18n'
 
@@ -98,7 +98,9 @@ export function ImportPage() {
           )}
         </div>
         {preview.isPending && <p className="muted">{t('Leyendo y validando…')}</p>}
-        {error && <div className="alert">{error.message}</div>}
+        {/* El motivo (p. ej. "no se pudo leer el archivo como json: …") viene como error del campo. */}
+        {error && <div className="alert">{error instanceof ApiError && Object.values(error.fieldErrors).length > 0
+          ? Object.values(error.fieldErrors).join(' ') : error.message}</div>}
       </div>
 
       {r && !done && (

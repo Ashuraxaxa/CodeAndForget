@@ -87,6 +87,6 @@ public sealed class JwtSettings
 
     public string Scopes { get; set; } = "openid profile";
 
-    /// <summary>Nombre que muestra el botón de login ("Ingresar con …").</summary>
-    public string ProviderName { get; set; } = "el proveedor de identidad";
+    /// <summary>Nombre que muestra el botón de login ("Ingresar con …"). Vacío: "el proveedor de identidad" en el idioma elegido.</summary>
+    public string ProviderName { get; set; } = "";
 }

@@ -96,13 +96,12 @@ public static class AuditLabels
         string.Join(", ", rowKey.Split('&').Select(kv => Uri.UnescapeDataString(kv.Replace('+', ' '))));
 
     /// <summary>Encabezados de la exportación en el idioma de la interfaz (P-101).</summary>
-    public static IReadOnlyList<string> Headers(string acceptLanguage) =>
-        acceptLanguage.Trim().ToLowerInvariant() switch
-        {
-            var l when l.StartsWith("en") => ["Date (UTC)", "User", "Operation", "Connection", "Schema", "Table", "Record", "Before", "After"],
-            var l when l.StartsWith("ru") => ["Дата (UTC)", "Пользователь", "Операция", "Подключение", "Схема", "Таблица", "Запись", "До", "После"],
-            _ => ["Fecha (UTC)", "Usuario", "Operación", "Conexión", "Esquema", "Tabla", "Registro", "Antes", "Después"]
-        };
+    public static IReadOnlyList<string> Headers(string language) => language switch
+    {
+        "en" => ["Date (UTC)", "User", "Operation", "Connection", "Schema", "Table", "Record", "Before", "After"],
+        "ru" => ["Дата (UTC)", "Пользователь", "Операция", "Подключение", "Схема", "Таблица", "Запись", "До", "После"],
+        _ => ["Fecha (UTC)", "Usuario", "Operación", "Conexión", "Esquema", "Tabla", "Registro", "Antes", "Después"]
+    };
 
     private static string Text(JsonElement v) => v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : v.GetRawText();
 

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { Connection, OverrideCopyItem, OverrideCopyStatus } from '../api/types'
-import { useT } from '../i18n'
+import { translateServer, useT } from '../i18n'
 import { SearchSelect } from './Combo'
 
 const PARTS = ['relations', 'table', 'columns', 'actions', 'notify'] as const
@@ -149,7 +149,7 @@ export function CopyOverridesPanel({ target, connections, onClose, onDone }: {
                       <td>{i.schema}.{i.table}{i.targetSchema.toLowerCase() !== i.schema.toLowerCase() && <span className="muted small"> → {i.targetSchema}</span>}</td>
                       <td>
                         <span className={`badge copy-${i.status.toLowerCase()}`}>{statusLabel[i.status]}</span>
-                        {i.errors && <span className="muted small"> {Object.values(i.errors).join(' · ')}</span>}
+                        {i.errors && <span className="muted small"> {Object.values(i.errors).map(m => translateServer(m)).join(' · ')}</span>}
                       </td>
                     </tr>
                   ))}

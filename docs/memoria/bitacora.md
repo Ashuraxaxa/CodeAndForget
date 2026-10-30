@@ -4,6 +4,15 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-30 · Revisión completa de idiomas (P-115)
+- El dueño vio mensajes en español con otro idioma elegido y pidió que se respete el idioma en el frontend y en el backend.
+- Se midió con un script: de 209 mensajes del servidor que llegan al usuario, 36 no tenían traducción. Ahora es un chequeo de `npm run lint` (D-102).
+- Pantallas que no traducían texto del servidor: la vista previa en Configurar, copiar ajustes y probar conexión. Importar escondía el motivo del error del archivo.
+- El servidor traduce la exportación de la auditoría (antes salía `Update` aunque la interfaz estuviera en español) y el correo (`Notifications:Language`).
+- El botón de login con proveedor decía "Sign in with el proveedor de identidad".
+- En el navegador, en inglés y en ruso: los errores de Configurar, de la prueba de conexión y de importar salen traducidos.
+- 268 unitarias en verde.
+
 ## 2026-10-30 · Servidor MCP, tercera parte de la IA (P-114)
 - `/api/mcp` con el SDK oficial de C#, HTTP sin estado, apagado por defecto (`Mcp:Enabled`) y con `ConfigureTables`.
 - Ocho herramientas: leen, sugieren, muestran, prueban y proponen. Ninguna guarda. Detalle en D-101 y `docs/mcp.md`.

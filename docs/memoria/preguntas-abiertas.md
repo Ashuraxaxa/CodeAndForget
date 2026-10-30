@@ -7,17 +7,4 @@ como `D-xxx` en [decisiones.md](decisiones.md) y se borran de aquí.
 
 ---
 
-### Q-009 · ¿Código abierto o cerrado?
-Hoy el repositorio no tiene licencia. Hay tres opciones:
-- **Cerrado:** solo se distribuye la imagen Docker. Protege más y no da la visibilidad de un proyecto abierto.
-- **Núcleo abierto** (*open core*): el plan Gratis es abierto, por ejemplo con AGPL, y Pro y Empresa son cerrados. Atrae a la comunidad de TI.
-- **Código visible con licencia comercial** (*source available*, como BSL). Se puede leer el código, pero no revenderlo.
-
-Recomendación: empezar cerrado y decidir a los 6 meses con datos de uso.
-
-### Q-010 · ¿Qué empresa factura y desde qué país?
-Define los impuestos, el contrato de licencia, la oficina de marcas y si conviene un *merchant of record* (recomendado al inicio).
-
-### Q-011 · ¿Qué dominio?
-Las opciones son `celdo.app`, `celdo.io` y `getceldo.com`. Hay que revisar si están libres y comprar el elegido junto con P-119.
-
+Por ahora no hay preguntas abiertas. Q-009, Q-010 y Q-011 se respondieron el 2026-10-30 → D-105.

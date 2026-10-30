@@ -33,7 +33,7 @@ trabajable: se ve, se busca, se corrige y queda registrado quién la cambió.
 | Logo completo (fondo oscuro) | `marca/celdo-logo-oscuro.svg` | Fondos oscuros, modo noche |
 | Símbolo | `marca/celdo-simbolo.svg` | Favicon, ícono de la app, avatar de redes, espacios chicos |
 
-**El símbolo** es una tabla de 2 × 2 sobre un cuadrado azul. Tres celdas en blanco translúcido y **una celda
+**El símbolo** es una tabla de 2 × 2 sobre un cuadrado grafito (grafito claro sobre fondos oscuros). Tres celdas en blanco translúcido y **una celda
 activa en amarillo marcador**: el dato que estás editando. Esa celda amarilla es el elemento más reconocible de la
 marca.
 
@@ -54,25 +54,27 @@ que el normal (−1,5 en 44 px).
 
 ## 3. Colores
 
-La paleta sigue la de la aplicación, para que el landing y el producto se vean como una sola cosa.
+Paleta **Grafito y marcador** (elegida por el dueño, D-103): casi monocromo, con el amarillo como protagonista,
+como un resaltador sobre papel.
 
 | Nombre | Hex | Uso |
 |---|---|---|
-| **Azul Celdo** | `#2563EB` | Color principal: botones, enlaces, el cuadrado del símbolo. |
-| **Marcador** | `#FFD23F` | Acento: la celda activa, resaltados y lo que debe llamar la atención. **Nunca como color de texto sobre blanco.** |
-| **Tinta** | `#0F172A` | Texto principal en fondo claro; fondo de bloques oscuros. |
-| **Noche** | `#0B1120` | Fondo en modo noche. |
-| **Pizarra** | `#64748B` | Texto secundario, notas. |
-| **Niebla** | `#EEF2F9` | Fondos suaves en modo claro, bandas del landing. |
+| **Grafito** | `#1E2328` | Color principal en modo claro: botones, enlaces, texto, el cuadrado del símbolo. |
+| **Marcador** | `#FFD23F` | Acento: la celda activa y lo que debe llamar la atención. En modo noche es el color de los botones y enlaces. **Nunca como texto sobre blanco.** |
+| **Papel** | `#F4F5F6` | Fondos suaves y bandas en modo claro. |
+| **Carbón** | `#0D0F12` | Fondo en modo noche. |
+| **Grafito claro** | `#2C3239` | El cuadrado del símbolo sobre fondos oscuros. |
+| **Pizarra** | `#5D6670` | Texto secundario y notas. |
+| **Línea** | `#E3E6EA` | Bordes y separadores en modo claro. |
 
-**Proporción aproximada:** 70 % neutros (blanco, Niebla, Tinta), 25 % Azul Celdo y 5 % Marcador. El amarillo funciona
-porque es escaso.
+**Proporción aproximada:** 75 % neutros (blanco, Papel, Carbón), 18 % Grafito y 7 % Marcador. El amarillo funciona
+porque es escaso: si aparece en todas partes, deja de marcar la celda activa.
 
 **Contraste:**
-- Tinta sobre blanco, blanco sobre Azul Celdo y Tinta sobre Marcador pasan WCAG AA.
-- Pizarra sobre blanco solo pasa en textos de 14 px o más.
-
----
+- Blanco sobre Grafito: 15,8:1.
+- Grafito sobre Marcador: 11:1.
+- Marcador sobre Carbón: 13:1.
+- Las tres pasan WCAG AAA. Pizarra sobre blanco solo pasa AA, en textos de 14 px o más.
 
 ## 4. Tipografía
 
@@ -113,9 +115,9 @@ con interlineado 1,6.
 
 ## 6. Elementos gráficos
 
-- **La celda activa:** un rectángulo con borde de 2 px en Azul Celdo y relleno Marcador. Sirve para resaltar una
+- **La celda activa:** un rectángulo con borde de 2 px en Grafito y relleno Marcador. Sirve para resaltar una
   cifra o una palabra clave en un titular.
-- **Cuadrícula:** líneas finas (1 px, Niebla en claro, `#1E293B` en oscuro) como fondo de bandas. Evoca una hoja de
+- **Cuadrícula:** líneas finas (1 px, Línea en claro, `#262B31` en oscuro) como fondo de bandas. Evoca una hoja de
   datos sin recargar.
 - **Íconos:** de [Lucide](https://lucide.dev) (los mismos de la aplicación), con trazo de 2 px y esquinas
   redondeadas.
@@ -131,6 +133,6 @@ con interlineado 1,6.
 |---|---|
 | Favicon e ícono de la app | El símbolo sobre fondo transparente. |
 | Avatar de redes | El símbolo centrado, con 15 % de margen. |
-| Portada de LinkedIn o YouTube | Fondo Tinta con cuadrícula, logo para fondo oscuro a la izquierda, lema en Bricolage a la derecha. |
-| Presentaciones | Fondo blanco; títulos en Tinta; un solo resaltado Marcador por diapositiva. |
+| Portada de LinkedIn o YouTube | Fondo Grafito con cuadrícula, logo para fondo oscuro a la izquierda, lema en Bricolage a la derecha. |
+| Presentaciones | Fondo blanco; títulos en Grafito; un solo resaltado Marcador por diapositiva. |
 | Correo de la empresa | Firma con el logo completo de 120 px y el lema. |

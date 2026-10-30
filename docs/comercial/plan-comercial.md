@@ -65,8 +65,9 @@ Celdo se instala siempre en la red del cliente (Docker, servicio de Windows o sy
 |---|---|---|---|
 | **Precio** | USD 0 | **USD 49/mes** por instalación · USD 490/año (2 meses gratis) | **Desde USD 299/mes**, facturado anual (USD 3.588/año) |
 | **Para** | Probar, uso personal y equipos chicos | Equipos de TI, soporte y analistas | Varias áreas, producción crítica, cumplimiento |
-| Usuarios | Hasta 3 | Hasta 25 (+25 por USD 29/mes) | Ilimitados |
-| Conexiones a bases | 2 | Ilimitadas | Ilimitadas |
+| Usuarios | 2 | Hasta 25 (+25 por USD 29/mes) | Ilimitados |
+| Conexiones a bases | 1 | Ilimitadas | Ilimitadas |
+| Tablas y vistas | 15, elegidas una vez y fijas | Todas | Todas |
 | Instalaciones | 1 | 1 por licencia | Ilimitadas (producción, QA, desarrollo) |
 | Motores | SQL Server, PostgreSQL, MySQL, MariaDB | Igual | Igual, más motores propios como plugins |
 | Pantallas generadas, combos con búsqueda, maestro-detalle, N:M, árboles | ✓ | ✓ | ✓ |
@@ -90,8 +91,10 @@ Celdo se instala siempre en la red del cliente (Docker, servicio de Windows o sy
 ### Por qué estos cortes
 
 - **Gratis vale de verdad:** una persona instala, conecta su base y corrige datos el primer día. Así se gana la
-  recomendación interna. Los límites (3 usuarios, 2 conexiones, 7 días de auditoría) se notan justo cuando el uso
-  pasa de una persona a un equipo: ese es el momento de pagar.
+  recomendación interna. Los límites (2 usuarios, 1 conexión, 15 tablas y 7 días de auditoría) se notan
+  justo cuando el uso pasa de una persona a un equipo o a todo el sistema: ese es el momento de pagar.
+- **Las 15 tablas se eligen una vez y quedan fijas** (decisión del dueño). Así el plan sirve para resolver un caso
+  real, pero no para recorrer toda la base cambiando de tablas. Pasar a Pro libera todas.
 - **Pro cubre lo que pide un equipo:** permisos finos, auditoría larga, Excel y avisos. Es un precio que una jefatura
   de TI paga con tarjeta, sin licitación.
 - **Empresa cobra lo que cuesta atender bien:** SSO, alta disponibilidad, SLA y acompañamiento. El "desde" deja
@@ -122,8 +125,8 @@ Landing ──► Descarga gratis (docker run) ──► Activación ──► P
 
 - **Activación** = conectar una base y editar el primer registro en las primeras 24 horas. Es la métrica que más
   importa: quien llega ahí entiende el producto.
-- **Dentro de la app:** cuando se alcanza un límite (el cuarto usuario, la tercera conexión, la auditoría de más de
-  7 días), un aviso claro ofrece la prueba Pro. Nunca se bloquea el trabajo en curso.
+- **Dentro de la app:** cuando se alcanza un límite (el tercer usuario, la segunda conexión, la tabla 16, la
+  auditoría de más de 7 días), un aviso claro ofrece la prueba Pro. Nunca se bloquea el trabajo en curso.
 - **Cobro:**
   - Pro con tarjeta, mediante un *merchant of record* (Paddle o Lemon Squeezy): cobra en cualquier país, emite la
     factura y paga los impuestos de cada país.
@@ -147,7 +150,7 @@ Landing ──► Descarga gratis (docker run) ──► Activación ──► P
 
 | Semanas | Qué | Listo cuando |
 |---|---|---|
-| 1–2 | **Marca legal:** buscar y registrar "Celdo" en la oficina de marcas del país sede (y por el Protocolo de Madrid si se apunta a más mercados). Comprar el dominio (`celdo.app`, `celdo.io` o `getceldo.com`) y las cuentas en redes sociales. | Solicitud presentada, dominio comprado |
+| 1–2 | **Marca legal:** buscar y registrar "Celdo" en INDECOPI (Perú) y, por el Protocolo de Madrid, en los mercados objetivo. Comprar `celdo.app` y las cuentas en redes sociales. | Solicitud presentada, dominio comprado |
 | 1–4 | **Producto vendible:** cambiar el nombre en la interfaz a Celdo (P-117), sumar el módulo de licencias y los límites por plan (P-116), y publicar la imagen Docker oficial. | La app muestra su plan y se activa con una clave |
 | 2–4 | **Landing en línea** (P-118) con precios, demo pública de solo lectura y botón de pago. Términos de servicio, política de privacidad y contrato de licencia (EULA) revisados por un abogado. | Se puede pagar Pro de punta a punta |
 | 5–8 | **Lanzamiento** en español: LinkedIn, comunidades, primeros 5 artículos y 3 videos. Precio de lanzamiento para los primeros 50 clientes Pro. | 300 descargas, 10 clientes Pro |
@@ -181,7 +184,7 @@ Landing ──► Descarga gratis (docker run) ──► Activación ──► P
 
 | Pendiente | Qué es |
 |---|---|
-| **P-116 · Licencias y planes** | Una clave firmada (Ed25519) con la organización, el plan, el tope de usuarios y el vencimiento. Se valida sin internet, sirve en redes cerradas y no envía datos a ningún lado. Al vencer hay 14 días de gracia y después se vuelve al plan Gratis sin perder nada. Los límites se aplican en el servidor: usuarios activos, conexiones, retención de la auditoría y las funciones Pro y Empresa. La página "Plan" muestra el plan y su uso, y tiene un botón para pegar una clave nueva. |
+| **P-116 · Licencias y planes** | Una clave firmada (ECDSA P-256, que trae .NET sin librerías externas) con la organización, el plan, el tope de usuarios y el vencimiento. Se valida sin internet, sirve en redes cerradas y no envía datos a ningún lado. Al vencer hay 14 días de gracia y después se vuelve al plan Gratis sin perder nada. Los límites se aplican en el servidor: usuarios activos, conexiones, retención de la auditoría y las funciones Pro y Empresa. La página "Plan" muestra el plan y su uso, y tiene un botón para pegar una clave nueva. |
 | **P-117 · Nombre Celdo en la app** | Título, logo, favicon, login, README, imagen Docker y textos. El código interno (`Mantenedores.*`) puede seguir igual. |
 | **P-118 · Landing en línea** | `landing/` en un hosting estático (Cloudflare Pages, Netlify o GitHub Pages) con el dominio propio, más el enlace de pago y la medición del embudo (analítica sin cookies, como Plausible). |
 | **Demo pública** | Una instancia de solo lectura con la base de ejemplo, para probar Celdo sin instalar nada. |
@@ -201,10 +204,13 @@ Landing ──► Descarga gratis (docker run) ──► Activación ──► P
 
 ---
 
-## Preguntas abiertas para el dueño
+## Decisiones del dueño (D-105)
 
-Están en [preguntas-abiertas.md](../memoria/preguntas-abiertas.md): Q-009 (código abierto o cerrado), Q-010 (empresa y
-país que factura) y Q-011 (dominio).
+- **Código cerrado:** se distribuye la imagen Docker y los binarios, no el código fuente.
+- **Factura desde Perú.** Para Pro con tarjeta conviene un *merchant of record* (Paddle o Lemon Squeezy): vende en
+  cada país y paga sus impuestos, y la empresa peruana factura al *merchant*. Empresa se factura directo, con
+  comprobante electrónico de SUNAT. Hay que confirmar el tratamiento tributario con un contador.
+- **Dominio:** `celdo.app`.
 
 Fuentes de los precios de la competencia, revisadas el 2026-10-30. Son referencias de blogs comparativos; antes de
 publicar comparaciones hay que confirmarlas en la página de precios de cada empresa:

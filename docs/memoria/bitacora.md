@@ -12,7 +12,9 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
   - `docs/comercial/plan-comercial.md`;
   - `docs/comercial/manual-de-marca.md`, con los SVG del logo;
   - `landing/index.html` en español e inglés, revisado en escritorio y en celular sin desborde ni errores.
-- Siguen: licencias (P-116), el nombre en la app (P-117), el landing en línea (P-118) y el registro de la marca (P-119). Preguntas Q-009 a Q-011.
+- El azul no convenció al dueño: se le mostraron cuatro paletas y eligió **grafito y marcador**.
+- El dueño ajustó Gratis: 2 usuarios, 1 conexión y 15 tablas elegidas una vez. Respondió Q-009 a Q-011 (D-105): código cerrado, factura desde Perú y dominio `celdo.app`.
+- Siguen: licencias (P-116), el nombre en la app (P-117), el landing en línea (P-118) y el registro de la marca (P-119).
 
 ## 2026-10-30 · Revisión completa de idiomas (P-115)
 - El dueño vio mensajes en español con otro idioma elegido y pidió que se respete el idioma en el frontend y en el backend.

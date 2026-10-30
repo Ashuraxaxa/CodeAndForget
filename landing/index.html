@@ -16,12 +16,13 @@
 /* Layout: una hoja de datos que se vuelve aplicación. Bandas a lo ancho sobre una cuadrícula fina;
    la "celda activa" amarilla marca lo importante, una vez por sección. */
 :root {
-  --azul: #2563eb; --azul-hover: #1d4ed8; --marcador: #ffd23f; --tinta: #0f172a;
-  --bg: #ffffff; --banda: #eef2f9; --surface: #ffffff; --text: #0f172a; --muted: #5b6b82;
-  --line: #e3e9f3; --line-strong: #cdd6e4; --grid: rgb(37 99 235 / 0.06);
-  --code-bg: #0f172a; --code-text: #e2e8f0; --on-azul: #ffffff; --on-marcador: #0f172a;
-  --dark-band: #0f172a; --dark-band-text: #e2e8f0; --dark-band-muted: #94a3b8; --dark-band-line: #1e293b;
-  --shadow: 0 1px 2px rgb(15 23 42 / 0.05), 0 12px 32px rgb(15 23 42 / 0.08);
+  /* Paleta B · Grafito y marcador (D-103): el grafito manda en claro; en oscuro, el marcador toma su lugar. */
+  --azul: #1e2328; --azul-hover: #000000; --marcador: #ffd23f; --tinta: #1e2328; --mark: #1e2328;
+  --bg: #ffffff; --banda: #f4f5f6; --surface: #ffffff; --text: #1e2328; --muted: #5d6670;
+  --line: #e3e6ea; --line-strong: #cdd2d8; --grid: rgb(30 35 40 / 0.05);
+  --code-bg: #1e2328; --code-text: #e8ebee; --on-azul: #ffffff; --on-marcador: #1e2328;
+  --dark-band: #1e2328; --dark-band-text: #e8ebee; --dark-band-muted: #9aa3ad; --dark-band-line: #2c3239;
+  --shadow: 0 1px 2px rgb(30 35 40 / 0.05), 0 12px 32px rgb(30 35 40 / 0.08);
   --display: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
   --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
@@ -29,18 +30,18 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0b1120; --banda: #0f172a; --surface: #111827; --text: #e5eaf3; --muted: #94a3b8;
-    --line: #1e293b; --line-strong: #334155; --grid: rgb(96 165 250 / 0.07);
-    --code-bg: #020617; --azul: #3b82f6; --azul-hover: #60a5fa;
-    --dark-band: #020617; --dark-band-line: #172033;
+    --bg: #0d0f12; --banda: #15181c; --surface: #15181c; --text: #e8ebee; --muted: #9aa3ad;
+    --line: #262b31; --line-strong: #353b42; --grid: rgb(255 210 63 / 0.04); --mark: #2c3239;
+    --code-bg: #08090b; --azul: #ffd23f; --azul-hover: #ffe27a; --on-azul: #1e2328;
+    --dark-band: #08090b; --dark-band-line: #1c2025;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px rgb(0 0 0 / 0.35); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0b1120; --banda: #0f172a; --surface: #111827; --text: #e5eaf3; --muted: #94a3b8;
-  --line: #1e293b; --line-strong: #334155; --grid: rgb(96 165 250 / 0.07);
-  --code-bg: #020617; --azul: #3b82f6; --azul-hover: #60a5fa;
-  --dark-band: #020617; --dark-band-line: #172033;
+  --bg: #0d0f12; --banda: #15181c; --surface: #15181c; --text: #e8ebee; --muted: #9aa3ad;
+  --line: #262b31; --line-strong: #353b42; --grid: rgb(255 210 63 / 0.04); --mark: #2c3239;
+  --code-bg: #08090b; --azul: #ffd23f; --azul-hover: #ffe27a; --on-azul: #1e2328;
+  --dark-band: #08090b; --dark-band-line: #1c2025;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px rgb(0 0 0 / 0.35); color-scheme: dark;
 }
 
@@ -238,7 +239,7 @@ footer a { color: var(--muted); text-decoration: none; } footer a:hover { color:
 <header class="top">
   <div class="wrap">
     <a class="brand" href="#inicio" aria-label="Celdo">
-      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#2563EB"/><rect x="13" y="13" width="17" height="17" rx="4" fill="#fff" fill-opacity=".32"/><rect x="34" y="13" width="17" height="17" rx="4" fill="#fff" fill-opacity=".32"/><rect x="13" y="34" width="17" height="17" rx="4" fill="#fff" fill-opacity=".32"/><rect x="34" y="34" width="17" height="17" rx="4" fill="#FFD23F"/></svg>
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" style="fill: var(--mark)"/><rect x="13" y="13" width="17" height="17" rx="4" fill="#fff" fill-opacity=".22"/><rect x="34" y="13" width="17" height="17" rx="4" fill="#fff" fill-opacity=".22"/><rect x="13" y="34" width="17" height="17" rx="4" fill="#fff" fill-opacity=".22"/><rect x="34" y="34" width="17" height="17" rx="4" fill="#FFD23F"/></svg>
       celdo
     </a>
     <nav class="nav" aria-label="Secciones">
@@ -271,7 +272,7 @@ footer a { color: var(--muted); text-decoration: none; } footer a:hover { color:
           <a class="btn primary" href="#empezar" data-i="cta.start">Empieza gratis</a>
           <a class="btn ghost" href="#precios" data-i="cta.pricing">Ver planes</a>
         </div>
-        <p class="hero-note" data-i="hero.note">Gratis para siempre hasta 3 usuarios. Sin tarjeta. Se instala con Docker en 2 minutos.</p>
+        <p class="hero-note" data-i="hero.note">Gratis para siempre: 2 usuarios, 1 conexión y 15 tablas. Sin tarjeta. Se instala con Docker en 2 minutos.</p>
       </div>
 
       <div class="app" aria-label="Ejemplo de Celdo: la tabla centro_costo con una celda en edición" role="img">
@@ -500,7 +501,7 @@ footer a { color: var(--muted); text-decoration: none; } footer a:hover { color:
           <div class="price"><strong>USD 0</strong></div>
           <p class="price-note" data-i="plan.free.note">Para siempre.</p>
           <ul class="ticks">
-            <li data-i="plan.free.1">Hasta 3 usuarios y 2 conexiones</li>
+            <li data-i="plan.free.1">2 usuarios, 1 conexión y 15 tablas a elegir</li>
             <li data-i="plan.free.2">Pantallas, combos, maestro-detalle y árboles</li>
             <li data-i="plan.free.3">Ajustes y sugerencias automáticas</li>
             <li data-i="plan.free.4">Exportar e importar CSV</li>
@@ -581,7 +582,7 @@ footer a { color: var(--muted); text-decoration: none; } footer a:hover { color:
 <footer>
   <div class="wrap">
     <a class="brand" href="#inicio" aria-label="Celdo" style="font-size:1.2rem">
-      <svg viewBox="0 0 64 64" aria-hidden="true" style="width:24px;height:24px"><rect width="64" height="64" rx="15" fill="#2563EB"/><rect x="13" y="13" width="17" height="17" rx="4" fill="#fff" fill-opacity=".32"/><rect x="34" y="13" width="17" height="17" rx="4" fill="#fff" fill-opacity=".32"/><rect x="13" y="34" width="17" height="17" rx="4" fill="#fff" fill-opacity=".32"/><rect x="34" y="34" width="17" height="17" rx="4" fill="#FFD23F"/></svg>
+      <svg viewBox="0 0 64 64" aria-hidden="true" style="width:24px;height:24px"><rect width="64" height="64" rx="15" style="fill: var(--mark)"/><rect x="13" y="13" width="17" height="17" rx="4" fill="#fff" fill-opacity=".22"/><rect x="34" y="13" width="17" height="17" rx="4" fill="#fff" fill-opacity=".22"/><rect x="13" y="34" width="17" height="17" rx="4" fill="#fff" fill-opacity=".22"/><rect x="34" y="34" width="17" height="17" rx="4" fill="#FFD23F"/></svg>
       celdo
     </a>
     <nav aria-label="Pie de página">
@@ -611,7 +612,7 @@ const EN = {
   'hero.eyebrow': 'For IT, support and data analysts',
   'hero.title': 'Your database, <span class="cell">ready</span> to work.',
   'hero.lead': 'Celdo reads your SQL Server, PostgreSQL, MySQL or MariaDB and builds the screens to view, search, create and edit data, with permissions and an audit log. In minutes, without code, inside your network.',
-  'hero.note': 'Free forever for up to 3 users. No card required. Installs with Docker in 2 minutes.',
+  'hero.note': 'Free forever: 2 users, 1 connection and 15 tables. No card required. Installs with Docker in 2 minutes.',
   'mock.finance': 'Finance', 'mock.cc': 'Cost centers', 'mock.areas': 'Areas', 'mock.companies': 'Companies', 'mock.params': 'Settings',
   'mock.currencies': 'Currencies', 'mock.taxes': 'Taxes', 'mock.expense': 'Expense types', 'mock.rows': '1,284 records',
   'mock.code': 'Code', 'mock.name': 'Name', 'mock.company': 'Company', 'mock.area': 'Area',
@@ -665,7 +666,7 @@ const EN = {
   'price.lead': 'Add your whole team without watching the bill. Every plan installs in your network.',
   'price.monthly': 'Monthly', 'price.yearly': 'Yearly · 2 months free',
   'plan.free': 'Free', 'plan.free.for': 'To try it out and for small teams.', 'plan.free.note': 'Forever.',
-  'plan.free.1': 'Up to 3 users and 2 connections', 'plan.free.2': 'Screens, dropdowns, master-detail and trees',
+  'plan.free.1': '2 users, 1 connection and 15 tables of your choice', 'plan.free.2': 'Screens, dropdowns, master-detail and trees',
   'plan.free.3': 'Settings and automatic suggestions', 'plan.free.4': 'CSV export and import', 'plan.free.5': '7-day audit log',
   'plan.free.cta': 'Download free',
   'plan.pro.tag': 'Most popular', 'plan.pro.for': 'For IT, support and analyst teams.',

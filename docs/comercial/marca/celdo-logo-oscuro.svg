@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236 64" role="img" aria-label="Celdo">
-  <rect width="64" height="64" rx="15" fill="#2563EB"/>
-  <rect x="13" y="13" width="17" height="17" rx="4" fill="#FFFFFF" fill-opacity="0.32"/>
-  <rect x="34" y="13" width="17" height="17" rx="4" fill="#FFFFFF" fill-opacity="0.32"/>
-  <rect x="13" y="34" width="17" height="17" rx="4" fill="#FFFFFF" fill-opacity="0.32"/>
+  <rect width="64" height="64" rx="15" fill="#2C3239"/>
+  <rect x="13" y="13" width="17" height="17" rx="4" fill="#FFFFFF" fill-opacity="0.22"/>
+  <rect x="34" y="13" width="17" height="17" rx="4" fill="#FFFFFF" fill-opacity="0.22"/>
+  <rect x="13" y="34" width="17" height="17" rx="4" fill="#FFFFFF" fill-opacity="0.22"/>
   <rect x="34" y="34" width="17" height="17" rx="4" fill="#FFD23F"/>
-  <text x="80" y="47" font-family="'Bricolage Grotesque', Inter, system-ui, sans-serif" font-size="44" font-weight="700" letter-spacing="-1.5" fill="#F8FAFC">celdo</text>
+  <text x="80" y="47" font-family="'Bricolage Grotesque', Inter, system-ui, sans-serif" font-size="44" font-weight="700" letter-spacing="-1.5" fill="#F4F5F6">celdo</text>
 </svg>

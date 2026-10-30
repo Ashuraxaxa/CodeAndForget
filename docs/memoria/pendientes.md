@@ -18,10 +18,10 @@ Plan completo en [../comercial/plan-comercial.md](../comercial/plan-comercial.md
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
 | P-120 | Nombre, manual de marca, plan comercial y landing | 🔴 | ✅ PR #47 |
-| P-116 | Licencias y planes: clave firmada (Ed25519) validada sin internet, límites por plan en el servidor (usuarios, conexiones, auditoría, funciones Pro y Empresa), 14 días de gracia y página "Plan" | 🔴 | ⏳ |
-| P-117 | Nombre Celdo en la app: título, logo, favicon, login, README e imagen Docker oficial (`celdo/celdo`) | 🔴 | ⏳ |
+| P-116 | Licencias y planes: clave firmada (ECDSA P-256) validada sin internet, límites por plan en el servidor (Gratis: 2 usuarios, 1 conexión, 15 tablas fijas; auditoría; funciones Pro y Empresa), 14 días de gracia y página "Plan" | 🔴 | 🚧 |
+| P-117 | Nombre Celdo en la app: título, logo, favicon, login, colores (grafito y marcador), README e imagen Docker oficial (`celdo/celdo`) | 🔴 | 🚧 |
 | P-118 | Landing en línea: hosting estático con el dominio, enlaces de pago, analítica sin cookies, términos y privacidad | 🔴 | ⏳ |
-| P-119 | Marca y dominio: búsqueda formal y registro de "Celdo", compra del dominio y de las cuentas en redes (lo hace el dueño) | 🔴 | ⏳ |
+| P-119 | Marca y dominio: búsqueda formal y registro de "Celdo" en INDECOPI, compra de `celdo.app` y de las cuentas en redes (lo hace el dueño) | 🔴 | ⏳ |
 | P-121 | Demo pública de solo lectura con la base de ejemplo | 🟡 | ⏳ |
 | P-122 | Avisos dentro de la app al llegar a un límite del plan, con la prueba Pro de 30 días | 🟡 | ⏳ |
 

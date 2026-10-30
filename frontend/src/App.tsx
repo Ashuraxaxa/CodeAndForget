@@ -2,7 +2,7 @@ import { BrowserRouter, Link, Navigate, NavLink, Outlet, Route, Routes } from 'r
 import { BadgeCheck, History, LogOut, ShieldCheck } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from './api/client'
-import { Brand } from './components/Brand'
+import { Brand, CeldoMark } from './components/Brand'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { AuthCallbackPage, LoginPage } from './pages/LoginPage'
 import { ConnectionsPage } from './pages/ConnectionsPage'
@@ -67,6 +67,18 @@ function PlanNotice() {
   return <div className="plan-notice" role="status"><span>{text}</span><Link to="/plan">{t('Ir a Plan')}</Link></div>
 }
 
+/** En el plan Gratis, un crédito discreto al pie (D-104); Pro y Empresa van sin marca. */
+function MadeWith() {
+  const t = useT()
+  const plan = useQuery({ queryKey: ['plan'], queryFn: api.plan, staleTime: 60_000 })
+  if (plan.data?.plan !== 'Free') return null
+  return (
+    <footer className="app-footer">
+      <a className="made-with" href="https://celdo.app" target="_blank" rel="noopener"><CeldoMark className="" />{t('Hecho con Celdo')}</a>
+    </footer>
+  )
+}
+
 function Shell() {
   const { config, isAuthenticated, logout } = useAuth()
   const t = useT()
@@ -92,6 +104,7 @@ function Shell() {
       </header>
       <PlanNotice />
       <Outlet />
+      <MadeWith />
     </div>
   )
 }

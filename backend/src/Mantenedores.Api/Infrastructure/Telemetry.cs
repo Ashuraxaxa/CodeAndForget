@@ -21,7 +21,7 @@ public sealed class TelemetryOptions
     /// <summary>Encabezados para el destino, p. ej. <c>api-key=…</c> (se pueden dar por variable de entorno).</summary>
     public string OtlpHeaders { get; set; } = "";
 
-    public string ServiceName { get; set; } = "mantenedores";
+    public string ServiceName { get; set; } = "celdo";
 
     /// <summary>Solicitudes más lentas que esto se anotan en el log como advertencia. 0 = no se anotan.</summary>
     public int SlowRequestMilliseconds { get; set; } = 2000;

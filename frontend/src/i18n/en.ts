@@ -65,7 +65,7 @@ export const en: Messages = {
   'Cambios': 'Changes',
   'Sin cambios registrados': 'No recorded changes',
   'Página {page} de {pages}': 'Page {page} of {pages}',
-  'No tiene permiso para configurar mantenedores (pídale a un administrador el rol correspondiente).': 'You do not have permission to configure maintainers (ask an administrator for the corresponding role).',
+  'No tiene permiso para configurar tablas (pídale a un administrador el rol correspondiente).': 'You do not have permission to configure maintainers (ask an administrator for the corresponding role).',
   'Configurar · {table}': 'Configure · {table}',
   'los cambios se ven en la vista previa antes de guardar': 'changes show in the preview before saving',
   'Volver a la lista': 'Back to the list',
@@ -231,7 +231,7 @@ export const en: Messages = {
   'Borrar': 'Delete',
   'Exportar': 'Export',
   'Importar': 'Import',
-  'Configurar mantenedores': 'Configure maintainers',
+  'Configurar tablas': 'Configure tables',
   'Administrar conexiones': 'Manage connections',
   'Administrar seguridad': 'Manage security',
   'Ver la auditoría': 'View the audit log',
@@ -431,6 +431,7 @@ export const en: Messages = {
   // Revisión de idiomas (D-102)
   'el proveedor de identidad': 'the identity provider',
   // Plan y licencia (P-116)
+  'Hecho con Celdo': 'Made with Celdo',
   'Prueba Pro · {n} días': { one: 'Pro trial · {n} day', other: 'Pro trial · {n} days' },
   'Plan': 'Plan',
   'Esta instalación usa funciones del plan Empresa: {list}. Activa una licencia Empresa para seguir.': 'This installation uses Business plan features: {list}. Activate a Business license to continue.',

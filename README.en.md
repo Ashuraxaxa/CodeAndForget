@@ -1,14 +1,19 @@
 <div align="center">
 
-# Dynamic maintainers
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/comercial/marca/celdo-logo-oscuro.svg">
+  <img alt="Celdo" src="docs/comercial/marca/celdo-logo.svg" width="220">
+</picture>
 
-**Connect a database and instantly get a CRUD screen for every table.**
-No screens or queries to write: the app reads the schema and builds the list, filters, form and permissions.
+# Your database, ready to work
+
+**Celdo turns your SQL Server, PostgreSQL, MySQL or MariaDB into an app to view, search, create and edit data.**
+No screens or queries to write: it reads the schema and builds the list, filters, form and permissions. It installs in your network.
 
 [![CI](https://github.com/Ashuraxaxa/CodeAndForget/actions/workflows/ci.yml/badge.svg)](https://github.com/Ashuraxaxa/CodeAndForget/actions/workflows/ci.yml)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
 ![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
-![SQL Server · PostgreSQL · MySQL · MariaDB](https://img.shields.io/badge/engines-SQL%20Server%20·%20PostgreSQL%20·%20MySQL%20·%20MariaDB-2f6feb)
+![SQL Server · PostgreSQL · MySQL · MariaDB](https://img.shields.io/badge/engines-SQL%20Server%20·%20PostgreSQL%20·%20MySQL%20·%20MariaDB-1e2328)
 
 [Español](README.md) · **English**
 
@@ -34,7 +39,7 @@ Everything else is adjusted from the interface, without code changes or restarts
 
 | | |
 |---|---|
-| 🧩 **Generated maintainers** | Grid, form and validation from the schema. Composite keys, views and tables without a key (read-only), identity and computed columns. |
+| 🧩 **Generated screens** | Grid, form and validation from the schema. Composite keys, views and tables without a key (read-only), identity and computed columns. |
 | 🔗 **Relations** | Searchable foreign-key dropdowns (multi-column keys too), master-detail tabs, many-to-many pickers and drag-and-drop trees for self-referencing tables. |
 | ⚙️ **No-code settings** | Display names per language, hidden or required columns, ordering, widgets, virtual primary and foreign keys, and buttons that call stored procedures. |
 | 🗂️ **Special types** | JSON, enums, arrays, files with image previews, geographic data as WKT (PostGIS included) and numbers with more than 28 digits. |
@@ -44,6 +49,7 @@ Everything else is adjusted from the interface, without code changes or restarts
 | 🕵️ **Audit** | Who changed what and when, with per-record history and export. Concurrent edits never overwrite each other silently. |
 | 🌐 **Languages and theme** | Spanish, English and Russian, with dates and numbers in each one's format. Light, dark or system theme. |
 | 🚀 **Production ready** | Health checks, OpenTelemetry, rate limits, tables with millions of rows, several instances (optional Redis) and extra engines as plugins. |
+| 💳 **Plans** | Free forever (2 users, 1 connection and 15 tables), Pro and Business with a license that is checked without internet access. |
 
 <details>
 <summary>More screenshots: form with master-detail</summary>
@@ -161,6 +167,7 @@ The integration tests use the minimum versions; for another one, `MANTENEDORES_P
 | [ajustes.md](docs/ajustes.md) | Per-table and per-column settings |
 | [seguridad.md](docs/seguridad.md) | Profiles, permissions and audit |
 | [mcp.md](docs/mcp.md) | Connecting an AI through MCP to review the schema and propose settings |
+| [licencias.md](docs/licencias.md) | Free, Pro and Business plans; activating and issuing licenses, in Spanish |
 | [comercial/](docs/comercial/plan-comercial.md) | Celdo: business plan, brand manual and landing page (`landing/`), in Spanish |
 | [api.md](docs/api.md) | API routes |
 | [motores.md](docs/motores.md) | Engine differences and how to add one |

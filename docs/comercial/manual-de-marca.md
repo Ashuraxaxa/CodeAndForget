@@ -40,7 +40,7 @@ marca.
 **La palabra** "celdo" va siempre en minúsculas, en Bricolage Grotesque Bold, con un espaciado un poco más cerrado
 que el normal (−1,5 en 44 px).
 
-> El texto del logo en SVG usa la fuente instalada. Para piezas impresas o para el registro de la marca, se debe
+> En la aplicación, la palabra va en Inter Bold, la fuente del producto, para no cargar otra fuente. El texto del logo en SVG usa la fuente instalada. Para piezas impresas o para el registro de la marca, se debe
 > pasar a curvas (contornos) en un editor vectorial.
 
 ### Reglas

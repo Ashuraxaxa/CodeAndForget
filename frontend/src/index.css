@@ -5,19 +5,21 @@
 
 :root {
   color-scheme: light;
-  --bg: #f5f7fb;
-  --bg-accent: #eef2ff;
+  /* Paleta de Celdo: grafito y marcador (D-103). En Día manda el grafito; el amarillo marca lo activo. */
+  --bg: #f4f5f6;
+  --bg-accent: #fff8de;
   --surface: #ffffff;
-  --surface-2: #f8fafc;
-  --text: #0f172a;
-  --muted: #64748b;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-soft: #eff6ff;
+  --surface-2: #f8f9fa;
+  --text: #1e2328;
+  --muted: #5d6670;
+  --border: #e3e6ea;
+  --border-strong: #cdd2d8;
+  --primary: #1e2328;
+  --primary-hover: #000000;
+  --primary-soft: #fff4cc;
   --primary-text: #ffffff;
-  --accent: #6366f1;
+  --accent: #ffd23f;
+  --mark: #1e2328;
   --danger: #dc2626;
   --danger-soft: #fef2f2;
   --ok-bg: #ecfdf3;
@@ -27,12 +29,12 @@
   --warn-bg: #fffbeb;
   --warn-text: #92400e;
   --warn-border: #fde68a;
-  --hover: #f1f5f9;
-  --selected: #eff6ff;
-  --focus: rgb(37 99 235 / 0.35);
-  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
-  --shadow: 0 1px 3px rgb(15 23 42 / 0.08), 0 4px 12px rgb(15 23 42 / 0.05);
-  --shadow-lg: 0 12px 32px rgb(15 23 42 / 0.14);
+  --hover: #eef0f2;
+  --selected: #fff4cc;
+  --focus: rgb(230 180 0 / 0.5);
+  --shadow-sm: 0 1px 2px rgb(30 35 40 / 0.06);
+  --shadow: 0 1px 3px rgb(30 35 40 / 0.08), 0 4px 12px rgb(30 35 40 / 0.05);
+  --shadow-lg: 0 12px 32px rgb(30 35 40 / 0.14);
   --badge-mssql-bg: #fee4e2; --badge-mssql-text: #b42318;
   --badge-pg-bg: #dbeafe; --badge-pg-text: #1e40af;
   --badge-mysql-bg: #dcfce7; --badge-mysql-text: #166534;
@@ -51,19 +53,21 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #0b1120;
-  --bg-accent: #111a33;
-  --surface: #111827;
-  --surface-2: #0f172a;
-  --text: #e5e7eb;
-  --muted: #94a3b8;
-  --border: #1f2a3c;
-  --border-strong: #334155;
-  --primary: #60a5fa;
-  --primary-hover: #93c5fd;
-  --primary-soft: rgb(96 165 250 / 0.12);
-  --primary-text: #0b1120;
-  --accent: #818cf8;
+  /* En Noche, el marcador toma el lugar del grafito: botones y enlaces amarillos sobre carbón. */
+  --bg: #0d0f12;
+  --bg-accent: #1a1708;
+  --surface: #15181c;
+  --surface-2: #111316;
+  --text: #e8ebee;
+  --muted: #9aa3ad;
+  --border: #262b31;
+  --border-strong: #353b42;
+  --primary: #ffd23f;
+  --primary-hover: #ffe27a;
+  --primary-soft: rgb(255 210 63 / 0.12);
+  --primary-text: #1e2328;
+  --accent: #ffd23f;
+  --mark: #2c3239;
   --danger: #f87171;
   --danger-soft: rgb(248 113 113 / 0.12);
   --ok-bg: rgb(34 197 94 / 0.14);
@@ -73,9 +77,9 @@
   --warn-bg: rgb(245 158 11 / 0.12);
   --warn-text: #fcd34d;
   --warn-border: rgb(245 158 11 / 0.35);
-  --hover: #172033;
-  --selected: rgb(96 165 250 / 0.12);
-  --focus: rgb(96 165 250 / 0.4);
+  --hover: #1c2025;
+  --selected: rgb(255 210 63 / 0.1);
+  --focus: rgb(255 210 63 / 0.4);
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow: 0 1px 3px rgb(0 0 0 / 0.5), 0 4px 14px rgb(0 0 0 / 0.3);
   --shadow-lg: 0 14px 36px rgb(0 0 0 / 0.55);
@@ -207,10 +211,15 @@ a.chip:hover { border-color: var(--primary); background: var(--primary-soft); }
 .brand-link { color: var(--text); }
 .brand-link:hover { color: var(--text); }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.02rem; letter-spacing: -0.01em; color: var(--text); }
-.brand-mark {
-  display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: #fff;
-  background: linear-gradient(135deg, #3b82f6, #6366f1); box-shadow: 0 4px 12px rgb(59 130 246 / 0.35);
-}
+.brand-mark { display: inline-block; width: 30px; height: 30px; flex: none; }
+.brand-mark .mark-bg { fill: var(--mark); }
+.brand-name { font-weight: 750; font-size: 1.2rem; letter-spacing: -0.04em; }
+/* "Hecho con Celdo" en el plan Gratis (D-104). */
+.app-footer { display: flex; justify-content: flex-end; padding: 8px 24px 16px; }
+.made-with { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+  background: var(--surface); color: var(--muted); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.made-with:hover { color: var(--text); }
+.made-with svg { width: 14px; height: 14px; }
 .topnav { display: flex; align-items: center; gap: 4px; flex: 1; }
 .topnav-link {
   display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: var(--radius-sm);
@@ -223,7 +232,7 @@ a.chip:hover { border-color: var(--primary); background: var(--primary-soft); }
 .user-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .avatar {
   flex: none; display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; font-weight: 650; font-size: 0.85rem;
+  background: var(--accent); color: #1e2328; font-weight: 650; font-size: 0.85rem;
 }
 .page { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .page-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -232,8 +241,8 @@ a.chip:hover { border-color: var(--primary); background: var(--primary-soft); }
 .login {
   min-height: 100vh; display: grid; place-items: center; padding: 16px; position: relative;
   background:
-    radial-gradient(60rem 30rem at 10% -10%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 70%),
-    radial-gradient(50rem 30rem at 110% 110%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    linear-gradient(color-mix(in srgb, var(--text) 5%, transparent) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(90deg, color-mix(in srgb, var(--text) 5%, transparent) 1px, transparent 1px) 0 0 / 32px 32px,
     var(--bg);
 }
 .login-tools { position: absolute; top: 16px; right: 16px; display: flex; gap: 10px; align-items: center; }

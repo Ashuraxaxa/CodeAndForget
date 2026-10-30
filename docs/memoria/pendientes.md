@@ -19,7 +19,8 @@ Plan completo en [../comercial/plan-comercial.md](../comercial/plan-comercial.md
 |---|---|---|---|
 | P-120 | Nombre, manual de marca, plan comercial y landing | 🔴 | ✅ PR #47 |
 | P-116 | Licencias y planes: clave firmada (ECDSA P-256) validada sin internet (D-106), límites por plan en el servidor (Gratis: 2 usuarios, 1 conexión, 15 tablas fijas; auditoría; funciones Pro y Empresa), 14 días de gracia y página "Plan" | 🔴 | ✅ PR #48 |
-| P-117 | Nombre Celdo en la app: título, logo, favicon, login, colores (grafito y marcador), README e imagen Docker oficial (`celdo/celdo`) | 🔴 | 🚧 |
+| P-117 | Nombre Celdo en la app: título, logo, favicon, login, colores (grafito y marcador), "Hecho con Celdo" en Gratis, README y capturas | 🔴 | ✅ PR #49 |
+| P-123 | Publicar la imagen Docker oficial `celdo/celdo` (Docker Hub o GHCR) desde la CI al etiquetar una versión | 🔴 | ⏳ |
 | P-118 | Landing en línea: hosting estático con el dominio, enlaces de pago, analítica sin cookies, términos y privacidad | 🔴 | ⏳ |
 | P-119 | Marca y dominio: búsqueda formal y registro de "Celdo" en INDECOPI, compra de `celdo.app` y de las cuentas en redes (lo hace el dueño) | 🔴 | ⏳ |
 | P-121 | Demo pública de solo lectura con la base de ejemplo | 🟡 | ⏳ |

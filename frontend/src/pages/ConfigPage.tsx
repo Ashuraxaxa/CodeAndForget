@@ -38,7 +38,7 @@ export function ConfigPage() {
 
   if (me.isLoading) return <p className="muted">{t('Cargando…')}</p>
   if (!me.data?.permissions.includes('ConfigureTables'))
-    return <div className="alert">{t('No tiene permiso para configurar mantenedores (pídale a un administrador el rol correspondiente).')}</div>
+    return <div className="alert">{t('No tiene permiso para configurar tablas (pídale a un administrador el rol correspondiente).')}</div>
   const error = current.error ?? initial.error
   if (error) return <div className="alert">{(error as Error).message}</div>
   if (!initial.data) return <p className="muted">{t('Cargando…')}</p>

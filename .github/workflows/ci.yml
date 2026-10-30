@@ -77,12 +77,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t mantenedores:ci .
+      - run: docker build -t celdo:ci .
       - name: La imagen arranca y responde
         run: |
           docker run -d --name app -p 8080:8080 \
             -e Auth__JwtKey=ci-solo-pruebas-0123456789abcdefghijklmn \
-            mantenedores:ci
+            celdo:ci
           # ready: además verifica la metadata (SQLite) dentro del contenedor
           for i in $(seq 1 30); do curl -fsS localhost:8080/api/health/ready && exit 0; sleep 2; done
           docker logs app; exit 1

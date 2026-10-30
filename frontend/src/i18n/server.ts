@@ -114,6 +114,10 @@ export const SERVER: [es: string, en: string, ru: string][] = [
   ['la columna \'{column}\' no existe en {table}', 'the column \'{column}\' does not exist in {table}', 'столбца «{column}» нет в {table}'],
   ['esas columnas ya tienen una FK declarada en la base', 'those columns already have a FK declared in the database', 'у этих столбцов уже есть FK, объявленный в базе'],
   ['formato inválido', 'invalid format', 'неверный формат'],
+  // Tokens y muestra para la IA (P-113)
+  ['La conexión \'{name}\' no permite ver una muestra de datos: actívelo en la conexión (muestra para la IA).', 'The connection \'{name}\' does not allow a data sample: enable it on the connection (sample for the AI).', 'Подключение «{name}» не разрешает выборку данных: включите её в подключении (выборка для ИИ).'],
+  ['Los tokens de acceso se administran desde una sesión, no con otro token.', 'Access tokens are managed from a session, not with another token.', 'Токенами доступа управляют из сеанса, а не другим токеном.'],
+  ['entre 1 y 3650 días, o sin vencimiento', 'between 1 and 3650 days, or no expiration', 'от 1 до 3650 дней или без срока'],
   // Copiar ajustes entre conexiones (P-111)
   ['solo se copian ajustes entre conexiones del mismo motor ({source} y {target} son distintos)', 'settings are only copied between connections with the same engine ({source} and {target} differ)', 'настройки копируются только между подключениями одной СУБД ({source} и {target} различаются)'],
   ['elija una conexión distinta de la de destino', 'choose a connection other than the target', 'выберите подключение, отличное от целевого'],

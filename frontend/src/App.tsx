@@ -11,6 +11,7 @@ import { ConfigPage } from './pages/ConfigPage'
 import { ImportPage } from './pages/ImportPage'
 import { SecurityPage } from './pages/SecurityPage'
 import { AuditPage } from './pages/AuditPage'
+import { TokensPage } from './pages/TokensPage'
 import { useCan, useMe } from './lib/useMe'
 import { ThemeToggle } from './components/ThemeToggle'
 import { LanguageSelect, useT } from './i18n'
@@ -29,8 +30,10 @@ function AdminLinks() {
 /** Nombre del usuario con su inicial, como en cualquier app. */
 function UserChip() {
   const name = useMe().data?.name
+  const t = useT()
   if (!name) return null
-  return <span className="user-chip" title={name}><span className="avatar" aria-hidden>{name[0].toUpperCase()}</span><span className="user-name">{name}</span></span>
+  // Al tocar el nombre: los tokens de acceso del usuario (P-113).
+  return <Link to="/tokens" className="user-chip" title={t('{name} · tokens de acceso', { name })}><span className="avatar" aria-hidden>{name[0].toUpperCase()}</span><span className="user-name">{name}</span></Link>
 }
 
 function Shell() {
@@ -74,6 +77,7 @@ export default function App() {
             <Route index element={<ConnectionsPage />} />
             <Route path="seguridad" element={<SecurityPage />} />
             <Route path="auditoria" element={<AuditPage />} />
+            <Route path="tokens" element={<TokensPage />} />
             <Route path="c/:conn" element={<ConnectionLayout />}>
               <Route index element={<PickTable />} />
               <Route path="t/:schema/:table" element={<TablePage />} />

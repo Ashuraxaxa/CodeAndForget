@@ -12,6 +12,12 @@ public sealed record ConnectionDefinition
 
     /// <summary>Esquemas a exponer. Vacío = todos.</summary>
     public IReadOnlyList<string> Schemas { get; init; } = [];
+
+    /// <summary>
+    /// ¿Una IA conectada por MCP puede ver una muestra de datos (las 1.000 filas más recientes de cada tabla, P-113)?
+    /// Apagado por defecto: sin esto solo ve la estructura.
+    /// </summary>
+    public bool AllowSamples { get; init; }
 }
 
 public interface IConnectionStore

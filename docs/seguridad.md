@@ -83,6 +83,17 @@ los ajustes de los mantenedores exige `ConfigureTables`.
 - Al desactivarlo o borrarlo, su token deja de servir en la siguiente solicitud.
 - En modo `Jwt` los usuarios vienen del proveedor de identidad; en los perfiles se nombran sus usuarios o roles.
 
+## Tokens de acceso
+
+Para conectar una IA por MCP u otra herramienta que no inicia sesión (P-113, D-100). Cada usuario los crea desde su nombre en la barra superior: **Tokens de acceso** → nombre y vencimiento (30, 90 o 365 días, o sin vencimiento). El secreto (`mnt_…`) se muestra **una sola vez**; solo se guarda su hash.
+
+- **El token tiene exactamente el acceso de quien lo creó**, calculado en cada uso:
+  - en modo `Local`, con los roles actuales de la configuración y sus perfiles. Si el usuario se desactiva o se borra, el token deja de servir;
+  - en modo `Jwt`, con los roles que el usuario tenía al crearlo, porque el proveedor de identidad no se puede consultar después. Los perfiles se aplican por usuario igual que en una sesión.
+- **Con un token no se crean, listan ni borran tokens:** uno robado no puede crear otros.
+- **Uso:** se manda como `Authorization: Bearer mnt_…`. La lista muestra cuándo se usó por última vez.
+- **Lo que hace un token queda en la auditoría** a nombre de su dueño.
+
 ## API
 
 Todo bajo `/api/security`, con el permiso `ManageSecurity`:

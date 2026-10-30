@@ -133,6 +133,7 @@ app.MapConnections();
 app.MapMeta();
 app.MapData();
 app.MapSecurity();
+app.MapTokens();
 app.MapAudit();
 // Una ruta /api desconocida es 404; cualquier otra ruta la resuelve el router del frontend.
 app.Map("/api/{**rest}", () => Results.NotFound()).AllowAnonymous();

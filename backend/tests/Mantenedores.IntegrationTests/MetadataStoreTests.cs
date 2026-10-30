@@ -34,6 +34,53 @@ public abstract class MetadataStoreContractTests<TFixture>(TFixture db) : IClass
     }
 
     [Fact]
+    public async Task Guarda_tokens_propuestas_y_el_permiso_de_muestra()
+    {
+        // P-113: migración 007 y los almacenes de la IA, en cada motor de metadata.
+        var database = Database();
+        await new MetadataMigrator(database).MigrateAsync();
+
+        var conns = new SqlConnectionStore(database, Protection(database));
+        var id = "s" + Guid.NewGuid().ToString("N")[..8];
+        await conns.SaveAsync(new ConnectionDefinition { Id = id, Name = "Con muestra", Engine = DatabaseEngine.Postgres, ConnectionString = "Host=x", AllowSamples = true }, default);
+        Assert.True((await conns.GetAsync(id, default))!.AllowSamples);
+        await conns.SaveAsync(new ConnectionDefinition { Id = id, Name = "Sin muestra", Engine = DatabaseEngine.Postgres, ConnectionString = "Host=x" }, default);
+        Assert.False((await conns.GetAsync(id, default))!.AllowSamples);
+
+        var tokens = new SqlAccessTokenStore(database);
+        var secret = Mantenedores.Core.Security.AccessToken.NewSecret();
+        var token = new Mantenedores.Core.Security.AccessToken
+        {
+            Id = Guid.NewGuid().ToString("N"), Name = "IA", Owner = "Ana" + id, Roles = ["admin"], Prefix = secret[..10],
+            Hash = Mantenedores.Core.Security.AccessToken.HashOf(secret), CreatedAt = DateTimeOffset.UtcNow, ExpiresAt = DateTimeOffset.UtcNow.AddDays(30)
+        };
+        await tokens.SaveAsync(token, default);
+        var found = await tokens.FindByHashAsync(token.Hash, default);
+        Assert.Equal(("IA", ("ana" + id).ToLowerInvariant(), "admin"), (found!.Name, found.Owner, Assert.Single(found.Roles)));
+        Assert.True(Math.Abs((found.ExpiresAt!.Value - token.ExpiresAt!.Value).TotalSeconds) < 1);
+        await tokens.TouchAsync(token.Id, DateTimeOffset.UtcNow, default);
+        Assert.NotNull((await tokens.FindByHashAsync(token.Hash, default))!.LastUsedAt);
+        Assert.Single(await tokens.ListAsync("ana" + id, default));
+        Assert.False(await tokens.DeleteAsync(token.Id, "otro", default)); // solo el dueño
+        Assert.True(await tokens.DeleteAsync(token.Id, "ANA" + id, default));
+
+        var proposals = new SqlProposalStore(database);
+        var p = new Mantenedores.Core.Overrides.OverrideProposal
+        {
+            Id = Guid.NewGuid().ToString("N"), Connection = id, Schema = "ventas", Table = "producto",
+            Value = new Mantenedores.Core.Overrides.TableOverride { Label = "Productos" }, Reason = "Nombre más claro", CreatedBy = "ia", CreatedAt = DateTimeOffset.UtcNow
+        };
+        await proposals.SaveAsync(p, default);
+        Assert.Equal("Productos", Assert.Single(await proposals.ListAsync(id, "pending", default)).Value.Label);
+        await proposals.SaveAsync(p with { Status = "discarded", ResolvedBy = "ana", ResolvedAt = DateTimeOffset.UtcNow }, default);
+        Assert.Empty(await proposals.ListAsync(id, "pending", default));
+        Assert.Equal("ana", (await proposals.GetAsync(p.Id, default))!.ResolvedBy);
+        await proposals.DeleteAllAsync(id, default);
+        Assert.Null(await proposals.GetAsync(p.Id, default));
+        await conns.DeleteAsync(id, default);
+    }
+
+    [Fact]
     public async Task Migra_guarda_y_comparte_llaves_entre_instancias()
     {
         var database = Database();

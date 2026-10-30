@@ -4,6 +4,18 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-29 · Tokens, propuestas y muestra, segunda parte de la IA (P-113)
+- Migración 007 en los tres motores de metadata, y almacenes de tokens y propuestas (también en modo `File`).
+- Tokens con un esquema de autenticación propio: actúan como su dueño. El dueño pidió que tengan el mismo acceso que quien los crea.
+- Propuestas validadas como un ajuste; en Configurar se cargan en la edición y se aceptan al guardar.
+- Muestra de las 1.000 filas más recientes, solo con la conexión marcada.
+- En el navegador:
+  - se creó un token y, solo con él, la "IA" vio su usuario, propuso un ajuste (una propuesta inválida dio 400) y la muestra se negó sin el permiso;
+  - con el permiso, la muestra vino ordenada por `creado_en`;
+  - la propuesta se cargó, se guardó y quedó aceptada.
+- Hallazgo: filas con la misma fecha salían en orden al azar; ahora la PK desempata.
+- 251 unitarias y 291 de integración en verde.
+
 ## 2026-10-29 · Sugerencias de ajustes, primera parte de la IA (P-112)
 - El dueño preguntó por un MCP para que una IA escanee y recomiende configuraciones. Se aprobó el plan en tres partes: sugerencias sin IA, tokens y propuestas, y servidor MCP.
 - Decisiones del dueño:

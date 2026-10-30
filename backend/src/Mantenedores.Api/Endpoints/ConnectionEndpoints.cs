@@ -10,10 +10,11 @@ namespace Mantenedores.Api.Endpoints;
 
 public static partial class ConnectionEndpoints
 {
-    public sealed record ConnectionRequest(string Id, string Name, DatabaseEngine Engine, string? ConnectionString, List<string>? Schemas);
+    public sealed record ConnectionRequest(string Id, string Name, DatabaseEngine Engine, string? ConnectionString, List<string>? Schemas, bool AllowSamples = false);
 
     /// <summary>Nunca se devuelve la cadena de conexión; solo servidor y base para identificarla.</summary>
-    public sealed record ConnectionResponse(string Id, string Name, DatabaseEngine Engine, IReadOnlyList<string> Schemas, string? Server, string? Database);
+    public sealed record ConnectionResponse(string Id, string Name, DatabaseEngine Engine, IReadOnlyList<string> Schemas, string? Server, string? Database,
+        bool AllowSamples = false);
 
     /// <summary>Resultado de la prueba: tablas vistas, servidor y versión, y ajustes útiles para diagnosticar (P-028).</summary>
     /// <summary>Motor instalado, para el selector de la interfaz (incluye los cargados como plugin, P-064).</summary>
@@ -57,12 +58,13 @@ public static partial class ConnectionEndpoints
             return Results.Ok(ToResponse(def));
         }).RequireAuthorization(ManageConnectionsPolicy);
 
-        group.MapDelete("/{id}", async (string id, IConnectionStore store, SchemaService schemas, CancellationToken ct) =>
+        group.MapDelete("/{id}", async (string id, IConnectionStore store, SchemaService schemas, Core.Overrides.IProposalStore proposals, CancellationToken ct) =>
         {
             if (!await store.DeleteAsync(id, ct)) return Results.NotFound();
             // Sus ajustes se van con ella: una conexión nueva con el mismo id no los hereda.
             await schemas.Overrides.DeleteAllAsync(id, ct);
             await schemas.Snapshots.DeleteAsync(id, ct);
+            await proposals.DeleteAllAsync(id, ct);
             await schemas.SchemaChangedAsync(id, ct);
             return Results.NoContent();
         }).RequireAuthorization(ManageConnectionsPolicy);
@@ -123,7 +125,8 @@ public static partial class ConnectionEndpoints
             Name = req.Name.Trim(),
             Engine = providers.Get(req.Engine).Engine, // el nombre como lo escribe el proveedor
             ConnectionString = connectionString,
-            Schemas = (req.Schemas ?? []).Select(s => s.Trim()).Where(s => s.Length > 0).Distinct().ToList()
+            Schemas = (req.Schemas ?? []).Select(s => s.Trim()).Where(s => s.Length > 0).Distinct().ToList(),
+            AllowSamples = req.AllowSamples
         };
     }
 
@@ -135,6 +138,6 @@ public static partial class ConnectionEndpoints
 
         return new ConnectionResponse(c.Id, c.Name, c.Engine, c.Schemas,
             Find("Server", "Data Source", "Host", "Address"),
-            Find("Database", "Initial Catalog"));
+            Find("Database", "Initial Catalog"), c.AllowSamples);
     }
 }

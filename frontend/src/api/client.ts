@@ -1,7 +1,7 @@
 import type {
   ImportMode, ImportResult, TransferFormat, TreeNode,
   AuditPage, SecurityInfo, SecurityProfile, SecurityUser, ActionResult, Routine,
-  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult, Suggestion,
+  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult, Suggestion, AccessTokenInfo, OverrideProposal,
 } from './types'
 import { t, translateServer } from '../i18n'
 
@@ -181,6 +181,15 @@ export const api = {
 
   connections: () => request<Connection[]>('GET', 'api/connections'),
   engines: () => request<EngineInfo[]>('GET', 'api/engines'),
+  /** Tokens de acceso del usuario (P-113). */
+  tokens: () => request<AccessTokenInfo[]>('GET', 'api/tokens'),
+  createToken: (name: string, days?: number) =>
+    request<{ token: AccessTokenInfo; secret: string }>('POST', 'api/tokens', { name, days }),
+  deleteToken: (id: string) => request<void>('DELETE', `api/tokens/${enc(id)}`),
+  /** Propuestas pendientes de la IA para una conexión (P-113). */
+  proposals: (conn: string) => request<OverrideProposal[]>('GET', `api/meta/${enc(conn)}/proposals`),
+  resolveProposal: (conn: string, id: string, action: 'accept' | 'discard') =>
+    request<void>('POST', `api/meta/${enc(conn)}/proposals/${enc(id)}/${action}`),
   /** Sugerencias de ajustes sin IA para una tabla (P-112). */
   suggestions: (conn: string, schema: string, table: string) =>
     request<Suggestion[]>('GET', `api/meta/${enc(conn)}/suggestions/${enc(schema)}/${enc(table)}`),

@@ -145,6 +145,7 @@ function ConnectionForm({ initial, template, onClose, onSaved }: {
     engine: (base?.engine ?? 'SqlServer') as Engine,
     connectionString: '',
     schemas: base?.schemas.join(', ') ?? '',
+    allowSamples: base?.allowSamples ?? false,
   })
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -159,6 +160,7 @@ function ConnectionForm({ initial, template, onClose, onSaved }: {
     engine: form.engine,
     connectionString: form.connectionString || undefined,
     schemas: form.schemas.split(',').map(s => s.trim()).filter(Boolean),
+    allowSamples: form.allowSamples,
   })
 
   const handleError = (err: unknown) => {
@@ -248,6 +250,12 @@ function ConnectionForm({ initial, template, onClose, onSaved }: {
         <span className="hint">{t('Se guarda cifrada. Usa un usuario de BD con los permisos mínimos necesarios.')}</span>
         {fieldErrors.connectionString && <span className="field-error">{fieldErrors.connectionString}</span>}
       </label>
+
+      <label className="check">
+        <input type="checkbox" checked={form.allowSamples} onChange={e => setForm(f => ({ ...f, allowSamples: e.target.checked }))} />
+        {t('Permitir que la IA vea una muestra de datos (las 1.000 filas más recientes de cada tabla)')}
+      </label>
+      <span className="hint">{t('Sin esto, una IA conectada por MCP solo ve la estructura (tablas y columnas). Respeta los permisos de quien creó el token.')}</span>
 
       {result && <div className={result.ok ? 'alert ok' : 'alert'}>{result.text}</div>}
 

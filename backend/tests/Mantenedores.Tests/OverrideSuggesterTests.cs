@@ -83,4 +83,15 @@ public class OverrideSuggesterTests
         var s = OverrideSuggester.For(Schema(Empresa, otraEmpresa, centro), centro, null);
         Assert.DoesNotContain(s, x => x.Id == "relation:EmpresaID");
     }
+
+    [Fact]
+    public void Lo_mas_reciente_es_por_fecha_de_modificacion_creacion_o_pk()
+    {
+        var conFechas = Table("Mov", Col("MovID", pk: true), Col("creado_en", LogicalType.DateTime), Col("ModifiedDate", LogicalType.DateTime));
+        Assert.Equal(["ModifiedDate", "MovID"], Mantenedores.Core.Services.CrudService.RecencyOrder(conFechas).Select(o => o.Column));
+        var soloCreacion = Table("Mov", Col("MovID", pk: true), Col("creado_en", LogicalType.DateTime));
+        var order = Mantenedores.Core.Services.CrudService.RecencyOrder(soloCreacion)[0];
+        Assert.Equal(("creado_en", true), (order.Column, order.Descending));
+        Assert.Equal("MovID", Assert.Single(Mantenedores.Core.Services.CrudService.RecencyOrder(Table("Mov", Col("MovID", pk: true), Col("Nombre", LogicalType.String)))).Column);
+    }
 }

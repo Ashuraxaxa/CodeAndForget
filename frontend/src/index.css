@@ -604,3 +604,14 @@ label > .combo, .field > .combo { flex: none; }
 /* ---------- Sugerencias de ajustes (P-112) ---------- */
 .suggestions { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
 .suggestions h2 svg { color: var(--accent); }
+
+/* ---------- Tokens y propuestas de la IA (P-113) ---------- */
+a.user-chip { color: var(--text); padding: 3px 8px 3px 3px; border-radius: 999px; }
+a.user-chip:hover { background: var(--hover); color: var(--text); }
+.token-created { border-color: var(--ok-text); background: var(--ok-bg); display: flex; flex-direction: column; gap: 10px; }
+.token-secret { flex: 1; min-width: 0; overflow-wrap: anywhere; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); }
+.proposals { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); display: flex; flex-direction: column; gap: 10px; }
+.proposals h2 svg { color: var(--accent); }
+.proposal { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 6px; }
+.proposal.is-loaded { border-color: var(--primary); background: var(--primary-soft); }
+.proposal-reason { margin: 0; white-space: pre-wrap; }

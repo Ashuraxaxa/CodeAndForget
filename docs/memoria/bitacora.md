@@ -4,6 +4,16 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-30 · Servidor MCP, tercera parte de la IA (P-114)
+- `/api/mcp` con el SDK oficial de C#, HTTP sin estado, apagado por defecto (`Mcp:Enabled`) y con `ConfigureTables`.
+- Ocho herramientas: leen, sugieren, muestran, prueban y proponen. Ninguna guarda. Detalle en D-101 y `docs/mcp.md`.
+- La página de Tokens muestra la URL y el comando de Claude Code.
+- Probado en vivo contra Postgres con un token: la muestra se negó en la conexión sin permiso, el ajuste inválido volvió con su error y la propuesta válida quedó pendiente. Probado también con el cliente oficial de MCP en las pruebas.
+- Hallazgos:
+  - al activarlo la app no arrancaba (opciones JSON sin `TypeInfoResolver`); lo cubre una prueba;
+  - la vista previa devolvía 500 en vez de 404 (una lambda `async` que no esperaba su tarea).
+- 259 unitarias y 291 de integración en verde.
+
 ## 2026-10-29 · Tokens, propuestas y muestra, segunda parte de la IA (P-113)
 - Migración 007 en los tres motores de metadata, y almacenes de tokens y propuestas (también en modo `File`).
 - Tokens con un esquema de autenticación propio: actúan como su dueño. El dueño pidió que tengan el mismo acceso que quien los crea.

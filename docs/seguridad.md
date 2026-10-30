@@ -93,6 +93,7 @@ Para conectar una IA por MCP u otra herramienta que no inicia sesión (P-113, D-
 - **Con un token no se crean, listan ni borran tokens:** uno robado no puede crear otros.
 - **Uso:** se manda como `Authorization: Bearer mnt_…`. La lista muestra cuándo se usó por última vez.
 - **Lo que hace un token queda en la auditoría** a nombre de su dueño.
+- **Servidor MCP** (P-114): con `Mcp:Enabled=true`, el token sirve para `/api/mcp`, si su dueño tiene `ConfigureTables`. La IA solo lee y propone; ver [mcp.md](mcp.md).
 
 ## API
 

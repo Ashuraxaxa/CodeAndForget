@@ -615,3 +615,6 @@ a.user-chip:hover { background: var(--hover); color: var(--text); }
 .proposal { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 6px; }
 .proposal.is-loaded { border-color: var(--primary); background: var(--primary-soft); }
 .proposal-reason { margin: 0; white-space: pre-wrap; }
+.mcp-help summary { cursor: pointer; }
+.mcp-help label { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+.mcp-help code { font-size: 0.85em; }

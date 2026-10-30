@@ -83,7 +83,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-063 | Guía "cómo agregar un motor" | ✅ 2026-10-27 · en `docs/motores.md` (la batería común pasó a P-002) |
 | P-112 | Sugerencias de ajustes sin IA en Configurar (D-099) | 🟡 | ✅ PR #43 |
 | P-113 | Tokens de acceso con el acceso de quien los crea, propuestas pendientes y muestra de datos (1.000 filas más recientes) por conexión (D-100) | 🟡 | ✅ PR #44 |
-| P-114 | Servidor MCP para conectar cualquier IA: lectura, sugerencias, muestra, vista previa y proponer (D-099) | 🟡 | ⏳ siguiente |
+| P-114 | Servidor MCP para conectar cualquier IA: lectura, sugerencias, muestra, vista previa y proponer (D-101) | 🟡 | ✅ PR #45 |
 | P-111 | Copiar ajustes entre conexiones del mismo motor (todo o por partes y tablas, con vista previa) y duplicar una conexión con sus ajustes (D-098) | 🟡 | ✅ PR #42 |
 | P-110 | Combos de FK filtrados por otra columna del registro (AreaID según EmpresaID), bloqueados hasta elegir y validados al guardar (D-097) | 🟡 | ✅ PR #41 |
 | P-108 | Combos con búsqueda (autocompletar) en todas las listas, con el texto visible en modo noche (D-096) | 🟡 | ✅ PR #40 |

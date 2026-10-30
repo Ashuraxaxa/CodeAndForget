@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Mantenedores.Api.Auth;
 using Mantenedores.Api.Endpoints;
 using Mantenedores.Api.Infrastructure;
+using Mantenedores.Api.Mcp;
 using Mantenedores.Api.Notifications;
 using Mantenedores.Core.Audit;
 using Mantenedores.Core.Connections;
@@ -101,8 +102,12 @@ builder.Services.AddSingleton<OverrideCopier>();
 
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 // --- Límites de uso por usuario, para exportar/importar y para el login (P-051, P-091) ---
-builder.Services.AddMantenedoresRateLimiting(
-    builder.Configuration.GetSection(RateLimitOptions.Section).Get<RateLimitOptions>() ?? new RateLimitOptions());
+var rateLimits = builder.Configuration.GetSection(RateLimitOptions.Section).Get<RateLimitOptions>() ?? new RateLimitOptions();
+builder.Services.AddMantenedoresRateLimiting(rateLimits);
+// --- Servidor MCP para que una IA revise el esquema y proponga ajustes (P-114): apagado por defecto ---
+var mcp = builder.Configuration.GetSection(McpOptions.Section).Get<McpOptions>() ?? new McpOptions();
+builder.Services.Configure<McpOptions>(builder.Configuration.GetSection(McpOptions.Section));
+builder.Services.AddMantenedoresMcp(mcp, rateLimits);
 // --- Observabilidad (P-053): OpenTelemetry por OTLP si se configura un destino; log de solicitudes lentas siempre ---
 builder.Services.AddMantenedoresTelemetry(
     builder.Configuration.GetSection(TelemetryOptions.Section).Get<TelemetryOptions>() ?? new TelemetryOptions());
@@ -135,6 +140,7 @@ app.MapData();
 app.MapSecurity();
 app.MapTokens();
 app.MapAudit();
+app.MapMantenedoresMcp(mcp);
 // Una ruta /api desconocida es 404; cualquier otra ruta la resuelve el router del frontend.
 app.Map("/api/{**rest}", () => Results.NotFound()).AllowAnonymous();
 app.MapSpaIndex();

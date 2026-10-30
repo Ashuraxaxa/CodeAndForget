@@ -38,6 +38,7 @@ Todo lo demás se ajusta desde la interfaz, sin tocar código ni reiniciar.
 | 🗂️ **Tipos especiales** | JSON, enums, arreglos, archivos con vista previa de imágenes, datos geográficos en WKT (PostGIS incluido) y números de más de 28 dígitos. |
 | 📤 **Exportar e importar** | CSV, Excel, JSON y XML del listado filtrado; importación con vista previa, errores por fila y actualización por clave. |
 | 🔐 **Seguridad** | Login local o cualquier proveedor OIDC (Keycloak, Duende, Entra ID…). Perfiles con permisos por conexión, tabla, columna y acción. [seguridad.md](docs/seguridad.md) |
+| 🤖 **IA por MCP** | Sugerencias sin IA y un servidor MCP opcional: Claude, Cursor u otra IA revisa el esquema y propone ajustes, que una persona acepta. El token tiene el acceso de quien lo crea. [mcp.md](docs/mcp.md) |
 | 🕵️ **Auditoría** | Quién cambió qué y cuándo, con historial por registro y exportación. Edición simultánea sin pisar cambios ajenos. |
 | 🌐 **Idiomas y tema** | Interfaz en español, inglés y ruso, con fechas y números en el formato de cada uno. Modo día, noche o el del sistema. |
 | 🚀 **Listo para producción** | Health checks, OpenTelemetry, límites de uso, tablas de millones de filas, varias instancias (Redis opcional) y motores extra como plugins. |
@@ -178,6 +179,7 @@ docs/                                    Documentación y memoria del proyecto
 | [despliegue.md](docs/despliegue.md) | Docker, Kubernetes, nginx, IIS, servicio de Windows, systemd |
 | [ajustes.md](docs/ajustes.md) | Qué se puede ajustar por tabla y columna |
 | [seguridad.md](docs/seguridad.md) | Perfiles, permisos y auditoría |
+| [mcp.md](docs/mcp.md) | Conectar una IA por MCP para que revise el esquema y proponga ajustes |
 | [api.md](docs/api.md) | Rutas de la API |
 | [motores.md](docs/motores.md) | Diferencias entre motores y cómo agregar uno |
 | [carga.md](docs/carga.md) | Pruebas de carga y resultados |

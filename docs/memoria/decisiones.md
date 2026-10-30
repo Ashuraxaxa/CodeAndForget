@@ -944,6 +944,23 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Que el token tenga permisos propios: el dueño pidió que tenga el mismo acceso que su creador.
   - Muestras al azar: las filas recientes reflejan mejor cómo se usa hoy la tabla.
 
+### D-101 · Servidor MCP: lee, sugiere y propone, con el acceso de quien llama
+- **Estado:** Vigente · 2026-10-30 (P-114, parte 3 de 3)
+- **Qué:**
+  - Servidor MCP en `/api/mcp` con el SDK oficial de C# (`ModelContextProtocol.AspNetCore`), **apagado por defecto** (`Mcp:Enabled`).
+  - Transporte **HTTP sin estado**: cada llamada es una solicitud con su `Authorization`, y se autoriza de nuevo. Sirve un token `mnt_` (actúa como su dueño, D-100) o un JWT.
+  - Exige `ConfigureTables` para entrar; la muestra además respeta los permisos de tabla y columna del usuario.
+  - Herramientas: `list_connections`, `list_tables`, `get_table`, `suggest_settings`, `sample_rows`, `preview_settings`, `propose_settings`, `list_proposals`. Ninguna guarda ajustes ni toca datos.
+  - Las herramientas usan la misma lógica que la API (sugerencias, vista previa y propuestas se movieron a métodos compartidos en `MetaEndpoints`).
+  - Los errores del servicio llegan a la IA con su mensaje y sus campos, para que corrija y reintente.
+  - La muestra por MCP cuenta en el tope de operaciones pesadas (misma clave que exportar; compartida con Redis).
+  - La página de Tokens muestra la URL y el comando de Claude Code con el token recién creado.
+- **Descartado:**
+  - Transporte stdio (un ejecutable aparte por cliente): pediría instalar algo en cada PC y guardar ahí la cadena de conexión. Por HTTP basta la URL y el token.
+  - Sesiones MCP con estado: con varias instancias exigirían afinidad, y los permisos quedarían fijos al abrir la sesión.
+  - Herramientas que guardan ajustes o editan datos: el dueño decidió que la IA solo propone.
+  - Publicar el MCP en `/mcp`, fuera de `/api`: quedaría fuera del límite general de uso y de la regla de rutas de la API.
+
 ---
 
 ## Propuestas (aún no decididas)

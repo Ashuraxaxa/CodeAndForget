@@ -183,6 +183,15 @@ comparten, y el tope es el mismo con una instancia o con varias (P-050).
 
 Detrás de un proxy, la IP es la del cliente solo si el proxy está configurado en `Hosting` (P-007).
 
+## Servidor MCP (`Mcp`)
+
+Para que una IA (Claude, Cursor, etc.) revise el esquema y proponga ajustes (P-114, D-101). Detalle y cómo conectarla:
+[mcp.md](mcp.md).
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `Mcp:Enabled` | `false` | Publica `/api/mcp` (HTTP sin estado). Entra quien tenga `ConfigureTables`, con un token de acceso o un JWT. Solo lee y deja propuestas; nunca guarda ajustes. |
+
 ## Caché compartida (`Cache`)
 
 Solo hace falta con varias instancias (P-050, D-026, D-091). Por defecto cada instancia guarda lo suyo en memoria y

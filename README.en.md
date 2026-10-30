@@ -40,6 +40,7 @@ Everything else is adjusted from the interface, without code changes or restarts
 | 🗂️ **Special types** | JSON, enums, arrays, files with image previews, geographic data as WKT (PostGIS included) and numbers with more than 28 digits. |
 | 📤 **Export and import** | CSV, Excel, JSON and XML of the filtered list; imports with a preview, per-row errors and update by key. |
 | 🔐 **Security** | Local login or any OIDC provider (Keycloak, Duende, Entra ID…). Profiles with permissions per connection, table, column and action. |
+| 🤖 **AI through MCP** | Built-in suggestions and an optional MCP server: Claude, Cursor or another AI reviews the schema and proposes settings that a person accepts. The token has the access of whoever creates it. |
 | 🕵️ **Audit** | Who changed what and when, with per-record history and export. Concurrent edits never overwrite each other silently. |
 | 🌐 **Languages and theme** | Spanish, English and Russian, with dates and numbers in each one's format. Light, dark or system theme. |
 | 🚀 **Production ready** | Health checks, OpenTelemetry, rate limits, tables with millions of rows, several instances (optional Redis) and extra engines as plugins. |
@@ -159,6 +160,7 @@ The integration tests use the minimum versions; for another one, `MANTENEDORES_P
 | [despliegue.md](docs/despliegue.md) | Docker, Kubernetes, nginx, IIS, Windows service, systemd |
 | [ajustes.md](docs/ajustes.md) | Per-table and per-column settings |
 | [seguridad.md](docs/seguridad.md) | Profiles, permissions and audit |
+| [mcp.md](docs/mcp.md) | Connecting an AI through MCP to review the schema and propose settings |
 | [api.md](docs/api.md) | API routes |
 | [motores.md](docs/motores.md) | Engine differences and how to add one |
 | [carga.md](docs/carga.md) | Load tests and results |

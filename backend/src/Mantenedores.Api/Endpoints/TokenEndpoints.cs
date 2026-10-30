@@ -19,6 +19,10 @@ public static class TokenEndpoints
     {
         var group = app.MapGroup("/api/tokens").RequireAuthorization();
 
+        // Para la página de tokens: si el servidor MCP está activo (P-114) y en qué ruta, para mostrar cómo conectarse.
+        group.MapGet("/mcp", (Microsoft.Extensions.Options.IOptions<Mcp.McpOptions> mcp) =>
+            new { enabled = mcp.Value.Enabled, path = Mcp.McpSetup.Path.TrimStart('/') });
+
         group.MapGet("/", async (ClaimsPrincipal user, IAccessTokenStore store, CancellationToken ct) =>
             (await store.ListAsync(Owner(user), ct)).Select(Info));
 

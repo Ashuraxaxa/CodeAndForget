@@ -60,6 +60,14 @@ public static class RateLimiting
         });
     }
 
+    /// <summary>
+    /// El mismo tope de <see cref="Heavy"/> para lo que no pasa por una ruta propia (la muestra del servidor MCP, P-114).
+    /// Con Redis el contador es el mismo de las exportaciones; en memoria, uno aparte por instancia.
+    /// </summary>
+    public static PartitionedRateLimiter<HttpContext> HeavyLimiter(RateLimitOptions o) =>
+        PartitionedRateLimiter.Create<HttpContext, string>(http =>
+            o.Enabled ? Window(http, "heavy:" + Who(http), o.HeavyPerMinute) : RateLimitPartition.GetNoLimiter("off"));
+
     /// <summary>El usuario de la sesión; sin sesión, la IP (ya corregida por el proxy, P-007).</summary>
     private static string Who(HttpContext http) =>
         http.User.FindFirstValue(ClaimTypes.Name) is { Length: > 0 } name ? "user:" + name.ToLowerInvariant()

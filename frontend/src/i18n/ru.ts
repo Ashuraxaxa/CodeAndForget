@@ -428,6 +428,13 @@ export const ru: Messages = {
   'Tokens de acceso': 'Токены доступа',
   'Vence en': 'Истекает через',
   'Vence': 'Истекает',
+  // Servidor MCP (P-114)
+  'Conectar una IA por MCP': 'Подключить ИИ через MCP',
+  'La IA lee el esquema, las sugerencias y, si la conexión lo permite, una muestra de datos. Sus ajustes quedan como propuestas que aceptas o descartas en Configurar.': 'ИИ читает схему, подсказки и, если подключение это разрешает, выборку данных. Его настройки сохраняются как предложения, которые вы принимаете или отклоняете в разделе «Настроить».',
+  'URL del servidor MCP': 'URL сервера MCP',
+  'Claude Code': 'Claude Code',
+  'En otros clientes (Claude Desktop, Cursor, VS Code…), agregue un servidor MCP por HTTP con esa URL y el encabezado Authorization: Bearer y su token.': 'В других клиентах (Claude Desktop, Cursor, VS Code…) добавьте HTTP-сервер MCP с этим URL и заголовком Authorization: Bearer и вашим токеном.',
+  'El servidor MCP está apagado. Para que una IA revise el esquema y proponga ajustes, actívelo con Mcp:Enabled = true.': 'Сервер MCP выключен. Чтобы ИИ мог проверять схему и предлагать настройки, включите его параметром Mcp:Enabled = true.',
   'p. ej. Claude en mi PC': 'напр. Claude на моём ПК',
   '{name} · tokens de acceso': '{name} · токены доступа',
   '{n} días': '{n} дн.',

@@ -1,7 +1,7 @@
 import type {
   ImportMode, ImportResult, TransferFormat, TreeNode,
   AuditPage, SecurityInfo, SecurityProfile, SecurityUser, ActionResult, Routine,
-  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult, Suggestion, AccessTokenInfo, OverrideProposal,
+  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult, Suggestion, AccessTokenInfo, OverrideProposal, PlanInfo, FreeTables,
 } from './types'
 import { t, translateServer } from '../i18n'
 
@@ -187,6 +187,12 @@ export const api = {
     request<{ token: AccessTokenInfo; secret: string }>('POST', 'api/tokens', { name, days }),
   deleteToken: (id: string) => request<void>('DELETE', `api/tokens/${enc(id)}`),
   mcpInfo: () => request<{ enabled: boolean; path: string }>('GET', 'api/tokens/mcp'),
+  plan: () => request<PlanInfo>('GET', 'api/license'),
+  setLicense: (key: string) => request<PlanInfo>('PUT', 'api/license', { key }),
+  removeLicense: () => request<PlanInfo>('DELETE', 'api/license'),
+  startTrial: () => request<PlanInfo>('POST', 'api/license/trial'),
+  freeTables: () => request<FreeTables>('GET', 'api/license/tables'),
+  addFreeTables: (tables: string[]) => request<PlanInfo>('POST', 'api/license/tables', { tables }),
   /** Propuestas pendientes de la IA para una conexión (P-113). */
   proposals: (conn: string) => request<OverrideProposal[]>('GET', `api/meta/${enc(conn)}/proposals`),
   resolveProposal: (conn: string, id: string, action: 'accept' | 'discard') =>

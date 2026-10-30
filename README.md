@@ -179,6 +179,7 @@ docs/                                    Documentación y memoria del proyecto
 | [despliegue.md](docs/despliegue.md) | Docker, Kubernetes, nginx, IIS, servicio de Windows, systemd |
 | [ajustes.md](docs/ajustes.md) | Qué se puede ajustar por tabla y columna |
 | [seguridad.md](docs/seguridad.md) | Perfiles, permisos y auditoría |
+| [licencias.md](docs/licencias.md) | Planes Gratis, Pro y Empresa, activar y emitir licencias |
 | [mcp.md](docs/mcp.md) | Conectar una IA por MCP para que revise el esquema y proponga ajustes |
 | [comercial/](docs/comercial/plan-comercial.md) | Celdo: plan comercial, manual de marca y landing (`landing/`) |
 | [api.md](docs/api.md) | Rutas de la API |

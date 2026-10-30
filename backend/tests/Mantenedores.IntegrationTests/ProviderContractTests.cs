@@ -1,3 +1,4 @@
+using Mantenedores.Core.Licensing;
 using System.Text.Json;
 using Mantenedores.Core.Errors;
 using Mantenedores.Core.Query;
@@ -286,6 +287,35 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         Assert.Equal(max, Convert.ToInt64(sample.Rows[0][N("id")]));
         Assert.True(Convert.ToInt64(sample.Rows[0][N("id")]) > Convert.ToInt64(sample.Rows[1][N("id")]));
         Assert.Equal(1000, Core.Services.CrudService.MaxSampleRows);
+    }
+
+    // ---------- Plan Gratis: solo las tablas elegidas (P-116) ----------
+
+    private sealed class FixedPlan(PlanAccess access) : IPlanScope
+    {
+        public ValueTask<PlanAccess> CurrentAsync(CancellationToken ct) => ValueTask.FromResult(access);
+    }
+
+    [Fact]
+    public async Task En_Gratis_solo_se_ven_y_usan_las_tablas_elegidas()
+    {
+        var free = new PlanAccess("plan", new HashSet<string> { PlanAccess.Key(Schema, N("producto")), PlanAccess.Key(Schema, N("categoria")) }, Plan.Free);
+        var schemas = new Core.Services.SchemaService(new InMemoryConnectionStore(new Core.Connections.ConnectionDefinition
+        {
+            Id = "plan", Name = "Plan", Engine = Db.Engine, ConnectionString = Db.ConnectionString, Schemas = [Schema]
+        }), new Core.Providers.ProviderRegistry([Db.Provider]), plan: new FixedPlan(free));
+        var crud = new Core.Services.CrudService(schemas, new Core.Services.CrudOptions());
+
+        var tables = (await schemas.GetContextAsync("plan", default)).Schema.Tables.Select(t => t.Name.ToLowerInvariant()).Order().ToList();
+        Assert.Equal(["categoria", "producto"], tables);
+        Assert.NotEmpty((await crud.ListAsync("plan", Schema, N("producto"), new Core.Query.ListRequest(), default)).Rows);
+
+        // La que existe pero no se eligió dice eso, no "no existe"; la que no existe, sí.
+        var ex = await Assert.ThrowsAsync<PlanLimitException>(() => crud.ListAsync("plan", Schema, N("pedido"), new Core.Query.ListRequest(), default));
+        Assert.Contains("15 tablas", ex.Message);
+        await Assert.ThrowsAsync<NotFoundException>(() => crud.ListAsync("plan", Schema, "no_existe", new Core.Query.ListRequest(), default));
+        // Producto sigue mostrando el texto de su categoría (está elegida), y la configuración ve todas para elegir.
+        Assert.True((await schemas.GetUnrestrictedContextAsync("plan", default)).Schema.Tables.Count > 2);
     }
 
     // ---------- Copiar ajustes entre conexiones (P-111) ----------

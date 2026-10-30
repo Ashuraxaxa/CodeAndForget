@@ -18,12 +18,12 @@ Plan completo en [../comercial/plan-comercial.md](../comercial/plan-comercial.md
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
 | P-120 | Nombre, manual de marca, plan comercial y landing | 🔴 | ✅ PR #47 |
-| P-116 | Licencias y planes: clave firmada (ECDSA P-256) validada sin internet, límites por plan en el servidor (Gratis: 2 usuarios, 1 conexión, 15 tablas fijas; auditoría; funciones Pro y Empresa), 14 días de gracia y página "Plan" | 🔴 | 🚧 |
+| P-116 | Licencias y planes: clave firmada (ECDSA P-256) validada sin internet (D-106), límites por plan en el servidor (Gratis: 2 usuarios, 1 conexión, 15 tablas fijas; auditoría; funciones Pro y Empresa), 14 días de gracia y página "Plan" | 🔴 | ✅ PR #48 |
 | P-117 | Nombre Celdo en la app: título, logo, favicon, login, colores (grafito y marcador), README e imagen Docker oficial (`celdo/celdo`) | 🔴 | 🚧 |
 | P-118 | Landing en línea: hosting estático con el dominio, enlaces de pago, analítica sin cookies, términos y privacidad | 🔴 | ⏳ |
 | P-119 | Marca y dominio: búsqueda formal y registro de "Celdo" en INDECOPI, compra de `celdo.app` y de las cuentas en redes (lo hace el dueño) | 🔴 | ⏳ |
 | P-121 | Demo pública de solo lectura con la base de ejemplo | 🟡 | ⏳ |
-| P-122 | Avisos dentro de la app al llegar a un límite del plan, con la prueba Pro de 30 días | 🟡 | ⏳ |
+| P-122 | Avisos dentro de la app al llegar a un límite del plan, con la prueba Pro de 30 días. Ya hay: aviso de tablas por elegir, licencia vencida o funciones Empresa sin licencia, y el mensaje del 403 dice qué plan hace falta. Falta un botón "Ver planes" junto a cada error de plan | 🟡 | 🚧 |
 
 ## 0. Cierre de la Fase 1
 

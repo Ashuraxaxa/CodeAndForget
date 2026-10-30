@@ -1021,6 +1021,30 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Descartado:**
   - **Núcleo abierto o código visible:** más visibilidad, pero facilita copiar el producto y saltarse la licencia.
 
+### D-106 · Licencias firmadas sin internet y límites del plan en el servidor
+- **Estado:** Vigente · 2026-10-30 (P-116)
+- **Qué:**
+  - **Clave** `CELDO1.<datos>.<firma>`: JSON firmado con ECDSA P-256, que trae .NET, sin librerías.
+    - La app trae la llave pública (`TrustedLicenseKeys`); la privada la tiene el dueño, fuera del repositorio.
+    - Herramienta: `dotnet Mantenedores.Api.dll license keygen|issue|show`.
+  - **De dónde sale:** `License:Key` o la clave pegada en la pantalla Plan (tabla `mnt_setting`, migración 008).
+    - 14 días de gracia al vencer; después, Gratis.
+    - Prueba Pro de 30 días, una vez por instalación.
+  - **Dónde se aplica:**
+    - `SchemaService.GetContextAsync` recibe un `IPlanScope` (conexión y tablas permitidas) junto a los permisos, así todo el CRUD lo cumple en un solo lugar.
+    - Las funciones Pro se revisan en sus endpoints (`LicenseService.RequireAsync`).
+    - Un middleware detiene la API si hay funciones Empresa configuradas sin esa licencia; salud, login y Plan siempre responden.
+    - Usuarios: los primeros N (configuración y luego propios por nombre) tienen lugar.
+  - **Tablas de Gratis:** el administrador las elige en Plan; se pueden sumar hasta 15, nunca quitar ni cambiar (pedido del dueño).
+  - **Auditoría:** el plan limita lo que se ve (7 días o 1 año), nunca borra.
+  - **Pruebas:** firman con una llave propia (`AddForTests`, visible solo para los proyectos de pruebas) y ponen Empresa en `License__Key`.
+- **Descartado:**
+  - **Validar contra un servidor de licencias:** no funcionaría en redes cerradas y agregaría una dependencia externa (D-022).
+  - **La llave pública por configuración:** cualquiera podría poner la suya y firmarse licencias.
+  - **Borrar la auditoría al bajar de plan:** quien deja de pagar perdería historia; ocultarla basta.
+  - **Ed25519:** .NET no lo trae; ECDSA P-256 es igual de seguro para esto.
+  - **Elegir automáticamente las tablas de Gratis:** con el filtro de esquemas de la conexión se podría rotar de tablas. La elección explícita y fija es lo que pidió el dueño.
+
 ---
 
 ## Propuestas (aún no decididas)

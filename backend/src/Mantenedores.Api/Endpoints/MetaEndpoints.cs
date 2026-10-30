@@ -1,3 +1,4 @@
+using Mantenedores.Api.Licensing;
 using System.Security.Claims;
 using Mantenedores.Api.Auth;
 using Mantenedores.Core.Overrides;
@@ -124,8 +125,12 @@ public static class MetaEndpoints
 
         // Copiar los ajustes de otra conexión (P-111), p. ej. la misma base en otro servidor. Con apply=false es una vista
         // previa: dice qué se crea, qué se reemplaza y qué no se puede copiar, sin guardar nada.
-        group.MapPost("/overrides/copy", async (string conn, OverrideCopyRequest body, OverrideCopier copier, ClaimsPrincipal user, CancellationToken ct) =>
-            await copier.CopyAsync(body.From, conn, body.SchemaMap, body.ReplaceAll, body.Apply, user.Identity?.Name, ct, body.Parts, body.Tables))
+        group.MapPost("/overrides/copy", async (string conn, OverrideCopyRequest body, OverrideCopier copier, ClaimsPrincipal user,
+            LicenseService license, CancellationToken ct) =>
+        {
+            await license.RequireAsync(Core.Licensing.Feature.CopySettings, ct);
+            return await copier.CopyAsync(body.From, conn, body.SchemaMap, body.ReplaceAll, body.Apply, user.Identity?.Name, ct, body.Parts, body.Tables);
+        })
             .RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
 
         group.MapDelete("/overrides/{schema}/{table}", async (string conn, string schema, string table, SchemaService schemas, CancellationToken ct) =>

@@ -184,6 +184,19 @@ comparten, y el tope es el mismo con una instancia o con varias (P-050).
 
 Detrás de un proxy, la IP es la del cliente solo si el proxy está configurado en `Hosting` (P-007).
 
+## Licencia (`License`)
+
+Sin clave, la instalación está en el plan **Gratis**: 2 usuarios, 1 conexión y 15 tablas. Pro y Empresa se activan con
+una clave firmada, en la pantalla **Plan** o aquí (P-116, D-106). Detalle: [licencias.md](licencias.md).
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `License:Key` | *(vacío)* | Clave de licencia (`CELDO1.…`). Manda sobre la pegada en Plan. Se valida sin internet. |
+
+Las funciones del plan Empresa son `Auth:Mode=Jwt`, la metadata en PostgreSQL o SQL Server,
+`DataProtection:KeyStore=Database`, `Cache:Provider=Redis`, `Providers:PluginsDirectory` y `Telemetry:OtlpEndpoint`.
+Configuradas sin esa licencia, la API responde 403 hasta activarla.
+
 ## Servidor MCP (`Mcp`)
 
 Para que una IA (Claude, Cursor, etc.) revise el esquema y proponga ajustes (P-114, D-101). Detalle y cómo conectarla:

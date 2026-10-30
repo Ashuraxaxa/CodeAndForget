@@ -1,3 +1,4 @@
+using Mantenedores.Api.Licensing;
 using Mantenedores.Api.Auth;
 using Mantenedores.Core.Audit;
 using Mantenedores.Core.Errors;
@@ -13,15 +14,26 @@ public static class AuditEndpoints
     /// <summary>Tope de filas de una exportación de la auditoría (<c>Audit:ExportMaxRows</c>).</summary>
     public const int DefaultExportMax = 100_000;
 
+    /// <summary>
+    /// Lo que el plan deja ver de la auditoría (P-116): Gratis, los últimos 7 días; Pro, el último año. Lo anterior no se
+    /// borra (sigue <c>Audit:RetentionDays</c>): vuelve a verse al pasar a un plan mayor.
+    /// </summary>
+    private static async Task<AuditQuery> WithinPlanAsync(AuditQuery query, LicenseService license, CancellationToken ct)
+    {
+        if ((await license.GetAsync(ct)).Limits.AuditDays is not { } days) return query;
+        var since = DateTimeOffset.UtcNow.AddDays(-days);
+        return query.From is { } from && from > since ? query : query with { From = since };
+    }
+
     public static void MapAudit(this IEndpointRouteBuilder app)
     {
         // ?conn=&schema=&table=&user=&op=&from=&to=&page=&pageSize= y la clave del registro como k.<columna>=valor.
         // Con perfil (P-095), solo las tablas y columnas que el usuario puede ver; las FK y N:M traen su texto (P-094).
         app.MapGet("/api/audit", async (HttpRequest req, AuditService audit, HttpAccessContext access, CrudService crud,
-            SchemaService schemas, CancellationToken ct) =>
+            SchemaService schemas, LicenseService license, CancellationToken ct) =>
         {
             var user = await access.CurrentAsync(ct);
-            var query = AuditAccess.Restrict(Parse(req.Query), user, user.Unrestricted ? [] : await audit.Store.TablesAsync(ct));
+            var query = AuditAccess.Restrict(await WithinPlanAsync(Parse(req.Query), license, ct), user, user.Unrestricted ? [] : await audit.Store.TablesAsync(ct));
             var page = await audit.Store.QueryAsync(query, ct);
             var entries = page.Entries.Select(e => AuditAccess.Mask(e, user)).Where(e => user.Unrestricted || !AuditAccess.IsEmptyForUser(e)).ToList();
             var labels = await AuditLabels.ForAsync(entries, crud, schemas, ct);
@@ -31,11 +43,12 @@ public static class AuditEndpoints
 
         // Mismos filtros; ?format=csv|xlsx|json|xml. Todo lo que coincide, hasta Audit:ExportMaxRows filas.
         app.MapGet("/api/audit/export", async (HttpContext http, string? format, AuditService audit, HttpAccessContext access,
-            CrudService crud, SchemaService schemas, IConfiguration config, CancellationToken ct) =>
+            CrudService crud, SchemaService schemas, IConfiguration config, LicenseService license, CancellationToken ct) =>
         {
             var fmt = TransferFormats.Parse(format ?? "csv");
+            if (fmt != TransferFormat.Csv) await license.RequireAsync(Core.Licensing.Feature.AllFormats, ct);
             var user = await access.CurrentAsync(ct);
-            var query = AuditAccess.Restrict(Parse(http.Request.Query), user, user.Unrestricted ? [] : await audit.Store.TablesAsync(ct))
+            var query = AuditAccess.Restrict(await WithinPlanAsync(Parse(http.Request.Query), license, ct), user, user.Unrestricted ? [] : await audit.Store.TablesAsync(ct))
                 with { CountTotal = false, PageSize = AuditQuery.MaxPageSize };
             var max = config.GetValue("Audit:ExportMaxRows", DefaultExportMax);
             // Encabezados, operaciones y nombre del archivo en el idioma de la interfaz (D-102).

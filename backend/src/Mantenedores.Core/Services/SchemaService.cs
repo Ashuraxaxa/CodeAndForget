@@ -29,8 +29,13 @@ public sealed record SchemaDiffResult(
 public sealed class SchemaService(
     IConnectionStore store, ProviderRegistry providers, IOverrideStore? overrides = null, ISchemaSnapshotStore? snapshots = null,
     SecretResolver? secrets = null, IAccessContext? access = null, PoolOptions? pool = null, ChangeStamps? stamps = null,
-    ISchemaCache? shared = null)
+    ISchemaCache? shared = null, Licensing.IPlanScope? plan = null)
 {
+    private readonly Licensing.IPlanScope _plan = plan ?? new Licensing.NoPlanScope();
+
+    /// <summary>Conexiones y tablas que deja usar el plan (P-116).</summary>
+    public ValueTask<Licensing.PlanAccess> PlanAsync(CancellationToken ct) => _plan.CurrentAsync(ct);
+
     private readonly ISchemaCache _shared = shared ?? new NoSchemaCache();
     private readonly ChangeStamps _stamps = stamps ?? new ChangeStamps();
 
@@ -110,7 +115,11 @@ public sealed class SchemaService(
         var access = await _access.CurrentAsync(ct);
         if (!access.Unrestricted && !access.CanSeeConnection(ctx.Definition.Id))
             throw new NotFoundException($"La conexión '{connectionId}' no existe.");
-        return ctx with { Schema = access.Restrict(ctx.Definition.Id, ctx.Schema) };
+        // El plan (P-116): en Gratis, una conexión y las tablas elegidas. Lo demás no se ve ni se usa.
+        var plan = await _plan.CurrentAsync(ct);
+        plan.EnsureConnection(ctx.Definition.Id);
+        var schema = plan.Tables is null ? ctx.Schema : RestrictTables(ctx.Schema, plan);
+        return ctx with { Schema = access.Restrict(ctx.Definition.Id, schema) };
     }
 
     /// <summary>Esquema con ajustes, sin restricciones de usuario: para configurar mantenedores y avisar cambios.</summary>
@@ -163,9 +172,26 @@ public sealed class SchemaService(
         string connectionId, string schema, string table, CancellationToken ct)
     {
         var ctx = await GetContextAsync(connectionId, ct);
-        var info = ctx.Schema.FindTable(schema, table)
-                   ?? throw new NotFoundException($"La tabla '{schema}.{table}' no existe en '{connectionId}'.");
-        return (ctx, info);
+        if (ctx.Schema.FindTable(schema, table) is { } info) return (ctx, info);
+        // Si existe pero el plan no la incluye, se dice eso y no "no existe".
+        if ((await _plan.CurrentAsync(ct)) is { Tables: not null } plan &&
+            (await GetUnrestrictedContextAsync(connectionId, ct)).Schema.FindTable(schema, table) is { } hidden)
+            plan.EnsureTable(hidden.Schema, hidden.Name);
+        throw new NotFoundException($"La tabla '{schema}.{table}' no existe en '{connectionId}'.");
+    }
+
+    /// <summary>Solo las tablas del plan; las relaciones hacia las demás se quitan de las listas (como con los permisos).</summary>
+    private static DatabaseSchema RestrictTables(DatabaseSchema schema, Licensing.PlanAccess plan)
+    {
+        var tables = schema.Tables.Where(t => plan.AllowsTable(t.Schema, t.Name)).ToList();
+        var kept = tables.Select(t => (t.Schema, t.Name)).ToHashSet();
+        tables = tables.Select(t => t with
+        {
+            ReferencedBy = t.ReferencedBy.Where(f => kept.Contains((f.Schema, f.Table))).ToList(),
+            Children = t.Children?.Where(f => kept.Contains((f.Schema, f.Table))).ToList(),
+            ManyToMany = t.ManyToMany.Where(l => kept.Contains((l.BridgeSchema, l.BridgeTable)) && kept.Contains((l.TargetSchema, l.TargetTable))).ToList()
+        }).ToList();
+        return schema with { Tables = tables };
     }
 
     public async Task<DatabaseSchema> RefreshAsync(string connectionId, CancellationToken ct)

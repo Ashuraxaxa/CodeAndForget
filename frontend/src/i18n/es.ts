@@ -20,4 +20,8 @@ export const es: Messages = {
   'Se importaron {n} registros.': { one: 'Se importó {n} registro.', other: 'Se importaron {n} registros.' },
   '+{n} tablas': { one: '+{n} tabla', other: '+{n} tablas' },
   '{n} registros': { one: '{n} registro', other: '{n} registros' },
+  // Plan y licencia (P-116)
+  'Prueba Pro · {n} días': { one: 'Prueba Pro · {n} día', other: 'Prueba Pro · {n} días' },
+  'Agregar {n} tablas': { one: 'Agregar {n} tabla', other: 'Agregar {n} tablas' },
+  'Estas {n} tablas quedarán fijas en el plan Gratis y no se podrán cambiar. ¿Confirmas?': { one: 'Esta tabla quedará fija en el plan Gratis y no se podrá cambiar. ¿Confirmas?', other: 'Estas {n} tablas quedarán fijas en el plan Gratis y no se podrán cambiar. ¿Confirmas?' },
 }

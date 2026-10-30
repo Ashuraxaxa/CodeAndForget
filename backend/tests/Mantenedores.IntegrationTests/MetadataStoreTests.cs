@@ -34,6 +34,25 @@ public abstract class MetadataStoreContractTests<TFixture>(TFixture db) : IClass
     }
 
     [Fact]
+    public async Task Guarda_los_ajustes_del_servicio()
+    {
+        // P-116: migración 008 (licencia pegada, prueba Pro y tablas de Gratis), en cada motor de metadata.
+        var database = Database();
+        await new MetadataMigrator(database).MigrateAsync();
+        var settings = new SqlServiceSettings(database);
+        var name = "prueba." + Guid.NewGuid().ToString("N")[..8];
+        Assert.Null(await settings.GetAsync(name, default));
+        await settings.SetAsync(name, "CELDO1.uno", default);
+        await settings.SetAsync(name.ToUpperInvariant(), "CELDO1.dos", default); // el nombre no distingue mayúsculas
+        Assert.Equal("CELDO1.dos", await settings.GetAsync(name, default));
+        var big = new string('x', 20_000); // las tablas de Gratis van como JSON: sin tope de largo
+        await settings.SetAsync(name, big, default);
+        Assert.Equal(big, await settings.GetAsync(name, default));
+        await settings.SetAsync(name, null, default);
+        Assert.Null(await settings.GetAsync(name, default));
+    }
+
+    [Fact]
     public async Task Guarda_tokens_propuestas_y_el_permiso_de_muestra()
     {
         // P-113: migración 007 y los almacenes de la IA, en cada motor de metadata.

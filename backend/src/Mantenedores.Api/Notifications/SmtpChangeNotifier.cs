@@ -4,6 +4,7 @@ using System.Net.Mail;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
+using Mantenedores.Api.Infrastructure;
 using Mantenedores.Core.Audit;
 using Mantenedores.Core.Notifications;
 
@@ -29,6 +30,9 @@ public sealed class NotificationOptions
 
     /// <summary>Máximo de filas detalladas en el aviso de una importación.</summary>
     public int MaxRowsPerMessage { get; set; } = 20;
+
+    /// <summary>Idioma del correo: es (por defecto), en o ru (D-102). Lo leen otras personas, no quien hizo el cambio.</summary>
+    public string Language { get; set; } = "es";
 }
 
 public sealed class SmtpSettings
@@ -96,39 +100,47 @@ public sealed class SmtpChangeNotifier(NotificationOptions options, ILogger<Smtp
         await client.SendMailAsync(message, ct);
     }
 
-    /// <summary>Asunto y texto del aviso. Público para probarlo sin servidor de correo.</summary>
+    /// <summary>Asunto y texto del aviso, en el idioma de <see cref="NotificationOptions.Language"/>. Público para probarlo sin servidor de correo.</summary>
     public MailMessage Compose(ChangeNotice n)
     {
+        var lang = ServerText.Language(options.Language);
+        string L(string es, string en, string ru) => ServerText.Pick(lang, es, en, ru);
         var table = n.TableLabel is { Length: > 0 } label ? $"{label} ({n.Schema}.{n.Table})" : $"{n.Schema}.{n.Table}";
         var first = n.Entries[0];
-        var who = first.User ?? "alguien";
+        var who = first.User ?? L("alguien", "someone", "кто-то");
+        var rows = n.Entries.Count;
         var verb = first.Operation switch
         {
-            AuditOperation.Create => "creó un registro en",
-            AuditOperation.Update => "editó un registro de",
-            AuditOperation.Delete => "eliminó un registro de",
-            AuditOperation.Import => $"importó {n.Entries.Count} filas en",
-            _ => "cambió los vínculos de un registro de"
+            AuditOperation.Create => L("creó un registro en", "created a record in", "создал(а) запись в"),
+            AuditOperation.Update => L("editó un registro de", "edited a record of", "изменил(а) запись в"),
+            AuditOperation.Delete => L("eliminó un registro de", "deleted a record of", "удалил(а) запись из"),
+            AuditOperation.Import => L($"importó {rows} filas en", $"imported {rows} rows into", $"импортировал(а) строк: {rows} в"),
+            AuditOperation.Action => L("ejecutó una acción en", "ran an action on", "выполнил(а) действие в"),
+            _ => L("cambió los vínculos de un registro de", "changed the links of a record of", "изменил(а) связи записи в")
         };
 
         var body = new StringBuilder();
-        body.AppendLine($"{who} {verb} {table}, conexión {n.Connection}.");
-        body.AppendLine($"Fecha: {first.At.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)} UTC");
+        body.AppendLine($"{who} {verb} {table}, {L("conexión", "connection", "подключение")} {n.Connection}.");
+        body.AppendLine($"{L("Fecha", "Date", "Дата")}: {first.At.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)} UTC");
         foreach (var e in n.Entries.Take(Math.Max(1, options.MaxRowsPerMessage)))
         {
             body.AppendLine();
-            if (e.RowKey is { } key) body.AppendLine($"Registro: {Uri.UnescapeDataString(key.Replace("&", ", "))}");
+            if (e.RowKey is { } key) body.AppendLine($"{L("Registro", "Record", "Запись")}: {Uri.UnescapeDataString(key.Replace("&", ", "))}");
             if (options.AppUrl.Length > 0 && e.RowKey is { } k && e.Operation is not AuditOperation.Delete)
                 body.AppendLine($"{options.AppUrl.TrimEnd('/')}/c/{Uri.EscapeDataString(n.Connection)}/t/{Uri.EscapeDataString(n.Schema)}/{Uri.EscapeDataString(n.Table)}/edit?{k}");
-            if (n.Notify.IncludeValues) AppendValues(body, e);
+            if (n.Notify.IncludeValues) AppendValues(body, e, L("(vacío)", "(empty)", "(пусто)"));
         }
-        if (n.Entries.Count > options.MaxRowsPerMessage)
-            body.AppendLine().AppendLine($"… y {n.Entries.Count - options.MaxRowsPerMessage} filas más (ver la auditoría).");
+        if (rows > options.MaxRowsPerMessage)
+        {
+            var more = rows - options.MaxRowsPerMessage;
+            body.AppendLine().AppendLine(L($"… y {more} filas más (ver la auditoría).", $"… and {more} more rows (see the audit log).",
+                $"… и ещё строк: {more} (см. журнал аудита)."));
+        }
 
         var message = new MailMessage
         {
             From = new MailAddress(options.From),
-            Subject = $"{options.SubjectPrefix} {table}: {OperationName(first.Operation)} por {who}".Trim(),
+            Subject = $"{options.SubjectPrefix} {table}: {LowerFirst(ServerText.Operation(first.Operation, lang))} {L("por", "by", "—")} {who}".Trim(),
             Body = body.ToString(),
             BodyEncoding = Encoding.UTF8,
             SubjectEncoding = Encoding.UTF8
@@ -137,10 +149,12 @@ public sealed class SmtpChangeNotifier(NotificationOptions options, ILogger<Smtp
         return message;
     }
 
-    private static void AppendValues(StringBuilder body, AuditEntry e)
+    private static string LowerFirst(string s) => s.Length == 0 ? s : char.ToLowerInvariant(s[0]) + s[1..];
+
+    private static void AppendValues(StringBuilder body, AuditEntry e, string empty)
     {
-        var before = Parse(e.OldValues);
-        var after = Parse(e.NewValues);
+        var before = Parse(e.OldValues, empty);
+        var after = Parse(e.NewValues, empty);
         foreach (var name in before.Keys.Union(after.Keys))
         {
             before.TryGetValue(name, out var o);
@@ -154,25 +168,16 @@ public sealed class SmtpChangeNotifier(NotificationOptions options, ILogger<Smtp
         }
     }
 
-    private static Dictionary<string, string> Parse(string? json)
+    private static Dictionary<string, string> Parse(string? json, string empty)
     {
         if (json is null) return [];
         using var doc = JsonDocument.Parse(json);
         return doc.RootElement.EnumerateObject().ToDictionary(p => p.Name,
             p => p.Value.ValueKind switch
             {
-                JsonValueKind.Null => "(vacío)",
+                JsonValueKind.Null => empty,
                 JsonValueKind.String => p.Value.GetString()!,
                 _ => p.Value.GetRawText()
             });
     }
-
-    private static string OperationName(AuditOperation op) => op switch
-    {
-        AuditOperation.Create => "alta",
-        AuditOperation.Update => "edición",
-        AuditOperation.Delete => "baja",
-        AuditOperation.Import => "importación",
-        _ => "vínculos"
-    };
 }

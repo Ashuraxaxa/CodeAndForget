@@ -723,6 +723,7 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Una variable no cruza el fin de una oración; `{verb}` se reconoce por la lista de fragmentos ("editar registros de"…), que también se traducen.
   - `npm run lint` revisa que cada traducción tenga las mismas `{variables}` que el español (también en `en.ts` y `ru.ts`).
   - La exportación de la auditoría sí usa `Accept-Language` para sus encabezados.
+  - Completado y vigilado por `npm run lint` en D-102.
 - **Descartado:**
   - **Catálogo de mensajes en el servidor:** obliga a cambiar unos 150 `throw` de interpolación a plantilla con argumentos y a tener dos sistemas de traducción.
   - **Códigos de error en vez de frases:** las pruebas y los registros pierden el texto legible, y cada frase igual necesita su traducción.
@@ -960,6 +961,28 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Sesiones MCP con estado: con varias instancias exigirían afinidad, y los permisos quedarían fijos al abrir la sesión.
   - Herramientas que guardan ajustes o editan datos: el dueño decidió que la IA solo propone.
   - Publicar el MCP en `/mcp`, fuera de `/api`: quedaría fuera del límite general de uso y de la regla de rutas de la API.
+
+### D-102 · Revisión de idiomas: un chequeo automático y lo que traduce el servidor
+- **Estado:** Vigente · 2026-10-30 (P-115, pedido del dueño: "debería respetar el idioma seleccionado tanto en front como back")
+- **Qué:**
+  - **Se mantiene D-080:** el servidor arma sus mensajes en español y la interfaz los traduce.
+  - **`scripts/check-server-i18n.mjs`** corre en `npm run lint`:
+    - lee todos los textos de `backend/src` (también interpolados y concatenados) y los pasa por el mismo `translateServer` del navegador;
+    - falla si alguno queda igual o con palabras en español;
+    - quedan fuera, por archivo o texto, los que nunca llegan a la pantalla: arranque, configuración, registros y MCP.
+  - La revisión encontró **36 mensajes sin traducir** (límites de uso, almacenes, consultas, importación, seguridad, tokens…) y **3 pantallas** que mostraban texto del servidor sin traducirlo: los errores de la vista previa en Configurar, los de copiar ajustes y los de la prueba de conexión.
+  - **Importar** ahora muestra el motivo del error del archivo; antes solo decía "Hay datos inválidos.".
+  - **Plantillas:** una variable al final de la frase puede traer puntos (el mensaje de .NET en "expresión regular inválida: {error}"). Se prueba solo si la frase no se reconoce oración por oración.
+  - **Lo que arma el servidor sin pasar por la pantalla** (`ServerText`):
+    - la exportación de la auditoría: encabezados, operaciones ("Edición", no `Update`) y nombre del archivo, según el `Accept-Language` de la interfaz;
+    - el correo de avisos, según `Notifications:Language` (por defecto `es`).
+  - **`Auth:Jwt:ProviderName`** ahora es vacío por defecto. La interfaz muestra "el proveedor de identidad" en el idioma elegido; antes el botón decía "Sign in with el proveedor de identidad".
+  - **Quedan en español:**
+    - los registros del servidor, que lee quien opera el servicio;
+    - los textos del servidor MCP para la IA, que los entiende y responde en el idioma de la persona.
+- **Descartado:**
+  - Traducir en el servidor con `Accept-Language` (catálogo en C#): sería un segundo sistema de traducción y obligaría a cambiar unos 200 `throw` (ver D-080).
+  - El idioma del correo según quien hace el cambio: lo leen otras personas, y la lista de destinatarios es de la tabla.
 
 ---
 

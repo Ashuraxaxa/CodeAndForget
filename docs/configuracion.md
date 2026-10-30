@@ -126,6 +126,7 @@ Avisos por correo*).
 | `Notifications:SubjectPrefix` | `[Mantenedores]` | Inicio del asunto. |
 | `Notifications:AppUrl` | — | Dirección pública de la app: si se da, el correo trae un enlace al registro. |
 | `Notifications:MaxRowsPerMessage` | `20` | En una importación, cuántas filas se detallan; del resto se dice cuántas son. |
+| `Notifications:Language` | `es` | Idioma del correo: `es`, `en` o `ru` (D-102). Es uno para todos, porque lo leen otras personas y no quien hizo el cambio. |
 
 El correo dice quién, cuándo, en qué tabla y registro, y (si la tabla lo pide) los valores antes y después, con las
 mismas reglas de la auditoría: sin columnas ocultas ni el contenido de archivos. Se envía en segundo plano después de
@@ -347,7 +348,7 @@ Se configura **una** fuente de llaves: `Authority` (lo normal), `MetadataAddress
 | `Auth:Jwt:ClockSkewSeconds` | `60` | Tolerancia de reloj al validar vencimientos. |
 | `Auth:Jwt:ClientId` | — | Client id **público** para que la UI inicie sesión (Authorization Code + PKCE). Vacío = un gateway/proxy entrega el token. |
 | `Auth:Jwt:Scopes` | `openid profile` | Scopes que pide la UI. |
-| `Auth:Jwt:ProviderName` | `el proveedor de identidad` | Texto del botón "Ingresar con …". |
+| `Auth:Jwt:ProviderName` | *(vacío)* | Texto del botón "Ingresar con …". Vacío: "el proveedor de identidad", en el idioma elegido. |
 
 La UI renueva el token antes de que venza: con refresh token si el proveedor lo entrega y, si no, en un iframe oculto
 que vuelve a `silent-renew.html` con la sesión del proveedor (D-087). Registre esa URL (p. ej.
@@ -415,10 +416,21 @@ No tiene claves en el servidor (D-076). Cada usuario elige español, inglés o r
 login; se recuerda en su navegador. Sin elección, se usa el idioma del navegador (el primero de sus preferidos que la app tenga) y, si no es ninguno de los tres, inglés.
 Las fechas y los números siguen el formato del idioma elegido: 28/10/2026 (es), 10/28/2026 (en), 28.10.2026 (ru).
 
-Los mensajes que arma el servidor (validaciones, errores de la base) llegan en español por ahora (P-101).
+Los mensajes del servidor (validaciones, errores de la base, límites de uso) también se ven en el idioma elegido
+(D-080, D-102). El servidor los arma en español y la interfaz los traduce con las plantillas de
+`frontend/src/i18n/server.ts`. `npm run lint` lee los mensajes del backend y falla si alguno no tiene traducción
+(`scripts/check-server-i18n.mjs`).
+
+El servidor traduce lo que no pasa por la pantalla:
+- la exportación de la auditoría (encabezados, operaciones y nombre del archivo), según el idioma de la interfaz;
+- el correo de avisos, según `Notifications:Language`.
+
+Quedan en español los registros del servidor (los lee quien opera el servicio) y los textos del servidor MCP para la
+IA, que los entiende y le responde a cada persona en su idioma.
 
 Para agregar un idioma: crear `frontend/src/i18n/<código>.ts` con las mismas claves que `en.ts`, sumarlo a
-`LOCALES`, `REGION` y `DATE_REGION` en `frontend/src/i18n/index.ts` y al chequeo de `scripts/check-i18n.mjs`.
+`LOCALES`, `REGION` y `DATE_REGION` en `frontend/src/i18n/index.ts`, una columna a las plantillas de `server.ts`, y al
+chequeo de `scripts/check-i18n.mjs`. En el servidor, sumarlo a `ServerText` (auditoría y correo).
 
 ## Pruebas de integración
 

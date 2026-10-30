@@ -15,7 +15,7 @@ import {
 import { FieldControl } from '../components/FieldControl'
 import { useDebounce } from '../lib/useDebounce'
 import { useMe } from '../lib/useMe'
-import { LOCALES, useT, type Translate } from '../i18n'
+import { LOCALES, translateServer, useT, type Translate } from '../i18n'
 
 /** Editor de ajustes de un mantenedor (P-012): sin editar JSON, con vista previa en vivo. Requiere el permiso ConfigureTables (D-053). */
 export function ConfigPage() {
@@ -72,7 +72,7 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
     queryFn: () => api.previewOverride(conn, schema, name, debounced),
     placeholderData: keepPreviousData,
   })
-  const errors = Object.fromEntries(Object.entries(preview.data?.errors ?? {}).map(([k, v]) => [k, v.join(' ')]))
+  const errors = Object.fromEntries(Object.entries(preview.data?.errors ?? {}).map(([k, v]) => [k, v.map(m => translateServer(m)).join(' ')]))
   const shown = preview.data?.table ?? initialTable
 
   function done() {

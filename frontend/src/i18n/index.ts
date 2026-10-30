@@ -78,7 +78,7 @@ export const t: Translate = (text, vars) => translate(current, text, vars)
 
 // ---------- Mensajes del servidor (P-101, D-080) ----------
 
-interface ServerTemplate { re: RegExp; names: string[]; en: string; ru: string }
+interface ServerTemplate { re: RegExp; loose: RegExp | null; names: string[]; en: string; ru: string }
 let serverExact: Map<string, [string, string]> | null = null
 let serverTemplates: ServerTemplate[] = []
 
@@ -89,14 +89,19 @@ function compileServer() {
     .sort((a, b) => b[0].length - a[0].length)
     .map(([es, en, ru]) => {
       const names: string[] = []
-      const pattern = es.split(/(\{\w+\})/).map(part => {
+      const parts = es.split(/(\{\w+\})/).filter(Boolean)
+      const build = (looseLast: boolean) => parts.map((part, k) => {
         const m = /^\{(\w+)\}$/.exec(part)
         if (!m) return part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        names.push(m[1])
-        // Una variable no cruza el fin de una oración; {verb} es uno de los fragmentos conocidos.
-        return m[1] === 'verb' ? `(${SERVER_VERBS.join('|')})` : '((?:(?!\\. ).)+?)'
+        if (!looseLast) names.push(m[1])
+        // Una variable no cruza el fin de una oración; {verb} es uno de los fragmentos conocidos. Con looseLast, la
+        // variable del final sí (p. ej. el mensaje de .NET en "expresión regular inválida: {error}" puede traer puntos).
+        if (m[1] === 'verb') return `(${SERVER_VERBS.join('|')})`
+        return looseLast && k === parts.length - 1 ? '(.+)' : '((?:(?!\\. ).)+?)'
       }).join('')
-      return { re: new RegExp(`^${pattern}$`, 's'), names, en, ru }
+      const pattern = build(false)
+      const loose = /\{\w+\}$/.test(es) ? new RegExp(`^${build(true)}$`, 's') : null
+      return { re: new RegExp(`^${pattern}$`, 's'), loose, names, en, ru }
     })
 }
 
@@ -108,11 +113,11 @@ export function translateServer(text: string | undefined | null, locale: Locale 
   if (!text || locale === 'es') return text ?? ''
   if (!serverExact) compileServer()
   const i = locale === 'en' ? 0 : 1
-  const one = (s: string): string | null => {
+  const one = (s: string, loose = false): string | null => {
     const exact = serverExact!.get(s)
     if (exact) return exact[i]
     for (const tpl of serverTemplates) {
-      const m = tpl.re.exec(s)
+      const m = (loose ? tpl.loose : tpl.re)?.exec(s)
       if (!m) continue
       return (locale === 'en' ? tpl.en : tpl.ru).replace(/\{(\w+)\}/g, (all, name: string) => {
         const v = m[tpl.names.indexOf(name) + 1]
@@ -124,7 +129,10 @@ export function translateServer(text: string | undefined | null, locale: Locale 
   const whole = one(text)
   if (whole !== null) return whole
   const parts = text.split(/(?<=[.:])\s+/)
-  return parts.length > 1 ? parts.map(p => one(p) ?? p).join(' ') : text
+  const each = parts.map(p => one(p))
+  if (parts.length > 1 && each.every(p => p !== null)) return each.join(' ')
+  // Si alguna oración no se reconoce, se prueba con la última variable libre: puede ser un texto con puntos.
+  return one(text, true) ?? (parts.length > 1 ? parts.map((p, k) => each[k] ?? p).join(' ') : text)
 }
 
 export interface I18n {

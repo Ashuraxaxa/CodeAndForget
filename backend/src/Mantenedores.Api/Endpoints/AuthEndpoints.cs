@@ -30,7 +30,7 @@ public static class AuthEndpoints
                 : new AuthConfigResponse(AuthMode.Jwt,
                     o.Jwt.Authority.Length > 0 ? o.Jwt.Authority : null,
                     o.Jwt.ClientId.Length > 0 ? o.Jwt.ClientId : null,
-                    o.Jwt.Scopes, o.Jwt.ProviderName);
+                    o.Jwt.Scopes, o.Jwt.ProviderName.Length > 0 ? o.Jwt.ProviderName : null);
         }).AllowAnonymous();
 
         app.MapPost("/api/auth/login", async (LoginRequest req, TokenService tokens, IOptions<AuthOptions> options, CancellationToken ct) =>

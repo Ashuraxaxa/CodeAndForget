@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
 import type { Connection, ConnectionInput, Engine, EngineInfo } from '../api/types'
 import { useCan } from '../lib/useMe'
-import { useT } from '../i18n'
+import { translateServer, useT } from '../i18n'
 
 const EXAMPLES: Record<string, string> = {
   SqlServer: 'Server=mi-servidor,1433;Database=MiBase;User Id=usuario;Password=***;TrustServerCertificate=True',
@@ -175,7 +175,7 @@ function ConnectionForm({ initial, template, onClose, onSaved }: {
       const server = r.server ? ' ' + t('Servidor: {server}.', { server: r.server }) : ''
       setResult(r.ok
         ? { ok: true, text: t('Conexión correcta: {n} tablas/vistas encontradas.', { n: r.tables }) + server }
-        : { ok: false, text: r.error ?? t('No se pudo conectar.') })
+        : { ok: false, text: r.error ? translateServer(r.error) : t('No se pudo conectar.') })
     },
     onError: handleError,
   })

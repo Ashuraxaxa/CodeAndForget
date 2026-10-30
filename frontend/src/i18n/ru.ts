@@ -428,6 +428,8 @@ export const ru: Messages = {
   'Tokens de acceso': 'Токены доступа',
   'Vence en': 'Истекает через',
   'Vence': 'Истекает',
+  // Revisión de idiomas (D-102)
+  'el proveedor de identidad': 'поставщика удостоверений',
   // Servidor MCP (P-114)
   'Conectar una IA por MCP': 'Подключить ИИ через MCP',
   'La IA lee el esquema, las sugerencias y, si la conexión lo permite, una muestra de datos. Sus ajustes quedan como propuestas que aceptas o descartas en Configurar.': 'ИИ читает схему, подсказки и, если подключение это разрешает, выборку данных. Его настройки сохраняются как предложения, которые вы принимаете или отклоняете в разделе «Настроить».',

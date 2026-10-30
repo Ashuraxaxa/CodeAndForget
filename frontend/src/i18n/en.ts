@@ -428,6 +428,8 @@ export const en: Messages = {
   'Tokens de acceso': 'Access tokens',
   'Vence en': 'Expires in',
   'Vence': 'Expires',
+  // Revisión de idiomas (D-102)
+  'el proveedor de identidad': 'the identity provider',
   // Servidor MCP (P-114)
   'Conectar una IA por MCP': 'Connect an AI through MCP',
   'La IA lee el esquema, las sugerencias y, si la conexión lo permite, una muestra de datos. Sus ajustes quedan como propuestas que aceptas o descartas en Configurar.': 'The AI reads the schema, the suggestions and, if the connection allows it, a data sample. Its settings are saved as proposals that you accept or discard in Configure.',

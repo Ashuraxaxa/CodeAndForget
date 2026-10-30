@@ -1,19 +1,18 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-10-28
+**Última actualización:** 2026-10-30
 
 ## En una línea
 
 Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cualquier entorno, todo por configuración** (D-022).
-**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Fase 3 decidida con el dueño (D-062 a D-066) y en curso: migraciones con bloqueo y secretos (PR #20), perfiles y permisos (PR #21) auditoría de cambios (PR #22) y concurrencia optimista (PR #23). **Fase 3 completa.** Fase 4 en curso: tope del pool y límites de uso (PR #24), observabilidad y pruebas de carga (PR #25). tablas grandes (PR #26). Fase 5: avisos por correo por tabla (PR #27). Tanda 1 de mejoras: filtro de FK por nombre, permisos de la base, fechas y nombres visibles (PR #28). Importar con actualización y FK compuestas (PR #29). Interfaz en español, inglés y ruso (PR #30). Tanda 2 de operación: avisos entre instancias, cambios de esquema detectados solos y health check sin curl (PR #31). Tanda 3, parte A: auditoría con nombres, exportación y filtro por perfil, perfiles copiables y mensajes del servidor traducidos (PR #32). Tanda 3, parte B: árbol con arrastre, N:M en pestaña, imágenes y WKT, editor con FK compuestas y orden arrastrando (PR #33). Lote A de pendientes: índices únicos, búsqueda sin CAST, tipos propios de PG, bloqueo de fila, PostGIS y SRID (PR #34). Lote B: nombres por idioma, renovación silenciosa, acciones con procedimientos y paginación por clave (PR #35). Lote C: Redis opcional, motores como plugins y Duende probado en vivo (PR #36). Interfaz renovada con tema día/noche y README en español e inglés (PR #37). Backend en .NET 10 (PR #38). Grilla con paginador completo, acciones a la izquierda e indicador de carga (PR #39). Combos con búsqueda en todas las listas (PR #40). Combos de FK filtrados por otra columna (PR #41). Copiar ajustes entre conexiones y duplicar conexiones (PR #42). Sugerencias de ajustes sin IA (PR #43). Tokens de acceso, propuestas de la IA y muestra de datos (PR #44); sigue el servidor MCP (P-114). **Sin pendientes de código**; quedan P-097 (dueño) y P-062 (a pedido).
+**Fase 1 y bloque M terminados** (PR #1 a #8). **Fase 2 en curso:** login configurable (PR #9), metadata configurable (PR #10) y ajustes por tabla y columna (PR #11) su editor en la UI (PR #12) permisos por acción (PR #13) aviso de cambios del esquema (PR #14), maestro-detalle (PR #15), relaciones N:M (PR #16), exportar/importar (PR #17) árboles (PR #18) y tipos pendientes (PR #19). **Fase 2 completa.** Fase 3 decidida con el dueño (D-062 a D-066) y en curso: migraciones con bloqueo y secretos (PR #20), perfiles y permisos (PR #21) auditoría de cambios (PR #22) y concurrencia optimista (PR #23). **Fase 3 completa.** Fase 4 en curso: tope del pool y límites de uso (PR #24), observabilidad y pruebas de carga (PR #25). tablas grandes (PR #26). Fase 5: avisos por correo por tabla (PR #27). Tanda 1 de mejoras: filtro de FK por nombre, permisos de la base, fechas y nombres visibles (PR #28). Importar con actualización y FK compuestas (PR #29). Interfaz en español, inglés y ruso (PR #30). Tanda 2 de operación: avisos entre instancias, cambios de esquema detectados solos y health check sin curl (PR #31). Tanda 3, parte A: auditoría con nombres, exportación y filtro por perfil, perfiles copiables y mensajes del servidor traducidos (PR #32). Tanda 3, parte B: árbol con arrastre, N:M en pestaña, imágenes y WKT, editor con FK compuestas y orden arrastrando (PR #33). Lote A de pendientes: índices únicos, búsqueda sin CAST, tipos propios de PG, bloqueo de fila, PostGIS y SRID (PR #34). Lote B: nombres por idioma, renovación silenciosa, acciones con procedimientos y paginación por clave (PR #35). Lote C: Redis opcional, motores como plugins y Duende probado en vivo (PR #36). Interfaz renovada con tema día/noche y README en español e inglés (PR #37). Backend en .NET 10 (PR #38). Grilla con paginador completo, acciones a la izquierda e indicador de carga (PR #39). Combos con búsqueda en todas las listas (PR #40). Combos de FK filtrados por otra columna (PR #41). Copiar ajustes entre conexiones y duplicar conexiones (PR #42). Sugerencias de ajustes sin IA (PR #43). Tokens de acceso, propuestas de la IA y muestra de datos (PR #44). Servidor MCP para conectar cualquier IA (PR #45). **Sin pendientes de código**; quedan P-097 (dueño) y P-062 (a pedido).
 
 ## Ramas y PR
 
 | Rama | Estado |
 |---|---|
-| `main` | Rama por defecto: PR #1 a #42 fusionados. |
-| `feature/sugerencias` | PR #43: sugerencias de ajustes sin IA. |
-| `feature/tokens-propuestas` | PR #44 (sale de la rama del #43): tokens de acceso, propuestas y muestra de datos. |
+| `main` | Rama por defecto: PR #1 a #44 fusionados. |
+| `feature/mcp` | PR #45: servidor MCP en `/api/mcp`. |
 
 ## Qué funciona hoy
 
@@ -38,6 +37,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 - **Páginas lejanas rápidas** (D-089) y **nombres por idioma** en los ajustes (D-090).
 - **Redis opcional** (D-091): con varias instancias, el esquema leído y los límites de uso se comparten; si Redis cae, cada instancia sigue sola.
 - **Tokens de acceso y propuestas de la IA** (D-100): un token con el acceso de su dueño; la IA propone ajustes que una persona acepta; muestra de datos opcional por conexión.
+- **Servidor MCP** (D-101, opcional con `Mcp:Enabled`): `/api/mcp` para Claude, Cursor u otra IA; lee el esquema, sugiere, muestra datos si la conexión lo permite y deja propuestas. Nunca guarda. Ver `docs/mcp.md`.
 - **Sugerir ajustes** (D-099): relaciones, filtros de combos, columnas técnicas y correos propuestos por los nombres de las columnas.
 - **Copiar ajustes entre conexiones** (D-098): la misma base en otro servidor sin volver a configurar; todo o por partes, con vista previa.
 - **Combos dependientes** (D-097): el combo de un área ofrece solo las de la empresa elegida, bloqueado hasta elegirla y validado al guardar.

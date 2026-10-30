@@ -186,6 +186,7 @@ export const api = {
   createToken: (name: string, days?: number) =>
     request<{ token: AccessTokenInfo; secret: string }>('POST', 'api/tokens', { name, days }),
   deleteToken: (id: string) => request<void>('DELETE', `api/tokens/${enc(id)}`),
+  mcpInfo: () => request<{ enabled: boolean; path: string }>('GET', 'api/tokens/mcp'),
   /** Propuestas pendientes de la IA para una conexión (P-113). */
   proposals: (conn: string) => request<OverrideProposal[]>('GET', `api/meta/${enc(conn)}/proposals`),
   resolveProposal: (conn: string, id: string, action: 'accept' | 'discard') =>

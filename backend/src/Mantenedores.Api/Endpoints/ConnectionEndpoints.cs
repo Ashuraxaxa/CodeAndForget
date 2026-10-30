@@ -89,7 +89,7 @@ public static partial class ConnectionEndpoints
         }).RequireAuthorization(ManageConnectionsPolicy);
     }
 
-    private static async Task<Func<string, bool>> VisibleAsync(HttpContext http, HttpAccessContext access, CancellationToken ct)
+    internal static async Task<Func<string, bool>> VisibleAsync(HttpContext http, HttpAccessContext access, CancellationToken ct)
     {
         if (await access.HasAsync(http.User, http, Auth.Permissions.ManageConnections, ct)) return _ => true;
         var mine = await access.ForAsync(http.User, http, ct);

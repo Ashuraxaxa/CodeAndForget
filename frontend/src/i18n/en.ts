@@ -428,6 +428,13 @@ export const en: Messages = {
   'Tokens de acceso': 'Access tokens',
   'Vence en': 'Expires in',
   'Vence': 'Expires',
+  // Servidor MCP (P-114)
+  'Conectar una IA por MCP': 'Connect an AI through MCP',
+  'La IA lee el esquema, las sugerencias y, si la conexión lo permite, una muestra de datos. Sus ajustes quedan como propuestas que aceptas o descartas en Configurar.': 'The AI reads the schema, the suggestions and, if the connection allows it, a data sample. Its settings are saved as proposals that you accept or discard in Configure.',
+  'URL del servidor MCP': 'MCP server URL',
+  'Claude Code': 'Claude Code',
+  'En otros clientes (Claude Desktop, Cursor, VS Code…), agregue un servidor MCP por HTTP con esa URL y el encabezado Authorization: Bearer y su token.': 'In other clients (Claude Desktop, Cursor, VS Code…), add an HTTP MCP server with that URL and the header Authorization: Bearer followed by your token.',
+  'El servidor MCP está apagado. Para que una IA revise el esquema y proponga ajustes, actívelo con Mcp:Enabled = true.': 'The MCP server is off. To let an AI review the schema and propose settings, turn it on with Mcp:Enabled = true.',
   'p. ej. Claude en mi PC': 'e.g. Claude on my PC',
   '{name} · tokens de acceso': '{name} · access tokens',
   '{n} días': '{n} days',

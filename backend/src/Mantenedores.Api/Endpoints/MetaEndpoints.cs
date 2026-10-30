@@ -88,34 +88,12 @@ public static class MetaEndpoints
         // Vista previa para el editor (P-012): aplica el ajuste sin guardarlo. Los errores no cortan la vista previa:
         // se devuelven junto con la tabla combinada con lo que sí se pudo aplicar.
         group.MapPost("/overrides/{schema}/{table}/preview", async (string conn, string schema, string table, TableOverride body,
-            SchemaService schemas, CancellationToken ct) =>
-        {
-            var raw = await schemas.GetRawSchemaAsync(conn, ct);
-            var info = await RawTableAsync(schemas, conn, schema, table, ct);
-            var others = (await schemas.Overrides.ListAsync(conn, ct))
-                .Where(kv => !(Same(kv.Key.Schema, info.Schema) && Same(kv.Key.Table, info.Name)))
-                .ToDictionary(kv => kv.Key, kv => kv.Value);
-            others[(info.Schema, info.Name)] = body;
-
-            var errors = new Dictionary<string, string[]>();
-            try { OverrideApplier.Validate(raw, info.Schema, info.Name, body); }
-            catch (Core.Errors.ValidationException ex) { foreach (var (k, v) in ex.Errors) errors[k] = [v]; }
-            if (body.Actions is { Count: > 0 })
-                foreach (var (k, v) in OverrideApplier.ValidateActions(body.Actions, await schemas.GetRoutinesAsync(conn, ct))) errors[k] = [v];
-
-            return new OverridePreview(OverrideApplier.Apply(raw, others).FindTable(info.Schema, info.Name)!, errors);
-        }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
+            SchemaService schemas, CancellationToken ct) => await PreviewAsync(schemas, conn, schema, table, body, ct))
+            .RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
 
         // Sugerencias de ajustes sin IA (P-112): reglas sobre el catálogo. Solo las que son válidas sobre el ajuste actual.
         group.MapGet("/suggestions/{schema}/{table}", async (string conn, string schema, string table, SchemaService schemas, CancellationToken ct) =>
-        {
-            var raw = await schemas.GetRawSchemaAsync(conn, ct);
-            var info = await RawTableAsync(schemas, conn, schema, table, ct);
-            var current = await FindAsync(schemas, conn, info, ct) ?? new TableOverride();
-            var applied = (await schemas.GetUnrestrictedContextAsync(conn, ct)).Schema;
-            var mine = applied.FindTable(info.Schema, info.Name) ?? info;
-            return OverrideSuggester.Valid(raw, info.Schema, info.Name, current, OverrideSuggester.For(applied, mine, current));
-        }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
+            await SuggestionsAsync(schemas, conn, schema, table, ct)).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
 
         // Propuestas de ajustes (P-113): una IA propone y una persona las carga en la edición y las guarda o descarta.
         group.MapGet("/proposals", async (string conn, string? status, IProposalStore proposals, SchemaService schemas, CancellationToken ct) =>
@@ -126,23 +104,8 @@ public static class MetaEndpoints
 
         group.MapPost("/proposals", async (string conn, ProposalRequest body, IProposalStore proposals, SchemaService schemas,
             ClaimsPrincipal user, CancellationToken ct) =>
-        {
-            var raw = await schemas.GetRawSchemaAsync(conn, ct);
-            var info = await RawTableAsync(schemas, conn, body.Schema, body.Table, ct);
-            // Se valida como al guardarlo a mano: no se guarda una propuesta que no se podría aplicar.
-            OverrideApplier.Validate(raw, info.Schema, info.Name, body.Value);
-            if (body.Value.Actions is { Count: > 0 } &&
-                OverrideApplier.ValidateActions(body.Value.Actions, await schemas.GetRoutinesAsync(conn, ct)) is { Count: > 0 } actionErrors)
-                throw new Core.Errors.ValidationException(actionErrors);
-            var proposal = new OverrideProposal
-            {
-                Id = Guid.NewGuid().ToString("N"), Connection = conn, Schema = info.Schema, Table = info.Name, Value = body.Value,
-                Reason = body.Reason?.Trim() is { Length: > 0 } r ? r[..Math.Min(r.Length, 4000)] : null,
-                CreatedBy = user.Identity?.Name, CreatedAt = DateTimeOffset.UtcNow
-            };
-            await proposals.SaveAsync(proposal, ct);
-            return proposal;
-        }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
+            await ProposeAsync(schemas, proposals, conn, body.Schema, body.Table, body.Value, body.Reason, user.Identity?.Name, ct))
+            .RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
 
         group.MapPost("/proposals/{id}/{action}", async (string conn, string id, string action, IProposalStore proposals,
             ClaimsPrincipal user, CancellationToken ct) =>
@@ -174,11 +137,64 @@ public static class MetaEndpoints
         }).RequireAuthorization(Permissions.Policy(Permissions.ConfigureTables));
     }
 
-    private static async Task<TableInfo> RawTableAsync(SchemaService schemas, string conn, string schema, string table, CancellationToken ct) =>
+    /// <summary>Sugerencias sin IA válidas sobre el ajuste actual (P-112). La usan la API y el servidor MCP.</summary>
+    public static async Task<IReadOnlyList<Suggestion>> SuggestionsAsync(SchemaService schemas, string conn, string schema, string table, CancellationToken ct)
+    {
+        var raw = await schemas.GetRawSchemaAsync(conn, ct);
+        var info = await RawTableAsync(schemas, conn, schema, table, ct);
+        var current = await FindAsync(schemas, conn, info, ct) ?? new TableOverride();
+        var applied = (await schemas.GetUnrestrictedContextAsync(conn, ct)).Schema;
+        var mine = applied.FindTable(info.Schema, info.Name) ?? info;
+        return OverrideSuggester.Valid(raw, info.Schema, info.Name, current, OverrideSuggester.For(applied, mine, current));
+    }
+
+    /// <summary>La tabla con el ajuste aplicado sin guardarlo, y sus errores. La usan la API y el servidor MCP.</summary>
+    public static async Task<OverridePreview> PreviewAsync(SchemaService schemas, string conn, string schema, string table, TableOverride value,
+        CancellationToken ct)
+    {
+        var raw = await schemas.GetRawSchemaAsync(conn, ct);
+        var info = await RawTableAsync(schemas, conn, schema, table, ct);
+        var others = (await schemas.Overrides.ListAsync(conn, ct))
+            .Where(kv => !(Same(kv.Key.Schema, info.Schema) && Same(kv.Key.Table, info.Name)))
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
+        others[(info.Schema, info.Name)] = value;
+        var errors = (await ValidateAsync(schemas, conn, info, value, ct)).ToDictionary(kv => kv.Key, kv => new[] { kv.Value });
+        return new OverridePreview(OverrideApplier.Apply(raw, others).FindTable(info.Schema, info.Name)!, errors);
+    }
+
+    /// <summary>Errores del ajuste si se guardara en esta tabla (vacío = válido), como al guardarlo a mano.</summary>
+    public static async Task<Dictionary<string, string>> ValidateAsync(SchemaService schemas, string conn, TableInfo info, TableOverride value, CancellationToken ct)
+    {
+        var errors = new Dictionary<string, string>();
+        try { OverrideApplier.Validate(await schemas.GetRawSchemaAsync(conn, ct), info.Schema, info.Name, value); }
+        catch (Core.Errors.ValidationException ex) { foreach (var (k, v) in ex.Errors) errors[k] = v; }
+        if (value.Actions is { Count: > 0 })
+            foreach (var (k, v) in OverrideApplier.ValidateActions(value.Actions, await schemas.GetRoutinesAsync(conn, ct))) errors[k] = v;
+        return errors;
+    }
+
+    /// <summary>Guarda una propuesta de ajuste (P-113) si es válida. La usan la API y el servidor MCP.</summary>
+    public static async Task<OverrideProposal> ProposeAsync(SchemaService schemas, IProposalStore proposals, string conn, string schema, string table,
+        TableOverride value, string? reason, string? user, CancellationToken ct)
+    {
+        var info = await RawTableAsync(schemas, conn, schema, table, ct);
+        // Se valida como al guardarlo a mano: no se guarda una propuesta que no se podría aplicar.
+        if (await ValidateAsync(schemas, conn, info, value, ct) is { Count: > 0 } errors) throw new Core.Errors.ValidationException(errors);
+        var proposal = new OverrideProposal
+        {
+            Id = Guid.NewGuid().ToString("N"), Connection = conn, Schema = info.Schema, Table = info.Name, Value = value,
+            Reason = reason?.Trim() is { Length: > 0 } r ? r[..Math.Min(r.Length, 4000)] : null,
+            CreatedBy = user, CreatedAt = DateTimeOffset.UtcNow
+        };
+        await proposals.SaveAsync(proposal, ct);
+        return proposal;
+    }
+
+    public static async Task<TableInfo> RawTableAsync(SchemaService schemas, string conn, string schema, string table, CancellationToken ct) =>
         (await schemas.GetRawSchemaAsync(conn, ct)).FindTable(schema, table)
         ?? throw new Core.Errors.NotFoundException($"La tabla '{schema}.{table}' no existe en '{conn}'.");
 
-    private static async Task<TableOverride?> FindAsync(SchemaService schemas, string conn, TableInfo info, CancellationToken ct) =>
+    public static async Task<TableOverride?> FindAsync(SchemaService schemas, string conn, TableInfo info, CancellationToken ct) =>
         (await schemas.Overrides.ListAsync(conn, ct))
         .Where(kv => Same(kv.Key.Schema, info.Schema) && Same(kv.Key.Table, info.Name))
         .Select(kv => kv.Value).FirstOrDefault();
@@ -198,7 +214,7 @@ public static class MetaEndpoints
 
     private static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
-    private static SchemaSummary Summarize(DatabaseSchema s) => new(
+    public static SchemaSummary Summarize(DatabaseSchema s) => new(
         s.Hash, s.ReadAt,
         s.Tables.Select(t => new TableSummary(
             t.Schema, t.Name, t.Kind, t.IsEditable, t.HasPrimaryKey, t.DisplayColumn,

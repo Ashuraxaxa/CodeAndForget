@@ -14,6 +14,7 @@ export function TokensPage() {
   const t = useT()
   const qc = useQueryClient()
   const tokens = useQuery({ queryKey: ['tokens'], queryFn: api.tokens })
+  const mcp = useQuery({ queryKey: ['tokens', 'mcp'], queryFn: api.mcpInfo, staleTime: Infinity })
   const [name, setName] = useState('')
   const [days, setDays] = useState('90')
   const [created, setCreated] = useState<{ name: string; secret: string } | null>(null)
@@ -53,6 +54,8 @@ export function TokensPage() {
           </div>
         </div>
       )}
+
+      {mcp.data && <McpHelp enabled={mcp.data.enabled} url={new URL(mcp.data.path, document.baseURI).href} secret={created?.secret} />}
 
       <form className="card form" onSubmit={submit}>
         <h2>{t('Nuevo token')}</h2>
@@ -107,5 +110,22 @@ export function TokensPage() {
         </div>
       )}
     </div>
+  )
+}
+
+/** Cómo conectar un cliente MCP (P-114): la URL y el comando de Claude Code, con el token recién creado si lo hay. */
+function McpHelp({ enabled, url, secret }: { enabled: boolean; url: string; secret?: string }) {
+  const t = useT()
+  if (!enabled) return <p className="muted">{t('El servidor MCP está apagado. Para que una IA revise el esquema y proponga ajustes, actívelo con Mcp:Enabled = true.')}</p>
+  const token = secret ?? '<token>'
+  const command = `claude mcp add --transport http mantenedores ${url} --header "Authorization: Bearer ${token}"`
+  return (
+    <details className="card mcp-help">
+      <summary><strong>{t('Conectar una IA por MCP')}</strong></summary>
+      <p className="muted">{t('La IA lee el esquema, las sugerencias y, si la conexión lo permite, una muestra de datos. Sus ajustes quedan como propuestas que aceptas o descartas en Configurar.')}</p>
+      <label>{t('URL del servidor MCP')}<code className="token-secret">{url}</code></label>
+      <label>{t('Claude Code')}<code className="token-secret">{command}</code></label>
+      <p className="muted">{t('En otros clientes (Claude Desktop, Cursor, VS Code…), agregue un servidor MCP por HTTP con esa URL y el encabezado Authorization: Bearer y su token.')}</p>
+    </details>
   )
 }

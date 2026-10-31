@@ -1,3 +1,4 @@
+using Mantenedores.Api.Licensing;
 using System.Data.Common;
 using Mantenedores.Core.Errors;
 using Microsoft.AspNetCore.Diagnostics;
@@ -16,6 +17,8 @@ public sealed class ErrorHandler(ILogger<ErrorHandler> logger) : IExceptionHandl
             BusyException b => Busy(http, b),
             DbPermissionDeniedException d => Results.Problem(d.Message, statusCode: 403, title: "La base de datos no lo permite"),
             ForbiddenException f => Results.Problem(f.Message, statusCode: 403, title: "Sin permiso"),
+            // El plan no lo incluye (P-116): la UI reconoce el tipo y ofrece ver los planes.
+            PlanLimitException p => Results.Problem(p.Message, statusCode: 403, title: "No incluido en su plan", type: "mantenedores:plan"),
             // Concurrencia optimista (D-069): se devuelve cómo está ahora, para comparar y decidir.
             ConcurrencyException c => Results.Problem(c.Message, statusCode: 409, title: "El registro cambió",
                 type: "mantenedores:concurrencia", extensions: new Dictionary<string, object?> { ["current"] = c.Current }),

@@ -1,3 +1,4 @@
+using Mantenedores.Api.Licensing;
 using System.Data.Common;
 using System.Text.RegularExpressions;
 using Mantenedores.Api.Auth;
@@ -50,17 +51,21 @@ public static partial class ConnectionEndpoints
 
         // Crea o reemplaza. Si al editar no se envía la cadena de conexión, se conserva la anterior.
         group.MapPut("/{id}", async (string id, ConnectionRequest req, IConnectionStore store, SchemaService schemas,
-            ProviderRegistry providers, CancellationToken ct) =>
+            ProviderRegistry providers, LicenseService license, CancellationToken ct) =>
         {
             var def = await BuildDefinitionAsync(id, req, store, providers, ct);
+            if (await store.GetAsync(def.Id, ct) is null) await license.EnsureRoomForConnectionAsync(ct);
             await store.SaveAsync(def, ct);
+            license.Invalidate();
             await schemas.SchemaChangedAsync(def.Id, ct);
             return Results.Ok(ToResponse(def));
         }).RequireAuthorization(ManageConnectionsPolicy);
 
-        group.MapDelete("/{id}", async (string id, IConnectionStore store, SchemaService schemas, Core.Overrides.IProposalStore proposals, CancellationToken ct) =>
+        group.MapDelete("/{id}", async (string id, IConnectionStore store, SchemaService schemas, Core.Overrides.IProposalStore proposals,
+            LicenseService license, CancellationToken ct) =>
         {
             if (!await store.DeleteAsync(id, ct)) return Results.NotFound();
+            license.Invalidate();
             // Sus ajustes se van con ella: una conexión nueva con el mismo id no los hereda.
             await schemas.Overrides.DeleteAllAsync(id, ct);
             await schemas.Snapshots.DeleteAsync(id, ct);

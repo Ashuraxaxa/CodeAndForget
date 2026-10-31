@@ -123,7 +123,7 @@ Avisos por correo*).
 | `Notifications:Smtp:EnableSsl` | `true` | STARTTLS/SSL. Apagarlo solo con un relay interno de confianza. |
 | `Notifications:Smtp:User` / `Password` | — | Credenciales, si el servidor las pide. La clave, por variable de entorno (`Notifications__Smtp__Password`) o secreto del orquestador. |
 | `Notifications:Smtp:TimeoutSeconds` | `30` | Tiempo máximo por envío. |
-| `Notifications:SubjectPrefix` | `[Mantenedores]` | Inicio del asunto. |
+| `Notifications:SubjectPrefix` | `[Celdo]` | Inicio del asunto. |
 | `Notifications:AppUrl` | — | Dirección pública de la app: si se da, el correo trae un enlace al registro. |
 | `Notifications:MaxRowsPerMessage` | `20` | En una importación, cuántas filas se detallan; del resto se dice cuántas son. |
 | `Notifications:Language` | `es` | Idioma del correo: `es`, `en` o `ru` (D-102). Es uno para todos, porque lo leen otras personas y no quien hizo el cambio. |
@@ -155,7 +155,7 @@ Datadog, etc.
 | `Telemetry:OtlpEndpoint` | — (apagado) | Destino OTLP, p. ej. `http://otel-collector:4317`. |
 | `Telemetry:OtlpProtocol` | `Grpc` | `Grpc` (4317) o `HttpProtobuf` (4318; se agrega `/v1/traces` y `/v1/metrics`). |
 | `Telemetry:OtlpHeaders` | — | Encabezados para el destino, p. ej. `api-key=…`. |
-| `Telemetry:ServiceName` | `mantenedores` | Nombre del servicio en las trazas y métricas. |
+| `Telemetry:ServiceName` | `celdo` | Nombre del servicio en las trazas y métricas. |
 | `Telemetry:SlowRequestMilliseconds` | `2000` | Las solicitudes a la API más lentas que esto se anotan en el log como advertencia, con método, ruta (sin la query), estado, usuario y duración. Funciona sin OpenTelemetry. `0` = no se anotan. |
 
 Qué se envía:
@@ -183,6 +183,19 @@ comparten, y el tope es el mismo con una instancia o con varias (P-050).
 | `RateLimit:LoginPerMinute` | `10` | Intentos de inicio de sesión por minuto y por IP. |
 
 Detrás de un proxy, la IP es la del cliente solo si el proxy está configurado en `Hosting` (P-007).
+
+## Licencia (`License`)
+
+Sin clave, la instalación está en el plan **Gratis**: 2 usuarios, 1 conexión y 15 tablas. Pro y Empresa se activan con
+una clave firmada, en la pantalla **Plan** o aquí (P-116, D-106). Detalle: [licencias.md](licencias.md).
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `License:Key` | *(vacío)* | Clave de licencia (`CELDO1.…`). Manda sobre la pegada en Plan. Se valida sin internet. |
+
+Las funciones del plan Empresa son `Auth:Mode=Jwt`, la metadata en PostgreSQL o SQL Server,
+`DataProtection:KeyStore=Database`, `Cache:Provider=Redis`, `Providers:PluginsDirectory` y `Telemetry:OtlpEndpoint`.
+Configuradas sin esa licencia, la API responde 403 hasta activarla.
 
 ## Servidor MCP (`Mcp`)
 

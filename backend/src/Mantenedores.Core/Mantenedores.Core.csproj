@@ -13,4 +13,9 @@
     <PackageReference Include="System.IO.Packaging" Version="10.0.13" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Las pruebas agregan una llave de licencia propia (TrustedLicenseKeys.AddForTests). -->
+    <InternalsVisibleTo Include="Mantenedores.Tests" />
+    <InternalsVisibleTo Include="Mantenedores.IntegrationTests" />
+  </ItemGroup>
 </Project>

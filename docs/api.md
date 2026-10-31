@@ -29,6 +29,10 @@ Los errores siguen el formato *Problem Details* (`application/problem+json`); la
 | POST | `/api/meta/{conn}/proposals/{id}/accept` · `/discard` | Cierra una propuesta (la UI la acepta al guardar el ajuste). Permiso `ConfigureTables` |
 | GET | `/api/data/{conn}/{schema}/{table}/sample?take=1000` | Las filas más recientes (por fecha de modificación o creación, si no por la PK), hasta 1.000, con los permisos del usuario. Solo si la conexión tiene `allowSamples` |
 | GET / POST / DELETE | `/api/tokens[/{id}]` | Tokens de acceso del usuario de la sesión. POST `{ name, days? }` devuelve el secreto una sola vez. No se aceptan con un token |
+| GET | `/api/license` | Plan vigente, de dónde sale, topes, uso, funciones incluidas y tablas de Gratis |
+| PUT / DELETE | `/api/license` | Pega `{ key }` o quita la licencia guardada. Permiso `ManageSecurity` |
+| POST | `/api/license/trial` | Empieza la prueba Pro de 30 días (una vez). Permiso `ManageSecurity` |
+| GET / POST | `/api/license/tables` | Gratis: tablas de la conexión para elegir; POST `{ tables: ["esquema.tabla"] }` las suma (fijas, hasta 15). Permiso `ManageSecurity` |
 | GET | `/api/tokens/mcp` | Si el servidor MCP está activo y su ruta, para mostrar cómo conectarse |
 | POST | `/api/mcp` | Servidor MCP (Streamable HTTP, sin estado) con `Mcp:Enabled=true`. Permiso `ConfigureTables`. Ver [mcp.md](mcp.md) |
 | GET | `/api/data/{conn}/{schema}/{table}` | Lista. `?page=1&pageSize=25&sort=nombre,-precio&q=texto&f.categoria_id=2`. `f.` = contiene (textos) o igual; `e.` = igual exacto, también en textos (`e.pedido_id=5`) |

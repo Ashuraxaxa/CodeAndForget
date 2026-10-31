@@ -498,3 +498,30 @@ export interface OverrideProposal {
   createdAt: string
   status: 'pending' | 'accepted' | 'discarded'
 }
+
+/** Plan de la instalación (P-116, D-106). */
+export type PlanName = 'Free' | 'Pro' | 'Business'
+
+export interface PlanInfo {
+  plan: PlanName
+  /** De dónde sale: config (License:Key), stored (pegada en Plan), trial o none. */
+  source: 'config' | 'stored' | 'trial' | 'none'
+  organization?: string | null
+  email?: string | null
+  expiresAt?: string | null
+  inGrace: boolean
+  graceUntil?: string | null
+  licenseError?: string | null
+  trialEndsAt?: string | null
+  trialAvailable: boolean
+  limits: { plan: PlanName; users?: number | null; connections?: number | null; tables?: number | null; auditDays?: number | null }
+  usage: { users: number; connections: number; tables: number }
+  requiresBusiness: string[]
+  freeTables: string[]
+  freeConnection?: string | null
+  needsTableSelection: boolean
+  features: Record<'profiles' | 'allFormats' | 'importUpsert' | 'notifications' | 'actions' | 'copySettings' | 'ai' | 'sso' | 'infrastructure', boolean>
+}
+
+export interface FreeTableCandidate { schema: string; name: string; kind: string; label?: string | null; selected: boolean; foreignKeys: number }
+export interface FreeTables { connection?: string | null; max: number; selected: string[]; tables: FreeTableCandidate[] }

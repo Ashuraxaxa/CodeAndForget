@@ -15,7 +15,7 @@ const TABLE_OPS: DataOperation[] = ['view', 'create', 'update', 'delete', 'expor
 const COLUMN_OPS: DataOperation[] = ['view', 'update']
 
 const permissionLabels = (t: Translate): Record<string, string> => ({
-  ConfigureTables: t('Configurar mantenedores'),
+  ConfigureTables: t('Configurar tablas'),
   ManageConnections: t('Administrar conexiones'),
   ManageSecurity: t('Administrar seguridad'),
   ViewAudit: t('Ver la auditoría'),

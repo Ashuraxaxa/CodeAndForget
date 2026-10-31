@@ -4,6 +4,39 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-31 · PRs encadenados que no llegaron a main
+- #48 y #49 apuntaban a la rama del PR anterior. Al fusionarlos en orden quedaron en esas ramas, y GitHub borró las ramas. El #50 los lleva a `main`.
+- Lección: con PRs encadenados, cambiar la base a `main` del siguiente cuando se fusiona el anterior, o no encadenarlos.
+- El primer despliegue a Azure del dueño (`main_celdo.yml`) falló: corre `dotnet build` en la raíz, y la solución está en `backend/`; además no compila el frontend.
+
+## 2026-10-30 · Celdo en la app (P-117)
+- Paleta grafito y marcador en los dos temas: en Día manda el grafito; en Noche, el amarillo toma su lugar.
+- Logo y favicon nuevos; "Configurar mantenedores" pasa a "Configurar tablas".
+- "Hecho con Celdo" al pie, solo en Gratis.
+- README en español e inglés con el logo y capturas nuevas.
+- Se mantienen los nombres internos que invalidarían llaves, conexiones o sesiones.
+- Revisado en el navegador en Día y en Noche: login, grilla, formulario y pie de Gratis.
+
+## 2026-10-30 · Licencias y planes (P-116)
+- **Decisiones del dueño:**
+  - código cerrado, factura desde Perú y dominio `celdo.app` (D-105);
+  - Gratis con 2 usuarios, 1 conexión y 15 tablas elegidas una vez;
+  - que la llave de firma la genere Claude.
+- Llave ECDSA P-256 generada en la sesión: la pública está en `TrustedLicenseKeys` y la privada se le entregó al dueño, nunca al repositorio.
+- **Límites en el servidor** (D-106):
+  - el esquema que ve cada solicitud trae solo la conexión y las tablas del plan;
+  - las funciones Pro se revisan en sus endpoints;
+  - un middleware detiene la API si hay funciones Empresa configuradas sin esa licencia;
+  - los usuarios sin lugar no entran.
+- **Pantalla Plan:** el plan y su uso, activar una licencia, la prueba Pro y la elección de las tablas de Gratis con confirmación.
+- **En el navegador**, con los datos de desarrollo:
+  - en Gratis, las tablas no aparecen hasta elegirlas; las elegidas quedan fijas;
+  - una tabla no elegida y una segunda conexión muestran el mensaje del plan;
+  - una licencia Empresa firmada con la llave real (emitida con `license issue`) lo libera todo, en español y en inglés.
+- 277 pruebas unitarias y 295 de integración en verde.
+
+---
+
 ## 2026-10-30 · Parte comercial: Celdo (P-120)
 - El dueño pidió nombre comercial, manual de marca, plan Gratis / Pro / Empresa y un landing para monetizar.
 - Se buscaron en la web los nombres candidatos y los precios de la competencia (Retool, Appsmith, Budibase, Forest Admin).

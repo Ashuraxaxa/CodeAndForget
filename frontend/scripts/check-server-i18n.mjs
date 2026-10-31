@@ -21,6 +21,7 @@ const SKIP_FILES = [
   /Mantenedores\.Api\/Notifications\//, // el correo se traduce en el servidor (Notifications:Language)
   /Mantenedores\.Api\/Endpoints\/AuditLabels\.cs$/, // encabezados de la exportación: los traduce el servidor
   /Mantenedores\.Api\/Infrastructure\/ServerText\.cs$/,
+  /Mantenedores\.Api\/Licensing\/LicenseCli\.cs$/, // herramienta de consola del dueño (emite licencias)
   /Mantenedores\.Metadata\/(MetadataDatabase|MetadataSetup)\.cs$/, // arranque de la metadata
   /Mantenedores\.Providers\.\w+\/\w+Provider\.cs$/, // cadenas de conexión de ejemplo
   /Program\.cs$/,

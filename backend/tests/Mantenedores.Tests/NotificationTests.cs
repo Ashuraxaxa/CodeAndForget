@@ -55,7 +55,7 @@ public sealed class NotificationTests
     {
         var n = new SmtpChangeNotifier(Options(), NullLogger<SmtpChangeNotifier>.Instance);
         using var edit = n.Compose(Notice(AuditOperation.Update));
-        Assert.Equal("[Mantenedores] Productos (ventas.producto): edición por ana", edit.Subject);
+        Assert.Equal("[Celdo] Productos (ventas.producto): edición por ana", edit.Subject);
         Assert.Contains("ana editó un registro de Productos (ventas.producto), conexión demo.", edit.Body);
         Assert.Contains("2026-10-28 12:30:00 UTC", edit.Body);
         Assert.Contains("Registro: id=1", edit.Body);
@@ -73,9 +73,9 @@ public sealed class NotificationTests
     }
 
     [Theory]
-    [InlineData("en", "[Mantenedores] Productos (ventas.producto): update by ana", "ana edited a record of Productos (ventas.producto), connection demo.", "Record: id=1")]
-    [InlineData("ru", "[Mantenedores] Productos (ventas.producto): изменение — ana", "ana изменил(а) запись в Productos (ventas.producto), подключение demo.", "Запись: id=1")]
-    [InlineData("pt", "[Mantenedores] Productos (ventas.producto): edición por ana", "ana editó un registro de Productos (ventas.producto), conexión demo.", "Registro: id=1")]
+    [InlineData("en", "[Celdo] Productos (ventas.producto): update by ana", "ana edited a record of Productos (ventas.producto), connection demo.", "Record: id=1")]
+    [InlineData("ru", "[Celdo] Productos (ventas.producto): изменение — ana", "ana изменил(а) запись в Productos (ventas.producto), подключение demo.", "Запись: id=1")]
+    [InlineData("pt", "[Celdo] Productos (ventas.producto): edición por ana", "ana editó un registro de Productos (ventas.producto), conexión demo.", "Registro: id=1")]
     public void El_correo_va_en_el_idioma_configurado(string language, string subject, string line, string record)
     {
         var options = Options(); options.Language = language;

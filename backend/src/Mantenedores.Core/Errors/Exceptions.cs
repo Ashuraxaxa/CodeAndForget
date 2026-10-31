@@ -36,3 +36,6 @@ public sealed class ConcurrencyException(IDictionary<string, object?> current)
 
 /// <summary>Demasiadas consultas pesadas a la vez sobre una tabla grande (D-072): reintentar en unos segundos.</summary>
 public sealed class BusyException(string message) : MantenedorException(message);
+
+/// <summary>El plan de la licencia no incluye esto (P-116): la UI ofrece ver los planes.</summary>
+public sealed class PlanLimitException(string message) : MantenedorException(message);

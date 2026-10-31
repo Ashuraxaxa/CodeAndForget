@@ -1,3 +1,4 @@
+using Mantenedores.Api.Licensing;
 using System.Text.Json;
 using Mantenedores.Core.Query;
 using Mantenedores.Core.Errors;
@@ -44,8 +45,9 @@ public static class DataEndpoints
 
         // Acción de la tabla sobre un registro (P-061): body con los valores que se preguntan al usuario { "param": valor }.
         group.MapPost("/row/actions/{action}", async (string conn, string schema, string table, string action, HttpRequest http,
-            CrudService crud, CancellationToken ct) =>
+            CrudService crud, LicenseService license, CancellationToken ct) =>
         {
+            await license.RequireAsync(Core.Licensing.Feature.Actions, ct);
             var asked = http.ContentLength is > 0
                 ? await http.ReadFromJsonAsync<Dictionary<string, System.Text.Json.JsonElement>>(ct)
                 : null;
@@ -84,10 +86,11 @@ public static class DataEndpoints
 
         // ?format=csv|xlsx|json|xml con los mismos filtros, búsqueda y orden del listado (sin paginar).
         group.MapGet("/export", async (string conn, string schema, string table, string? format, HttpContext http,
-            CrudService crud, CancellationToken ct) =>
+            CrudService crud, LicenseService license, CancellationToken ct) =>
         {
-            var plan = await crud.PrepareExportAsync(conn, schema, table, ParseList(http.Request.Query),
-                TransferFormats.Parse(format ?? "csv"), ct);
+            var fmt = TransferFormats.Parse(format ?? "csv");
+            if (fmt != TransferFormat.Csv) await license.RequireAsync(Core.Licensing.Feature.AllFormats, ct);
+            var plan = await crud.PrepareExportAsync(conn, schema, table, ParseList(http.Request.Query), fmt, ct);
             http.Response.ContentType = TransferFormats.ContentType(plan.Format);
             http.Response.Headers[HeaderNames.ContentDisposition] =
                 new ContentDispositionHeaderValue("attachment") { FileNameStar = plan.FileName }.ToString();
@@ -98,18 +101,20 @@ public static class DataEndpoints
 
         // Multipart: "file" (csv, xlsx, json o xml, por su extensión) y "mapping" opcional ({"encabezado": "columna" | null}).
         group.MapPost("/import/preview", async (string conn, string schema, string table, HttpRequest http,
-            CrudService crud, CrudOptions options, CancellationToken ct) =>
+            CrudService crud, CrudOptions options, LicenseService license, CancellationToken ct) =>
         {
             var (file, mapping, mode) = await ReadImportAsync(http, options, ct);
+            await RequireImportPlanAsync(license, file.FileName, mode, ct);
             await using var stream = file.OpenReadStream();
             return Results.Ok(await crud.PreviewImportAsync(conn, schema, table, stream, TransferFormats.FromFileName(file.FileName), mapping, ct, mode));
         }).RequireRateLimiting(Infrastructure.RateLimiting.Heavy);
 
         // Igual que la vista previa, pero graba si no hay errores. Con errores responde 400 con el mismo detalle.
         group.MapPost("/import", async (string conn, string schema, string table, HttpRequest http,
-            CrudService crud, CrudOptions options, CancellationToken ct) =>
+            CrudService crud, CrudOptions options, LicenseService license, CancellationToken ct) =>
         {
             var (file, mapping, mode) = await ReadImportAsync(http, options, ct);
+            await RequireImportPlanAsync(license, file.FileName, mode, ct);
             await using var stream = file.OpenReadStream();
             var result = await crud.ImportAsync(conn, schema, table, stream, TransferFormats.FromFileName(file.FileName), mapping, ct, mode);
             return result.Imported > 0 || (result.Errors.Count == 0 && result.TotalRows == 0)
@@ -176,6 +181,13 @@ public static class DataEndpoints
             ? Enum.TryParse<ImportMode>(m, ignoreCase: true, out var parsed) ? parsed : throw new ValidationException("mode", "use insert o upsert")
             : ImportMode.Insert;
         return (file, mapping, mode);
+    }
+
+    /// <summary>Gratis importa CSV insertando; Excel, JSON, XML y actualizar por clave son de Pro (P-116).</summary>
+    private static async Task RequireImportPlanAsync(LicenseService license, string fileName, ImportMode mode, CancellationToken ct)
+    {
+        if (TransferFormats.FromFileName(fileName) != TransferFormat.Csv) await license.RequireAsync(Core.Licensing.Feature.AllFormats, ct);
+        if (mode == ImportMode.Upsert) await license.RequireAsync(Core.Licensing.Feature.ImportUpsert, ct);
     }
 
     private static Dictionary<string, string> Key(IQueryCollection q) =>

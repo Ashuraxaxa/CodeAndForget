@@ -118,7 +118,7 @@ function McpHelp({ enabled, url, secret }: { enabled: boolean; url: string; secr
   const t = useT()
   if (!enabled) return <p className="muted">{t('El servidor MCP está apagado. Para que una IA revise el esquema y proponga ajustes, actívelo con Mcp:Enabled = true.')}</p>
   const token = secret ?? '<token>'
-  const command = `claude mcp add --transport http mantenedores ${url} --header "Authorization: Bearer ${token}"`
+  const command = `claude mcp add --transport http celdo ${url} --header "Authorization: Bearer ${token}"`
   return (
     <details className="card mcp-help">
       <summary><strong>{t('Conectar una IA por MCP')}</strong></summary>

@@ -989,6 +989,7 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
 - **Qué:**
   - El producto se vende como **Celdo**, de *celda* más *do* (hacer), con el lema *Tu base de datos, lista para trabajar*.
   - El código interno (`Mantenedores.*`) no cambia; la interfaz, el README y la imagen Docker pasan a Celdo (P-117).
+  - Tampoco cambian el nombre de las llaves de cifrado (`ApplicationName`), el propósito que protege las cadenas de conexión, el emisor de los tokens ni las claves del navegador (`mantenedores.*`): cambiarlos invalidaría las llaves, las conexiones guardadas y las sesiones. Sí cambian el servidor MCP (`celdo`), el asunto de los correos (`[Celdo]`) y el servicio de telemetría (`celdo`).
   - Marca: símbolo de una tabla de 2 × 2 con una celda activa amarilla. Paleta **Grafito y marcador** (`#1E2328` y `#FFD23F`), elegida por el dueño entre cuatro. Descartadas: azul ("no convence"), pino y ámbar, petróleo y coral, berenjena y lima. Tipografías Bricolage Grotesque, Inter y JetBrains Mono. Detalle en `docs/comercial/manual-de-marca.md`.
 - **Descartado:**
   - **Mantio:** se parece a Maintio, un software de mantenimiento.
@@ -997,7 +998,7 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Falta la búsqueda formal en la oficina de marcas (P-119).
 
 ### D-104 · Modelo comercial: autoalojado con licencia, Gratis / Pro / Empresa
-- **Estado:** Vigente · 2026-10-30 (decisión del dueño sobre la recomendación)
+- **Estado:** Vigente, **preliminar** · 2026-10-30 (decisión del dueño sobre la recomendación). El dueño los afinará más adelante: los topes y precios pueden cambiar. En el código, los topes están en un solo lugar: `PlanLimits` (Core/Licensing) y `PlanLimits.Requires` para qué función va en qué plan.
 - **Qué:**
   - Celdo se instala siempre en la red del cliente. El plan se activa con una clave de licencia firmada que se valida sin internet (P-116).
   - **Primer mercado:** Latinoamérica, con precios en USD.
@@ -1020,6 +1021,30 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **Dominio:** `celdo.app`.
 - **Descartado:**
   - **Núcleo abierto o código visible:** más visibilidad, pero facilita copiar el producto y saltarse la licencia.
+
+### D-106 · Licencias firmadas sin internet y límites del plan en el servidor
+- **Estado:** Vigente · 2026-10-30 (P-116)
+- **Qué:**
+  - **Clave** `CELDO1.<datos>.<firma>`: JSON firmado con ECDSA P-256, que trae .NET, sin librerías.
+    - La app trae la llave pública (`TrustedLicenseKeys`); la privada la tiene el dueño, fuera del repositorio.
+    - Herramienta: `dotnet Mantenedores.Api.dll license keygen|issue|show`.
+  - **De dónde sale:** `License:Key` o la clave pegada en la pantalla Plan (tabla `mnt_setting`, migración 008).
+    - 14 días de gracia al vencer; después, Gratis.
+    - Prueba Pro de 30 días, una vez por instalación.
+  - **Dónde se aplica:**
+    - `SchemaService.GetContextAsync` recibe un `IPlanScope` (conexión y tablas permitidas) junto a los permisos, así todo el CRUD lo cumple en un solo lugar.
+    - Las funciones Pro se revisan en sus endpoints (`LicenseService.RequireAsync`).
+    - Un middleware detiene la API si hay funciones Empresa configuradas sin esa licencia; salud, login y Plan siempre responden.
+    - Usuarios: los primeros N (configuración y luego propios por nombre) tienen lugar.
+  - **Tablas de Gratis:** el administrador las elige en Plan; se pueden sumar hasta 15, nunca quitar ni cambiar (pedido del dueño).
+  - **Auditoría:** el plan limita lo que se ve (7 días o 1 año), nunca borra.
+  - **Pruebas:** firman con una llave propia (`AddForTests`, visible solo para los proyectos de pruebas) y ponen Empresa en `License__Key`.
+- **Descartado:**
+  - **Validar contra un servidor de licencias:** no funcionaría en redes cerradas y agregaría una dependencia externa (D-022).
+  - **La llave pública por configuración:** cualquiera podría poner la suya y firmarse licencias.
+  - **Borrar la auditoría al bajar de plan:** quien deja de pagar perdería historia; ocultarla basta.
+  - **Ed25519:** .NET no lo trae; ECDSA P-256 es igual de seguro para esto.
+  - **Elegir automáticamente las tablas de Gratis:** con el filtro de esquemas de la conexión se podría rotar de tablas. La elección explícita y fija es lo que pidió el dueño.
 
 ---
 

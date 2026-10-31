@@ -1,3 +1,4 @@
+using Mantenedores.Api.Licensing;
 using System.Security.Claims;
 using Mantenedores.Api.Auth;
 using Microsoft.Extensions.Options;
@@ -33,7 +34,7 @@ public static class AuthEndpoints
                     o.Jwt.Scopes, o.Jwt.ProviderName.Length > 0 ? o.Jwt.ProviderName : null);
         }).AllowAnonymous();
 
-        app.MapPost("/api/auth/login", async (LoginRequest req, TokenService tokens, IOptions<AuthOptions> options, CancellationToken ct) =>
+        app.MapPost("/api/auth/login", async (LoginRequest req, TokenService tokens, IOptions<AuthOptions> options, LicenseService license, CancellationToken ct) =>
         {
             if (options.Value.Mode != AuthMode.Local)
                 return Results.Problem("El inicio de sesión lo hace el proveedor de identidad configurado.",
@@ -43,6 +44,8 @@ public static class AuthEndpoints
             if (user is null)
                 return Results.Problem("Usuario o contraseña incorrectos.", statusCode: 401, title: "No autorizado");
 
+            // Sin lugar en el plan no entra (P-116): el mensaje dice cuántos usuarios permite.
+            await license.EnsureSeatAsync(user.Username, ct);
             var (token, expires) = tokens.Issue(user);
             return Results.Ok(new LoginResponse(token, expires, user.Username));
         }).AllowAnonymous().RequireRateLimiting(Infrastructure.RateLimiting.Login);

@@ -1,3 +1,4 @@
+using Mantenedores.Api.Licensing;
 using System.Security.Claims;
 using Mantenedores.Api.Auth;
 using Mantenedores.Core.Errors;
@@ -26,8 +27,9 @@ public static class TokenEndpoints
         group.MapGet("/", async (ClaimsPrincipal user, IAccessTokenStore store, CancellationToken ct) =>
             (await store.ListAsync(Owner(user), ct)).Select(Info));
 
-        group.MapPost("/", async (CreateTokenRequest body, ClaimsPrincipal user, IAccessTokenStore store, CancellationToken ct) =>
+        group.MapPost("/", async (CreateTokenRequest body, ClaimsPrincipal user, IAccessTokenStore store, LicenseService license, CancellationToken ct) =>
         {
+            await license.RequireAsync(Core.Licensing.Feature.Ai, ct);
             var owner = Owner(user);
             var name = (body.Name ?? "").Trim();
             if (name.Length is 0 or > 100) throw new ValidationException("name", "es obligatorio (máx. 100)");

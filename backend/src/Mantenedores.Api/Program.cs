@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Mantenedores.Api.Auth;
 using Mantenedores.Api.Endpoints;
 using Mantenedores.Api.Infrastructure;
+using Mantenedores.Api.Licensing;
 using Mantenedores.Api.Mcp;
 using Mantenedores.Api.Notifications;
 using Mantenedores.Core.Audit;
@@ -21,6 +22,10 @@ if (args is ["hash-password", var plain])
     Console.WriteLine(PasswordHasher.Hash(plain));
     return 0;
 }
+
+// Licencias (P-116): dotnet Mantenedores.Api.dll license keygen | issue | show
+if (args is ["license", .. var licenseArgs])
+    return LicenseCli.Run(licenseArgs, Console.Out, Console.Error);
 
 // Health check del contenedor sin curl (P-074): dotnet Mantenedores.Api.dll healthcheck [url]
 if (args is ["healthcheck", .. var rest])
@@ -94,7 +99,8 @@ builder.Services.AddHostedService<AuditPurgeService>();
 // --- Avisos por correo de tablas críticas (D-073): apagados por defecto ---
 var notifications = builder.Configuration.GetSection(NotificationOptions.Section).Get<NotificationOptions>() ?? new NotificationOptions();
 builder.Services.AddSingleton(notifications);
-builder.Services.AddSingleton<SmtpChangeNotifier>();
+builder.Services.AddSingleton(sp => new SmtpChangeNotifier(notifications, sp.GetRequiredService<ILogger<SmtpChangeNotifier>>(),
+    () => sp.GetRequiredService<LicenseService>().Current?.Limits.Has(Mantenedores.Core.Licensing.Feature.Notifications) ?? false));
 builder.Services.AddSingleton<IChangeNotifier>(sp => sp.GetRequiredService<SmtpChangeNotifier>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SmtpChangeNotifier>());
 builder.Services.AddSingleton<CrudService>();
@@ -111,6 +117,14 @@ builder.Services.AddMantenedoresMcp(mcp, rateLimits);
 // --- Observabilidad (P-053): OpenTelemetry por OTLP si se configura un destino; log de solicitudes lentas siempre ---
 builder.Services.AddMantenedoresTelemetry(
     builder.Configuration.GetSection(TelemetryOptions.Section).Get<TelemetryOptions>() ?? new TelemetryOptions());
+// --- Licencia y plan (P-116, D-106): Gratis sin clave; Pro o Empresa con una licencia firmada, validada sin internet ---
+builder.Services.Configure<LicenseOptions>(builder.Configuration.GetSection(LicenseOptions.Section));
+var businessInUse = LicenseService.BusinessFeatures(builder.Configuration, auth.Mode, plugins.Count);
+builder.Services.AddSingleton(sp => new LicenseService(sp.GetRequiredService<Mantenedores.Core.Licensing.IServiceSettings>(),
+    sp.GetRequiredService<IConnectionStore>(), sp.GetRequiredService<ISecurityStore>(),
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AuthOptions>>(),
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<LicenseOptions>>(), businessInUse));
+builder.Services.AddSingleton<Mantenedores.Core.Licensing.IPlanScope>(sp => sp.GetRequiredService<LicenseService>());
 builder.Services.AddExceptionHandler<ErrorHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddMantenedoresHealthChecks();
@@ -123,12 +137,20 @@ foreach (var p in plugins)
 
 // Migraciones de la metadata e importación del connections.json de la Fase 1, antes de atender solicitudes.
 await app.Services.InitializeMetadataAsync(dataDir);
+var startPlan = await app.Services.GetRequiredService<LicenseService>().GetAsync(CancellationToken.None);
+app.Logger.LogInformation("Plan {Plan} ({Source}){Org}", LicenseService.PlanName(startPlan.Plan), startPlan.Source,
+    startPlan.License is { } lic ? $": {lic.Organization}" : "");
+if (startPlan.LicenseError is { } licenseError) app.Logger.LogWarning("Licencia no válida: {Error}", licenseError);
+if (startPlan.RequiresBusiness.Count > 0)
+    app.Logger.LogError("Esta instalación usa funciones del plan Empresa sin esa licencia: {Features}. La API responde 403 hasta activarla.",
+        string.Join("; ", startPlan.RequiresBusiness));
 
 app.UseExceptionHandler();
 app.UseSlowRequestLog();
 app.UseHosting(hosting);
 app.UseStaticFiles(); // Recursos del frontend compilado (wwwroot). index.html lo sirve MapSpaIndex.
 app.UseAuthentication();
+app.UseMiddleware<PlanGateMiddleware>();
 app.UseRateLimiter(); // después de autenticar: el límite es por usuario
 app.UseAuthorization();
 
@@ -141,6 +163,7 @@ app.MapSecurity();
 app.MapTokens();
 app.MapAudit();
 app.MapMantenedoresMcp(mcp);
+app.MapLicense();
 // Una ruta /api desconocida es 404; cualquier otra ruta la resuelve el router del frontend.
 app.Map("/api/{**rest}", () => Results.NotFound()).AllowAnonymous();
 app.MapSpaIndex();

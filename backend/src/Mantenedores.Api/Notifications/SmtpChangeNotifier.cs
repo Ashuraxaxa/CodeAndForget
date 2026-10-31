@@ -23,7 +23,7 @@ public sealed class NotificationOptions
     /// <summary>Remitente, p. ej. <c>Mantenedores &lt;no-responder@empresa.cl&gt;</c>.</summary>
     public string From { get; set; } = "";
 
-    public string SubjectPrefix { get; set; } = "[Mantenedores]";
+    public string SubjectPrefix { get; set; } = "[Celdo]";
 
     /// <summary>Dirección pública de la app, para incluir un enlace al registro (opcional).</summary>
     public string AppUrl { get; set; } = "";
@@ -52,12 +52,14 @@ public sealed class SmtpSettings
 /// Encola los avisos y los envía en segundo plano: guardar no espera al correo (D-073). Reintenta 3 veces y, si no
 /// puede, lo deja en el log; el cambio ya está hecho y registrado en la auditoría.
 /// </summary>
-public sealed class SmtpChangeNotifier(NotificationOptions options, ILogger<SmtpChangeNotifier> logger) : BackgroundService, IChangeNotifier
+/// <param name="planAllows">¿El plan incluye los avisos? (P-116: desde Pro). Nulo = sí (pruebas).</param>
+public sealed class SmtpChangeNotifier(NotificationOptions options, ILogger<SmtpChangeNotifier> logger, Func<bool>? planAllows = null)
+    : BackgroundService, IChangeNotifier
 {
     private readonly Channel<ChangeNotice> _queue = Channel.CreateBounded<ChangeNotice>(
         new BoundedChannelOptions(1000) { FullMode = BoundedChannelFullMode.DropWrite });
 
-    public bool Enabled => options.Enabled && options.Smtp.Host.Length > 0 && options.From.Length > 0;
+    public bool Enabled => options.Enabled && options.Smtp.Host.Length > 0 && options.From.Length > 0 && (planAllows?.Invoke() ?? true);
 
     public void Enqueue(ChangeNotice notice)
     {

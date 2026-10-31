@@ -1,3 +1,4 @@
+using Mantenedores.Api.Licensing;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Mantenedores.Api.Auth;
@@ -42,8 +43,11 @@ public static partial class SecurityEndpoints
 
         group.MapGet("/profiles", (SecurityService security, CancellationToken ct) => security.Store.ListProfilesAsync(ct));
 
-        group.MapPut("/profiles/{id}", async (string id, ProfileRequest body, SecurityService security, ClaimsPrincipal user, CancellationToken ct) =>
+        group.MapPut("/profiles/{id}", async (string id, ProfileRequest body, SecurityService security, ClaimsPrincipal user,
+            LicenseService license, CancellationToken ct) =>
         {
+            // Borrar perfiles sí se puede en Gratis: al bajar de plan, nadie queda atado a uno que no puede editar.
+            await license.RequireAsync(Core.Licensing.Feature.Profiles, ct);
             var profile = Normalize(id, body);
             await security.Store.SaveProfileAsync(profile, user.Identity?.Name, ct);
             await security.ChangedAsync(ct);
@@ -64,7 +68,7 @@ public static partial class SecurityEndpoints
                 .ToList());
 
         group.MapPut("/users/{username}", async (string username, UserRequest body, ISecurityStore store, TokenService tokens,
-            SecurityService security, IOptions<AuthOptions> auth, CancellationToken ct) =>
+            SecurityService security, IOptions<AuthOptions> auth, LicenseService license, CancellationToken ct) =>
         {
             if (auth.Value.Mode != AuthMode.Local)
                 throw new OperationNotAllowedException("Los usuarios propios solo inician sesión en modo Local; en modo Jwt asocie a los perfiles los usuarios o roles del proveedor.");
@@ -84,6 +88,10 @@ public static partial class SecurityEndpoints
             }
             else hash = existing?.PasswordHash ?? throw new ValidationException("password", "es obligatoria para un usuario nuevo");
 
+            // Un usuario nuevo o que se reactiva ocupa un lugar del plan (P-116).
+            if ((body.Active ?? existing?.Active ?? true) && existing is not { Active: true })
+                await license.EnsureRoomForUserAsync(ct);
+
             var user = new LocalUser
             {
                 Username = name,
@@ -95,15 +103,17 @@ public static partial class SecurityEndpoints
             };
             await store.SaveUserAsync(user, ct);
             tokens.InvalidateUsers();
+            license.Invalidate();
             await security.ChangedAsync(ct);
             return Results.Ok(new UserResponse(user.Username, user.DisplayName, user.Active, "local"));
         });
 
         group.MapDelete("/users/{username}", async (string username, ISecurityStore store, TokenService tokens,
-            SecurityService security, CancellationToken ct) =>
+            SecurityService security, LicenseService license, CancellationToken ct) =>
         {
             var removed = await store.DeleteUserAsync(username, ct);
             tokens.InvalidateUsers();
+            license.Invalidate();
             await security.ChangedAsync(ct);
             return removed ? Results.NoContent() : Results.NotFound();
         });

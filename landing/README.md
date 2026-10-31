@@ -17,6 +17,13 @@ Al inicio del `<script>`, en `CONFIG`:
 
 ## Publicar
 
-Cualquier hosting estático sirve: Cloudflare Pages, Netlify, GitHub Pages o un bucket con CDN. Hay que subir la
+**Azure (lo que se usa hoy):** `.github/workflows/main_celdo.yml` lo publica en el App Service `celdo` cada vez que
+cambia `landing/` en `main`, o a mano desde **Actions → Landing de Celdo en Azure → Run workflow**. Sube solo
+`index.html`, `img/` y `web.config`, que le dice a IIS cuál es la página de inicio, el tipo de los `.svg`, la caché y
+encabezados de seguridad. En el portal de Azure conviene:
+- activar **HTTPS Only**;
+- en **Custom domains**, agregar `celdo.app` con su certificado administrado gratis.
+
+Otro hosting estático también sirve (Cloudflare Pages, Netlify, GitHub Pages o un bucket con CDN): hay que subir la
 carpeta `landing/` tal cual, con `img/`. No usa cookies. Para medir el embudo se recomienda una analítica sin cookies,
 como Plausible o Umami (P-118).

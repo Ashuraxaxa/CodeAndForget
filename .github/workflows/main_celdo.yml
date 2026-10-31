@@ -1,65 +1,70 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
+# Publica el landing de Celdo (landing/) en el App Service "celdo" de Azure (P-118).
+# Solo archivos estáticos: no compila .NET ni el frontend de la app. Corre cuando cambia el landing
+# o este archivo en main, o a mano desde Actions.
+# Docs: https://github.com/Azure/webapps-deploy
 
-name: Build and deploy ASP.Net Core app to Azure Web App - celdo
+name: Landing de Celdo en Azure
 
 on:
   push:
     branches:
       - 'main'
+    paths:
+      - 'landing/**'
+      - '.github/workflows/main_celdo.yml'
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up .NET Core
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.x'
+      # Lo que se publica: la página, sus imágenes y web.config (IIS). El README queda fuera.
+      - name: Preparar el landing
+        run: |
+          mkdir -p site
+          cp landing/index.html landing/web.config site/
+          cp -r landing/img site/img
+          test -f site/index.html && test -f site/img/celdo-simbolo.svg
+          ls -R site
 
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
-
-      - name: dotnet publish
-        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
-
-      - name: Upload artifact for deployment job
+      - name: Subir el sitio para publicarlo
         uses: actions/upload-artifact@v4
         with:
-          name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          name: landing
+          path: site
 
   deploy:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     needs: build
+    # Sin "environment": la credencial federada de Azure se creó para la rama main, y declarar un
+    # environment cambiaría la identidad con que GitHub se presenta, y el login fallaría.
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      id-token: write # para iniciar sesión en Azure con OIDC
+      contents: read
 
     steps:
-      - name: Download artifact from build job
+      - name: Bajar el sitio
         uses: actions/download-artifact@v4
         with:
-          name: .net-app
-      
-      - name: Login to Azure
+          name: landing
+          path: site
+
+      - name: Iniciar sesión en Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_0931E60257C54DC2A83B5E746B29BDAE }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_AE999EC06814467781B85362C2924599 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_7133B19712134C09986F9A23180A2CD5 }}
 
-      - name: Deploy to Azure Web App
+      - name: Publicar en el App Service
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'celdo'
           slot-name: 'Production'
-          package: .
-          
+          package: site

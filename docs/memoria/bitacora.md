@@ -4,6 +4,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-31 · Landing en Azure (P-118)
+- El dueño creó el App Service `celdo` en Azure, y su workflow generado intentaba compilar .NET en la raíz y fallaba. Pidió publicar solo el frontend, es decir, el landing.
+- `main_celdo.yml` ahora sube `landing/` (`index.html`, `img/` y un `web.config` para IIS) y corre solo cuando cambia el landing.
+- Se mantuvo la identidad OIDC (sin `environment`) para que la credencial federada de Azure siga sirviendo.
+- Falta en el portal: HTTPS Only y el dominio `celdo.app`.
+
 ## 2026-10-31 · PRs encadenados que no llegaron a main
 - #48 y #49 apuntaban a la rama del PR anterior. Al fusionarlos en orden quedaron en esas ramas, y GitHub borró las ramas. El #50 los lleva a `main`.
 - Lección: con PRs encadenados, cambiar la base a `main` del siguiente cuando se fusiona el anterior, o no encadenarlos.

@@ -23,6 +23,7 @@ public sealed class SharedCacheTests : IDisposable
     {
         private readonly ConcurrentDictionary<string, long> _counts = new();
         public bool Down { get; set; }
+        public void Reset() => _counts.Clear();
 
         public ValueTask<long?> IncrementAsync(string key, int by, TimeSpan window, CancellationToken ct) =>
             ValueTask.FromResult(Down ? null : (long?)_counts.AddOrUpdate(key, by, (_, n) => n + by));
@@ -43,12 +44,25 @@ public sealed class SharedCacheTests : IDisposable
     private static async Task<HttpStatusCode> BadLogin(HttpClient c) =>
         (await c.PostAsJsonAsync("/api/auth/login", new { username = "admin", password = "mala" })).StatusCode;
 
+    /// <summary>
+    /// El tope compartido cuenta por minuto de reloj (SharedWindowLimiter): si la prueba cruza el cambio de minuto,
+    /// los intentos caen en dos ventanas y no llega al tope. Con menos de 15 s por delante se espera al minuto siguiente.
+    /// </summary>
+    private static async Task StartOfMinuteWindowAsync()
+    {
+        var intoMinute = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() % 60_000;
+        if (intoMinute > 45_000) await Task.Delay(TimeSpan.FromMilliseconds(60_000 - intoMinute + 200));
+    }
+
     [Fact]
     public async Task Con_contador_compartido_el_limite_es_uno_para_todas_las_instancias()
     {
         var counter = new FakeCounter();
         var a = Instance(counter, "a", ("RateLimit:LoginPerMinute", "3"));
         var b = Instance(counter, "b", ("RateLimit:LoginPerMinute", "3"));
+        await BadLogin(a); await BadLogin(b); // arranca las dos instancias antes de contar
+        counter.Reset();
+        await StartOfMinuteWindowAsync();
 
         Assert.Equal(HttpStatusCode.Unauthorized, await BadLogin(a));
         Assert.Equal(HttpStatusCode.Unauthorized, await BadLogin(b));

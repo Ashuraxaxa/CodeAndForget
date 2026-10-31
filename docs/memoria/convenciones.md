@@ -48,6 +48,7 @@
 - Commits y PR en español. Título corto en imperativo o descriptivo.
 - Un PR = un tema. Incluye la actualización de `docs/memoria/` que corresponda.
 - El PR describe qué cambió, cómo se probó y qué quedó pendiente.
+- **PRs encadenados** (uno sale de la rama de otro): cuando se fusiona el primero, el siguiente se cambia de base a `main` antes de fusionarlo. Si no, queda fusionado en la rama intermedia y no llega a `main` (pasó con #48 y #49, 2026-10-31).
 - No se reescribe historia publicada (no force-push ni rebase de ramas compartidas).
 
 ## Documentación

@@ -11,10 +11,8 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 
 | Rama | Estado |
 |---|---|
-| `main` | Rama por defecto: PR #1 a #46 fusionados. |
-| `feature/marca-celdo` | PR #47: nombre comercial Celdo, manual de marca, plan comercial y landing. |
-| `feature/licencias` | PR #48 (sale de la rama del #47): licencias y planes. |
-| `feature/celdo-app` | PR #49 (sale de la rama del #48): nombre y colores de Celdo en la app. |
+| `main` | Rama por defecto: PR #1 a #47 fusionados. |
+| `feature/licencias-celdo` | PR #50: lleva a `main` lo de #48 y #49, que quedaron en ramas intermedias por estar encadenados. |
 
 ## Qué funciona hoy
 

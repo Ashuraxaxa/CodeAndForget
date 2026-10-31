@@ -4,6 +4,11 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-10-31 · PRs encadenados que no llegaron a main
+- #48 y #49 apuntaban a la rama del PR anterior. Al fusionarlos en orden quedaron en esas ramas, y GitHub borró las ramas. El #50 los lleva a `main`.
+- Lección: con PRs encadenados, cambiar la base a `main` del siguiente cuando se fusiona el anterior, o no encadenarlos.
+- El primer despliegue a Azure del dueño (`main_celdo.yml`) falló: corre `dotnet build` en la raíz, y la solución está en `backend/`; además no compila el frontend.
+
 ## 2026-10-30 · Celdo en la app (P-117)
 - Paleta grafito y marcador en los dos temas: en Día manda el grafito; en Noche, el amarillo toma su lugar.
 - Logo y favicon nuevos; "Configurar mantenedores" pasa a "Configurar tablas".

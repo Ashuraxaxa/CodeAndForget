@@ -8,6 +8,7 @@ import { api, ApiError } from '../api/client'
 import type { Connection, ConnectionInput, Engine, EngineInfo } from '../api/types'
 import { useCan } from '../lib/useMe'
 import { translateServer, useT } from '../i18n'
+import { ErrorText } from '../components/ErrorText'
 
 const EXAMPLES: Record<string, string> = {
   SqlServer: 'Server=mi-servidor,1433;Database=MiBase;User Id=usuario;Password=***;TrustServerCertificate=True',
@@ -72,7 +73,7 @@ export function ConnectionsPage() {
       )}
 
       {isLoading && <p className="muted">{t('Cargando…')}</p>}
-      {error && <div className="alert">{(error as Error).message}</div>}
+      {error && <div className="alert"><ErrorText error={error} /></div>}
       {data?.length === 0 && !editing && (
         <div className="empty">
           <Database size={36} strokeWidth={1.5} className="empty-icon" aria-hidden />

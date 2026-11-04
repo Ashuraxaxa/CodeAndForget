@@ -6,6 +6,7 @@ import { api, ApiError } from '../api/client'
 import type { TableMeta, TreeNode } from '../api/types'
 import { FIXED_PREFIX, RETURN_PARAM } from '../lib/format'
 import { useT } from '../i18n'
+import { ErrorText } from './ErrorText'
 
 const DRAG_TYPE = 'application/x-mantenedores-nodo'
 
@@ -45,7 +46,7 @@ export function TreeView({ conn, meta }: { conn: string; meta: TableMeta }) {
   }
 
   if (roots.isLoading) return <p className="muted">{t('Cargando…')}</p>
-  if (roots.error) return <div className="alert">{(roots.error as Error).message}</div>
+  if (roots.error) return <div className="alert"><ErrorText error={roots.error} /></div>
   if (roots.data?.length === 0) return <div className="empty">{t('Sin registros')}</div>
   return (
     <>

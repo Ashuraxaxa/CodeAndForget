@@ -14,6 +14,7 @@ import { useCan } from '../lib/useMe'
 import { useTableLabels } from '../lib/useTableLabels'
 import { ActionResultCard, RecordActions, type ActionRun } from '../components/RecordActions'
 import { useT } from '../i18n'
+import { ErrorText } from '../components/ErrorText'
 
 /** Formulario de alta y edición generado desde la metadata de la tabla. */
 export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
@@ -45,7 +46,7 @@ export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
 
   if (meta.isLoading || row.isLoading || links.some(l => l.isLoading)) return <p className="muted">{t('Cargando…')}</p>
   const error = meta.error ?? row.error ?? links.find(l => l.error)?.error
-  if (error) return <div className="alert">{(error as Error).message}</div>
+  if (error) return <div className="alert"><ErrorText error={error} /></div>
   const initialLinks = Object.fromEntries(selectorLinks(meta.data!).map((l, i) => [l.name, links[i]?.data ?? []]))
 
   // Una acción (P-061) puede cambiar el registro: se vuelve a leer y el formulario se rearma con lo actual.
@@ -204,7 +205,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks,
     save.mutate(undefined)
   }
 
-  const generalError = save.error && !conflict && Object.keys(errors).length === 0 ? (save.error as Error).message : null
+  const generalError = save.error && !conflict && Object.keys(errors).length === 0 ? save.error : null
   // Lo que cambió la otra persona, en los campos del formulario: "antes" es lo que se cargó al abrir.
   const conflictFields = conflict
     ? fields.filter(c => toInputValue(c, conflict[c.name]) !== initialValues[c.name])
@@ -305,7 +306,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks,
           ))}
         </div>
 
-        {(generalError || errors._) && <div className="alert">{generalError ?? errors._}</div>}
+        {(generalError || errors._) && <div className="alert">{generalError ? <ErrorText error={generalError} /> : errors._}</div>}
 
         {conflict && (
           <div className="banner conflict">

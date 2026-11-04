@@ -17,7 +17,7 @@ Plan completo en [../comercial/plan-comercial.md](../comercial/plan-comercial.md
 
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
-| P-125 | Quien crea o edita en una tabla escribe todas sus columnas obligatorias, diga lo que diga la regla de la columna (D-108) | 🔴 | ✅ 2026-11-04 |
+| P-125 | Quien crea o edita en una tabla escribe todas sus columnas obligatorias, diga lo que diga la regla de la columna (D-108) | 🔴 | ✅ 2026-11-04 · PR #54 |
 | P-124 | Permisos por tabla y columna: textos de FK y combos hacia tablas sin permiso, y aviso de columnas obligatorias que el perfil no deja escribir, y crear sin editar (D-107) | 🔴 | ✅ 2026-11-04 · PR #53 |
 | P-120 | Nombre, manual de marca, plan comercial y landing | 🔴 | ✅ PR #47 |
 | P-116 | Licencias y planes: clave firmada (ECDSA P-256) validada sin internet (D-106), límites por plan en el servidor (Gratis: 2 usuarios, 1 conexión, 15 tablas fijas; auditoría; funciones Pro y Empresa), 14 días de gracia y página "Plan" | 🔴 | ✅ PR #48 (llegó a `main` en el #50) |

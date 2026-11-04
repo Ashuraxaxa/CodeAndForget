@@ -214,6 +214,7 @@ export const en: Messages = {
   'El registro se guardó, pero no {relation}: {error}': 'The record was saved, but {relation} was not: {error}',
   'Registro · {table}': 'Record · {table}',
   'Editar registro · {table}': 'Edit record · {table}',
+  'No podrás guardar: {list} es obligatoria y tu perfil no permite escribirla. Pide permiso de Editar en esa columna.': 'You will not be able to save: {list} is required and your profile does not allow writing it. Ask for Edit permission on that column.',
   'Nuevo registro · {table}': 'New record · {table}',
   'Historial': 'History',
   'Volver': 'Back',

@@ -4,6 +4,16 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-04 · Permisos por tabla y columna (P-124)
+- El dueño avisó que los accesos por tabla y columna no funcionaban bien. Se reprodujo con un perfil que solo da Producto:
+  la categoría salía sin nombre y su combo daba 404, así que no se podía crear ni editar. Además, Precio en "solo Ver"
+  hacía fallar el alta con el error de la base. Y con Ver + Crear sin Editar, todas las columnas quedaban de solo
+  lectura (lo destapó la prueba nueva).
+- Arreglo (D-107): las FK hacia tablas que el usuario no ve traen su texto y su combo; la tabla sigue fuera de lo demás.
+  Las columnas que bloquean el alta se avisan en el formulario y la API las nombra.
+- Crear sin editar ya deja llenar las columnas sin regla propia.
+- Pruebas: una unitaria y una nueva en la batería común (4 motores) y se ajustó la que esperaba la FK sin texto.
+
 ## 2026-11-04 · Dominio celdo.net
 - `celdo.app` lo registró otra persona el 2026-10-31. Se revisaron varias tandas de nombres nuevos y ninguno convenció.
 - El dueño compró `celdo.net` y se sigue con Celdo. Se cambió el dominio en la app ("Hecho con Celdo" y "Ver planes"), en el landing (correo de ventas), en el plan comercial y en D-105.

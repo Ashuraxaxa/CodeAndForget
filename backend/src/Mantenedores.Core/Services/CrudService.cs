@@ -86,7 +86,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
         var qb = new QueryBuilder(ctx.Provider.Dialect);
-        var (data, count) = qb.BuildList(ctx.Schema, info, request);
+        var (data, count) = qb.BuildList(ctx.LabelSchema, info, request);
 
         var estimate = await EstimateAsync(ctx, info, ct);
         var large = options.EstimateCountAbove > 0 && estimate >= options.EstimateCountAbove;
@@ -111,7 +111,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
             if (QueryBuilder.IsUnfiltered(request)) return new PagedResult(rows, estimate!.Value, page, pageSize, TotalIsEstimate: true);
             if (options.FilteredCountCap <= 0)
                 return new PagedResult(rows, await db.ExecuteScalarAsync<long>(Command(count, ct)), page, pageSize);
-            var found = await db.ExecuteScalarAsync<long>(Command(qb.BuildCappedCount(ctx.Schema, info, request, options.FilteredCountCap), ct));
+            var found = await db.ExecuteScalarAsync<long>(Command(qb.BuildCappedCount(ctx.LabelSchema, info, request, options.FilteredCountCap), ct));
             return found > options.FilteredCountCap
                 ? new PagedResult(rows, options.FilteredCountCap, page, pageSize, TotalIsCapped: true)
                 : new PagedResult(rows, found, page, pageSize);
@@ -154,6 +154,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
     {
         var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
         Require(info, DataOperation.Create, "crear registros en");
+        RequireWritableRequired(info);
         var values = ParseValues(info, body, MaxFileBytes);
         var insert = new QueryBuilder(ctx.Provider.Dialect).BuildInsert(info, values);
 
@@ -455,6 +456,38 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
     }
 
     /// <summary>
+    /// Una columna obligatoria sin valor por defecto que el usuario no puede escribir (de solo lectura u oculta para su
+    /// perfil o por ajuste) hace imposible el alta: se dice cuál es, en vez del error de la base.
+    /// </summary>
+    private static void RequireWritableRequired(TableInfo info)
+    {
+        var blocked = info.Columns.Where(c => c.BlocksInsert).ToList();
+        if (blocked.Count > 0)
+            throw new ValidationException(blocked.ToDictionary(c => c.Name,
+                _ => "es obligatoria y usted no puede escribirla: pida permiso de Editar en esta columna para crear registros"));
+    }
+
+    /// <summary>
+    /// La tabla de un combo: la que el usuario ve o, si no la ve, una a la que apunta una FK de una tabla que sí ve
+    /// (D-107). En ese caso solo se leen su clave y su columna a mostrar.
+    /// </summary>
+    private async Task<(ConnectionContext Ctx, TableInfo Table)> LookupTableAsync(string conn, string schema, string table, CancellationToken ct)
+    {
+        var ctx = await schemas.GetContextAsync(conn, ct);
+        if (ctx.Schema.FindTable(schema, table) is null && ctx.LabelSchema.FindTable(schema, table) is { } target &&
+            ctx.Schema.Tables.Any(t => t.ForeignKeys.Any(f =>
+                string.Equals(f.RefSchema, target.Schema, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(f.RefTable, target.Name, StringComparison.OrdinalIgnoreCase))))
+        {
+            // Solo la clave, las FK (combos en cascada) y la columna a mostrar: el resto no se puede ni filtrar.
+            bool Keep(ColumnInfo c) => c.IsPrimaryKey || string.Equals(c.Name, target.DisplayColumn, StringComparison.OrdinalIgnoreCase)
+                                       || target.ForeignKeys.Any(f => f.Columns.Contains(c.Name, StringComparer.OrdinalIgnoreCase));
+            return (ctx, target with { Columns = [.. target.Columns.Select(c => Keep(c) ? c : c with { Hidden = true })] });
+        }
+        return await schemas.GetTableAsync(conn, schema, table, ct);
+    }
+
+    /// <summary>
     /// Deja vinculados exactamente <paramref name="values"/>: inserta los nuevos y borra los quitados, en una transacción.
     /// Devuelve los valores vinculados al terminar.
     /// </summary>
@@ -531,7 +564,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         string conn, string schema, string table, string? search, int take, CancellationToken ct,
         IReadOnlyDictionary<string, string>? equals = null)
     {
-        var (ctx, info) = await schemas.GetTableAsync(conn, schema, table, ct);
+        var (ctx, info) = await LookupTableAsync(conn, schema, table, ct);
         var query = new QueryBuilder(ctx.Provider.Dialect).BuildLookup(info, search, take, equals);
 
         await using var db = await OpenAsync(ctx, ct);
@@ -601,7 +634,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         ConnectionContext ctx, TableInfo info, IReadOnlyDictionary<string, object?> key, CancellationToken ct,
         DbConnection? open = null, DbTransaction? tx = null)
     {
-        var query = new QueryBuilder(ctx.Provider.Dialect).BuildGetByKey(ctx.Schema, info, key);
+        var query = new QueryBuilder(ctx.Provider.Dialect).BuildGetByKey(ctx.LabelSchema, info, key);
         await using var own = open is null ? await OpenAsync(ctx, ct) : null;
         var db = open ?? own!;
         var row = await Translated(ctx, info, DbOperation.Read, () => db.QuerySingleOrDefaultAsync(Command(query, ct, tx)));

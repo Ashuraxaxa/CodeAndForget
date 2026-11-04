@@ -67,7 +67,12 @@ Ejemplo: ver y exportar todo `demo`, editar solo `ventas.producto` y sin tocar s
 Se aplica **en el servidor**. La UI solo esconde lo que no se puede hacer:
 
 - las tablas que no ve no salen en el menú, ni en "Referenciada por", ni como pestañas o selectores N:M;
-- una FK hacia una tabla que no ve muestra la clave, sin etiqueta;
+- una FK hacia una tabla que no ve muestra igual su texto, y su combo funciona (D-107): quien edita Producto puede
+  elegir la categoría sin tener permiso sobre Categoría. Solo se leen la clave y la columna a mostrar; la tabla sigue
+  fuera del menú y de la API. Para no mostrar ni eso, oculte la columna de la FK;
+- una columna sin regla propia se puede llenar al crear si la tabla da *crear*, aunque no dé *editar*;
+- si una columna obligatoria sin valor por defecto queda de solo lectura u oculta para el perfil, no se pueden crear
+  registros: el formulario "Nuevo" lo avisa y la API responde 400 nombrando la columna. Dele *editar* en esa columna;
 - sin *editar*, el formulario se abre en modo consulta ("Ver").
 
 Cambiar los vínculos N:M de un registro cuenta como editar ese registro (D-067).

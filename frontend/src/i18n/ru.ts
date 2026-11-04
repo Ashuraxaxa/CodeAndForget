@@ -214,6 +214,7 @@ export const ru: Messages = {
   'El registro se guardó, pero no {relation}: {error}': 'Запись сохранена, но «{relation}» — нет: {error}',
   'Registro · {table}': 'Запись · {table}',
   'Editar registro · {table}': 'Изменение записи · {table}',
+  'No podrás guardar: {list} es obligatoria y tu perfil no permite escribirla. Pide permiso de Editar en esa columna.': 'Сохранить не получится: {list} — обязательный столбец, а ваш профиль не позволяет его заполнять. Запросите право «Изменение» на этот столбец.',
   'Nuevo registro · {table}': 'Новая запись · {table}',
   'Historial': 'История',
   'Volver': 'Назад',

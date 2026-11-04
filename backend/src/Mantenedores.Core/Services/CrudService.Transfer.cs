@@ -60,7 +60,7 @@ public sealed partial class CrudService
         Require(info, DataOperation.Export, "exportar");
         var max = Math.Max(1, options.ExportMaxRows);
         var (data, count) = new QueryBuilder(ctx.Provider.Dialect)
-            .BuildList(ctx.Schema, info, request with { Page = 1, PageSize = max }, max);
+            .BuildList(ctx.LabelSchema, info, request with { Page = 1, PageSize = max }, max);
 
         long total;
         await using (var db = await OpenAsync(ctx, ct))

@@ -8,7 +8,16 @@ using Mantenedores.Core.Schema;
 
 namespace Mantenedores.Core.Services;
 
-public sealed record ConnectionContext(ConnectionDefinition Definition, IDatabaseProvider Provider, DatabaseSchema Schema);
+/// <param name="Labels">
+/// Para los textos de las FK y sus combos (D-107): el esquema del usuario más las tablas que no ve, con las que sus
+/// tablas se relacionan. Así quien edita Producto elige la categoría aunque no tenga permiso sobre Categoría.
+/// Nulo = el mismo <paramref name="Schema"/>.
+/// </param>
+public sealed record ConnectionContext(ConnectionDefinition Definition, IDatabaseProvider Provider, DatabaseSchema Schema,
+    DatabaseSchema? Labels = null)
+{
+    public DatabaseSchema LabelSchema => Labels ?? Schema;
+}
 
 /// <summary>Resultado de probar una conexión: tablas que ve y servidor (versión, ajustes).</summary>
 public sealed record ConnectionTestResult(int Tables, ServerInfo Server);
@@ -119,7 +128,12 @@ public sealed class SchemaService(
         var plan = await _plan.CurrentAsync(ct);
         plan.EnsureConnection(ctx.Definition.Id);
         var schema = plan.Tables is null ? ctx.Schema : RestrictTables(ctx.Schema, plan);
-        return ctx with { Schema = access.Restrict(ctx.Definition.Id, schema) };
+        var restricted = access.Restrict(ctx.Definition.Id, schema);
+        if (ReferenceEquals(restricted, schema)) return ctx with { Schema = schema };
+        // Las tablas que no ve, solo para el texto de las FK y los combos (D-107). Las que ve, con sus columnas ocultas.
+        var seen = restricted.Tables.Select(t => (t.Schema, t.Name)).ToHashSet();
+        var labels = restricted with { Tables = [.. restricted.Tables, .. schema.Tables.Where(t => !seen.Contains((t.Schema, t.Name)))] };
+        return ctx with { Schema = restricted, Labels = labels };
     }
 
     /// <summary>Esquema con ajustes, sin restricciones de usuario: para configurar mantenedores y avisar cambios.</summary>

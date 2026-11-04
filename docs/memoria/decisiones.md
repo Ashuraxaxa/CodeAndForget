@@ -1046,6 +1046,21 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **Ed25519:** .NET no lo trae; ECDSA P-256 es igual de seguro para esto.
   - **Elegir automáticamente las tablas de Gratis:** con el filtro de esquemas de la conexión se podría rotar de tablas. La elección explícita y fija es lo que pidió el dueño.
 
+### D-107 · Permiso por tabla: los textos de FK y sus combos funcionan, y las columnas que bloquean el alta se avisan
+- **Estado:** Vigente · 2026-11-04 (P-124). Reemplaza a D-067 en un punto: antes, una FK hacia una tabla que el usuario no ve mostraba solo la clave.
+- **Problema:** con un perfil que da permiso solo sobre Producto, su categoría salía sin nombre y el combo daba 404 (Categoría "no existía" para ese usuario), así que no se podía crear ni editar un producto. Con Ver + Crear sin Editar, todas las columnas quedaban de solo lectura. Y si Precio era obligatoria pero solo de lectura para el perfil, el alta fallaba con el error de la base.
+- **Qué:**
+  - `ConnectionContext.LabelSchema`: el esquema del usuario más las tablas que no ve (solo las del plan). Se usa solo para unir el texto de las FK en lista, registro, exportación y muestra.
+  - El combo (`/lookup`) acepta una tabla que el usuario no ve si una de sus tablas tiene una FK hacia ella. Solo lee la clave y la columna a mostrar; solo deja filtrar por la clave y sus FK (combos en cascada).
+  - La tabla sigue fuera para todo lo demás: menú, lista, registro, exportación y metadata dan 404.
+  - **Crear sin editar:** una columna sin regla propia se puede escribir si la tabla da *crear* o *editar*. Antes solo contaba *editar*, y un perfil con Ver + Crear dejaba todo de solo lectura. Editar un registro sigue exigiendo *editar* en la tabla.
+  - `ColumnInfo.BlocksInsert`: obligatoria, sin valor por defecto, que la base no genera y que el usuario no puede escribir. El alta se rechaza con 400 nombrando la columna, y el formulario "Nuevo" lo avisa antes de guardar.
+- **Descartado:**
+  - **Exigir que el perfil incluya también la tabla referenciada:** obliga a dar Ver sobre toda Categoría, con todas sus columnas, solo para poder elegirla.
+  - **Mostrar solo la clave, como antes:** no se puede elegir una categoría por su número.
+  - **Dejar escribir al crear una columna de "solo Ver":** contradice el permiso que puso el administrador; si debe llenarla, se le da Editar.
+  - Quien no quiera mostrar ni el nombre de la categoría puede ocultar la columna `categoria_id` en el perfil.
+
 ---
 
 ## Propuestas (aún no decididas)

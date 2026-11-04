@@ -96,11 +96,17 @@ public sealed record ColumnInfo
     public bool IsFilterable => IsSelectable && Type is not (LogicalType.Array or LogicalType.ReadOnlyText or LogicalType.Spatial)
                                 && (Filterable || Type is LogicalType.String or LogicalType.Text);
 
-    /// <summary>La UI no permite escribir esta columna.</summary>
     /// <summary>No se escribe: generada por la base, de solo lectura por ajuste u oculta, o de un tipo que no se edita.</summary>
     public bool IsReadOnly => IsIdentity || IsComputed || IsRowVersion || ForcedReadOnly
                               || Type is LogicalType.Unsupported or LogicalType.ReadOnlyText || (Hidden && !IsPrimaryKey);
 
     /// <summary>Obligatoria al crear: no acepta nulos, no tiene default y no la genera la BD.</summary>
     public bool IsRequiredOnInsert => !IsNullable && !HasDefault && !IsReadOnly;
+
+    /// <summary>
+    /// Impide crear registros (D-107): obligatoria, sin default y que la base no genera, pero de solo lectura u oculta
+    /// para este usuario (por su perfil o por ajuste). La UI lo avisa y la API rechaza el alta nombrándola.
+    /// </summary>
+    public bool BlocksInsert => !IsNullable && !HasDefault && !IsIdentity && !IsComputed && !IsRowVersion
+                                && (ForcedReadOnly || (Hidden && !IsPrimaryKey));
 }

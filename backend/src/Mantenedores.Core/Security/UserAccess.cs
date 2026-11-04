@@ -67,7 +67,11 @@ public sealed class UserAccess
         return ops;
     }
 
-    /// <summary>Operaciones sobre una columna (solo View y Update cuentan): su regla si existe; si no, las de la tabla.</summary>
+    /// <summary>
+    /// Operaciones sobre una columna (solo View y Update cuentan): su regla si existe; si no, las de la tabla. Update
+    /// significa "se puede escribir": sin regla propia, crear en la tabla basta para llenarla en el alta (D-107); editar
+    /// un registro sigue exigiendo Update en la tabla.
+    /// </summary>
     public DataOperation Column(string connectionId, string schema, string table, string column)
     {
         if (Unrestricted) return DataOperation.All;
@@ -78,7 +82,8 @@ public sealed class UserAccess
                 var t = TableRuleFor(rule, schema, table);
                 var tableOps = t is not null ? DataOperations.Parse(t.Operations) : DataOperations.Parse(rule.Operations);
                 var c = t?.Columns.FirstOrDefault(kv => string.Equals(kv.Key, column, StringComparison.OrdinalIgnoreCase)).Value;
-                ops |= c is not null ? DataOperations.Parse(c.Operations) : tableOps;
+                ops |= c is not null ? DataOperations.Parse(c.Operations)
+                    : tableOps.HasFlag(DataOperation.Create) ? tableOps | DataOperation.Update : tableOps;
             }
         return ops & (DataOperation.View | DataOperation.Update);
     }

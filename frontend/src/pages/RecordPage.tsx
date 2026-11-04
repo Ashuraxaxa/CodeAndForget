@@ -92,6 +92,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks,
   const historyParams = new URLSearchParams({ conn, schema: meta.schema, table: meta.name })
   for (const [k, v] of new URLSearchParams(recordKey)) historyParams.set(`k.${k}`, v)
   const historyUrl = `/auditoria?${historyParams}`
+  const blocking = meta.columns.filter(c => c.blocksInsert)
   const isLocked = (c: Column) => viewOnly || c.isReadOnly || (isEdit && c.isPrimaryKey) || c.name in fixed
 
   const [initialValues] = useState<Record<string, string | boolean>>(() =>
@@ -221,6 +222,10 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks,
       </div>
 
       <ActionResultCard result={actionRun} onClose={() => setActionRun(null)} />
+
+      {!isEdit && !viewOnly && blocking.length > 0 && (
+        <div className="alert warn">{t('No podrás guardar: {list} es obligatoria y tu perfil no permite escribirla. Pide permiso de Editar en esa columna.', { list: blocking.map(c => labelOf(c)).join(', ') })}</div>
+      )}
 
       <form className="card form" onSubmit={submit}>
         <div className="grid-2">

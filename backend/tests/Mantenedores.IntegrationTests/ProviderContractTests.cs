@@ -735,6 +735,51 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
     // ---------- Permisos por perfil (D-063) ----------
 
     [Fact]
+    public async Task Con_permiso_solo_sobre_una_tabla_sus_combos_y_textos_de_fk_funcionan()
+    {
+        var profile = new SecurityProfile
+        {
+            Id = "p", Name = "Ventas", Users = ["ana"],
+            Connections = new Dictionary<string, ConnectionRule>
+            {
+                [Conn] = new()
+                {
+                    Tables = new Dictionary<string, TableRule>
+                    {
+                        [$"{Schema}.{N("producto")}"] = new()
+                        {
+                            Operations = ["view", "create"],
+                            Columns = new Dictionary<string, ColumnRule> { [N("precio")] = new() { Operations = ["view"] } }
+                        }
+                    }
+                }
+            }
+        };
+        Db.Access.Current = UserAccess.For("ana", [], isAdmin: false, [profile]);
+        try
+        {
+            // D-107: la lista trae el texto de la categoría y el combo responde, aunque Categoría no esté en su perfil.
+            var list = await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { Sort = [new SortSpec(N("id"))] }, default);
+            Assert.NotNull(list.Rows[0][N("categoria_id") + QueryBuilder.LabelSuffix]);
+            var items = await Db.Crud.LookupAsync(Conn, Schema, N("categoria"), "bebi", 20, default);
+            Assert.Equal("Bebidas", Assert.Single(items).Label);
+
+            // Pero Categoría sigue fuera: ni su lista ni un combo filtrado por una columna que no es clave ni FK.
+            await Assert.ThrowsAsync<NotFoundException>(() => Db.Crud.ListAsync(Conn, Schema, N("categoria"), new ListRequest(), default));
+            await Assert.ThrowsAsync<ValidationException>(() => Db.Crud.LookupAsync(Conn, Schema, N("categoria"), null, 20, default,
+                new Dictionary<string, string> { [N("activo")] = "1" }));
+
+            // Precio es obligatoria y solo la puede ver: el alta se rechaza nombrándola, no con el error de la base.
+            var meta = await Db.Schemas.GetTableAsync(Conn, Schema, N("producto"), default);
+            Assert.True(meta.Table.FindColumn(N("precio"))!.BlocksInsert);
+            var ex = await Assert.ThrowsAsync<ValidationException>(() => Db.Crud.CreateAsync(Conn, Schema, N("producto"),
+                Body((N("codigo"), UniqueCode()), (N("nombre"), "X"), (N("categoria_id"), 1)), default));
+            Assert.Equal([N("precio")], ex.Errors.Keys);
+        }
+        finally { Db.Access.Current = UserAccess.All; }
+    }
+
+    [Fact]
     public async Task Un_perfil_restringe_tablas_columnas_y_operaciones()
     {
         var code = UniqueCode();
@@ -767,10 +812,11 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
             Assert.Equal([N("producto")], schema.Tables.Select(t => t.Name));
             await Assert.ThrowsAsync<NotFoundException>(() => Db.Schemas.GetTableAsync(Conn, Schema, N("categoria"), default));
 
-            // Ve la fila sin la columna oculta y sin la etiqueta de una tabla que no ve; no la encuentra por el dato oculto.
+            // Ve la fila sin la columna oculta; no la encuentra por el dato oculto. La FK hacia una tabla que no ve trae su
+            // texto igual (D-107): sin él no podría elegir la categoría.
             var row = await Db.Crud.GetAsync(Conn, Schema, N("producto"), key, default);
             Assert.False(row.ContainsKey(N("nombre")));
-            Assert.False(row.ContainsKey(N("categoria_id") + QueryBuilder.LabelSuffix));
+            Assert.Equal("Snacks", row[N("categoria_id") + QueryBuilder.LabelSuffix]);
             Assert.Equal(0, (await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { Search = "Secreto" }, default)).Total);
 
             // Edita lo permitido; lo de solo lectura se ignora.

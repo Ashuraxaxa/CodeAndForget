@@ -33,7 +33,7 @@ public sealed partial class CrudService
 
         var order = RecencyOrder(info);
         var request = new ListRequest { Page = 1, PageSize = Math.Clamp(take, 1, MaxSampleRows), Sort = order };
-        var (data, _) = new QueryBuilder(ctx.Provider.Dialect).BuildList(ctx.Schema, info, request, MaxSampleRows);
+        var (data, _) = new QueryBuilder(ctx.Provider.Dialect).BuildList(ctx.LabelSchema, info, request, MaxSampleRows);
         await using var db = await OpenAsync(ctx, ct);
         var rows = (await Translated(ctx, info, DbOperation.Read, () => db.QueryAsync(Command(data, ct)))).Cast<object>()
             .Select(r => (IDictionary<string, object?>)Normalize(info, Rename(ToRow(r), data.Renames))).ToList();

@@ -63,7 +63,15 @@ Everything else is adjusted from the interface, without code changes or restarts
 
 ## Quick start
 
-With Docker, the app plus three sample databases:
+With the official image, published for Intel/AMD and ARM on every release:
+
+```bash
+docker run -d -p 8080:8080 -v celdo-data:/app/data ghcr.io/ashuraxaxa/celdo:latest
+```
+
+For production, set up authentication first ([docs/despliegue.md](docs/despliegue.md)).
+
+From source, with the app plus three sample databases:
 
 ```bash
 docker compose up --build

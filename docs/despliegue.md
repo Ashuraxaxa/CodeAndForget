@@ -17,24 +17,43 @@ configuración está en [configuracion.md](configuracion.md).
 
 ## 2. Docker
 
-```bash
-docker build -t mantenedores .
+La imagen oficial es `ghcr.io/ashuraxaxa/celdo` (P-123, D-109), para `linux/amd64` y `linux/arm64`. Etiquetas:
 
-docker run -d --name mantenedores --restart unless-stopped \
+| Etiqueta | Qué trae |
+|---|---|
+| `1.2.0` | Esa versión exacta. Recomendada en producción. |
+| `1.2` | La última corrección de la 1.2. |
+| `latest` | La última versión estable. |
+| `1.3.0-rc.1` | Una versión previa: solo esa etiqueta, nunca `latest`. |
+
+```bash
+docker run -d --name celdo --restart unless-stopped \
   -p 8080:8080 \
-  -v mantenedores-data:/app/data \
+  -v celdo-data:/app/data \
   -e Auth__JwtKey='<clave-de-32-o-más-caracteres>' \
   -e Auth__Users__0__Username=admin \
   -e Auth__Users__0__PasswordHash='<hash>' \
-  mantenedores
+  ghcr.io/ashuraxaxa/celdo:1.2.0
 ```
+
+Para construirla desde el código: `docker build -t celdo .` (y `--build-arg VERSION=1.2.0` para estampar la versión).
+
+### Publicar una versión
+
+1. Etiquetar `main`: `git tag v1.2.0 && git push origin v1.2.0`.
+2. El workflow **Publicar versión** (`.github/workflows/release.yml`) corre las pruebas unitarias y el lint, y sube
+   la imagen con sus etiquetas. El resumen del workflow muestra el comando `docker run`.
+3. **Solo la primera vez:** en GitHub, *Packages → celdo → Package settings*, cambiar la visibilidad a **Public**
+   (si no, la imagen de un repositorio privado queda privada) y conectarla al repositorio.
+4. **Docker Hub, opcional:** variable de repositorio `DOCKERHUB_IMAGE` (p. ej. `celdo/celdo`) y secretos
+   `DOCKERHUB_USERNAME` y `DOCKERHUB_TOKEN`. Con eso, cada versión se publica en los dos registros.
 
 Con Docker Compose (sin las bases de demo del `docker-compose.yml` del repo):
 
 ```yaml
 services:
   mantenedores:
-    image: mantenedores
+    image: ghcr.io/ashuraxaxa/celdo:1.2.0
     restart: unless-stopped
     ports: ["8080:8080"]
     env_file: mantenedores.env        # Auth__JwtKey, Auth__Users__0__..., Hosting__...
@@ -78,7 +97,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: <registro>/mantenedores:<versión>
+          image: ghcr.io/ashuraxaxa/celdo:<versión>
           ports: [{ containerPort: 8080 }]
           envFrom: [{ secretRef: { name: mantenedores } }]
           env:

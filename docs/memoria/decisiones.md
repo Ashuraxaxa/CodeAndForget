@@ -1072,6 +1072,20 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - Rechazar el aviso y dejar que el alta falle (D-107 tal como estaba): el administrador tenía que entender por qué.
   - Prohibir guardar un perfil con esa regla: la misma regla vale para quien solo ve, y ahí sí tiene sentido.
 
+### D-109 · Imagen Docker oficial en GitHub Container Registry
+- **Estado:** Vigente · 2026-11-04 (P-123)
+- **Qué:**
+  - `ghcr.io/ashuraxaxa/celdo`, publicada por `.github/workflows/release.yml` al subir una etiqueta `vX.Y.Z`. Antes de publicar se corren el build, las pruebas unitarias y el lint.
+  - Etiquetas: `X.Y.Z`, `X.Y` y `latest`. Una versión previa (`X.Y.Z-rc.N`) solo lleva la suya.
+  - Para `linux/amd64` y `linux/arm64`. El Dockerfile compila en la plataforma de quien construye y .NET publica para la de destino (`-a $TARGETARCH`), sin emular la compilación.
+  - La versión de la etiqueta se estampa en el ensamblado (`VersionPrefix`/`VersionSuffix`) y en la etiqueta OCI.
+  - Docker Hub es opcional: variable `DOCKERHUB_IMAGE` y dos secretos. Sin ellos, solo GHCR.
+- **Descartado:**
+  - **Solo Docker Hub (`celdo/celdo`):** exige una cuenta y un token aparte, y el nombre `celdo` puede no estar libre. GHCR usa el token de la CI.
+  - **Publicar en cada push a `main`:** `latest` cambiaría sin que haya una versión.
+  - **Compilar ARM con QEMU:** varias veces más lento y sin necesidad.
+- **Pendiente del dueño:** la primera vez, dejar pública la imagen en GitHub (Packages → celdo → Package settings).
+
 ---
 
 ## Propuestas (aún no decididas)

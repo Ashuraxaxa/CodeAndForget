@@ -14,7 +14,8 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 | `main` | Rama por defecto: PR #1 a #47 fusionados. |
 | `feature/licencias-celdo` | PR #50: lleva a `main` lo de #48 y #49, que quedaron en ramas intermedias por estar encadenados. |
 | `fix/permisos-tablas-columnas` | PR #53 fusionado: textos de FK, combos y crear sin editar (P-124, D-107). |
-| `fix/obligatorias-siempre-editables` | PR #54: quien crea o edita en una tabla escribe sus columnas obligatorias (P-125, D-108). |
+| `fix/obligatorias-siempre-editables` | PR #54 fusionado: quien crea o edita escribe las obligatorias (P-125, D-108). |
+| `feature/imagen-docker` | Imagen Docker oficial en GHCR al etiquetar una versión (P-123, D-109). |
 
 ## Qué funciona hoy
 

@@ -13,7 +13,7 @@ Al inicio del `<script>`, en `CONFIG`:
 | `checkoutProMonthly` / `checkoutProYearly` | Enlaces de pago de Pro (Paddle o Lemon Squeezy). Mientras estén vacíos, el botón lleva a la sección "Empieza ahora". |
 | `salesEmail` | Correo de ventas. |
 | `terms` / `privacy` | Enlaces a los términos y a la política de privacidad. Vacíos: no se muestran. |
-| `dockerImage` | Imagen oficial, cuando esté publicada (P-117). |
+| `dockerImage` | Imagen oficial: `ghcr.io/ashuraxaxa/celdo:latest` (P-123). Si se publica también en Docker Hub, puede ser `celdo/celdo:latest`. |
 
 ## Publicar
 

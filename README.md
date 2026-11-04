@@ -61,7 +61,15 @@ Todo lo demás se ajusta desde la interfaz, sin tocar código ni reiniciar.
 
 ## Inicio rápido
 
-Con Docker, la app y tres bases de ejemplo:
+Con la imagen oficial, que se publica en cada versión para Intel/AMD y ARM:
+
+```bash
+docker run -d -p 8080:8080 -v celdo-data:/app/data ghcr.io/ashuraxaxa/celdo:latest
+```
+
+Para producción, configura antes la autenticación ([docs/despliegue.md](docs/despliegue.md)).
+
+Desde el código, con la app y tres bases de ejemplo:
 
 ```bash
 docker compose up --build

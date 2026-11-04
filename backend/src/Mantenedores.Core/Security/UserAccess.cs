@@ -100,9 +100,13 @@ public sealed class UserAccess
         {
             var ops = Table(connectionId, t.Schema, t.Name);
             if (!ops.HasFlag(DataOperation.View)) continue;
+            var writesTable = (ops & (DataOperation.Create | DataOperation.Update)) != 0;
             var columns = t.Columns.Select(c =>
             {
                 var colOps = Column(connectionId, t.Schema, t.Name, c.Name);
+                // D-108: quien crea o edita en la tabla ve y escribe sus columnas obligatorias, diga lo que diga la regla
+                // de la columna. Si no, una obligatoria en "solo Ver" u oculta haría imposible crear registros.
+                if (writesTable && IsRequired(c)) colOps = DataOperation.View | DataOperation.Update;
                 return c with
                 {
                     Hidden = c.Hidden || !colOps.HasFlag(DataOperation.View),
@@ -122,6 +126,10 @@ public sealed class UserAccess
         // Los avisos de ajustes nombran tablas y columnas: son para quien configura, sin restricciones.
         return schema with { Tables = tables, OverrideWarnings = [] };
     }
+
+    /// <summary>Obligatoria al crear según la base: no acepta nulos, no tiene default y la base no la genera.</summary>
+    public static bool IsRequired(ColumnInfo c) =>
+        !c.IsNullable && !c.HasDefault && !c.IsIdentity && !c.IsComputed && !c.IsRowVersion;
 
     private static IEnumerable<ConnectionRule> Rules(SecurityProfile p, string connectionId) =>
         p.Connections.Where(kv => kv.Key == "*" || string.Equals(kv.Key, connectionId, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Value);

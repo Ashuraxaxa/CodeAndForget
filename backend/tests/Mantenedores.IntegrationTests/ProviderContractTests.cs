@@ -756,6 +756,7 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
             }
         };
         Db.Access.Current = UserAccess.For("ana", [], isAdmin: false, [profile]);
+        IDictionary<string, object?> created;
         try
         {
             // D-107: la lista trae el texto de la categoría y el combo responde, aunque Categoría no esté en su perfil.
@@ -769,14 +770,15 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
             await Assert.ThrowsAsync<ValidationException>(() => Db.Crud.LookupAsync(Conn, Schema, N("categoria"), null, 20, default,
                 new Dictionary<string, string> { [N("activo")] = "1" }));
 
-            // Precio es obligatoria y solo la puede ver: el alta se rechaza nombrándola, no con el error de la base.
+            // Precio es obligatoria: aunque la regla diga "solo Ver", quien crea la llena (D-108).
             var meta = await Db.Schemas.GetTableAsync(Conn, Schema, N("producto"), default);
-            Assert.True(meta.Table.FindColumn(N("precio"))!.BlocksInsert);
-            var ex = await Assert.ThrowsAsync<ValidationException>(() => Db.Crud.CreateAsync(Conn, Schema, N("producto"),
-                Body((N("codigo"), UniqueCode()), (N("nombre"), "X"), (N("categoria_id"), 1)), default));
-            Assert.Equal([N("precio")], ex.Errors.Keys);
+            Assert.False(meta.Table.FindColumn(N("precio"))!.IsReadOnly);
+            created = await Db.Crud.CreateAsync(Conn, Schema, N("producto"),
+                Body((N("codigo"), UniqueCode()), (N("nombre"), "X"), (N("categoria_id"), 1), (N("precio"), 5)), default);
+            Assert.Equal(5m, Convert.ToDecimal(created[N("precio")]));
         }
         finally { Db.Access.Current = UserAccess.All; }
+        await Db.Crud.DeleteAsync(Conn, Schema, N("producto"), Key((N("id"), created[N("id")]!)), default);
     }
 
     [Fact]
@@ -799,7 +801,7 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
                         [$"{Schema}.{N("producto")}"] = new()
                         {
                             Operations = ["view", "update"],
-                            Columns = new Dictionary<string, ColumnRule> { [N("precio")] = new() { Operations = ["view"] }, [N("nombre")] = new() }
+                            Columns = new Dictionary<string, ColumnRule> { [N("precio")] = new() { Operations = ["view"] }, [N("atributos")] = new() }
                         }
                     }
                 }
@@ -812,17 +814,16 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
             Assert.Equal([N("producto")], schema.Tables.Select(t => t.Name));
             await Assert.ThrowsAsync<NotFoundException>(() => Db.Schemas.GetTableAsync(Conn, Schema, N("categoria"), default));
 
-            // Ve la fila sin la columna oculta; no la encuentra por el dato oculto. La FK hacia una tabla que no ve trae su
-            // texto igual (D-107): sin él no podría elegir la categoría.
+            // Ve la fila sin la columna oculta. La FK hacia una tabla que no ve trae su texto igual (D-107): sin él no
+            // podría elegir la categoría.
             var row = await Db.Crud.GetAsync(Conn, Schema, N("producto"), key, default);
-            Assert.False(row.ContainsKey(N("nombre")));
+            Assert.False(row.ContainsKey(N("atributos")));
             Assert.Equal("Snacks", row[N("categoria_id") + QueryBuilder.LabelSuffix]);
-            Assert.Equal(0, (await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { Search = "Secreto" }, default)).Total);
 
-            // Edita lo permitido; lo de solo lectura se ignora.
+            // Edita lo permitido. Precio es obligatoria: quien edita la tabla la escribe aunque diga "solo Ver" (D-108).
             var updated = await Db.Crud.UpdateAsync(Conn, Schema, N("producto"), key, Body((N("codigo"), code + "X"), (N("precio"), 1)), default);
             Assert.Equal(code + "X", updated[N("codigo")]);
-            Assert.Equal(100m, Convert.ToDecimal(updated[N("precio")]));
+            Assert.Equal(1m, Convert.ToDecimal(updated[N("precio")]));
 
             await Assert.ThrowsAsync<ForbiddenException>(() => Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body((N("codigo"), UniqueCode())), default));
             await Assert.ThrowsAsync<ForbiddenException>(() => Db.Crud.DeleteAsync(Conn, Schema, N("producto"), key, default));

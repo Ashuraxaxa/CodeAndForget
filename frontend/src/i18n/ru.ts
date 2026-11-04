@@ -215,6 +215,7 @@ export const ru: Messages = {
   'Registro · {table}': 'Запись · {table}',
   'Editar registro · {table}': 'Изменение записи · {table}',
   'No podrás guardar: {list} es obligatoria y tu perfil no permite escribirla. Pide permiso de Editar en esa columna.': 'Сохранить не получится: {list} — обязательный столбец, а ваш профиль не позволяет его заполнять. Запросите право «Изменение» на этот столбец.',
+  'Obligatoria: quien pueda crear o editar en la tabla siempre la ve y la llena.': 'Обязательный: кто может создавать или изменять записи в таблице, всегда видит и заполняет его.',
   'Nuevo registro · {table}': 'Новая запись · {table}',
   'Historial': 'История',
   'Volver': 'Назад',

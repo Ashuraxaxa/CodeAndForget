@@ -70,6 +70,24 @@ public sealed class UserAccessTests
     }
 
     [Fact]
+    public void Crear_sin_editar_deja_escribir_las_columnas_sin_regla_propia()
+    {
+        var profiles = new[]
+        {
+            Profile("p", users: ["ana"], connections: new()
+            {
+                ["demo"] = Conn([], new() { ["ventas.producto"] = Table(["view", "create"], new() { ["precio"] = ["view"] }) })
+            })
+        };
+        var a = UserAccess.For("ana", [], false, profiles);
+
+        // D-107: sin esto, todas las columnas quedaban de solo lectura y no se podía crear nada.
+        Assert.Equal(DataOperation.View | DataOperation.Update, a.Column("demo", "ventas", "producto", "codigo"));
+        Assert.Equal(DataOperation.View, a.Column("demo", "ventas", "producto", "precio"));
+        Assert.False(a.Table("demo", "ventas", "producto").HasFlag(DataOperation.Update)); // editar sigue negado
+    }
+
+    [Fact]
     public void Los_perfiles_se_suman_y_el_comodin_vale_para_todas_las_conexiones()
     {
         var profiles = new[]

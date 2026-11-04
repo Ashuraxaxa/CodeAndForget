@@ -70,6 +70,7 @@ Se aplica **en el servidor**. La UI solo esconde lo que no se puede hacer:
 - una FK hacia una tabla que no ve muestra igual su texto, y su combo funciona (D-107): quien edita Producto puede
   elegir la categoría sin tener permiso sobre Categoría. Solo se leen la clave y la columna a mostrar; la tabla sigue
   fuera del menú y de la API. Para no mostrar ni eso, oculte la columna de la FK;
+- una columna sin regla propia se puede llenar al crear si la tabla da *crear*, aunque no dé *editar*;
 - si una columna obligatoria sin valor por defecto queda de solo lectura u oculta para el perfil, no se pueden crear
   registros: el formulario "Nuevo" lo avisa y la API responde 400 nombrando la columna. Dele *editar* en esa columna;
 - sin *editar*, el formulario se abre en modo consulta ("Ver").

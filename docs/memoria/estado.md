@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-10-30
+**Última actualización:** 2026-11-04
 
 ## En una línea
 
@@ -13,6 +13,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 |---|---|
 | `main` | Rama por defecto: PR #1 a #47 fusionados. |
 | `feature/licencias-celdo` | PR #50: lleva a `main` lo de #48 y #49, que quedaron en ramas intermedias por estar encadenados. |
+| `fix/permisos-tablas-columnas` | Permisos por tabla y columna: textos de FK, combos y columnas que bloquean el alta (P-124, D-107). |
 
 ## Qué funciona hoy
 
@@ -27,7 +28,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 - **CRUD genérico:**
   - Listado con orden, filtros por columna, búsqueda en textos y paginación (máx. 200).
   - Alta, edición y borrado, también con PK compuesta.
-- **Etiquetas de FK:** los listados traen `<columna>__label` (D-007) y hay combos con búsqueda (`/lookup`).
+- **Etiquetas de FK:** los listados traen `<columna>__label` (D-007) y hay combos con búsqueda (`/lookup`); también hacia tablas que el perfil no da, sin abrirlas (D-107).
 - **Solo lectura:** vistas y tablas sin PK (D-009), salvo que un ajuste les dé una PK virtual.
 - **Ajustes sin tocar código** (D-049, `docs/ajustes.md`): etiquetas, grupos del menú, columnas ocultas, orden, solo lectura, obligatorias, patrón, rango, lista de opciones, control de la UI, columna a mostrar, orden por defecto, PK y FK virtuales. Se aplican al instante, los cambia quien tiene el permiso `ConfigureTables` (D-053) y lo que deja de aplicar se avisa en el menú. Se editan con **⚙ Configurar** (pestañas Tabla y Columnas, vista previa en vivo, restablecer) o por la API.
 - **SQL Server:** la inserción funciona también en tablas con triggers (D-010).

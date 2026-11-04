@@ -100,6 +100,7 @@ export const SERVER: [es: string, en: string, ru: string][] = [
   ['no se puede ordenar por \'{column}\'', 'cannot sort by \'{column}\'', 'нельзя сортировать по «{column}»'],
   ['\'{name}\' no es válido; use create, update, delete, import o links', '\'{name}\' is not valid; use create, update, delete, import or links', '«{name}» — недопустимое значение; используйте create, update, delete, import или links'],
   ['\'{email}\' no es un correo válido', '\'{email}\' is not a valid email', '«{email}» — неверный адрес почты'],
+  ['es obligatoria y usted no puede escribirla: pida permiso de Editar en esta columna para crear registros', 'is required and you cannot write it: ask for Edit permission on this column to create records', 'обязательна, и вы не можете её заполнить: запросите право «Изменение» на этот столбец, чтобы создавать записи'],
   ['es obligatoria y no tiene valor por defecto: al ocultarla no se podrán crear registros', 'is required and has no default value: if hidden, records cannot be created', 'обязательна и не имеет значения по умолчанию: если её скрыть, создавать записи будет нельзя'],
   ['la columna es de solo lectura', 'the column is read only', 'столбец доступен только для чтения'],
   ['control desconocido; use: {list}', 'unknown control; use: {list}', 'неизвестный элемент; используйте: {list}'],

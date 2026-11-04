@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-04 · Permisos por tabla y columna (P-124)
+- El dueño avisó que los accesos por tabla y columna no funcionaban bien. Se reprodujo con un perfil que solo da Producto:
+  la categoría salía sin nombre y su combo daba 404, así que no se podía crear ni editar. Además, Precio en "solo Ver"
+  hacía fallar el alta con el error de la base.
+- Arreglo (D-107): las FK hacia tablas que el usuario no ve traen su texto y su combo; la tabla sigue fuera de lo demás.
+  Las columnas que bloquean el alta se avisan en el formulario y la API las nombra.
+- Pruebas: una nueva en la batería común (4 motores) y se ajustó la que esperaba la FK sin texto.
+
 ## 2026-10-31 · Landing en Azure (P-118)
 - El dueño creó el App Service `celdo` en Azure, y su workflow generado intentaba compilar .NET en la raíz y fallaba. Pidió publicar solo el frontend, es decir, el landing.
 - `main_celdo.yml` ahora sube `landing/` (`index.html`, `img/` y un `web.config` para IIS) y corre solo cuando cambia el landing.

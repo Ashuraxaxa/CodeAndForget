@@ -85,6 +85,8 @@ export interface Column {
   isLargeNumber: boolean
   isReadOnly: boolean
   isRequiredOnInsert: boolean
+  /** Obligatoria que este usuario no puede escribir: impide crear registros (D-107). */
+  blocksInsert: boolean
   /** Archivo (binario que no es rowversion): se sube en base64 y se descarga aparte (P-018). */
   isFile: boolean
   /** Tipo de cada elemento de un arreglo (P-018). */

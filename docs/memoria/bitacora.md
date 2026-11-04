@@ -4,6 +4,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-04 · Imagen Docker oficial (P-123)
+- Workflow **Publicar versión**: con una etiqueta `vX.Y.Z` corre pruebas y sube la imagen a `ghcr.io/ashuraxaxa/celdo` para amd64 y arm64 (D-109). Docker Hub queda opcional.
+- El Dockerfile compila en la plataforma nativa y publica para la de destino; estampa la versión.
+- Landing, README y `despliegue.md` usan la imagen nueva.
+- En este entorno, Docker se detuvo dos veces (el contenedor reinicia sus procesos al estar inactivo) y el constructor aislado de buildx no confía en el proxy: se probó con el constructor normal, una arquitectura a la vez.
+
 ## 2026-11-04 · Obligatorias siempre escribibles (P-125)
 - El dueño respondió la pregunta de D-107: quien tiene permiso de crear o editar una tabla debe poder llenar todas sus
   columnas obligatorias. Se aplica en `UserAccess.Restrict` (D-108), con un aviso en el editor de perfiles.

@@ -1013,12 +1013,12 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **Nube y autoalojado a la vez:** obliga a operar servidores y dar soporte de disponibilidad desde el inicio. Se puede sumar más adelante.
   - **Cobrar por usuario:** encarece al sumar al equipo; el precio por instalación es el argumento contra Retool y Forest Admin.
 
-### D-105 · Código cerrado, facturación desde Perú y dominio celdo.app
+### D-105 · Código cerrado, facturación desde Perú y dominio celdo.net
 - **Estado:** Vigente · 2026-10-30 (respuestas del dueño a Q-009, Q-010 y Q-011)
 - **Qué:**
   - **Código cerrado:** se distribuyen la imagen Docker y los binarios.
   - **Factura una empresa peruana.** Pro se cobra con tarjeta por un *merchant of record*; Empresa, con comprobante electrónico de SUNAT. La marca se registra en INDECOPI.
-  - **Dominio:** `celdo.app`.
+  - **Dominio:** `celdo.net`, comprado por el dueño el 2026-11-04. El elegido era `celdo.app`, pero otra persona lo registró el 2026-10-31. Se evaluó cambiar de nombre y el dueño prefirió seguir con Celdo.
 - **Descartado:**
   - **Núcleo abierto o código visible:** más visibilidad, pero facilita copiar el producto y saltarse la licencia.
 

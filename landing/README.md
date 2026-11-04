@@ -22,7 +22,7 @@ cambia `landing/` en `main`, o a mano desde **Actions → Landing de Celdo en Az
 `index.html`, `img/` y `web.config`, que le dice a IIS cuál es la página de inicio, el tipo de los `.svg`, la caché y
 encabezados de seguridad. En el portal de Azure conviene:
 - activar **HTTPS Only**;
-- en **Custom domains**, agregar `celdo.app` con su certificado administrado gratis.
+- en **Custom domains**, agregar `celdo.net` (y `www.celdo.net`) con su certificado administrado gratis.
 
 Otro hosting estático también sirve (Cloudflare Pages, Netlify, GitHub Pages o un bucket con CDN): hay que subir la
 carpeta `landing/` tal cual, con `img/`. No usa cookies. Para medir el embudo se recomienda una analítica sin cookies,

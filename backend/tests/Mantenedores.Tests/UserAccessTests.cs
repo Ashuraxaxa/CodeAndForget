@@ -132,9 +132,28 @@ public sealed class UserAccessTests
         Assert.False(producto.CanImport);
 
         Assert.True(producto.FindColumn("notas")!.Hidden);
-        Assert.True(producto.FindColumn("precio")!.IsReadOnly);
-        Assert.False(producto.FindColumn("precio")!.Hidden);
         Assert.False(producto.FindColumn("codigo")!.IsReadOnly);
+        // Precio es obligatoria: quien edita la tabla la escribe aunque la regla diga "solo Ver" (D-108).
+        Assert.False(producto.FindColumn("precio")!.IsReadOnly);
+    }
+
+    [Fact]
+    public void Las_obligatorias_solo_quedan_de_solo_lectura_para_quien_no_crea_ni_edita()
+    {
+        SecurityProfile[] With(string[] tableOps) =>
+        [
+            Profile("p", users: ["ana"], connections: new()
+            {
+                ["demo"] = Conn([], new() { ["ventas.producto"] = Table(tableOps, new() { ["precio"] = [], ["notas"] = ["view"] }) })
+            })
+        ];
+        var editor = Assert.Single(UserAccess.For("ana", [], false, With(["view", "create"])).Restrict("demo", TestSchema.Build()).Tables);
+        Assert.False(editor.FindColumn("precio")!.Hidden);     // obligatoria: la ve y la llena
+        Assert.False(editor.FindColumn("precio")!.IsReadOnly);
+        Assert.True(editor.FindColumn("notas")!.IsReadOnly);   // opcional: manda la regla
+
+        var lector = Assert.Single(UserAccess.For("ana", [], false, With(["view"])).Restrict("demo", TestSchema.Build()).Tables);
+        Assert.True(lector.FindColumn("precio")!.Hidden);
     }
 
     [Fact]

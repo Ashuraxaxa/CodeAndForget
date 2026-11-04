@@ -215,6 +215,7 @@ export const en: Messages = {
   'Registro · {table}': 'Record · {table}',
   'Editar registro · {table}': 'Edit record · {table}',
   'No podrás guardar: {list} es obligatoria y tu perfil no permite escribirla. Pide permiso de Editar en esa columna.': 'You will not be able to save: {list} is required and your profile does not allow writing it. Ask for Edit permission on that column.',
+  'Obligatoria: quien pueda crear o editar en la tabla siempre la ve y la llena.': 'Required: anyone who can create or edit in the table always sees and fills it in.',
   'Nuevo registro · {table}': 'New record · {table}',
   'Historial': 'History',
   'Volver': 'Back',

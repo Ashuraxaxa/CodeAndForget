@@ -1061,6 +1061,17 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **Dejar escribir al crear una columna de "solo Ver":** contradice el permiso que puso el administrador; si debe llenarla, se le da Editar.
   - Quien no quiera mostrar ni el nombre de la categoría puede ocultar la columna `categoria_id` en el perfil.
 
+### D-108 · Quien crea o edita en una tabla escribe todas sus columnas obligatorias
+- **Estado:** Vigente · 2026-11-04 (P-125). Decidido por el dueño: "si tienes permisos de editar la tabla debes poder editar toda la tabla para evitar esos problemas".
+- **Qué:**
+  - Si el perfil da *crear* o *editar* en una tabla, sus columnas obligatorias (no aceptan nulos, no tienen default y la base no las genera) se ven y se escriben, aunque una regla de columna diga "solo Ver" o las oculte.
+  - Las reglas de columna siguen valiendo para las columnas opcionales, y para todas cuando el perfil solo da *ver*.
+  - El editor de perfiles lo avisa al lado de la columna.
+  - `BlocksInsert` (D-107) queda para los ajustes de la tabla (una obligatoria marcada de solo lectura en Configurar tablas).
+- **Descartado:**
+  - Rechazar el aviso y dejar que el alta falle (D-107 tal como estaba): el administrador tenía que entender por qué.
+  - Prohibir guardar un perfil con esa regla: la misma regla vale para quien solo ve, y ahí sí tiene sentido.
+
 ---
 
 ## Propuestas (aún no decididas)

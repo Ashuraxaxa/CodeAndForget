@@ -337,6 +337,9 @@ function TableRuleEditor({ conn, tableKeys, rule, onChange, onRemove }: {
             suggestions={(meta.data?.columns ?? []).map(col => ({ value: col.name, label: col.name, hint: col.nativeType }))} />
           <OpChecks ops={COLUMN_OPS} value={c.operations} onChange={operations => setColumn(i, { operations })} />
           <button type="button" className="link danger" onClick={() => onChange({ columns: rule.columns.filter((_, j) => j !== i) })}>{t('Quitar')}</button>
+          {meta.data?.columns.some(col => col.name.toLowerCase() === c.name.trim().toLowerCase() && col.isRequiredOnInsert) && (
+            <span className="muted small">{t('Obligatoria: quien pueda crear o editar en la tabla siempre la ve y la llena.')}</span>
+          )}
         </div>
       ))}
       <button type="button" className="link small" onClick={() => onChange({ columns: [...rule.columns, { name: '', operations: ['view'] }] })}>

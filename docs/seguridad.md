@@ -71,8 +71,9 @@ Se aplica **en el servidor**. La UI solo esconde lo que no se puede hacer:
   elegir la categoría sin tener permiso sobre Categoría. Solo se leen la clave y la columna a mostrar; la tabla sigue
   fuera del menú y de la API. Para no mostrar ni eso, oculte la columna de la FK;
 - una columna sin regla propia se puede llenar al crear si la tabla da *crear*, aunque no dé *editar*;
-- si una columna obligatoria sin valor por defecto queda de solo lectura u oculta para el perfil, no se pueden crear
-  registros: el formulario "Nuevo" lo avisa y la API responde 400 nombrando la columna. Dele *editar* en esa columna;
+- quien puede *crear* o *editar* en una tabla ve y escribe todas sus columnas obligatorias (sin nulos, sin valor por
+  defecto y que la base no genera), aunque la regla de la columna diga otra cosa (D-108). Así un perfil nunca deja una
+  tabla en la que no se puede crear. Las reglas de columna mandan sobre las columnas opcionales;
 - sin *editar*, el formulario se abre en modo consulta ("Ver").
 
 Cambiar los vínculos N:M de un registro cuenta como editar ese registro (D-067).

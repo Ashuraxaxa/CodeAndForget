@@ -4,6 +4,11 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-04 · Obligatorias siempre escribibles (P-125)
+- El dueño respondió la pregunta de D-107: quien tiene permiso de crear o editar una tabla debe poder llenar todas sus
+  columnas obligatorias. Se aplica en `UserAccess.Restrict` (D-108), con un aviso en el editor de perfiles.
+- Las pruebas de perfiles pasan a usar columnas opcionales para mostrar lo oculto y lo de solo lectura.
+
 ## 2026-11-04 · Permisos por tabla y columna (P-124)
 - El dueño avisó que los accesos por tabla y columna no funcionaban bien. Se reprodujo con un perfil que solo da Producto:
   la categoría salía sin nombre y su combo daba 404, así que no se podía crear ni editar. Además, Precio en "solo Ver"

@@ -14,6 +14,11 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 - Crear sin editar ya deja llenar las columnas sin regla propia.
 - Pruebas: una unitaria y una nueva en la batería común (4 motores) y se ajustó la que esperaba la FK sin texto.
 
+## 2026-11-04 · Dominio celdo.net
+- `celdo.app` lo registró otra persona el 2026-10-31. Se revisaron varias tandas de nombres nuevos y ninguno convenció.
+- El dueño compró `celdo.net` y se sigue con Celdo. Se cambió el dominio en la app ("Hecho con Celdo" y "Ver planes"), en el landing (correo de ventas), en el plan comercial y en D-105.
+- Lección: no publicar un nombre ni un dominio antes de comprarlo, y buscar y comprar en el mismo registrador.
+
 ## 2026-10-31 · Landing en Azure (P-118)
 - El dueño creó el App Service `celdo` en Azure, y su workflow generado intentaba compilar .NET en la raíz y fallaba. Pidió publicar solo el frontend, es decir, el landing.
 - `main_celdo.yml` ahora sube `landing/` (`index.html`, `img/` y un `web.config` para IIS) y corre solo cuando cambia el landing.

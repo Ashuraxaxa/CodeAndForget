@@ -74,7 +74,7 @@ function MadeWith() {
   if (plan.data?.plan !== 'Free') return null
   return (
     <footer className="app-footer">
-      <a className="made-with" href="https://celdo.app" target="_blank" rel="noopener"><CeldoMark className="" />{t('Hecho con Celdo')}</a>
+      <a className="made-with" href="https://celdo.net" target="_blank" rel="noopener"><CeldoMark className="" />{t('Hecho con Celdo')}</a>
     </footer>
   )
 }

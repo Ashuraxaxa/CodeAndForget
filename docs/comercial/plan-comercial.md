@@ -150,7 +150,7 @@ Landing ──► Descarga gratis (docker run) ──► Activación ──► P
 
 | Semanas | Qué | Listo cuando |
 |---|---|---|
-| 1–2 | **Marca legal:** buscar y registrar "Celdo" en INDECOPI (Perú) y, por el Protocolo de Madrid, en los mercados objetivo. Comprar `celdo.app` y las cuentas en redes sociales. | Solicitud presentada, dominio comprado |
+| 1–2 | **Marca legal:** buscar y registrar "Celdo" en INDECOPI (Perú) y, por el Protocolo de Madrid, en los mercados objetivo. Dominio `celdo.net` (comprado el 2026-11-04); faltan las cuentas en redes sociales. | Solicitud presentada, dominio comprado |
 | 1–4 | **Producto vendible:** cambiar el nombre en la interfaz a Celdo (P-117), sumar el módulo de licencias y los límites por plan (P-116), y publicar la imagen Docker oficial. | La app muestra su plan y se activa con una clave |
 | 2–4 | **Landing en línea** (P-118) con precios, demo pública de solo lectura y botón de pago. Términos de servicio, política de privacidad y contrato de licencia (EULA) revisados por un abogado. | Se puede pagar Pro de punta a punta |
 | 5–8 | **Lanzamiento** en español: LinkedIn, comunidades, primeros 5 artículos y 3 videos. Precio de lanzamiento para los primeros 50 clientes Pro. | 300 descargas, 10 clientes Pro |
@@ -210,7 +210,7 @@ Landing ──► Descarga gratis (docker run) ──► Activación ──► P
 - **Factura desde Perú.** Para Pro con tarjeta conviene un *merchant of record* (Paddle o Lemon Squeezy): vende en
   cada país y paga sus impuestos, y la empresa peruana factura al *merchant*. Empresa se factura directo, con
   comprobante electrónico de SUNAT. Hay que confirmar el tratamiento tributario con un contador.
-- **Dominio:** `celdo.app`.
+- **Dominio:** `celdo.net`. `celdo.app` lo tomó otra persona antes de comprarlo.
 
 Fuentes de los precios de la competencia, revisadas el 2026-10-30. Son referencias de blogs comparativos; antes de
 publicar comparaciones hay que confirmarlas en la página de precios de cada empresa:

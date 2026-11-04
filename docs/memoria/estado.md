@@ -13,7 +13,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 |---|---|
 | `main` | Rama por defecto: PR #1 a #47 fusionados. |
 | `feature/licencias-celdo` | PR #50: lleva a `main` lo de #48 y #49, que quedaron en ramas intermedias por estar encadenados. |
-| `fix/permisos-tablas-columnas` | Permisos por tabla y columna: textos de FK, combos y columnas que bloquean el alta (P-124, D-107). |
+| `fix/permisos-tablas-columnas` | PR #53: permisos por tabla y columna: textos de FK, combos y columnas que bloquean el alta (P-124, D-107). |
 
 ## Qué funciona hoy
 

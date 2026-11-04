@@ -86,3 +86,7 @@ jobs:
           # ready: además verifica la metadata (SQLite) dentro del contenedor
           for i in $(seq 1 30); do curl -fsS localhost:8080/api/health/ready && exit 0; sleep 2; done
           docker logs app; exit 1
+      # La versión publicada también sale para ARM (P-123): se compila sin subirla.
+      - uses: docker/setup-buildx-action@v3
+      - name: Compila también para arm64
+        run: docker buildx build --platform linux/arm64 --build-arg VERSION=0.0.0-ci .

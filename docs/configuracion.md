@@ -206,6 +206,18 @@ Para que una IA (Claude, Cursor, etc.) revise el esquema y proponga ajustes (P-1
 |---|---|---|
 | `Mcp:Enabled` | `false` | Publica `/api/mcp` (HTTP sin estado). Entra quien tenga `ConfigureTables`, con un token de acceso o un JWT. Solo lee y deja propuestas; nunca guarda ajustes. |
 
+## Embeber en otras aplicaciones (`Embed`)
+
+Para poner dashboards y mantenedores dentro de otra app con un iframe (P-134, D-113). Desde el plan Pro. Detalle:
+[embeber.md](embeber.md).
+
+| Clave | Por defecto | Qué hace |
+|---|---|---|
+| `Embed:AllowedOrigins` | `[]` | Sitios que pueden embeber las páginas `/embed`, p. ej. `https://intranet.empresa.com` o `https://*.empresa.com` (esquema y host, sin ruta). Vacío = nadie de afuera. El resto de la app nunca se deja embeber desde otro sitio. |
+
+Como variables de entorno: `Embed__AllowedOrigins__0=https://intranet.empresa.com`, `Embed__AllowedOrigins__1=…`.
+Un origen mal escrito detiene el arranque con un mensaje que dice cuál es.
+
 ## Caché compartida (`Cache`)
 
 Solo hace falta con varias instancias (P-050, D-026, D-091). Por defecto cada instancia guarda lo suyo en memoria y

@@ -20,6 +20,7 @@ import { planLabel } from './lib/plan'
 import { translateServer } from './i18n'
 import { useCan, useMe } from './lib/useMe'
 import { ThemeToggle } from './components/ThemeToggle'
+import { appBase } from './lib/embed'
 import { LanguageSelect, useT } from './i18n'
 
 /** Solo se monta con sesión iniciada: así /me no se pide sin token. */
@@ -112,13 +113,11 @@ function Shell() {
   )
 }
 
-/** Subruta donde está publicada la app, tomada de <base href> (p. ej. "/mantenedores"). */
-const basename = new URL(document.baseURI).pathname.replace(/\/$/, '')
 
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter basename={basename}>
+      <BrowserRouter basename={appBase}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />

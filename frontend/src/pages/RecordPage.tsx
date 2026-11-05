@@ -11,6 +11,7 @@ import { ChildTabs } from '../components/ChildTabs'
 import { ManyToManySelect } from '../components/ManyToManySelect'
 import { FileField } from '../components/FileField'
 import { useCan } from '../lib/useMe'
+import { isEmbed } from '../lib/embed'
 import { useTableLabels } from '../lib/useTableLabels'
 import { ActionResultCard, RecordActions, type ActionRun } from '../components/RecordActions'
 import { useT } from '../i18n'
@@ -89,7 +90,8 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks,
   const fields = meta.columns.filter(c => c.isSelectable && !c.hidden && (isEdit || !(c.isIdentity || c.isComputed || c.isRowVersion)))
   // Sin permiso para guardar (D-063), el formulario es solo de consulta.
   const viewOnly = isEdit ? !meta.canUpdate : !meta.canCreate
-  const canAudit = useCan('ViewAudit')
+  // El historial vive en Auditoría, que no está en las páginas embebidas.
+  const canAudit = useCan('ViewAudit') && !isEmbed
   const historyParams = new URLSearchParams({ conn, schema: meta.schema, table: meta.name })
   for (const [k, v] of new URLSearchParams(recordKey)) historyParams.set(`k.${k}`, v)
   const historyUrl = `/auditoria?${historyParams}`

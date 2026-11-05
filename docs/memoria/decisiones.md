@@ -1127,6 +1127,22 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **Soportar `$filter`:** es un lenguaje de expresiones completo, y uno a medias devolvería datos equivocados. Power BI filtra en su lado.
   - **Ignorar las opciones no soportadas:** Power BI creería que filtró en el servidor y mostraría datos de más.
 
+### D-113 · Embeber dashboards y mantenedores en otras aplicaciones
+- **Estado:** Vigente · 2026-11-05 (P-134 a P-139, plan en `docs/embeber.md`). Pedido del dueño: embeber dashboards y mantenedores en otras apps.
+- **Qué:**
+  - **Tres formas:** con la sesión del usuario (A), con un token firmado por la app anfitriona para usuarios sin cuenta (B) y dashboards públicos por enlace secreto (C).
+  - **Pantallas:** las mismas de la app, bajo `/embed`, sin menú.
+  - **Seguridad:** solo los sitios permitidos embeben (`frame-ancestors`), y el resto de la app solo se deja embeber por sí misma. Los permisos nunca superan los del usuario o los del perfil de la aplicación.
+  - **Filtros fijos por fila:** del lado del servidor. Una tabla sin la columna del filtro no se abre, salvo que se marque "sin filtro".
+  - **Plan:** Gratis no embebe. Pro embebe con hasta 3 aplicaciones y el sello "Hecho con Celdo". Empresa, sin tope y sin marca. Los usuarios externos y quienes miran un dashboard público no cuentan como usuarios.
+  - **Token (forma B):** JWT HS256 con la clave de la aplicación, sin llamar a Celdo (D-022). Va en el fragmento de la URL y se canjea por una sesión corta propia.
+- **Respuestas del dueño (2026-11-05):** las formas A y B, los planes propuestos, los externos no cuentan, sí dashboards públicos, sí filtros por fila.
+- **Descartado:**
+  - **Componentes React o un paquete npm para pintar dentro de la otra app:** chocan los estilos y las versiones, y hay que mantener una librería; el iframe aísla todo y sirve para cualquier tecnología.
+  - **Canje del token llamando a una API de Celdo desde la otra app:** suma una dependencia de red y otro secreto en tránsito; firmar con la clave compartida basta.
+  - **`frame-ancestors *` o `X-Frame-Options` solamente:** el primero deja embeber a cualquiera; el segundo no admite una lista de sitios.
+  - **Contar los usuarios externos en el plan:** difícil de medir y de cobrar; el tope va por aplicaciones.
+
 ---
 
 ## Propuestas (aún no decididas)

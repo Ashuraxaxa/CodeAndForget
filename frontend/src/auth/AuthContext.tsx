@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { UserManager, type User } from 'oidc-client-ts'
 import { t } from '../i18n'
+import { inFrame } from '../lib/embed'
 import { api, setTokenProvider, setUnauthorizedHandler, tokenStore, type AuthConfig } from '../api/client'
 
 /**
@@ -15,7 +16,7 @@ interface AuthState {
   isAuthenticated: boolean
   /** Modo local. */
   login: (username: string, password: string) => Promise<void>
-  /** Modo OIDC: redirige al proveedor. */
+  /** Modo OIDC: redirige al proveedor (en un iframe, abre una ventana emergente: el proveedor no se deja embeber). */
   loginExternal: () => Promise<void>
   /** Modo OIDC: completa el login al volver del proveedor. */
   completeExternalLogin: () => Promise<void>
@@ -84,7 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // signoutRedirect envía el id_token_hint (el proveedor cierra sin pedir confirmación) y borra el usuario local.
       const hadUser = !!oidcUserRef.current
       setUser(null)
-      if (hadUser) {
+      // En un iframe no se va al proveedor (no se deja embeber): se borra la sesión local y se vuelve a pedir el login.
+      if (hadUser && !inFrame) {
         manager.signoutRedirect().catch(() => manager.removeUser())
       } else {
         manager.removeUser()
@@ -102,12 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginExternal = useCallback(async () => {
     if (!manager) throw new Error(t('El proveedor de identidad no está configurado.'))
-    await manager.signinRedirect()
-  }, [manager])
+    if (inFrame) setUser(await manager.signinPopup({ popupWindowTarget: 'celdo-login' }))
+    else await manager.signinRedirect()
+  }, [manager, setUser])
 
   const completeExternalLogin = useCallback(async () => {
     if (!manager) throw new Error(t('El proveedor de identidad no está configurado.'))
-    setUser(await manager.signinRedirectCallback())
+    // signinCallback sirve para las dos vueltas: la de redirección y la de la ventana emergente (que se cierra sola).
+    const user = await manager.signinCallback()
+    if (user) setUser(user)
   }, [manager, setUser])
 
   const isAuthenticated =

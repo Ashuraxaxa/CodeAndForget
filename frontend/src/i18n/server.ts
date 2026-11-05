@@ -260,6 +260,7 @@ export const SERVER: [es: string, en: string, ru: string][] = [
   ['Botones con procedimientos', 'Stored-procedure buttons', 'Кнопки с хранимыми процедурами'],
   ['Copiar ajustes entre conexiones', 'Copying settings between connections', 'Копирование настроек между подключениями'],
   ['IA por MCP y tokens de acceso', 'AI through MCP and access tokens', 'ИИ через MCP и токены доступа'],
+  ['Embeber en otras aplicaciones', 'Embedding in other applications', 'Встраивание в другие приложения'],
   ['Inicio de sesión con proveedor de identidad', 'Sign-in with an identity provider', 'Вход через поставщика удостоверений'],
   ['Varias instancias, metadata compartida, Redis, plugins y OpenTelemetry', 'Several instances, shared metadata, Redis, plugins and OpenTelemetry', 'Несколько экземпляров, общие метаданные, Redis, плагины и OpenTelemetry'],
   ['El plan {plan} permite {n} usuarios. Pase a un plan mayor para sumar más.', 'The {plan} plan allows {n} users. Move to a higher plan to add more.', 'Тариф {plan} допускает пользователей: {n}. Перейдите на более высокий тариф, чтобы добавить ещё.'],

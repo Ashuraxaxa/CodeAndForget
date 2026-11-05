@@ -173,6 +173,7 @@ public sealed class LicenseService(
         Feature.Actions => "Botones con procedimientos",
         Feature.CopySettings => "Copiar ajustes entre conexiones",
         Feature.Ai => "IA por MCP y tokens de acceso",
+        Feature.Embed => "Embeber en otras aplicaciones",
         Feature.Sso => "Inicio de sesión con proveedor de identidad",
         _ => "Varias instancias, metadata compartida, Redis, plugins y OpenTelemetry"
     };

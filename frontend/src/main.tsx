@@ -2,8 +2,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
+import EmbedApp from './EmbedApp'
 import { isSchemaChangedError } from './api/client'
 import { I18nProvider } from './i18n'
+import { isEmbed, startEmbed } from './lib/embed'
 import '@fontsource-variable/inter'
 import './index.css'
 
@@ -21,11 +23,13 @@ const queryClient = new QueryClient({
   },
 })
 
+startEmbed()
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <I18nProvider>
       <QueryClientProvider client={queryClient}>
-        <App />
+        {isEmbed ? <EmbedApp /> : <App />}
       </QueryClientProvider>
     </I18nProvider>
   </StrictMode>,

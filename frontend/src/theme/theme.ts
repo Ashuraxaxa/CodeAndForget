@@ -25,9 +25,10 @@ function apply() {
   document.documentElement.dataset.theme = dark ? 'dark' : 'light'
 }
 
-export function setTheme(pref: ThemePreference) {
+/** Cambia el tema. Con remember = false (p. ej. lo pide una página embebida) no se guarda en el navegador. */
+export function setTheme(pref: ThemePreference, remember = true) {
   current = pref
-  try {
+  if (remember) try {
     if (pref === 'system') localStorage.removeItem(THEME_KEY)
     else localStorage.setItem(THEME_KEY, pref)
   } catch { /* no se recuerda entre visitas */ }

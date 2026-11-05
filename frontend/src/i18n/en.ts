@@ -331,6 +331,7 @@ export const en: Messages = {
   'No hay latitudes y longitudes válidas.': 'There are no valid latitudes and longitudes.',
   'Solo al abrir': 'Only when opened',
   'Toca un grupo para ver sus registros.': 'Tap a group to see its records.',
+  'Cargando el mapa…': 'Loading the map…',
   'Nuevo registro · {table}': 'New record · {table}',
   'Historial': 'History',
   'Volver': 'Back',

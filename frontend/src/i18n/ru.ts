@@ -331,6 +331,7 @@ export const ru: Messages = {
   'No hay latitudes y longitudes válidas.': 'Нет корректных широт и долгот.',
   'Solo al abrir': 'Только при открытии',
   'Toca un grupo para ver sus registros.': 'Нажмите на группу, чтобы увидеть её записи.',
+  'Cargando el mapa…': 'Загрузка карты…',
   'Nuevo registro · {table}': 'Новая запись · {table}',
   'Historial': 'История',
   'Volver': 'Назад',

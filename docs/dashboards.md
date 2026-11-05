@@ -100,5 +100,6 @@ temas y no suman peso al paquete. Alternativa descartada por ahora: Recharts (~1
 2. Se comparte **solo con perfiles**.
 3. Topes de tarjetas: 6 / 20 / 50.
 4. Se suman la **tabla dinámica** (etapas 3 y 4) y el **mapa** (etapa 5).
-   - El mapa no depende de un servicio externo (D-022): por defecto dibuja los puntos sobre un contorno propio en SVG.
+   - El mapa no depende de un servicio externo (D-022): dibuja los puntos sobre los contornos de los países de Natural Earth
+     1:50m (dominio público), que van con la app y se descargan solo si el dashboard tiene un mapa.
    - Un servidor de mosaicos (OpenStreetMap u otro) es opcional, por configuración.

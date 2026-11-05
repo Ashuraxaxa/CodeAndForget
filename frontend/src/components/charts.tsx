@@ -1,7 +1,8 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { AggregateRow, DateBucket } from '../api/types'
 import { useT } from '../i18n'
 import { axisLabel, formatNumber, keyLabel, lang } from '../lib/chartFormat'
+import { loadCountries, type Bbox, type Country } from '../lib/worldMap'
 
 /**
  * Gráficos de las tarjetas de dashboard (P-129, D-111), en SVG propio. Colores: variables --series-1…8 (paleta
@@ -243,50 +244,67 @@ export function PivotTable({ rows, bucket, bucket2 }: { rows: AggregateRow[]; bu
   )
 }
 
-// ---------- Mapa (P-131): puntos por latitud y longitud, sobre una cuadrícula propia, sin servicios externos ----------
+// ---------- Mapa (P-131): puntos por latitud y longitud sobre los contornos de los países, sin servicios externos ----------
 
 export function MapChart({ rows }: { rows: AggregateRow[] }) {
   const t = useT()
   const [ref, width] = useWidth<HTMLDivElement>()
   const tip = useTip()
+  const [countries, setCountries] = useState<Country[] | null>(null)
+  useEffect(() => { let on = true; loadCountries(lang()).then(c => { if (on) setCountries(c) }).catch(() => { if (on) setCountries([]) }); return () => { on = false } }, [])
   const pts = rows
     .map(r => ({ lat: num(r.key), lon: num(r.key2), v: Math.max(0, num(r.value)), label: r.label ?? r.label2 }))
     .filter(p => Math.abs(p.lat) <= 90 && Math.abs(p.lon) <= 180 && !(p.lat === 0 && p.lon === 0))
-  const h = 260, pad = 16
+  const h = 340, pad = 12
   if (pts.length === 0) return <p className="muted small">{t('No hay latitudes y longitudes válidas.')}</p>
-  // Encuadre: los puntos con un margen, sin deformar (misma escala en x e y, proyección equirectangular).
-  let [minLat, maxLat] = [Math.min(...pts.map(p => p.lat)), Math.max(...pts.map(p => p.lat))]
-  let [minLon, maxLon] = [Math.min(...pts.map(p => p.lon)), Math.max(...pts.map(p => p.lon))]
-  const spanLat = Math.max(maxLat - minLat, 0.02), spanLon = Math.max(maxLon - minLon, 0.02)
-  minLat -= spanLat * 0.1; maxLat += spanLat * 0.1; minLon -= spanLon * 0.1; maxLon += spanLon * 0.1
-  const w = Math.max(0, width - pad * 2)
-  const scale = Math.min(w / (maxLon - minLon), (h - pad * 2) / (maxLat - minLat))
-  const ox = pad + (w - (maxLon - minLon) * scale) / 2, oy = pad + (h - pad * 2 - (maxLat - minLat) * scale) / 2
-  const x = (lon: number) => ox + (lon - minLon) * scale
-  const y = (lat: number) => oy + (maxLat - lat) * scale
-  const vmax = Math.max(...pts.map(p => p.v), 1)
-  const r = (v: number) => 3 + Math.sqrt(v / vmax) * 12
-  // Líneas de latitud y longitud cada "paso" redondo (1, 2, 5, 10…), como referencia.
-  const step = (span: number) => { const raw = span / 4; const p = 10 ** Math.floor(Math.log10(raw)); return [1, 2, 5, 10].map(m => m * p).find(s => s >= raw) ?? raw }
-  const sl = step(maxLat - minLat), so = step(maxLon - minLon)
-  const lats: number[] = [], lons: number[] = []
-  for (let v = Math.ceil(minLat / sl) * sl; v <= maxLat; v += sl) lats.push(v)
-  for (let v = Math.ceil(minLon / so) * so; v <= maxLon; v += so) lons.push(v)
+
+  // Encuadre: los puntos con margen (al menos 2°, para ver dónde quedan) y la escala de longitud corregida por la
+  // latitud media (proyección equirectangular), así el país no se ve ancho ni angosto. El encuadre llena la tarjeta.
+  const latC = (Math.min(...pts.map(p => p.lat)) + Math.max(...pts.map(p => p.lat))) / 2
+  const lonC = (Math.min(...pts.map(p => p.lon)) + Math.max(...pts.map(p => p.lon))) / 2
+  const kx = Math.cos((latC * Math.PI) / 180)
+  const spanLat = Math.max(2, (Math.max(...pts.map(p => p.lat)) - Math.min(...pts.map(p => p.lat))) * 1.25)
+  const spanLon = Math.max(2, (Math.max(...pts.map(p => p.lon)) - Math.min(...pts.map(p => p.lon))) * 1.25)
+  const w = Math.max(1, width - pad * 2), hh = h - pad * 2
+  const scale = Math.min(w / (spanLon * kx), hh / spanLat)
+  const x = (lon: number) => pad + w / 2 + (lon - lonC) * kx * scale
+  const y = (lat: number) => pad + hh / 2 - (lat - latC) * scale
+  const view = { minLon: lonC - width / 2 / (kx * scale), maxLon: lonC + width / 2 / (kx * scale), minLat: latC - h / 2 / scale, maxLat: latC + h / 2 / scale }
+  // Por polígono, no por país: Francia, Kiribati o Fiyi tienen islas en todo el mundo, y un recuadro por país los
+  // traería a cualquier mapa. Un polígono que cruza el meridiano 180 (más de 180° de ancho) se deja fuera.
+  const inView = (b: Bbox) => b[2] >= view.minLon && b[0] <= view.maxLon && b[3] >= view.minLat && b[1] <= view.maxLat && b[2] - b[0] <= 180
+  const visible = (countries ?? []).map(c => ({ ...c, rings: c.rings.filter(r => inView(r.bbox)) })).filter(c => c.rings.length > 0)
+  const path = (c: Country) => c.rings.map(r => 'M' + r.points.map(([lo, la]) => `${x(lo).toFixed(1)},${y(la).toFixed(1)}`).join('L') + 'Z').join('')
+  // Nombre de los países que se ven en buena parte, en el centro de lo que se ve de su polígono mayor.
+  const viewArea = (view.maxLon - view.minLon) * (view.maxLat - view.minLat)
+  const names = visible.map(c => {
+    const big = c.rings.reduce((m, r) => ((r.bbox[2] - r.bbox[0]) * (r.bbox[3] - r.bbox[1]) > (m.bbox[2] - m.bbox[0]) * (m.bbox[3] - m.bbox[1]) ? r : m))
+    const a = Math.max(big.bbox[0], view.minLon), b = Math.min(big.bbox[2], view.maxLon), d = Math.max(big.bbox[1], view.minLat), e = Math.min(big.bbox[3], view.maxLat)
+    return { name: c.name, x: x((a + b) / 2), y: y((d + e) / 2), share: ((b - a) * (e - d)) / viewArea }
+  }).filter(n => n.share > 0.06 && n.name)
+
+  // Tamaño por el resultado; si todos valen lo mismo, un tamaño mediano.
+  const vmax = Math.max(...pts.map(p => p.v), 1), vmin = Math.min(...pts.map(p => p.v))
+  const r = (v: number) => vmax === vmin ? 7 : 4 + Math.sqrt(v / vmax) * 11
   const fmt = (v: number) => new Intl.NumberFormat(lang(), { maximumFractionDigits: 4 }).format(v)
   return (
     <div className="chart chart-map" ref={ref}>
       {width > 0 && (
         <svg width={width} height={h} role="img" aria-label={t('Mapa de puntos')}>
-          <rect x={0} y={0} width={width} height={h} className="chart-map-bg" rx={6} />
-          {lats.map(v => <g key={`a${v}`}><line x1={0} x2={width} y1={y(v)} y2={y(v)} className="chart-grid" /><text x={4} y={y(v) - 3} className="chart-axis">{fmt(v)}°</text></g>)}
-          {lons.map(v => <g key={`o${v}`}><line y1={0} y2={h} x1={x(v)} x2={x(v)} className="chart-grid" /><text x={x(v) + 3} y={h - 4} className="chart-axis">{fmt(v)}°</text></g>)}
-          {[...pts].sort((a, b) => b.v - a.v).map((p, i) => (
-            <circle key={i} cx={x(p.lon)} cy={y(p.lat)} r={r(p.v)} className="chart-map-dot" style={{ fill: 'var(--series-1)' }}
-              onPointerMove={e => tip.show(e, <><b>{p.label ?? `${fmt(p.lat)}, ${fmt(p.lon)}`}</b><span>{formatNumber(p.v)}</span></>)}
-              onPointerLeave={tip.hide} />
-          ))}
+          <defs><clipPath id="map-clip"><rect x={0} y={0} width={width} height={h} rx={6} /></clipPath></defs>
+          <g clipPath="url(#map-clip)">
+            <rect x={0} y={0} width={width} height={h} className="chart-map-sea" />
+            {visible.map(c => <path key={c.id || c.name} d={path(c)} className="chart-map-land" fillRule="evenodd" />)}
+            {names.map(n => <text key={n.name} x={n.x} y={n.y} className="chart-map-name" textAnchor="middle">{n.name}</text>)}
+            {[...pts].sort((a, b) => b.v - a.v).map((p, i) => (
+              <circle key={i} cx={x(p.lon)} cy={y(p.lat)} r={r(p.v)} className="chart-map-dot" style={{ fill: 'var(--series-1)' }}
+                onPointerMove={e => tip.show(e, <><b>{p.label ?? `${fmt(p.lat)}, ${fmt(p.lon)}`}</b><span>{formatNumber(p.v)}</span></>)}
+                onPointerLeave={tip.hide} />
+            ))}
+          </g>
         </svg>
       )}
+      {countries == null && <p className="muted small">{t('Cargando el mapa…')}</p>}
       {tip.node}
     </div>
   )

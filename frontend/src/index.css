@@ -766,5 +766,10 @@ a.user-chip:hover { background: var(--hover); color: var(--text); }
 .bar-row.pickable:hover .bar-fill { filter: brightness(1.1); }
 tr.pickable:hover td { background: var(--hover); }
 .widget-head { grid-template-columns: 1fr auto; align-items: start; }
-.chart-map-bg { fill: var(--surface-2); }
 .chart-map-dot { fill-opacity: 0.7; stroke: var(--surface); stroke-width: 1.5; }
+/* Mapa (P-131): mar y tierra tenues, para que los puntos manden. */
+:root { --map-sea: #e8eef4; --map-land: #fbfbfa; --map-border: #c9cfd6; }
+:root[data-theme='dark'] { --map-sea: #0f1418; --map-land: #1f252b; --map-border: #39414a; }
+.chart-map-sea { fill: var(--map-sea); }
+.chart-map-land { fill: var(--map-land); stroke: var(--map-border); stroke-width: 0.8; stroke-linejoin: round; }
+.chart-map-name { fill: var(--muted); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; pointer-events: none; }

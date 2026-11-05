@@ -21,7 +21,8 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 | `feature/dashboards` | PR #58 fusionado: plan y etapa 1, consultas de resumen (P-127, D-111). |
 | `feature/dashboards-guardar` | PR #59 fusionado: guardar, permisos, compartir y topes (P-128). |
 | `feature/dashboards-ver` | PR #60 fusionado: menú, lista y página con 6 tipos de tarjeta (P-129). |
-| `feature/dashboards-editor` | Dashboards, etapa 4: editor de tarjetas con vista previa y compartir (P-130). |
+| `feature/dashboards-editor` | PR #61 fusionado: editor de tarjetas con vista previa y compartir (P-130). |
+| `fix/busqueda-sin-tildes` | Combos y filtro de FK sin distinguir tildes (P-109). |
 
 ## Qué funciona hoy
 

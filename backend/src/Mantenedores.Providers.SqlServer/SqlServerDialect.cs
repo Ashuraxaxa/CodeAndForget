@@ -23,6 +23,10 @@ public sealed partial class SqlServerDialect : ISqlDialect
     public string Contains(string columnExpr, string param, bool isText = false) =>
         $"{(isText ? columnExpr : $"CAST({columnExpr} AS nvarchar(max))")} LIKE {param} ESCAPE '{QueryBuilder.LikeEscape}'";
 
+    /// <summary>Sin tildes ni mayúsculas (P-109): una intercalación _CI_AI, que existe desde siempre.</summary>
+    public string ContainsIgnoringAccents(string columnExpr, string param, bool isText = false) =>
+        $"{(isText ? columnExpr : $"CAST({columnExpr} AS nvarchar(max))")} COLLATE Latin1_General_CI_AI LIKE {param} ESCAPE '{QueryBuilder.LikeEscape}'";
+
     /// <summary>decimal(29..38) puede no caber en decimal de .NET: se lee como texto (P-023).</summary>
     public string SelectExpression(ColumnInfo column, string columnExpr) =>
         column.IsLargeNumber ? $"CAST({columnExpr} AS varchar(50))"

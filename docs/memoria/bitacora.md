@@ -4,6 +4,11 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · README y landing al día
+- **README (español e inglés):** filas nuevas de Dashboards y de Power BI y Excel; la IA también arma dashboards privados; topes de dashboards en Planes; captura del dashboard en día y noche (`docs/img/dashboard-*.png`); `dashboards.md` y `powerbi.md` en la tabla de documentos.
+- **Landing:** tres funciones nuevas (dashboards, Power BI y Excel, instalación con un comando), topes de dashboards en los tres planes y el texto de IA corregido ("nunca guarda nada" ya no era cierto). Revisada en 1440 y 390 px, sin desbordes.
+- **P-118:** `celdo.net` ya apunta al App Service, según el dueño.
+
 ## 2026-11-05 · Revisión responsiva (P-133)
 - **Barrido automático:** 14 pantallas en 8 anchos (360, 390, 768, 1024, 1280, 1440, 1920 y 2560), buscando desborde horizontal y mirando las capturas.
 - **Tablet vertical (761 a 900 px):** la barra superior se pasaba 186 px en todas las pantallas. Ahora el menú y el plan quedan como íconos y se oculta el nombre del usuario.

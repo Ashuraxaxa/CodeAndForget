@@ -116,7 +116,7 @@ Detalle técnico en [../motores.md](../motores.md).
 | P-111 | Copiar ajustes entre conexiones del mismo motor (todo o por partes y tablas, con vista previa) y duplicar una conexión con sus ajustes (D-098) | 🟡 | ✅ PR #42 |
 | P-110 | Combos de FK filtrados por otra columna del registro (AreaID según EmpresaID), bloqueados hasta elegir y validados al guardar (D-097) | 🟡 | ✅ PR #41 |
 | P-108 | Combos con búsqueda (autocompletar) en todas las listas, con el texto visible en modo noche (D-096) | 🟡 | ✅ PR #40 |
-| P-109 | La búsqueda de FK en el servidor distingue tildes ("lact" no encuentra "Lácteos"): depende de la intercalación de cada motor | ⚪ | ⏳ |
+| P-109 | La búsqueda de FK en el servidor no distingue tildes: "lact" encuentra "Lácteos" en combos y en el filtro por texto de la FK (`ContainsIgnoringAccents`) | ⚪ | ✅ 2026-11-05 |
 | P-107 | Grilla: paginador con primera, última, números e "Ir a página"; acciones a la izquierda fijas; indicador de carga (D-095) | 🟡 | ✅ PR #39 |
 | P-106 | Backend en .NET 10, con las dependencias vulnerables que encontró la auditoría del SDK corregidas (D-094) | 🟡 | ✅ PR #38 |
 | P-105 | Interfaz renovada: tema día/noche con selector, íconos, fuente propia, README nuevo en español e inglés (D-093) | 🟡 | ✅ PR #37 |

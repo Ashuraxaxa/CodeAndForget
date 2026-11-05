@@ -16,6 +16,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 - **Ir a la grilla:** un clic en una barra, una porción o una fila del top N abre la grilla con los filtros de la tarjeta y ese grupo (`f.columna=valor`).
 - **MCP:** `list_dashboards`, `preview_widget` y `create_dashboard`. El dashboard queda privado del usuario, que decide si lo comparte.
 
+## 2026-11-05 · Combos sin tildes (P-109)
+- El dueño pidió la etapa 5 de los dashboards y P-109, y al final algo de Power BI o tratamiento de datos.
+- **P-109:** `ISqlDialect.ContainsIgnoringAccents` se usa en los combos y en el filtro por texto de la FK, no en la búsqueda general, que puede usar índices.
+  - SQL Server: `COLLATE Latin1_General_CI_AI`.
+  - PostgreSQL: `translate` y `lower`, sin depender de `unaccent`.
+  - MySQL y MariaDB: `utf8mb4_unicode_ci`, que existe en las dos.
+- **Pruebas:** "lact", "LACTEOS" y "Lácteos" encuentran la categoría en los 4 motores.
+
 ## 2026-11-05 · Dashboards, etapa 4: editor (P-130)
 - "Editar" en el dashboard (y al crearlo se abre ya en edición): nombre, descripción, tarjetas, tamaño, orden (arrastrando o con flechas) y compartir con perfiles ("puede ver" o "puede editar").
 - **Formulario de tarjeta:** conexión, tabla, tipo, cálculo, agrupaciones (con período si es fecha), orden, tope, filtros y la fecha del período del dashboard.

@@ -27,6 +27,13 @@ public interface ISqlDialect
     /// <param name="isText">La columna ya es texto: sin CAST, la base puede usar un índice (p. ej. trigramas, P-034).</param>
     string Contains(string columnExpr, string param, bool isText = false);
 
+    /// <summary>
+    /// "Contiene" que además no distingue tildes ni ñ (P-109): "lact" encuentra "Lácteos". Se usa en los combos y en
+    /// el filtro por el texto de una FK, no en la búsqueda general (allí la columna puede tener índice). Por defecto,
+    /// el mismo <see cref="Contains"/>.
+    /// </summary>
+    string ContainsIgnoringAccents(string columnExpr, string param, bool isText = false) => Contains(columnExpr, param, isText);
+
     /// <summary>Expresión para un parámetro de escritura o filtro (p. ej. CAST a jsonb o a un enum en Postgres).</summary>
     string ParameterFor(ColumnInfo column, string param) => param;
 

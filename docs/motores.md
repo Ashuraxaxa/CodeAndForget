@@ -62,6 +62,7 @@ Los tres usan `@p0` (Npgsql lo traduce en Postgres). El prefijo vive en el diale
 | "Contiene" sin mayúsculas | `LIKE` (según intercalación) | `ILIKE` | `LIKE` (según intercalación) |
 | Carácter de escape de LIKE | `\` funciona | `\` funciona | **`\` depende de `NO_BACKSLASH_ESCAPES`** |
 | Conteo rápido estimado | `sys.partitions` | `pg_class.reltuples` | `information_schema.TABLES.TABLE_ROWS` |
+| "Contiene" sin tildes (combos, P-109) | `COLLATE Latin1_General_CI_AI` | `lower(translate(…))`, sin la extensión `unaccent` | `CONVERT(… USING utf8mb4) COLLATE utf8mb4_unicode_ci` |
 | Agrupar por fecha (dashboards, P-127) | `DATEFROMPARTS` y días desde el lunes 1900-01-01 (`DATETRUNC` es de 2022) | `date_trunc` (semana ISO, desde el lunes) | `DATE`, `WEEKDAY`, `MAKEDATE` |
 
 **Consecuencia:** todos los dialectos usan `!` como escape (`QueryBuilder.LikeEscape`, ✅ P-024).

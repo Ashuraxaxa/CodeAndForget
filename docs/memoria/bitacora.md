@@ -9,6 +9,11 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 - Ahora cada conexión del perfil tiene un selector "Solo las tablas agregadas" / "Todas las tablas", y una conexión nueva parte en la primera (D-110). No cambia el formato guardado.
 - También se explicó cómo emitir y activar una licencia (Plan → Activar licencia, o `License__Key`).
 
+## 2026-11-04 · Botón "Ver planes" en los errores de plan (P-122)
+- `ErrorText` muestra el mensaje de error y, si es del plan (403 `mantenedores:plan`), un botón "Ver planes" hacia la página Plan. Reemplaza al texto en todos los avisos de error de la interfaz.
+- Los errores que salen en una ventana del navegador (exportar, borrar, acciones, exportar la auditoría) ofrecen abrir Plan.
+- Probado en el navegador en plan Gratis, al crear un token de acceso.
+
 ## 2026-11-04 · Imagen Docker oficial (P-123)
 - Workflow **Publicar versión**: con una etiqueta `vX.Y.Z` corre pruebas y sube la imagen a `ghcr.io/ashuraxaxa/celdo` para amd64 y arm64 (D-109). Docker Hub queda opcional.
 - El Dockerfile compila en la plataforma nativa y publica para la de destino; estampa la versión.

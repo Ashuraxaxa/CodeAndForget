@@ -8,6 +8,7 @@ import { useCan } from '../lib/useMe'
 import { formatInstant } from '../lib/format'
 import { matches } from '../lib/search'
 import { translateServer, useT, type Translate } from '../i18n'
+import { ErrorText } from '../components/ErrorText'
 
 /** Plan y licencia (P-116, D-106): qué incluye, cuánto se usa, la clave y las tablas de Gratis. */
 export function PlanPage() {
@@ -22,7 +23,7 @@ export function PlanPage() {
   const trial = useMutation({ mutationFn: api.startTrial, onSuccess: done })
 
   if (plan.isLoading) return <div className="page"><p className="muted">{t('Cargando…')}</p></div>
-  if (plan.error || !plan.data) return <div className="page"><div className="alert">{(plan.error as Error)?.message}</div></div>
+  if (plan.error || !plan.data) return <div className="page"><div className="alert"><ErrorText error={plan.error} /></div></div>
   const p = plan.data
 
   function submit(e: FormEvent) {
@@ -95,7 +96,7 @@ export function PlanPage() {
                 {t('Pega aquí la clave que recibiste al comprar')}
                 <textarea className="mono" rows={3} value={key} onChange={e => setKey(e.target.value)} placeholder="CELDO1.…" spellCheck={false} />
               </label>
-              {save.error && <div className="alert">{(save.error as Error).message}</div>}
+              {save.error && <div className="alert"><ErrorText error={save.error} /></div>}
               <div className="actions">
                 <button className="primary" disabled={!key.trim() || save.isPending}>{t('Activar licencia')}</button>
                 {p.source === 'stored' && (
@@ -111,7 +112,7 @@ export function PlanPage() {
               <button type="button" disabled={trial.isPending} onClick={() => trial.mutate()}>{t('Empezar la prueba')}</button>
             </div>
           )}
-          {trial.error && <div className="alert">{(trial.error as Error).message}</div>}
+          {trial.error && <div className="alert"><ErrorText error={trial.error} /></div>}
         </section>
       )}
 
@@ -192,7 +193,7 @@ function FreeTablesPicker({ plan, canManage, onSaved }: { plan: PlanInfo; canMan
             <Search size={16} aria-hidden />
             <input value={q} onChange={e => setQ(e.target.value)} placeholder={t('Buscar tabla…')} aria-label={t('Buscar tabla…')} />
           </label>
-          {tables.error && <div className="alert">{(tables.error as Error).message}</div>}
+          {tables.error && <div className="alert"><ErrorText error={tables.error} /></div>}
           <ul className="free-table-list">
             {list.map(x => {
               const k = keyOf(x.schema, x.name)
@@ -211,7 +212,7 @@ function FreeTablesPicker({ plan, canManage, onSaved }: { plan: PlanInfo; canMan
               )
             })}
           </ul>
-          {add.error && <div className="alert">{(add.error as Error).message}</div>}
+          {add.error && <div className="alert"><ErrorText error={add.error} /></div>}
           <div className="actions">
             {!confirming ? (
               <button className="primary" disabled={picked.size === 0} onClick={() => setConfirming(true)}>

@@ -5,6 +5,7 @@ import { api } from '../api/client'
 import { SearchSelect } from '../components/Combo'
 import { formatInstant } from '../lib/format'
 import { useT } from '../i18n'
+import { ErrorText } from '../components/ErrorText'
 
 /**
  * Tokens de acceso del usuario (P-113, D-100), p. ej. para conectar una IA por MCP. Cada token tiene exactamente el
@@ -74,13 +75,13 @@ export function TokensPage() {
             ]} />
           </label>
         </div>
-        {create.error && <div className="alert">{(create.error as Error).message}</div>}
+        {create.error && <div className="alert"><ErrorText error={create.error} /></div>}
         <div className="actions">
           <button className="primary" disabled={create.isPending || !name.trim()}><Plus size={16} aria-hidden />{t('Crear token')}</button>
         </div>
       </form>
 
-      {tokens.error && <div className="alert">{(tokens.error as Error).message}</div>}
+      {tokens.error && <div className="alert"><ErrorText error={tokens.error} /></div>}
       {tokens.data && tokens.data.length === 0 && <p className="muted">{t('Aún no tienes tokens.')}</p>}
       {tokens.data && tokens.data.length > 0 && (
         <div className="table-wrap">

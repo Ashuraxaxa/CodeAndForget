@@ -27,7 +27,7 @@ Plan completo en [../comercial/plan-comercial.md](../comercial/plan-comercial.md
 | P-118 | Landing en línea: hosting estático con el dominio, enlaces de pago, analítica sin cookies, términos y privacidad. Hecho: publicación en Azure App Service `celdo` desde la CI (PR #51). Falta: apuntar `celdo.net` al App Service, enlaces de pago, analítica, términos y privacidad | 🔴 | 🚧 |
 | P-119 | Marca y dominio: búsqueda formal y registro de "Celdo" en INDECOPI, compra del dominio (hecho: `celdo.net`, 2026-11-04) y de las cuentas en redes (lo hace el dueño) | 🔴 | 🚧 |
 | P-121 | Demo pública de solo lectura con la base de ejemplo | 🟡 | ⏳ |
-| P-122 | Avisos dentro de la app al llegar a un límite del plan, con la prueba Pro de 30 días. Ya hay: aviso de tablas por elegir, licencia vencida o funciones Empresa sin licencia, y el mensaje del 403 dice qué plan hace falta. Falta un botón "Ver planes" junto a cada error de plan | 🟡 | 🚧 |
+| P-122 | Avisos dentro de la app al llegar a un límite del plan, con la prueba Pro de 30 días: aviso de tablas por elegir, licencia vencida o funciones Empresa sin licencia, el 403 dice qué plan hace falta y cada error de plan trae un botón "Ver planes" hacia la página Plan | 🟡 | ✅ 2026-11-04 |
 
 ## 0. Cierre de la Fase 1
 

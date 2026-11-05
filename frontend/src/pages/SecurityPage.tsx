@@ -6,6 +6,7 @@ import { api, ApiError } from '../api/client'
 import type { DataOperation, SecurityProfile, SecurityUser } from '../api/types'
 import { useMe } from '../lib/useMe'
 import { useT, type Translate } from '../i18n'
+import { ErrorText } from '../components/ErrorText'
 
 const opLabels = (t: Translate): Record<DataOperation, string> => ({
   view: t('Ver'), create: t('Crear'), update: t('Editar'), delete: t('Borrar'), export: t('Exportar'), import: t('Importar'),
@@ -79,8 +80,8 @@ function Profiles({ adminRoles, permissions }: { adminRoles: string[]; permissio
         <button className="primary" onClick={() => setEditing('new')}><Plus size={16} aria-hidden />{t('Nuevo perfil')}</button>
       </div>
       {profiles.isLoading && <p className="muted">{t('Cargando…')}</p>}
-      {profiles.error && <div className="alert">{(profiles.error as Error).message}</div>}
-      {remove.error && <div className="alert">{(remove.error as Error).message}</div>}
+      {profiles.error && <div className="alert"><ErrorText error={profiles.error} /></div>}
+      {remove.error && <div className="alert"><ErrorText error={remove.error} /></div>}
       {profiles.data?.length === 0 && <div className="empty">{t('Aún no hay perfiles.')}</div>}
       <div className="cards">
         {profiles.data?.map(p => (
@@ -172,7 +173,7 @@ function ProfileForm({ initial, copy = false, permissions, onClose }: {
     },
   })
   const errors = save.error instanceof ApiError ? save.error.fieldErrors : {}
-  const generalError = save.error && Object.keys(errors).length === 0 ? (save.error as Error).message : null
+  const generalError = save.error && Object.keys(errors).length === 0 ? save.error : null
   const setRule = (i: number, r: Partial<ConnectionDraft>) => setRules(s => s.map((x, j) => (j === i ? { ...x, ...r } : x)))
   const used = new Set(rules.map(r => r.conn))
 
@@ -240,7 +241,7 @@ function ProfileForm({ initial, copy = false, permissions, onClose }: {
         </button>
       </div>
 
-      {generalError && <div className="alert">{generalError}</div>}
+      {generalError && <div className="alert"><ErrorText error={generalError} /></div>}
       <div className="actions">
         <button className="primary" disabled={save.isPending}>{save.isPending ? t('Guardando…') : t('Guardar')}</button>
         <button type="button" onClick={onClose}>{t('Cancelar')}</button>
@@ -393,8 +394,8 @@ function Users({ local, minPassword }: { local: boolean; minPassword: number }) 
         {local && <button className="primary" onClick={() => setEditing('new')}><Plus size={16} aria-hidden />{t('Nuevo usuario')}</button>}
       </div>
       {editing && <UserForm initial={editing === 'new' ? null : editing} minPassword={minPassword} onClose={() => { setEditing(null); done() }} />}
-      {users.error && <div className="alert">{(users.error as Error).message}</div>}
-      {(remove.error ?? toggle.error) && <div className="alert">{((remove.error ?? toggle.error) as Error).message}</div>}
+      {users.error && <div className="alert"><ErrorText error={users.error} /></div>}
+      {(remove.error ?? toggle.error) && <div className="alert"><ErrorText error={remove.error ?? toggle.error} /></div>}
       <div className="table-wrap">
         <table className="grid">
           <thead><tr><th>{t('Usuario')}</th><th>{t('Nombre')}</th><th>{t('Origen')}</th><th>{t('Estado')}</th><th className="actions-col" /></tr></thead>
@@ -434,7 +435,7 @@ function UserForm({ initial, minPassword, onClose }: { initial: SecurityUser | n
     onSuccess: onClose,
   })
   const errors = save.error instanceof ApiError ? save.error.fieldErrors : {}
-  const generalError = save.error && Object.keys(errors).length === 0 ? (save.error as Error).message : null
+  const generalError = save.error && Object.keys(errors).length === 0 ? save.error : null
 
   return (
     <form className="card form" onSubmit={e => { e.preventDefault(); save.mutate() }}>
@@ -455,7 +456,7 @@ function UserForm({ initial, minPassword, onClose }: { initial: SecurityUser | n
           {errors.password && <span className="field-error">{errors.password}</span>}
         </label>
       </div>
-      {generalError && <div className="alert">{generalError}</div>}
+      {generalError && <div className="alert"><ErrorText error={generalError} /></div>}
       <div className="actions">
         <button className="primary" disabled={save.isPending}>{save.isPending ? t('Guardando…') : t('Guardar')}</button>
         <button type="button" onClick={onClose}>{t('Cancelar')}</button>

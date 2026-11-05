@@ -223,6 +223,8 @@ export const en: Messages = {
   'Todavía no ve ninguna tabla de esta conexión: agregue las que podrá usar.': 'It does not see any table of this connection yet: add the ones it can use.',
   'Solo ve las tablas agregadas, con las operaciones de cada una.': 'It only sees the added tables, with the operations of each one.',
   'Ve todas las tablas con estas operaciones; una tabla agregada usa las suyas.': 'It sees all tables with these operations; an added table uses its own.',
+  'Ver planes': 'See plans',
+  '¿Quieres ver los planes?': 'Do you want to see the plans?',
   'Nuevo registro · {table}': 'New record · {table}',
   'Historial': 'History',
   'Volver': 'Back',

@@ -223,6 +223,8 @@ export const ru: Messages = {
   'Todavía no ve ninguna tabla de esta conexión: agregue las que podrá usar.': 'Пока не видит ни одной таблицы этого подключения: добавьте те, с которыми можно работать.',
   'Solo ve las tablas agregadas, con las operaciones de cada una.': 'Видит только добавленные таблицы, с операциями каждой из них.',
   'Ve todas las tablas con estas operaciones; una tabla agregada usa las suyas.': 'Видит все таблицы с этими операциями; добавленная таблица использует свои.',
+  'Ver planes': 'Посмотреть планы',
+  '¿Quieres ver los planes?': 'Посмотреть тарифные планы?',
   'Nuevo registro · {table}': 'Новая запись · {table}',
   'Historial': 'История',
   'Volver': 'Назад',

@@ -16,6 +16,7 @@ import { FieldControl } from '../components/FieldControl'
 import { useDebounce } from '../lib/useDebounce'
 import { useMe } from '../lib/useMe'
 import { LOCALES, translateServer, useT, type Translate } from '../i18n'
+import { ErrorText } from '../components/ErrorText'
 
 /** Editor de ajustes de un mantenedor (P-012): sin editar JSON, con vista previa en vivo. Requiere el permiso ConfigureTables (D-053). */
 export function ConfigPage() {
@@ -40,7 +41,7 @@ export function ConfigPage() {
   if (!me.data?.permissions.includes('ConfigureTables'))
     return <div className="alert">{t('No tiene permiso para configurar tablas (pídale a un administrador el rol correspondiente).')}</div>
   const error = current.error ?? initial.error
-  if (error) return <div className="alert">{(error as Error).message}</div>
+  if (error) return <div className="alert"><ErrorText error={error} /></div>
   if (!initial.data) return <p className="muted">{t('Cargando…')}</p>
 
   return <Editor conn={conn} initialDoc={current.data!} initialTable={initial.data.table} />
@@ -201,7 +202,7 @@ function Editor({ conn, initialDoc, initialTable }: { conn: string; initialDoc: 
             </div>
           )}
           {save.error && !(save.error instanceof ApiError && Object.keys(saveErrors).length > 0) && (
-            <div className="alert">{(save.error as Error).message}</div>
+            <div className="alert"><ErrorText error={save.error} /></div>
           )}
 
           <div className="actions">

@@ -5,6 +5,7 @@ import { api } from '../api/client'
 import { labelOf, type ForeignKey, type Row } from '../api/types'
 import { Grid } from '../pages/TablePage'
 import { useT } from '../i18n'
+import { ErrorText } from './ErrorText'
 
 /**
  * Maestro-detalle (P-014): una pestaña por tabla hija, con su grilla filtrada por la FK al registro.
@@ -50,7 +51,7 @@ function ChildGrid({ conn, row, fk, returnTo }: { conn: string; row: Row; fk: Fo
   const t = useT()
   const meta = useQuery({ queryKey: ['meta', conn, fk.schema, fk.table], queryFn: () => api.table(conn, fk.schema, fk.table) })
   if (meta.isLoading) return <p className="muted">{t('Cargando…')}</p>
-  if (meta.error) return <div className="alert">{(meta.error as Error).message}</div>
+  if (meta.error) return <div className="alert"><ErrorText error={meta.error} /></div>
 
   // Valores de la FK: las columnas referenciadas del registro padre (sirve también para FK compuestas).
   const fixed: Record<string, string> = {}

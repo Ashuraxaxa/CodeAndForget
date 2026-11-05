@@ -7,6 +7,7 @@ import { api } from '../api/client'
 import type { SchemaChange } from '../api/types'
 import { useCan } from '../lib/useMe'
 import { translateServer, useT } from '../i18n'
+import { ErrorText } from './ErrorText'
 
 /**
  * Aviso de cambios en el esquema desde la foto de referencia y de ajustes que quedaron sin efecto (P-013).
@@ -71,7 +72,7 @@ export function SchemaChangesBanner({ conn }: { conn: string }) {
               <ul>{d.overrideWarnings.map(w => <li key={w}>{w}</li>)}</ul>
             </div>
           )}
-          {accept.error && <div className="alert">{(accept.error as Error).message}</div>}
+          {accept.error && <div className="alert"><ErrorText error={accept.error} /></div>}
         </div>
       )}
     </div>

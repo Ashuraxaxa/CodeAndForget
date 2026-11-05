@@ -4,6 +4,8 @@ import { api, ApiError } from '../api/client'
 import { labelOf, type ActionResult, type TableAction, type TableMeta } from '../api/types'
 import { displayValue } from '../lib/format'
 import { useT } from '../i18n'
+import { alertError } from '../lib/planError'
+import { useNavigate } from 'react-router-dom'
 
 /**
  * Botones de las acciones de la tabla (P-061) en el formulario de un registro. Pide los parámetros marcados como
@@ -16,6 +18,7 @@ export function RecordActions({ conn, meta, recordKey, onDone, setResult }: {
   conn: string; meta: TableMeta; recordKey: string; onDone: () => void; setResult: (r: ActionRun | null) => void
 }) {
   const t = useT()
+  const navigate = useNavigate()
   const qc = useQueryClient()
   const run = useMutation({
     mutationFn: ({ action, asked }: { action: TableAction; asked: Record<string, unknown> }) =>
@@ -25,7 +28,7 @@ export function RecordActions({ conn, meta, recordKey, onDone, setResult }: {
       qc.invalidateQueries({ queryKey: ['rows', conn, meta.schema, meta.name] })
       onDone()
     },
-    onError: e => alert((e instanceof ApiError && Object.values(e.fieldErrors)[0]) || (e as Error).message),
+    onError: e => alertError(e, t, navigate, (e instanceof ApiError && Object.values(e.fieldErrors)[0]) || undefined),
   })
 
   if (!meta.canExecute || !meta.actions?.length) return null

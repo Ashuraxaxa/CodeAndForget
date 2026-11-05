@@ -7,6 +7,7 @@ import type { DataOperation, SecurityProfile, SecurityUser } from '../api/types'
 import { useMe } from '../lib/useMe'
 import { useT, type Translate } from '../i18n'
 import { ErrorText } from '../components/ErrorText'
+import { EmbedAppsPanel } from './EmbedAppsPanel'
 
 const opLabels = (t: Translate): Record<DataOperation, string> => ({
   view: t('Ver'), create: t('Crear'), update: t('Editar'), delete: t('Borrar'), export: t('Exportar'), import: t('Importar'),
@@ -29,7 +30,7 @@ export function SecurityPage() {
   const t = useT()
   const allowed = me.data?.permissions.includes('ManageSecurity') === true
   const info = useQuery({ queryKey: ['security-info'], queryFn: api.securityInfo, enabled: allowed })
-  const [tab, setTab] = useState<'profiles' | 'users'>('profiles')
+  const [tab, setTab] = useState<'profiles' | 'users' | 'apps'>('profiles')
 
   if (me.isLoading) return <p className="muted">{t('Cargando…')}</p>
   if (!allowed) return <div className="page"><div className="alert">{t('Necesita el permiso para administrar la seguridad.')}</div></div>
@@ -45,8 +46,10 @@ export function SecurityPage() {
       <div className="tabs">
         <button className={tab === 'profiles' ? 'tab active' : 'tab'} onClick={() => setTab('profiles')}>{t('Perfiles')}</button>
         <button className={tab === 'users' ? 'tab active' : 'tab'} onClick={() => setTab('users')}>{t('Usuarios')}</button>
+        <button className={tab === 'apps' ? 'tab active' : 'tab'} onClick={() => setTab('apps')}>{t('Aplicaciones')}</button>
       </div>
       {tab === 'profiles' ? <Profiles adminRoles={info.data?.adminRoles ?? []} permissions={info.data?.appPermissions ?? []} />
+        : tab === 'apps' ? <EmbedAppsPanel />
         : <Users local={info.data?.mode === 'Local'} minPassword={info.data?.minPasswordLength ?? 8} />}
     </div>
   )

@@ -27,7 +27,8 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 | `feature/dashboards-extras` | PR #63 fusionado: dashboards, etapa 5: mapa, refresco, CSV, ir a la grilla e IA (P-131). |
 | `fix/busqueda-sin-tildes` | PR #62 fusionado: combos y filtro de FK sin distinguir tildes (P-109). |
 | `docs/readme-landing` | PR #66 fusionado: README (español e inglés) y landing con dashboards, Power BI y Excel, y la imagen Docker; captura del dashboard. |
-| `feature/embeber` | Plan para embeber (D-113) y etapa 1: rutas `/embed` sin menú con la sesión del usuario, `frame-ancestors` con `Embed:AllowedOrigins` y la app protegida contra el clickjacking (P-134). |
+| `feature/embeber-apps` | Embeber, etapa 2: aplicaciones registradas y tokens firmados (P-135, D-114). |
+| `feature/embeber` | PR #67 fusionado: plan para embeber (D-113) y etapa 1: rutas `/embed` sin menú con la sesión del usuario, `frame-ancestors` con `Embed:AllowedOrigins` y la app protegida contra el clickjacking (P-134). |
 
 ## Qué funciona hoy
 

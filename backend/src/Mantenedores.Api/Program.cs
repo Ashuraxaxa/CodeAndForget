@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Mantenedores.Api.Auth;
+using Mantenedores.Api.Embed;
 using Mantenedores.Api.Endpoints;
 using Mantenedores.Api.Infrastructure;
 using Mantenedores.Api.Licensing;
@@ -121,6 +122,10 @@ builder.Services.AddMantenedoresTelemetry(
 // --- Licencia y plan (P-116, D-106): Gratis sin clave; Pro o Empresa con una licencia firmada, validada sin internet ---
 // --- Embeber en otras aplicaciones (P-134, D-113): sitios que pueden poner /embed en un iframe ---
 var embedOrigins = EmbedSetup.Validate(builder.Configuration.GetSection(EmbedOptions.Section).Get<EmbedOptions>() ?? new EmbedOptions());
+builder.Services.AddSingleton(sp => new Mantenedores.Api.Embed.EmbedAppService(
+    sp.GetRequiredService<Mantenedores.Core.Embed.IEmbedAppStore>(), sp.GetRequiredService<Mantenedores.Core.Security.SecurityService>(),
+    sp.GetRequiredService<Mantenedores.Core.Dashboards.IDashboardStore>(), sp.GetRequiredService<LicenseService>(),
+    sp.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>(), embedOrigins));
 builder.Services.Configure<LicenseOptions>(builder.Configuration.GetSection(LicenseOptions.Section));
 var businessInUse = LicenseService.BusinessFeatures(builder.Configuration, auth.Mode, plugins.Count);
 builder.Services.AddSingleton(sp => new LicenseService(sp.GetRequiredService<Mantenedores.Core.Licensing.IServiceSettings>(),
@@ -151,7 +156,7 @@ if (startPlan.RequiresBusiness.Count > 0)
 app.UseExceptionHandler();
 app.UseSlowRequestLog();
 app.UseHosting(hosting);
-app.UseFrameProtection(embedOrigins);
+app.UseFrameProtection();
 app.UseStaticFiles(); // Recursos del frontend compilado (wwwroot). index.html lo sirve MapSpaIndex.
 // Feed OData (P-132): sin credenciales, se pide usuario y contraseña (Básica), que es lo que ofrecen Power BI y Excel.
 app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/odata"), b => b.Use(async (ctx, next) =>
@@ -165,6 +170,7 @@ app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/odata"), b => b.Use(asy
     await next();
 }));
 app.UseAuthentication();
+app.UseEmbedSessionGate(); // una sesión embebida solo llega a sus datos y dashboards (P-135)
 app.UseMiddleware<PlanGateMiddleware>();
 app.UseRateLimiter(); // después de autenticar: el límite es por usuario
 app.UseAuthorization();
@@ -178,6 +184,7 @@ app.MapSecurity();
 app.MapTokens();
 app.MapAudit();
 app.MapDashboards();
+app.MapEmbed();
 app.MapOData();
 app.MapMantenedoresMcp(mcp);
 app.MapLicense();

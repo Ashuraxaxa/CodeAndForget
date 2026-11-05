@@ -481,6 +481,25 @@ export interface Suggestion {
 }
 
 /** Token de acceso del usuario, p. ej. para una IA por MCP (P-113). El secreto solo se ve al crearlo. */
+/** Aplicación que embebe con tokens firmados (P-135, D-113). La clave solo llega al crearla o rotarla. */
+export interface EmbedApp {
+  id: string
+  name: string
+  origins: string[]
+  profileId: string
+  enabled: boolean
+  /** Supera el tope del plan (se bajó de plan): no abre sesiones hasta subir. */
+  locked: boolean
+  secretSetAt: string
+  createdBy: string
+  createdAt: string
+}
+
+export interface EmbedAppInput { name?: string; origins?: string[]; profileId?: string; enabled?: boolean }
+
+/** Sesión de una página embebida, canjeada por el token firmado de la app anfitriona. */
+export interface EmbedSession { token: string; expiresAt: string; app: string; user: string }
+
 export interface AccessTokenInfo {
   id: string
   name: string

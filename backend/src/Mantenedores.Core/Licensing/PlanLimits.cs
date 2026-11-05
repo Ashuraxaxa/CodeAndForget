@@ -28,8 +28,10 @@ public enum Feature
 /// <summary>Topes de un plan. Nulo = sin tope.</summary>
 /// <param name="Dashboards">Dashboards de la instalación (D-111); nulo = sin tope.</param>
 /// <param name="Widgets">Tarjetas por dashboard.</param>
-public sealed record PlanLimits(Plan Plan, int? Users, int? Connections, int? Tables, int? AuditDays, int? Dashboards = null, int Widgets = PlanLimits.BusinessWidgets)
+/// <param name="EmbedApps">Aplicaciones que embeben con tokens firmados (D-113); nulo = sin tope. Gratis no embebe.</param>
+public sealed record PlanLimits(Plan Plan, int? Users, int? Connections, int? Tables, int? AuditDays, int? Dashboards = null, int Widgets = PlanLimits.BusinessWidgets, int? EmbedApps = null)
 {
+    public const int ProEmbedApps = 3;
     public const int FreeUsers = 2;
     public const int FreeConnections = 1;
     public const int FreeTables = 15;
@@ -44,8 +46,8 @@ public sealed record PlanLimits(Plan Plan, int? Users, int? Connections, int? Ta
 
     public static PlanLimits For(Plan plan, int? licensedUsers = null) => plan switch
     {
-        Plan.Free => new(plan, FreeUsers, FreeConnections, FreeTables, FreeAuditDays, FreeDashboards, FreeWidgets),
-        Plan.Pro => new(plan, licensedUsers is > 0 ? licensedUsers : ProUsers, null, null, ProAuditDays, ProDashboards, ProWidgets),
+        Plan.Free => new(plan, FreeUsers, FreeConnections, FreeTables, FreeAuditDays, FreeDashboards, FreeWidgets, 0),
+        Plan.Pro => new(plan, licensedUsers is > 0 ? licensedUsers : ProUsers, null, null, ProAuditDays, ProDashboards, ProWidgets, ProEmbedApps),
         _ => new(plan, licensedUsers is > 0 ? licensedUsers : null, null, null, null, null, BusinessWidgets)
     };
 

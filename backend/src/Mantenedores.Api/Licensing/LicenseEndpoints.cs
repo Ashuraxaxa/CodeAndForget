@@ -103,7 +103,9 @@ public sealed class PlanGateMiddleware(RequestDelegate next)
             throw new Core.Errors.PlanLimitException(
                 $"Esta instalación usa funciones del plan Empresa: {string.Join("; ", s.RequiresBusiness)}. Active una licencia Empresa en Plan o en License:Key.");
         if (path.StartsWithSegments(Mcp.McpSetup.Path)) await license.RequireAsync(Feature.Ai, ct);
-        if (auth.Value.Mode == AuthMode.Local && http.User.Identity is { IsAuthenticated: true, Name: { Length: > 0 } name })
+        // Los usuarios externos de una sesión embebida no ocupan lugar en el plan (D-113).
+        if (auth.Value.Mode == AuthMode.Local && http.User.Identity is { IsAuthenticated: true, Name: { Length: > 0 } name } &&
+            !Auth.EmbedSessionHandler.IsEmbedded(http.User))
             await license.EnsureSeatAsync(name, ct);
         await next(http);
     }

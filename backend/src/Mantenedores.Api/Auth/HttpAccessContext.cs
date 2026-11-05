@@ -22,6 +22,14 @@ public sealed class HttpAccessContext(IHttpContextAccessor http, SecurityService
     public async ValueTask<UserAccess> ForAsync(ClaimsPrincipal user, HttpContext? ctx, CancellationToken ct)
     {
         if (ctx?.Items[Key] is UserAccess cached) return cached;
+        if (user.FindFirst(EmbedSessionHandler.ScopeClaim)?.Value is { } scope &&
+            Embed.EmbedAppService.DeserializePayload(scope) is { } payload)
+        {
+            var embedded = Embed.EmbedAppService.AccessFor(user.Identity?.Name ?? "", await security.ProfilesAsync(ct),
+                user.FindFirst(EmbedSessionHandler.ProfileClaim)?.Value ?? "", payload);
+            if (ctx is not null) ctx.Items[Key] = embedded;
+            return embedded;
+        }
         var roles = Permissions.Roles(user);
         var access = await security.AccessForAsync(user.Identity?.Name, roles,
             ClaimsMapper.IsAdmin(roles, auth.Value.AdminRoles), ct);
@@ -32,6 +40,8 @@ public sealed class HttpAccessContext(IHttpContextAccessor http, SecurityService
     /// <summary>Permisos de la app: los de sus roles (configuración) más los de sus perfiles.</summary>
     public async ValueTask<IReadOnlyList<string>> PermissionsAsync(ClaimsPrincipal user, HttpContext? ctx, CancellationToken ct)
     {
+        // Una sesión embebida no tiene permisos de la app (administrar, auditar, configurar…).
+        if (EmbedSessionHandler.IsEmbedded(user)) return [];
         var granted = Permissions.Granted(auth.Value, Permissions.Roles(user)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var access = await ForAsync(user, ctx, ct);
         foreach (var p in access.AppPermissions)

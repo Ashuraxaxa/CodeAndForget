@@ -150,7 +150,9 @@ public sealed class DashboardService(IDashboardStore store, SchemaService schema
     private static bool IsOwner(UserAccess a, Dashboard d) => a.Username is { } u && string.Equals(u, d.Owner, StringComparison.OrdinalIgnoreCase);
 
     private static bool CanSee(UserAccess a, Dashboard d) =>
-        a.IsAdmin || IsOwner(a, d) || d.Shares.Any(s => a.ProfileIds.Contains(s.Profile));
+        // Embebida: solo los dashboards del token, y que estén compartidos con el perfil de la aplicación.
+        (a.Embed is null || a.Embed.Dashboards.Contains(d.Id)) &&
+        (a.IsAdmin || IsOwner(a, d) || d.Shares.Any(s => a.ProfileIds.Contains(s.Profile)));
 
     private static DashboardView View(UserAccess a, Dashboard d, HashSet<string>? unlocked)
     {

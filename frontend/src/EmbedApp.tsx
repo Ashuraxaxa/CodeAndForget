@@ -14,12 +14,14 @@ import { useT } from './i18n'
 
 /**
  * Páginas embebidas (P-134, D-113): un dashboard o un mantenedor, sin menú ni barra superior. Con la sesión del
- * usuario (forma A): si no hay, el login sale dentro del iframe.
+ * usuario (forma A, el login sale dentro del iframe) o con el token firmado de una aplicación (forma B, P-135).
  */
 function EmbedShell() {
-  const { config, isAuthenticated } = useAuth()
+  const { config, isAuthenticated, embedPending, embedError } = useAuth()
   const t = useT()
-  if (!config) return <p className="muted pad">{t('Cargando…')}</p>
+  if (!config || embedPending) return <p className="muted pad">{t('Cargando…')}</p>
+  // Con el token de una aplicación (forma B) no hay login: si falló, se dice por qué.
+  if (embedError) return <div className="page"><div className="alert">{embedError}</div></div>
   if (!isAuthenticated) return <LoginPage />
   return <PlanGate />
 }

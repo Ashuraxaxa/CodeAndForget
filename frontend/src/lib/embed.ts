@@ -48,5 +48,21 @@ export function startEmbed() {
   reportHeight()
 }
 
+/**
+ * Token firmado por la app anfitriona (forma B, P-135): llega en el fragmento (#token=…), que no viaja al servidor ni
+ * queda en sus registros. Se lee una vez y se quita de la URL.
+ */
+export const signedToken: string | null = (() => {
+  if (!isEmbed) return null
+  const hash = location.hash.replace(/^#/, '')
+  const params = new URLSearchParams(hash)
+  const token = params.get('token')
+  if (!token) return null
+  params.delete('token')
+  const rest = params.toString()
+  try { history.replaceState(history.state, '', location.pathname + location.search + (rest ? `#${rest}` : '')) } catch { /* sin history */ }
+  return token
+})()
+
 /** Dentro de un iframe (de otro sitio o del mismo). */
 export const inFrame = (() => { try { return window.self !== window.top } catch { return true } })()

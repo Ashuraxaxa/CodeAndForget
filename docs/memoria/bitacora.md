@@ -4,6 +4,25 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · Embeber, etapa 2: aplicaciones y tokens firmados (P-135)
+- **Seguridad → Aplicaciones:**
+  - nombre, sitios y perfil;
+  - clave `csk_…` mostrada una vez y guardada cifrada;
+  - activar, desactivar, rotar la clave y borrar;
+  - tope de 3 en Pro.
+- **Canje:** `POST /api/embed/session` valida el JWT HS256 (`kid`, firma, 1 hora como máximo, `sub`, `res`, `perm`; `filters` se rechaza hasta la etapa 3) y entrega una sesión `emb_…` de DataProtection.
+- **Acceso (D-114):**
+  - perfil de la aplicación ∩ token;
+  - tablas de `res` y de las tarjetas;
+  - dashboards de `res` compartidos con el perfil;
+  - una lista cerrada de rutas;
+  - sin asiento en el plan;
+  - auditoría `app:{aplicación}/{usuario}`.
+- **Frontend:** `#token=` se lee y se quita de la URL; la sesión vive en `sessionStorage` de la pestaña. Si vence, se avisa.
+- **Pruebas:**
+  - `EmbedAppTests`: canje, rutas prohibidas, firma, vencimiento, kid, validaciones, rotación, desactivar, dashboards y topes;
+  - en vivo: la app se registró desde la pantalla, un "portal" en otro puerto firmó con Node y embebió el dashboard y el mantenedor; la edición quedó en la auditoría como `app:Portal/juan@cliente.com`, y otra tabla, borrar y `/api/connections` se rechazaron.
+
 ## 2026-11-05 · Embeber: plan y etapa 1 (P-134)
 - **Plan:** el dueño aprobó tres formas (con sesión, con token firmado y dashboards públicos), los planes (Gratis no, Pro con 3 apps y sello, Empresa sin tope ni marca), que los externos no cuentan como usuarios, y los filtros por fila (D-113, `docs/embeber.md`).
 - **Hallazgo:** la app no enviaba ninguna cabecera contra el clickjacking; cualquier sitio podía meterla en un iframe. Ahora fuera de `/embed` solo se deja embeber por sí misma.

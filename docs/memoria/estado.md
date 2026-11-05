@@ -16,6 +16,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 | `fix/permisos-tablas-columnas` | PR #53 fusionado: textos de FK, combos y crear sin editar (P-124, D-107). |
 | `fix/obligatorias-siempre-editables` | PR #54 fusionado: quien crea o edita escribe las obligatorias (P-125, D-108). |
 | `feature/imagen-docker` | Imagen Docker oficial en GHCR al etiquetar una versión (P-123, D-109). |
+| `feature/perfil-solo-tablas` | Perfiles: "Solo las tablas agregadas" por defecto (P-126, D-110). |
 
 ## Qué funciona hoy
 

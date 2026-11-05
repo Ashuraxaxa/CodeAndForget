@@ -529,3 +529,64 @@ export interface PlanInfo {
 
 export interface FreeTableCandidate { schema: string; name: string; kind: string; label?: string | null; selected: boolean; foreignKeys: number }
 export interface FreeTables { connection?: string | null; max: number; selected: string[]; tables: FreeTableCandidate[] }
+
+// ---------- Dashboards (D-111) ----------
+
+export type AggregateFunction = 'Count' | 'CountDistinct' | 'Sum' | 'Avg' | 'Min' | 'Max'
+export type DateBucket = 'Day' | 'Week' | 'Month' | 'Quarter' | 'Year'
+export type AggregateOrder = 'Key' | 'ValueDesc' | 'ValueAsc'
+export type WidgetType = 'Number' | 'Bar' | 'Line' | 'Pie' | 'Top' | 'Pivot' | 'Map'
+export type WidgetSize = 'S' | 'M' | 'L'
+
+export interface AggregateGroup { column: string; bucket?: DateBucket | null }
+
+export interface AggregateRequest {
+  function: AggregateFunction
+  column?: string | null
+  groupBy: AggregateGroup[]
+  order: AggregateOrder
+  limit: number
+  filters: Record<string, string>
+  exact: Record<string, string>
+  /** Columna de fecha a la que aplica el rango del dashboard. */
+  dateColumn?: string | null
+}
+
+export interface DashboardWidget {
+  id: string
+  title: string
+  type: WidgetType
+  size: WidgetSize
+  connection: string
+  schema: string
+  table: string
+  query: AggregateRequest
+}
+
+export interface DashboardShare { profile: string; canEdit: boolean }
+
+export interface Dashboard {
+  id: string
+  name: string
+  description?: string | null
+  owner: string
+  widgets: DashboardWidget[]
+  shares: DashboardShare[]
+  createdAt: string
+  updatedAt: string
+  updatedBy?: string | null
+}
+
+export interface DashboardView { dashboard: Dashboard; canEdit: boolean; canDelete: boolean; canShare: boolean; locked: boolean }
+
+export interface DashboardSummary {
+  id: string; name: string; description?: string | null; owner: string; widgets: number; updatedAt: string
+  shared: boolean; canEdit: boolean; canDelete: boolean; canShare: boolean; locked: boolean
+}
+
+export interface DashboardList { items: DashboardSummary[]; canCreate: boolean; used: number; limit?: number | null; widgetLimit: number }
+
+export interface DashboardInput { name: string; description?: string | null; widgets?: DashboardWidget[]; shares?: DashboardShare[] }
+
+export interface AggregateRow { key: unknown; label: string | null; key2: unknown; label2: string | null; value: number | string | null }
+export interface AggregateResult { rows: AggregateRow[]; truncated: boolean }

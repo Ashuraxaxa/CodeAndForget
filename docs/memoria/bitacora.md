@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · Dashboards, etapa 3: ver (P-129)
+- **Pantallas:** menú "Dashboards" (solo con *Ver* en el perfil), lista para crear por nombre y borrar, y página del dashboard con el período (7, 30 o 90 días, este mes, este año o todo).
+- **Tarjetas:** número, barras horizontales, líneas, dona, top N y tabla dinámica, en SVG propio con tooltip.
+  - Paleta categórica validada con el script de dataviz en los dos temas (orden fijo, `--series-1…8`).
+  - Las tres que en modo día bajan de 3:1 llevan etiqueta y valor visibles.
+- **Teléfono:** la barra superior pasaba de 390 px aun antes del enlace nuevo. Ahora el menú va en una segunda fila y el plan queda como ícono.
+- Las tarjetas se agregan con la API hasta la etapa 4 (editor).
+
 ## 2026-11-05 · Dashboards, etapa 2: guardar, permisos y topes (P-128)
 - **Guardado:** migración 009 (`mnt_dashboard`, con tarjetas y compartir en un documento JSON) y almacenes SQL y de archivo.
 - **`DashboardService`:**

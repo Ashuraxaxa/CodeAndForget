@@ -41,6 +41,10 @@ Los errores siguen el formato *Problem Details* (`application/problem+json`); la
 | POST | `/api/dashboards/{id}/widgets/{widget}/data` | Datos de una tarjeta `{ from?, to? }`, con los permisos de quien mira |
 | GET | `/api/dashboards/profiles` | Perfiles (id y nombre) para compartir, a quien puede crear o editar dashboards aunque no administre la seguridad |
 | POST | `/api/dashboards/preview` | Datos de una tarjeta sin guardar `{ widget, from?, to? }`, para el editor |
+| GET / POST | `/api/embed/apps` | Aplicaciones que embeben con tokens firmados. POST `{ name, origins, profileId }` devuelve la clave una sola vez. Permiso `ManageSecurity` ([embeber.md](embeber.md)) |
+| PUT / DELETE | `/api/embed/apps/{id}` | Edita (`{ name?, origins?, profileId?, enabled? }`) o borra. Permiso `ManageSecurity` |
+| POST | `/api/embed/apps/{id}/secret` | Clave nueva: la anterior y sus sesiones dejan de valer. Permiso `ManageSecurity` |
+| POST | `/api/embed/session` | Sin login: canjea `{ token }` (JWT HS256 de la aplicación) por una sesión embebida `{ token: "emb_…", expiresAt }` |
 | POST | `/api/mcp` | Servidor MCP (Streamable HTTP, sin estado) con `Mcp:Enabled=true`. Permiso `ConfigureTables`. Ver [mcp.md](mcp.md) |
 | GET | `/api/data/{conn}/{schema}/{table}` | Lista. `?page=1&pageSize=25&sort=nombre,-precio&q=texto&f.categoria_id=2`. `f.` = contiene (textos) o igual; `e.` = igual exacto, también en textos (`e.pedido_id=5`) |
 | GET | `/api/data/{conn}/{schema}/{table}/row?{pk}=…` | Un registro. PK compuesta: `?PedidoId=1&Linea=2` |

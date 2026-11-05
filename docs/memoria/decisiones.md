@@ -1143,6 +1143,22 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **`frame-ancestors *` o `X-Frame-Options` solamente:** el primero deja embeber a cualquiera; el segundo no admite una lista de sitios.
   - **Contar los usuarios externos en el plan:** difícil de medir y de cobrar; el tope va por aplicaciones.
 
+### D-114 · Sesiones embebidas con token firmado
+- **Estado:** Vigente · 2026-11-05 (P-135, amplía D-113).
+- **Qué:**
+  - **Clave de cada aplicación:** se cifra con DataProtection, igual que las cadenas de conexión. Se muestra una sola vez.
+  - **Canje:** el JWT HS256 (`kid` = id de la aplicación, 1 hora como máximo) se canjea en `POST /api/embed/session` por una sesión `emb_…`. Es un documento cifrado y con vencimiento de DataProtection, sin estado. Lleva la aplicación, la fecha de la clave, el usuario externo, las operaciones y el alcance.
+  - **Acceso:** `UserAccess.Embedded` = perfil de la aplicación ∩ operaciones del token ∩ tablas de `res` (más las de las tarjetas de sus dashboards). Nunca es administrador ni tiene permisos de la app. Sin perfil, no ve nada (nunca "seguridad abierta").
+  - **Dashboards:** solo los de `res` que estén compartidos con el perfil de la aplicación, y solo para mirar.
+  - **Puerta de rutas:** una lista cerrada de lo que una sesión embebida puede pedir (yo, plan, definición de tablas, datos, un dashboard y sus tarjetas). Todo lo demás, 403.
+  - **Revocar:** desactivar la aplicación o rotar la clave corta las sesiones abiertas (en hasta 30 s con varias instancias). Al bajar de plan quedan en uso las más antiguas.
+  - **Sitios del iframe:** `frame-ancestors` de `/embed` = `Embed:AllowedOrigins` ∪ sitios de las aplicaciones en uso.
+- **Descartado:**
+  - **Guardar la clave como hash:** con HMAC hace falta la clave para verificar la firma.
+  - **Firmar la sesión con un JWT propio:** en modo Jwt no hay llave local de firma; DataProtection ya está en las dos modalidades y es compartida entre instancias.
+  - **Exigir las tablas de las tarjetas en `res`:** obligaría a la otra app a conocer cada tabla del dashboard; el perfil de la aplicación ya es el límite.
+  - **Mostrar cualquier dashboard de `res` sin compartirlo:** expondría dashboards privados con solo conocer su id.
+
 ---
 
 ## Propuestas (aún no decididas)

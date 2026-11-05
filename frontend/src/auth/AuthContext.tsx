@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { UserManager, type User } from 'oidc-client-ts'
 import { t } from '../i18n'
-import { inFrame } from '../lib/embed'
+import { inFrame, signedToken } from '../lib/embed'
+import type { EmbedSession } from '../api/types'
 import { api, setTokenProvider, setUnauthorizedHandler, tokenStore, type AuthConfig } from '../api/client'
 
 /**
@@ -21,6 +22,27 @@ interface AuthState {
   /** Modo OIDC: completa el login al volver del proveedor. */
   completeExternalLogin: () => Promise<void>
   logout: () => void
+  /** Página embebida con el token de una aplicación (P-135): se está canjeando. */
+  embedPending: boolean
+  /** No se pudo canjear el token o la sesión embebida venció. */
+  embedError: string | null
+}
+
+const EMBED_KEY = 'celdo.embed.session'
+
+/** Sesión embebida guardada en esta pestaña (sobrevive a recargar el iframe, no a cerrarlo). */
+function storedEmbed(): EmbedSession | null {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(EMBED_KEY) ?? 'null') as EmbedSession | null
+    return s && Date.parse(s.expiresAt) > Date.now() ? s : null
+  } catch { return null }
+}
+
+function storeEmbed(s: EmbedSession | null) {
+  try {
+    if (s) sessionStorage.setItem(EMBED_KEY, JSON.stringify(s))
+    else sessionStorage.removeItem(EMBED_KEY)
+  } catch { /* sin almacenamiento: vale mientras la página esté abierta */ }
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -34,6 +56,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [localToken, setLocalToken] = useState(() => tokenStore.get())
   const [oidcUser, setOidcUser] = useState<User | null>(null)
   const oidcUserRef = useRef<User | null>(null)
+  // Con un token nuevo en la URL, manda ese; si no, la sesión embebida de esta pestaña, si sigue vigente.
+  const [embed, setEmbed] = useState<EmbedSession | null>(() => (signedToken ? null : storedEmbed()))
+  const embedRef = useRef(embed)
+  const [embedPending, setEmbedPending] = useState(!!signedToken)
+  const [embedError, setEmbedError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!signedToken) return
+    api.embedSession(signedToken)
+      .then(s => { embedRef.current = s; storeEmbed(s); setEmbed(s) })
+      .catch(e => setEmbedError((e as Error).message))
+      .finally(() => setEmbedPending(false))
+  }, [])
 
   useEffect(() => {
     api.authConfig().then(setConfig).catch(e => setConfigError((e as Error).message))
@@ -62,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // El cliente HTTP pide el token aquí: en OIDC vive en memoria (y en sessionStorage, manejado por oidc-client-ts).
   useEffect(() => {
-    setTokenProvider(() => (manager ? oidcUserRef.current?.access_token ?? null : tokenStore.get()))
+    setTokenProvider(() => embedRef.current?.token ?? (manager ? oidcUserRef.current?.access_token ?? null : tokenStore.get()))
   }, [manager])
 
   useEffect(() => {
@@ -79,6 +114,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [manager, setUser])
 
   const logout = useCallback(() => {
+    // Sesión embebida: la otra app tiene que volver a firmar un token; no hay login propio que mostrar.
+    if (embedRef.current) {
+      embedRef.current = null
+      storeEmbed(null)
+      setEmbed(null)
+      setEmbedError(t('La sesión de esta página venció. Vuelve a cargar la página.'))
+      return
+    }
     tokenStore.set(null)
     setLocalToken(null)
     if (manager) {
@@ -115,13 +158,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) setUser(user)
   }, [manager, setUser])
 
-  const isAuthenticated =
+  const isAuthenticated = !!embed || (
     config?.mode === 'Local' ? !!localToken
       : config?.mode === 'Jwt' ? (manager ? !!oidcUser : true)
-        : false
+        : false)
 
   return (
-    <AuthContext.Provider value={{ config, configError, isAuthenticated, login, loginExternal, completeExternalLogin, logout }}>
+    <AuthContext.Provider value={{ config, configError, isAuthenticated, login, loginExternal, completeExternalLogin, logout, embedPending, embedError }}>
       {children}
     </AuthContext.Provider>
   )

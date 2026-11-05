@@ -72,14 +72,15 @@ Los usuarios externos (forma B) y quienes miran un dashboard público (forma C) 
   iframe es aparte de la de la app.
 - **Permisos:** los de siempre del usuario.
 
-## 5. Forma B: token firmado
+## 5. Forma B: token firmado ✅
 
 **Registrar la app:** en Seguridad → Aplicaciones, el administrador registra la aplicación con:
 
 - su nombre;
 - los sitios desde donde se embebe;
 - el **perfil** con el máximo de permisos que puede dar;
-- una **clave secreta**, que se muestra una sola vez y se guarda como hash.
+- una **clave secreta** (`csk_…`), que se muestra una sola vez y se guarda cifrada con las llaves de la app (con un
+  hash no se podría verificar la firma).
 
 **Firmar el token:** el servidor de la otra app firma un JWT (HS256, `kid` = id de la aplicación, vence en 1 hora como
 máximo) con:
@@ -88,14 +89,40 @@ máximo) con:
 |---|---|
 | `sub` | Usuario externo (para la auditoría) |
 | `name` | Nombre visible (opcional) |
-| `res` | Lo que puede abrir: dashboards por id o tablas por conexión, esquema y nombre |
-| `perm` | `view`, `create`, `edit`, `delete`, `export`; se cruza con el perfil de la app |
-| `filters` | Filtros fijos por fila, p. ej. `{ "cliente_id": 42 }` |
+| `res` | Lo que puede abrir: `dashboard:<id>` o `table:<conexión>/<esquema>/<tabla>` (de 1 a 50) |
+| `perm` | `view` (siempre), `create`, `edit`, `delete`, `export`, `import`, `execute`; se cruza con el perfil de la app |
+| `filters` | Filtros fijos por fila, p. ej. `{ "cliente_id": 42 }` (etapa 3; hasta entonces, un token con `filters` se rechaza) |
 | `exp`, `iat` | Vencimiento y emisión |
 
 - **Uso:** la otra app arma la URL `/embed/...#token=...`. El fragmento no llega a los registros del servidor.
 - **Canje:** Celdo canjea el token por una sesión corta propia, que solo abre lo que dice `res`.
-- **Revocar el acceso:** se desactiva la aplicación o se rota su clave.
+- **Revocar el acceso:** se desactiva la aplicación o se rota su clave. Las sesiones abiertas se cortan; con varias
+  instancias, en hasta 30 s.
+
+**Ejemplo para firmar (Node, sin librerías):**
+
+```js
+const crypto = require('crypto')
+const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url')
+function celdoToken(kid, secret, sub, res, perm = ['view']) {
+  const now = Math.floor(Date.now() / 1000)
+  const head = b64({ alg: 'HS256', typ: 'JWT', kid })
+  const body = b64({ sub, res, perm, iat: now, exp: now + 600 })
+  return `${head}.${body}.${crypto.createHmac('sha256', secret).update(`${head}.${body}`).digest('base64url')}`
+}
+// <iframe src="https://celdo.miempresa.com/embed/dashboards/ID#token=...">
+```
+
+**Qué puede hacer la sesión:**
+
+- **Datos:** solo las tablas de `res`, más las que leen las tarjetas de sus dashboards. Nunca supera el perfil de la
+  aplicación ni las operaciones de `perm`.
+- **Dashboards:** solo los de `res`, si además están compartidos con el perfil de la aplicación (el dueño lo decide).
+  Se miran, no se editan.
+- **Prohibido:** no tiene permisos de la app. Administrar, auditar, tokens, OData y MCP responden 403.
+- **Sin login:** el token se canjea en `POST /api/embed/session` por una sesión propia (`emb_…`) que vence con él. Si
+  vence, la página lo avisa; la renovación automática llega con `embed.js` (etapa 5).
+- **Plan:** no ocupa lugar de usuario en el plan.
 
 ## 6. Filtros fijos por fila
 
@@ -135,8 +162,8 @@ Un script opcional para la app anfitriona:
 
 | Etapa | Qué | Pendiente |
 |---|---|---|
-| **1. Base y forma A** | Cabecera `frame-ancestors`, `Embed:AllowedOrigins`, rutas `/embed` sin menú, login en el iframe (ventana emergente con OIDC), tema e idioma por parámetro, alto por `postMessage`, sello en Pro, bloqueo en Gratis | P-134 |
-| **2. Aplicaciones y tokens** | Migración 010, Seguridad → Aplicaciones, canje del token, sesión limitada a `res` y `perm`, auditoría `app:`, tope de 3 en Pro | P-135 |
+| **1. Base y forma A** ✅ | Cabecera `frame-ancestors`, `Embed:AllowedOrigins`, rutas `/embed` sin menú, login en el iframe (ventana emergente con OIDC), tema e idioma por parámetro, alto por `postMessage`, sello en Pro, bloqueo en Gratis | P-134 |
+| **2. Aplicaciones y tokens** ✅ | Migración 010, Seguridad → Aplicaciones, canje del token, sesión limitada a `res` y `perm`, auditoría `app:`, tope de 3 en Pro | P-135 |
 | **3. Filtros por fila** | Filtro fijo en listar, leer, editar, borrar, exportar, combos y dashboards; valor fijo al crear; batería común en los 4 motores | P-136 |
 | **4. Dashboards públicos** | Enlace secreto, interruptor del administrador, permisos del dueño, límite por IP | P-137 |
 | **5. `embed.js` y eventos** | Script, eventos, renovación del token, página de prueba en `samples/` | P-138 |

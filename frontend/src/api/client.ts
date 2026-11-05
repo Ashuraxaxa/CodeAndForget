@@ -1,7 +1,7 @@
 import type {
   ImportMode, ImportResult, TransferFormat, TreeNode,
   AuditPage, SecurityInfo, SecurityProfile, SecurityUser, ActionResult, Routine,
-  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult, Suggestion, AccessTokenInfo, OverrideProposal, PlanInfo, FreeTables, DataOperation, DashboardList, DashboardView, DashboardInput, AggregateResult, DashboardWidget } from './types'
+  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult, Suggestion, AccessTokenInfo, OverrideProposal, PlanInfo, FreeTables, DataOperation, DashboardList, DashboardView, DashboardInput, AggregateResult, DashboardWidget, EmbedApp, EmbedAppInput, EmbedSession } from './types'
 import { t, translateServer } from '../i18n'
 
 /** Error de la API con el formato ProblemDetails de ASP.NET. */
@@ -189,6 +189,13 @@ export const api = {
   deleteToken: (id: string) => request<void>('DELETE', `api/tokens/${enc(id)}`),
   mcpInfo: () => request<{ enabled: boolean; path: string }>('GET', 'api/tokens/mcp'),
   plan: () => request<PlanInfo>('GET', 'api/license'),
+  // Embeber con tokens firmados (P-135)
+  embedApps: () => request<{ items: EmbedApp[]; limit: number | null; canCreate: boolean }>('GET', 'api/embed/apps'),
+  createEmbedApp: (a: EmbedAppInput) => request<{ app: EmbedApp; secret: string }>('POST', 'api/embed/apps', a),
+  updateEmbedApp: (id: string, a: EmbedAppInput) => request<EmbedApp>('PUT', `api/embed/apps/${enc(id)}`, a),
+  rotateEmbedSecret: (id: string) => request<{ secret: string }>('POST', `api/embed/apps/${enc(id)}/secret`),
+  deleteEmbedApp: (id: string) => request<void>('DELETE', `api/embed/apps/${enc(id)}`),
+  embedSession: (token: string) => request<EmbedSession>('POST', 'api/embed/session', { token }),
   // Dashboards (D-111)
   dashboards: () => request<DashboardList>('GET', 'api/dashboards'),
   dashboard: (id: string) => request<DashboardView>('GET', `api/dashboards/${enc(id)}`),

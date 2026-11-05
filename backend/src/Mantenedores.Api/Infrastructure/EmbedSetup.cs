@@ -51,13 +51,18 @@ public static partial class EmbedSetup
             ? "frame-ancestors 'self' " + string.Join(' ', origins)
             : "frame-ancestors 'self'";
 
-    public static IApplicationBuilder UseFrameProtection(this IApplicationBuilder app, IReadOnlyList<string> origins) =>
+    /// <summary>Los sitios son los de <c>Embed:AllowedOrigins</c> más los de las aplicaciones registradas en uso (P-135).</summary>
+    public static IApplicationBuilder UseFrameProtection(this IApplicationBuilder app) =>
         app.Use(async (ctx, next) =>
         {
-            var embed = ctx.Request.Path.StartsWithSegments(EmbedPath) && origins.Count > 0;
-            // El plan solo se consulta para /embed con sitios configurados (está en caché 30 s).
-            var planAllows = embed && (await ctx.RequestServices.GetRequiredService<LicenseService>().GetAsync(ctx.RequestAborted))
-                .Limits.Has(Feature.Embed);
+            IReadOnlyList<string> origins = [];
+            var planAllows = false;
+            // El plan y los sitios solo se consultan para /embed (los dos están en caché 30 s).
+            if (ctx.Request.Path.StartsWithSegments(EmbedPath))
+            {
+                planAllows = (await ctx.RequestServices.GetRequiredService<LicenseService>().GetAsync(ctx.RequestAborted)).Limits.Has(Feature.Embed);
+                if (planAllows) origins = await ctx.RequestServices.GetRequiredService<Embed.EmbedAppService>().AllowedOriginsAsync(ctx.RequestAborted);
+            }
             var policy = FrameAncestors(ctx.Request.Path, origins, planAllows);
             ctx.Response.OnStarting(() =>
             {

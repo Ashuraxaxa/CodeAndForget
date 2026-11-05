@@ -40,11 +40,14 @@ public static class AuthSetup
     {
         Validate(auth);
 
-        // Un esquema que elige: los tokens de acceso (mnt_…) van a su manejador; el resto, al JWT de siempre.
+        // Un esquema que elige: los tokens de acceso (mnt_…) y las sesiones embebidas (emb_…) van a su manejador; el resto,
+        // al JWT de siempre.
         services.AddAuthentication(SelectorScheme)
             .AddPolicyScheme(SelectorScheme, null, o => o.ForwardDefaultSelector = ctx =>
-                AccessTokenHandler.HasToken(ctx.Request) ? AccessTokenHandler.SchemeName : JwtBearerDefaults.AuthenticationScheme)
+                EmbedSessionHandler.HasToken(ctx.Request) ? EmbedSessionHandler.SchemeName
+                : AccessTokenHandler.HasToken(ctx.Request) ? AccessTokenHandler.SchemeName : JwtBearerDefaults.AuthenticationScheme)
             .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, AccessTokenHandler>(AccessTokenHandler.SchemeName, null)
+            .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, EmbedSessionHandler>(EmbedSessionHandler.SchemeName, null)
             .AddJwtBearer(o =>
         {
             // Se conservan los nombres originales de los claims (sin el mapeo de Microsoft) para leerlos tal cual.

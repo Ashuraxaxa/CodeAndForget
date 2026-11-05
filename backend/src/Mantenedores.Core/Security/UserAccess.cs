@@ -39,6 +39,16 @@ public sealed class UserAccess
 
     public static readonly UserAccess All = new(true, [], open: true, admin: true);
 
+    /// <summary>Sesión embebida con un token firmado (P-135, D-113); null en una sesión normal.</summary>
+    public EmbedScope? Embed { get; private init; }
+
+    /// <summary>
+    /// Una sesión embebida: el perfil de la aplicación, recortado a las tablas y dashboards del token y a sus operaciones.
+    /// Nunca es administrador ni tiene permisos de la app. Sin perfil (se borró), no ve nada.
+    /// </summary>
+    public static UserAccess Embedded(string username, SecurityProfile? profile, EmbedScope scope) =>
+        new(false, profile is null ? [] : [profile], open: false, username) { Embed = scope };
+
     /// <param name="allProfiles">Todos los perfiles de la app.</param>
     public static UserAccess For(string? username, IEnumerable<string> roles, bool isAdmin, IReadOnlyList<SecurityProfile> allProfiles)
     {
@@ -61,26 +71,28 @@ public sealed class UserAccess
     public DataOperation Dashboards => Unrestricted
         ? DataOperation.View | DataOperation.Create | DataOperation.Update | DataOperation.Delete
         : _profiles.Aggregate(DataOperation.None, (acc, p) => acc | DataOperations.Parse(p.Dashboards))
-          & (DataOperation.View | DataOperation.Create | DataOperation.Update | DataOperation.Delete);
+          // Embebida solo se mira (y si el perfil de la aplicación deja ver dashboards).
+          & (Embed is null ? DataOperation.View | DataOperation.Create | DataOperation.Update | DataOperation.Delete : DataOperation.View);
 
     /// <summary>Permisos de la app que dan sus perfiles (se suman a los de los roles de la configuración).</summary>
-    public IReadOnlyCollection<string> AppPermissions =>
-        _profiles.SelectMany(p => p.AppPermissions).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    public IReadOnlyCollection<string> AppPermissions => Embed is not null ? []
+        : _profiles.SelectMany(p => p.AppPermissions).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>¿Tiene alguna operación en la conexión (o en alguna de sus tablas)?</summary>
     public bool CanSeeConnection(string connectionId) =>
-        Unrestricted || _profiles.Any(p => Rules(p, connectionId).Any(r =>
+        Unrestricted || (Embed is null || Embed.HasConnection(connectionId)) && _profiles.Any(p => Rules(p, connectionId).Any(r =>
             DataOperations.Parse(r.Operations) != DataOperation.None || r.Tables.Values.Any(t => DataOperations.Parse(t.Operations) != DataOperation.None)));
 
     /// <summary>Operaciones sobre una tabla: la regla de la tabla si existe; si no, la de la conexión. Unión de perfiles.</summary>
     public DataOperation Table(string connectionId, string schema, string table)
     {
         if (Unrestricted) return DataOperation.All;
+        if (Embed is not null && !Embed.HasTable(connectionId, schema, table)) return DataOperation.None;
         var ops = DataOperation.None;
         foreach (var p in _profiles)
             foreach (var rule in Rules(p, connectionId))
                 ops |= TableRuleFor(rule, schema, table) is { } t ? DataOperations.Parse(t.Operations) : DataOperations.Parse(rule.Operations);
-        return ops;
+        return Embed is null ? ops : ops & Embed.Operations;
     }
 
     /// <summary>
@@ -91,6 +103,7 @@ public sealed class UserAccess
     public DataOperation Column(string connectionId, string schema, string table, string column)
     {
         if (Unrestricted) return DataOperation.All;
+        if (Embed is not null && !Embed.HasTable(connectionId, schema, table)) return DataOperation.None;
         var ops = DataOperation.None;
         foreach (var p in _profiles)
             foreach (var rule in Rules(p, connectionId))
@@ -101,6 +114,8 @@ public sealed class UserAccess
                 ops |= c is not null ? DataOperations.Parse(c.Operations)
                     : tableOps.HasFlag(DataOperation.Create) ? tableOps | DataOperation.Update : tableOps;
             }
+        // Embebida, escribir una columna exige que el token deje crear o editar.
+        if (Embed is not null && (Embed.Operations & (DataOperation.Create | DataOperation.Update)) == 0) ops &= ~DataOperation.Update;
         return ops & (DataOperation.View | DataOperation.Update);
     }
 
@@ -152,6 +167,21 @@ public sealed class UserAccess
 
     private static TableRule? TableRuleFor(ConnectionRule rule, string schema, string table) =>
         rule.Tables.FirstOrDefault(kv => string.Equals(kv.Key, $"{schema}.{table}", StringComparison.OrdinalIgnoreCase)).Value;
+}
+
+/// <summary>
+/// Hasta dónde llega una sesión embebida (P-135): las tablas del token (más las de las tarjetas de sus dashboards), sus
+/// dashboards y las operaciones que el token deja. Los nombres se comparan sin distinguir mayúsculas.
+/// </summary>
+public sealed record EmbedScope(string AppId, DataOperation Operations, IReadOnlySet<string> Tables, IReadOnlySet<string> Dashboards)
+{
+    public static string TableKey(string connectionId, string schema, string table) =>
+        $"{connectionId}\u001f{schema}\u001f{table}".ToLowerInvariant();
+
+    public bool HasTable(string connectionId, string schema, string table) => Tables.Contains(TableKey(connectionId, schema, table));
+
+    public bool HasConnection(string connectionId) =>
+        Tables.Any(k => k.StartsWith(connectionId.ToLowerInvariant() + "\u001f", StringComparison.Ordinal));
 }
 
 /// <summary>Quién hace la solicitud actual. Core no conoce HTTP: la API lo implementa con el usuario del token.</summary>

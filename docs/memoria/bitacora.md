@@ -4,6 +4,11 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · README y landing al día
+- **README (español e inglés):** filas nuevas de Dashboards y de Power BI y Excel; la IA también arma dashboards privados; topes de dashboards en Planes; captura del dashboard en día y noche (`docs/img/dashboard-*.png`); `dashboards.md` y `powerbi.md` en la tabla de documentos.
+- **Landing:** tres funciones nuevas (dashboards, Power BI y Excel, instalación con un comando), topes de dashboards en los tres planes y el texto de IA corregido ("nunca guarda nada" ya no era cierto). Revisada en 1440 y 390 px, sin desbordes.
+- **P-118:** `celdo.net` ya apunta al App Service, según el dueño.
+
 ## 2026-11-05 · Power BI y Excel por OData (P-132)
 - El dueño eligió OData para conectar Power BI.
 - **Feed:** `/odata/{conexión}`, con documento de servicio, `$metadata` y una entidad por tabla exportable, incluidos los textos de las FK. Páginas de 5.000 filas con `@odata.nextLink`.

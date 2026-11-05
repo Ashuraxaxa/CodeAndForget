@@ -416,6 +416,21 @@ footer a { color: var(--muted); text-decoration: none; } footer a:hover { color:
           <h3 data-i="feat.f6t">En tu idioma</h3>
           <p data-i="feat.f6">Interfaz en español, inglés y ruso, con fechas y números en el formato de cada uno. Modo día y noche.</p>
         </div>
+        <div class="feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          <h3 data-i="feat.f7t">Dashboards sin programar</h3>
+          <p data-i="feat.f7">Números, barras, líneas, dona, tabla dinámica y mapa sobre tus tablas. Filtro de fechas, refresco automático y compartir con perfiles, con los permisos de quien mira.</p>
+        </div>
+        <div class="feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+          <h3 data-i="feat.f8t">Power BI y Excel</h3>
+          <p data-i="feat.f8">Cada conexión es una fuente OData de solo lectura. Power BI y Excel la leen directo, con los permisos del usuario y el texto de cada clave foránea.</p>
+        </div>
+        <div class="feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 17 6-6-6-6M12 19h8"/></svg>
+          <h3 data-i="feat.f9t">Se instala con un comando</h3>
+          <p data-i="feat.f9">Imagen Docker oficial para Intel/AMD y ARM, o en IIS, servicio de Windows, systemd y Kubernetes. Sin servicios en la nube obligatorios.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -472,7 +487,7 @@ footer a { color: var(--muted); text-decoration: none; } footer a:hover { color:
       <div class="section-head" style="margin-bottom:0">
         <span class="eyebrow" data-i="ai.eyebrow">IA, con control</span>
         <h2 data-i="ai.title">La IA propone. Tú decides.</h2>
-        <p class="lead" data-i="ai.lead">Conecta Claude, Cursor u otra IA por MCP. Revisa tu esquema, detecta relaciones que faltan y sugiere nombres claros. Nunca guarda nada: cada propuesta espera a que una persona la acepte.</p>
+        <p class="lead" data-i="ai.lead">Conecta Claude, Cursor u otra IA por MCP. Revisa tu esquema, detecta relaciones que faltan y sugiere nombres claros. Nunca cambia tus ajustes por su cuenta: cada propuesta espera a que una persona la acepte, y los dashboards que arma quedan privados hasta que los revises.</p>
       </div>
       <div class="proposal" aria-label="Ejemplo de una propuesta de la IA">
         <header><strong data-i="ai.ptitle">Propuesta para centro_costo</strong><span class="chip" data-i="ai.pending">Pendiente</span></header>
@@ -506,6 +521,7 @@ footer a { color: var(--muted); text-decoration: none; } footer a:hover { color:
             <li data-i="plan.free.3">Ajustes y sugerencias automáticas</li>
             <li data-i="plan.free.4">Exportar e importar CSV</li>
             <li data-i="plan.free.5">Auditoría de 7 días</li>
+            <li data-i="plan.free.6">1 dashboard y conexión con Power BI y Excel</li>
           </ul>
           <a class="btn ghost" href="#empezar" data-i="plan.free.cta">Descargar gratis</a>
         </article>
@@ -522,6 +538,7 @@ footer a { color: var(--muted); text-decoration: none; } footer a:hover { color:
             <li data-i="plan.pro.4">Excel, JSON y XML; importar actualizando</li>
             <li data-i="plan.pro.5">Avisos por correo y botones con procedimientos</li>
             <li data-i="plan.pro.6">IA por MCP y copia de ajustes entre bases</li>
+            <li data-i="plan.pro.8">5 dashboards de hasta 20 tarjetas, compartidos por perfil</li>
             <li data-i="plan.pro.7">Soporte por correo en 2 días hábiles</li>
           </ul>
           <a class="btn primary" id="cta-pro" href="#empezar" data-i="plan.pro.cta">Probar 30 días gratis</a>
@@ -536,6 +553,7 @@ footer a { color: var(--muted); text-decoration: none; } footer a:hover { color:
             <li data-i="plan.ent.2">SSO con Entra ID, Keycloak, Okta u OIDC</li>
             <li data-i="plan.ent.3">Alta disponibilidad con varias instancias</li>
             <li data-i="plan.ent.4">Motores propios como plugins</li>
+            <li data-i="plan.ent.7">Dashboards sin tope, de hasta 50 tarjetas</li>
             <li data-i="plan.ent.5">SLA: 4 horas hábiles en incidentes críticos</li>
             <li data-i="plan.ent.6">Implementación y capacitación incluidas</li>
           </ul>
@@ -642,6 +660,9 @@ const EN = {
   'feat.f4t': 'Tables with millions of rows', 'feat.f4': 'Key-based paging, estimated counts and search limits, so one query doesn’t slow down production.',
   'feat.f5t': 'Buttons that run your procedures', 'feat.f5': 'Call a stored procedure from the record: “approve”, “recalculate”, “resend”. With its own permission and in the audit log.',
   'feat.f6t': 'In your language', 'feat.f6': 'Interface in Spanish, English and Russian, with dates and numbers in each one’s format. Light and dark mode.',
+  'feat.f7t': 'Dashboards without code', 'feat.f7': 'Numbers, bars, lines, donut, pivot table and map over your tables. Date filter, auto-refresh and sharing with profiles, with the permissions of whoever is looking.',
+  'feat.f8t': 'Power BI and Excel', 'feat.f8': 'Each connection is a read-only OData feed. Power BI and Excel read it directly, with the user’s permissions and the label of every foreign key.',
+  'feat.f9t': 'Installs with one command', 'feat.f9': 'Official Docker image for Intel/AMD and ARM, or on IIS, a Windows service, systemd and Kubernetes. No mandatory cloud services.',
   'who.eyebrow': 'Who it’s for', 'who.title': 'For people who own the data and don’t have time to build screens.',
   'who.w1t': 'IT and support', 'who.w1': 'Delegate data fixes with permissions per table, column and action. You stop running scripts; the audit log answers who made each change.',
   'who.w1q': '“We cut our data-fix tickets in half.”',
@@ -658,7 +679,7 @@ const EN = {
   'sec.t3t': 'Your sign-in', 'sec.t3': 'Local users or your company’s provider: Entra ID, Keycloak, Okta and any OIDC.',
   'sec.t4t': 'No surprises', 'sec.t4': 'Optimistic concurrency, usage limits, and table names always read from the catalog, never from what users type.',
   'ai.eyebrow': 'AI, under control', 'ai.title': 'The AI proposes. You decide.',
-  'ai.lead': 'Connect Claude, Cursor or another AI through MCP. It reviews your schema, finds missing relations and suggests clear names. It never saves anything: every proposal waits for a person to accept it.',
+  'ai.lead': 'Connect Claude, Cursor or another AI through MCP. It reviews your schema, finds missing relations and suggests clear names. It never changes your settings on its own: every proposal waits for a person to accept it, and the dashboards it builds stay private until you review them.',
   'ai.ptitle': 'Proposal for centro_costo', 'ai.pending': 'Pending',
   'ai.reason': 'AreaID points to Area.AreaID, but the database has no foreign key. Areas also depend on the company, so the dropdown should be filtered by EmpresaID.',
   'ai.accept': 'Load into the draft', 'ai.discard': 'Discard',
@@ -667,18 +688,18 @@ const EN = {
   'price.monthly': 'Monthly', 'price.yearly': 'Yearly · 2 months free',
   'plan.free': 'Free', 'plan.free.for': 'To try it out and for small teams.', 'plan.free.note': 'Forever.',
   'plan.free.1': '2 users, 1 connection and 15 tables of your choice', 'plan.free.2': 'Screens, dropdowns, master-detail and trees',
-  'plan.free.3': 'Settings and automatic suggestions', 'plan.free.4': 'CSV export and import', 'plan.free.5': '7-day audit log',
+  'plan.free.3': 'Settings and automatic suggestions', 'plan.free.4': 'CSV export and import', 'plan.free.5': '7-day audit log', 'plan.free.6': '1 dashboard and Power BI and Excel connection',
   'plan.free.cta': 'Download free',
   'plan.pro.tag': 'Most popular', 'plan.pro.for': 'For IT, support and analyst teams.',
   'price.perMonth': '/ month per installation', 'plan.pro.yearNote': 'USD 490 per year.', 'plan.pro.monthNote': 'Billed monthly.',
   'plan.pro.1': 'Up to 25 users, unlimited connections', 'plan.pro.2': 'Profiles and permissions per table, column and action',
   'plan.pro.3': '1-year audit log, with export', 'plan.pro.4': 'Excel, JSON and XML; import with updates',
-  'plan.pro.5': 'Email alerts and stored-procedure buttons', 'plan.pro.6': 'AI through MCP and copying settings between databases',
+  'plan.pro.5': 'Email alerts and stored-procedure buttons', 'plan.pro.6': 'AI through MCP and copying settings between databases', 'plan.pro.8': '5 dashboards of up to 20 cards, shared by profile',
   'plan.pro.7': 'Email support within 2 business days', 'plan.pro.cta': 'Try it free for 30 days',
   'plan.ent': 'Business', 'plan.ent.for': 'For several departments and critical production.',
   'price.from': 'from', 'price.perMonthShort': '/ month', 'plan.ent.note': 'Billed yearly.',
   'plan.ent.1': 'Unlimited users and installations', 'plan.ent.2': 'SSO with Entra ID, Keycloak, Okta or OIDC',
-  'plan.ent.3': 'High availability with several instances', 'plan.ent.4': 'Your own engines as plugins',
+  'plan.ent.3': 'High availability with several instances', 'plan.ent.4': 'Your own engines as plugins', 'plan.ent.7': 'Unlimited dashboards of up to 50 cards',
   'plan.ent.5': 'SLA: 4 business hours for critical incidents', 'plan.ent.6': 'Onboarding and training included',
   'plan.ent.cta': 'Talk to sales',
   'price.foot': 'Prices in US dollars, before taxes. 50% off for nonprofits and education. More than 25 users on Pro? Add 25 more for USD 29 a month.',

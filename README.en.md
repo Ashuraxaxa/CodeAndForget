@@ -43,16 +43,23 @@ Everything else is adjusted from the interface, without code changes or restarts
 | 🔗 **Relations** | Searchable foreign-key dropdowns (multi-column keys too), master-detail tabs, many-to-many pickers and drag-and-drop trees for self-referencing tables. |
 | ⚙️ **No-code settings** | Display names per language, hidden or required columns, ordering, widgets, virtual primary and foreign keys, and buttons that call stored procedures. |
 | 🗂️ **Special types** | JSON, enums, arrays, files with image previews, geographic data as WKT (PostGIS included) and numbers with more than 28 digits. |
+| 📊 **Dashboards** | Number, bar, line, donut, top N, pivot table and map cards, built without code. Date filter, auto-refresh, CSV per card, click-through to the filtered grid and sharing with profiles. |
+| 📈 **Power BI and Excel** | Each connection is published as a read-only OData feed, with the permissions of whoever creates the token and the foreign-key labels. |
 | 📤 **Export and import** | CSV, Excel, JSON and XML of the filtered list; imports with a preview, per-row errors and update by key. |
 | 🔐 **Security** | Local login or any OIDC provider (Keycloak, Duende, Entra ID…). Profiles with permissions per connection, table, column and action. |
-| 🤖 **AI through MCP** | Built-in suggestions and an optional MCP server: Claude, Cursor or another AI reviews the schema and proposes settings that a person accepts. The token has the access of whoever creates it. |
+| 🤖 **AI through MCP** | Built-in suggestions and an optional MCP server: Claude, Cursor or another AI reviews the schema and proposes settings or builds a private dashboard that a person reviews. The token has the access of whoever creates it. |
 | 🕵️ **Audit** | Who changed what and when, with per-record history and export. Concurrent edits never overwrite each other silently. |
 | 🌐 **Languages and theme** | Spanish, English and Russian, with dates and numbers in each one's format. Light, dark or system theme. |
 | 🚀 **Production ready** | Health checks, OpenTelemetry, rate limits, tables with millions of rows, several instances (optional Redis) and extra engines as plugins. |
-| 💳 **Plans** | Free forever (2 users, 1 connection and 15 tables), Pro and Business with a license that is checked without internet access. |
+| 💳 **Plans** | Free forever (2 users, 1 connection, 15 tables and 1 dashboard), Pro (5 dashboards) and Business (unlimited) with a license that is checked without internet access. |
 
 <details>
-<summary>More screenshots: form with master-detail</summary>
+<summary>More screenshots: dashboard and form with master-detail</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/dashboard-oscuro.png">
+  <img alt="Dashboard with a number, bars, lines, a store map and a donut" src="docs/img/dashboard-claro.png" width="900">
+</picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/formulario-oscuro.png">
@@ -174,7 +181,9 @@ The integration tests use the minimum versions; for another one, `MANTENEDORES_P
 | [despliegue.md](docs/despliegue.md) | Docker, Kubernetes, nginx, IIS, Windows service, systemd |
 | [ajustes.md](docs/ajustes.md) | Per-table and per-column settings |
 | [seguridad.md](docs/seguridad.md) | Profiles, permissions and audit |
-| [mcp.md](docs/mcp.md) | Connecting an AI through MCP to review the schema and propose settings |
+| [dashboards.md](docs/dashboards.md) | Dashboards: cards, permissions, sharing and plan limits |
+| [powerbi.md](docs/powerbi.md) | Connecting Power BI or Excel through OData |
+| [mcp.md](docs/mcp.md) | Connecting an AI through MCP to review the schema, propose settings and build dashboards |
 | [licencias.md](docs/licencias.md) | Free, Pro and Business plans; activating and issuing licenses, in Spanish |
 | [comercial/](docs/comercial/plan-comercial.md) | Celdo: business plan, brand manual and landing page (`landing/`), in Spanish |
 | [api.md](docs/api.md) | API routes |

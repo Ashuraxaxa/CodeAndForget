@@ -762,3 +762,7 @@ a.user-chip:hover { background: var(--hover); color: var(--text); }
 .widget-form-preview .widget { box-shadow: none; }
 @media (max-width: 860px) { .widget-form-body { grid-template-columns: 1fr; } .widget-form-preview { position: static; } }
 @media (max-width: 520px) { .modal { padding: 12px; } .widget-item { flex-wrap: wrap; } .widget-item-name { flex-basis: calc(100% - 30px); } }
+.powerbi-help .steps { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+.powerbi-urls { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 6px; }
+.powerbi-urls li { display: grid; grid-template-columns: minmax(80px, auto) 1fr auto; align-items: center; gap: 8px; }
+.powerbi-urls code { overflow-wrap: anywhere; font-size: 0.85rem; }

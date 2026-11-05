@@ -1,4 +1,4 @@
-import { Check, Copy, KeyRound, Plus, Trash2 } from 'lucide-react'
+import { BarChart3, Check, Copy, KeyRound, Plus, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
@@ -57,6 +57,7 @@ export function TokensPage() {
       )}
 
       {mcp.data && <McpHelp enabled={mcp.data.enabled} url={new URL(mcp.data.path, document.baseURI).href} secret={created?.secret} />}
+      <PowerBiHelp />
 
       <form className="card form" onSubmit={submit}>
         <h2>{t('Nuevo token')}</h2>
@@ -128,5 +129,43 @@ function McpHelp({ enabled, url, secret }: { enabled: boolean; url: string; secr
       <label>{t('Claude Code')}<code className="token-secret">{command}</code></label>
       <p className="muted">{t('En otros clientes (Claude Desktop, Cursor, VS Code…), agregue un servidor MCP por HTTP con esa URL y el encabezado Authorization: Bearer y su token.')}</p>
     </details>
+  )
+}
+
+/**
+ * Cómo conectar Power BI o Excel (P-132): cada conexión es una fuente OData de solo lectura con las tablas que el
+ * usuario puede exportar. Autenticación Básica: usuario cualquiera y el token como contraseña.
+ */
+function PowerBiHelp() {
+  const t = useT()
+  const connections = useQuery({ queryKey: ['connections'], queryFn: api.connections })
+  const [copied, setCopied] = useState<string | null>(null)
+  if (!connections.data?.length) return null
+  return (
+    <section className="card powerbi-help">
+      <h2 className="with-icon"><BarChart3 size={18} aria-hidden />{t('Power BI y Excel')}</h2>
+      <ol className="steps">
+        <li>{t('En Power BI Desktop: Obtener datos → Fuente OData. En Excel: Datos → Obtener datos → De otras fuentes → Desde fuente OData.')}</li>
+        <li>{t('Pega la URL de la conexión:')}
+          <ul className="powerbi-urls">
+            {connections.data.map(c => {
+              const url = new URL(`odata/${encodeURIComponent(c.id)}/`, document.baseURI).href
+              return (
+                <li key={c.id}>
+                  <span className="muted small">{c.name}</span>
+                  <code>{url}</code>
+                  <button type="button" className="icon-button sm" title={t('Copiar')} aria-label={t('Copiar')}
+                    onClick={() => { navigator.clipboard?.writeText(url); setCopied(c.id) }}>
+                    {copied === c.id ? <Check size={15} aria-hidden /> : <Copy size={15} aria-hidden />}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </li>
+        <li>{t('Autenticación Básica: en usuario escribe cualquier nombre y en contraseña, un token de esta página.')}</li>
+        <li>{t('Elige las tablas. Power BI las actualiza desde Celdo, con tus permisos: solo ve las tablas que puedes exportar.')}</li>
+      </ol>
+    </section>
   )
 }

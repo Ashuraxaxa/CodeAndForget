@@ -33,7 +33,7 @@ export function PlanPage() {
 
   const features: [keyof PlanInfo['features'], string, PlanName][] = [
     ['profiles', t('Perfiles y permisos por tabla, columna y acción'), 'Pro'],
-    ['allFormats', t('Exportar e importar Excel, JSON y XML'), 'Pro'],
+    ['allFormats', t('Exportar e importar Excel, JSON y XML, y Power BI por OData'), 'Pro'],
     ['importUpsert', t('Importar actualizando por clave'), 'Pro'],
     ['notifications', t('Avisos por correo'), 'Pro'],
     ['actions', t('Botones con procedimientos'), 'Pro'],

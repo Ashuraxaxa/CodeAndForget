@@ -446,6 +446,25 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         _ => throw new InvalidOperationException($"Fecha inesperada: {value?.GetType().Name}")
     };
 
+    [Fact]
+    public async Task Feed_para_power_bi_pagina_trae_textos_y_exige_exportar()
+    {
+        // P-132: páginas exactas ($skip y $top), con el texto de la FK; sin permiso de exportar, no se lee.
+        var sort = new[] { new SortSpec(N("id")) };
+        var (_, first) = await Db.Crud.FeedAsync(Conn, Schema, N("producto"), 0, 2, sort, default);
+        var (_, second) = await Db.Crud.FeedAsync(Conn, Schema, N("producto"), 1, 2, sort, default);
+        Assert.Equal(2, first.Count);
+        Assert.Equal(first[1][N("id")]?.ToString(), second[0][N("id")]?.ToString());
+        Assert.Equal("Bebidas", first[0][N("categoria_id") + QueryBuilder.LabelSuffix]);
+
+        Db.Access.Current = UserAccess.For("ana", [], isAdmin: false, [DashboardProfile("p", "ana", [], Conn, $"{Schema}.{N("producto")}")]);
+        try
+        {
+            await Assert.ThrowsAsync<ForbiddenException>(() => Db.Crud.FeedAsync(Conn, Schema, N("producto"), 0, 10, sort, default));
+        }
+        finally { Db.Access.Current = UserAccess.All; }
+    }
+
     // ---------- Escritura ----------
 
     // ---------- FK de varias columnas (P-030) ----------

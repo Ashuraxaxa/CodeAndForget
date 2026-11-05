@@ -20,13 +20,29 @@ public sealed class AccessTokenHandler(IOptionsMonitor<AuthenticationSchemeOptio
     /// <summary>Claim con el id del token: las rutas de tokens no aceptan una solicitud hecha con un token.</summary>
     public const string TokenClaim = "mnt_token";
 
-    public static bool HasToken(HttpRequest r) =>
-        r.Headers.Authorization.ToString() is { } h && h.StartsWith("Bearer " + AccessToken.SecretPrefix, StringComparison.Ordinal);
+    public static bool HasToken(HttpRequest r) => Secret(r) is not null;
+
+    /// <summary>
+    /// El secreto del token: <c>Bearer mnt_…</c>, o la contraseña de <c>Basic</c> (usuario cualquiera) para Power BI y
+    /// Excel, que en una fuente OData solo saben enviar usuario y contraseña (P-132).
+    /// </summary>
+    public static string? Secret(HttpRequest r)
+    {
+        var h = r.Headers.Authorization.ToString();
+        if (h.StartsWith("Bearer " + AccessToken.SecretPrefix, StringComparison.Ordinal)) return h["Bearer ".Length..].Trim();
+        if (!h.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase)) return null;
+        try
+        {
+            var pair = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(h["Basic ".Length..].Trim()));
+            var password = pair[(pair.IndexOf(':') + 1)..];
+            return password.StartsWith(AccessToken.SecretPrefix, StringComparison.Ordinal) ? password : null;
+        }
+        catch (FormatException) { return null; }
+    }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!HasToken(Request)) return AuthenticateResult.NoResult();
-        var secret = Request.Headers.Authorization.ToString()["Bearer ".Length..].Trim();
+        if (Secret(Request) is not { } secret) return AuthenticateResult.NoResult();
         var token = await tokens.FindByHashAsync(AccessToken.HashOf(secret), Context.RequestAborted);
         if (token is null) return AuthenticateResult.Fail("Token de acceso inválido.");
         var now = DateTimeOffset.UtcNow;

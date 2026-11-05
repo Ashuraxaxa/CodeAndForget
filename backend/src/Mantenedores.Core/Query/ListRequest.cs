@@ -16,6 +16,9 @@ public sealed record ListRequest
 
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 25;
+
+    /// <summary>Filas a saltar, exactas: reemplaza a <see cref="Page"/> (el feed OData para Power BI, P-132).</summary>
+    public long? Skip { get; init; }
     public IReadOnlyList<SortSpec> Sort { get; init; } = [];
 
     /// <summary>Filtro por columna: texto = contiene; otros tipos = igual.</summary>

@@ -18,6 +18,17 @@ public sealed class PostgresDialect : ISqlDialect
     public string Contains(string columnExpr, string param, bool isText = false) =>
         $"{(isText ? columnExpr : $"CAST({columnExpr} AS text)")} ILIKE {param} ESCAPE '{QueryBuilder.LikeEscape}'";
 
+    private const string Accented = "áàâäãåéèêëíìîïóòôöõúùûüñçÁÀÂÄÃÅÉÈÊËÍÌÎÏÓÒÔÖÕÚÙÛÜÑÇ";
+    private const string Plain = "aaaaaaeeeeiiiiooooouuuuncAAAAAAEEEEIIIIOOOOOUUUUNC";
+
+    /// <summary>
+    /// Sin tildes (P-109) con translate y sin la extensión unaccent, que no siempre está instalada. lower() después de
+    /// translate: así funciona también con la intercalación "C".
+    /// </summary>
+    public string ContainsIgnoringAccents(string columnExpr, string param, bool isText = false) =>
+        $"lower(translate({(isText ? columnExpr : $"CAST({columnExpr} AS text)")}, '{Accented}', '{Plain}')) " +
+        $"LIKE lower(translate({param}, '{Accented}', '{Plain}')) ESCAPE '{QueryBuilder.LikeEscape}'";
+
     public string ParameterFor(ColumnInfo column, string param) => column.TextCast
         // Tipos propios (P-075): el texto se convierte al tipo de la columna (inet, int4range, un compuesto…).
         ? $"CAST({param} AS {Quote(column.NativeTypeSchema ?? "pg_catalog")}.{Quote(column.NativeType)})"

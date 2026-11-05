@@ -27,7 +27,7 @@ public class QueryBuilderTests
             "OCTET_LENGTH(t0.\"foto\") AS \"__sz1\" " +
             "FROM \"ventas\".\"producto\" t0 LEFT JOIN \"ventas\".\"categoria\" j0 ON j0.\"id\" = t0.\"categoria_id\" " +
             "WHERE t0.\"codigo\" ILIKE @p0 ESCAPE '!' AND (t0.\"categoria_id\" = @p1 OR " +
-            "t0.\"categoria_id\" IN (SELECT lf.\"id\" FROM \"ventas\".\"categoria\" lf WHERE lf.\"nombre\" ILIKE @p2 ESCAPE '!')) " +
+            "t0.\"categoria_id\" IN (SELECT lf.\"id\" FROM \"ventas\".\"categoria\" lf WHERE lower(translate(lf.\"nombre\", 'áàâäãåéèêëíìîïóòôöõúùûüñçÁÀÂÄÃÅÉÈÊËÍÌÎÏÓÒÔÖÕÚÙÛÜÑÇ', 'aaaaaaeeeeiiiiooooouuuuncAAAAAAEEEEIIIIOOOOOUUUUNC')) LIKE lower(translate(@p2, 'áàâäãåéèêëíìîïóòôöõúùûüñçÁÀÂÄÃÅÉÈÊËÍÌÎÏÓÒÔÖÕÚÙÛÜÑÇ', 'aaaaaaeeeeiiiiooooouuuuncAAAAAAEEEEIIIIOOOOOUUUUNC')) ESCAPE '!')) " +
             "ORDER BY t0.\"precio\" DESC, t0.\"id\" ASC LIMIT @p4 OFFSET @p3",
             data.Sql);
         Assert.Equal("%be!_%", data.Parameters["p0"]);
@@ -142,7 +142,7 @@ public class QueryBuilderTests
         var q = new QueryBuilder(new PostgresDialect()).BuildLookup(categoria, "beb", 20);
         Assert.Equal(
             "SELECT t0.\"id\" AS \"value\", t0.\"nombre\" AS \"label\" FROM \"ventas\".\"categoria\" t0 " +
-            "WHERE t0.\"nombre\" ILIKE @p0 ESCAPE '!' ORDER BY t0.\"nombre\" LIMIT @p2 OFFSET @p1",
+            "WHERE lower(translate(t0.\"nombre\", 'áàâäãåéèêëíìîïóòôöõúùûüñçÁÀÂÄÃÅÉÈÊËÍÌÎÏÓÒÔÖÕÚÙÛÜÑÇ', 'aaaaaaeeeeiiiiooooouuuuncAAAAAAEEEEIIIIOOOOOUUUUNC')) LIKE lower(translate(@p0, 'áàâäãåéèêëíìîïóòôöõúùûüñçÁÀÂÄÃÅÉÈÊËÍÌÎÏÓÒÔÖÕÚÙÛÜÑÇ', 'aaaaaaeeeeiiiiooooouuuuncAAAAAAEEEEIIIIOOOOOUUUUNC')) ESCAPE '!' ORDER BY t0.\"nombre\" LIMIT @p2 OFFSET @p1",
             q.Sql);
     }
 
@@ -154,7 +154,7 @@ public class QueryBuilderTests
         var q = new QueryBuilder(new PostgresDialect()).BuildLookup(categoria, "beb", 20, new Dictionary<string, string> { ["id"] = "3" });
         Assert.Equal(
             "SELECT t0.\"id\" AS \"value\", t0.\"nombre\" AS \"label\" FROM \"ventas\".\"categoria\" t0 " +
-            "WHERE t0.\"id\" = @p0 AND t0.\"nombre\" ILIKE @p1 ESCAPE '!' ORDER BY t0.\"nombre\" LIMIT @p3 OFFSET @p2",
+            "WHERE t0.\"id\" = @p0 AND lower(translate(t0.\"nombre\", 'áàâäãåéèêëíìîïóòôöõúùûüñçÁÀÂÄÃÅÉÈÊËÍÌÎÏÓÒÔÖÕÚÙÛÜÑÇ', 'aaaaaaeeeeiiiiooooouuuuncAAAAAAEEEEIIIIOOOOOUUUUNC')) LIKE lower(translate(@p1, 'áàâäãåéèêëíìîïóòôöõúùûüñçÁÀÂÄÃÅÉÈÊËÍÌÎÏÓÒÔÖÕÚÙÛÜÑÇ', 'aaaaaaeeeeiiiiooooouuuuncAAAAAAEEEEIIIIOOOOOUUUUNC')) ESCAPE '!' ORDER BY t0.\"nombre\" LIMIT @p3 OFFSET @p2",
             q.Sql);
         Assert.Equal(3, q.Parameters["p0"]);
         Assert.Throws<ValidationException>(() => new QueryBuilder(new PostgresDialect())

@@ -39,6 +39,7 @@ export function PlanPage() {
     ['actions', t('Botones con procedimientos'), 'Pro'],
     ['copySettings', t('Copiar ajustes entre conexiones'), 'Pro'],
     ['ai', t('IA por MCP y tokens de acceso'), 'Pro'],
+    ['embed', t('Embeber dashboards y mantenedores en otras aplicaciones'), 'Pro'],
     ['sso', t('Inicio de sesión con proveedor de identidad (SSO)'), 'Business'],
     ['infrastructure', t('Varias instancias, Redis, plugins y OpenTelemetry'), 'Business'],
   ]

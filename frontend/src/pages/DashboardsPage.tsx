@@ -10,6 +10,7 @@ import { WidgetView } from '../components/WidgetView'
 import { formatInstant } from '../lib/format'
 import { useT } from '../i18n'
 import { rangeOf, type RangeId } from '../lib/dashboardRange'
+import { isEmbed } from '../lib/embed'
 
 /** Lista de dashboards (P-129, D-111): los propios y los compartidos con sus perfiles. */
 export function DashboardsPage() {
@@ -93,7 +94,9 @@ export function DashboardPage() {
   const view = useQuery({ queryKey: ['dashboard', id], queryFn: () => api.dashboard(id) })
   const plan = useQuery({ queryKey: ['plan'], queryFn: api.plan, staleTime: 60_000 })
   const [params, setParams] = useSearchParams()
-  const editing = params.get('editar') === '1' && view.data?.canEdit === true
+  // Embebido solo se mira: se edita en la app.
+  const canEdit = view.data?.canEdit === true && !isEmbed
+  const editing = params.get('editar') === '1' && canEdit
   const setEditing = (on: boolean) => setParams(p => { const n = new URLSearchParams(p); if (on) n.set('editar', '1'); else n.delete('editar'); return n }, { replace: true })
   const [range, setRange] = useState<RangeId>(() => {
     try { return (localStorage.getItem(RANGE_KEY) as RangeId) || '30d' } catch { return '30d' }
@@ -106,7 +109,7 @@ export function DashboardPage() {
   if (view.isLoading) return <div className="page"><p className="muted">{t('Cargando…')}</p></div>
   if (view.error || !view.data) return (
     <div className="page">
-      <Link className="back-link" to="/dashboards"><ArrowLeft size={16} aria-hidden />{t('Dashboards')}</Link>
+      {!isEmbed && <Link className="back-link" to="/dashboards"><ArrowLeft size={16} aria-hidden />{t('Dashboards')}</Link>}
       <div className="alert"><ErrorText error={view.error} /></div>
     </div>
   )
@@ -121,12 +124,12 @@ export function DashboardPage() {
     <div className="page dashboard-page">
       <div className="page-header">
         <div>
-          <Link className="back-link" to="/dashboards"><ArrowLeft size={16} aria-hidden />{t('Dashboards')}</Link>
+          {!isEmbed && <Link className="back-link" to="/dashboards"><ArrowLeft size={16} aria-hidden />{t('Dashboards')}</Link>}
           <h1>{d.name}</h1>
           {d.description && <p className="muted">{d.description}</p>}
         </div>
         <div className="actions">
-        {view.data.canEdit && !editing && <button type="button" onClick={() => setEditing(true)}><Pencil size={15} aria-hidden />{t('Editar')}</button>}
+        {canEdit && !editing && <button type="button" onClick={() => setEditing(true)}><Pencil size={15} aria-hidden />{t('Editar')}</button>}
         {d.widgets.length > 0 && !editing && (
           <label className="dashboard-range">
             <span className="muted small">{t('Actualizar')}</span>
@@ -155,7 +158,7 @@ export function DashboardPage() {
         <div className="card empty-dashboard">
           <LayoutDashboard size={28} aria-hidden />
           <p>{t('Este dashboard todavía no tiene tarjetas.')}</p>
-          {view.data.canEdit && <button type="button" onClick={() => setEditing(true)}><Plus size={15} aria-hidden />{t('Agregar tarjeta')}</button>}
+          {canEdit && <button type="button" onClick={() => setEditing(true)}><Plus size={15} aria-hidden />{t('Agregar tarjeta')}</button>}
         </div>
       ) : (
         <div className="dashboard-grid">
@@ -174,5 +177,5 @@ function WidgetCard({ dashboard, widget, range, refresh }: { dashboard: string; 
     refetchInterval: refresh ? refresh * 1000 : false,
     retry: false,
   })
-  return <WidgetView widget={widget} data={data.data} isLoading={data.isLoading} error={data.error} interactive />
+  return <WidgetView widget={widget} data={data.data} isLoading={data.isLoading} error={data.error} interactive={!isEmbed} />
 }

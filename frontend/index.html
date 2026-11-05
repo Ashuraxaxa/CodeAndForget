@@ -13,6 +13,11 @@
       (function () {
         var t = null
         try { t = localStorage.getItem('mantenedores.theme') } catch (e) {}
+        // Embebida (?tema=claro|oscuro|sistema): manda el tema que pide la app anfitriona. Igual que src/lib/embed.ts.
+        if (/\/embed(\/|$)/.test(location.pathname)) {
+          var q = (new URLSearchParams(location.search).get('tema') || '').toLowerCase()
+          if (q) t = { claro: 'light', light: 'light', oscuro: 'dark', dark: 'dark' }[q] || null
+        }
         var dark = t === 'dark' || (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
         document.documentElement.dataset.theme = dark ? 'dark' : 'light'
       })()

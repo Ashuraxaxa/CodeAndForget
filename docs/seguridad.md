@@ -100,6 +100,12 @@ los ajustes de los mantenedores exige `ConfigureTables`.
 - **Tope por plan:** 1 / 5 / sin tope dashboards por instalación y 6 / 20 / 50 tarjetas por dashboard. Al bajar de
   plan quedan en uso los más antiguos; los demás se listan bloqueados y vuelven al subir.
 
+## Embeber y clickjacking (D-113)
+
+- **Fuera de `/embed`:** la app solo se deja embeber por sí misma (`Content-Security-Policy: frame-ancestors 'self'` y `X-Frame-Options: SAMEORIGIN`). Así otra página no puede ponerla en un iframe invisible para que el usuario haga clics sin saberlo.
+- **Las páginas `/embed`:** se dejan embeber solo por los sitios de `Embed:AllowedOrigins` y desde el plan Pro.
+- **Permisos:** dentro del iframe, cada usuario tiene los mismos que en la app. Detalle en [embeber.md](embeber.md).
+
 ## Usuarios propios (modo `Local`)
 
 - Se crean en **Seguridad → Usuarios**, con contraseña de al menos 8 caracteres, guardada como hash PBKDF2 en la metadata.

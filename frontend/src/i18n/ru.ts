@@ -615,4 +615,8 @@ export const ru: Messages = {
   '{who}, {when}': '{who}, {when}',
   '¿Borrar el token "{name}"? Lo que lo use dejará de tener acceso.': 'Удалить токен «{name}»? То, что его использует, потеряет доступ.',
   'Último uso': 'Последнее использование',
+  // Embeber (P-134)
+  'Embeber dashboards y mantenedores en otras aplicaciones': "Встраивание дашбордов и экранов таблиц в другие приложения",
+  'Embeber dashboards y mantenedores en otras aplicaciones está disponible desde el plan Pro.': "Встраивание дашбордов и экранов таблиц в другие приложения доступно с тарифа Pro.",
+  'Esta página no se puede embeber. Se embeben dashboards y mantenedores.': "Эту страницу нельзя встроить. Встраиваются дашборды и экраны таблиц.",
 }

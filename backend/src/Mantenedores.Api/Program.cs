@@ -119,6 +119,8 @@ builder.Services.AddMantenedoresMcp(mcp, rateLimits);
 builder.Services.AddMantenedoresTelemetry(
     builder.Configuration.GetSection(TelemetryOptions.Section).Get<TelemetryOptions>() ?? new TelemetryOptions());
 // --- Licencia y plan (P-116, D-106): Gratis sin clave; Pro o Empresa con una licencia firmada, validada sin internet ---
+// --- Embeber en otras aplicaciones (P-134, D-113): sitios que pueden poner /embed en un iframe ---
+var embedOrigins = EmbedSetup.Validate(builder.Configuration.GetSection(EmbedOptions.Section).Get<EmbedOptions>() ?? new EmbedOptions());
 builder.Services.Configure<LicenseOptions>(builder.Configuration.GetSection(LicenseOptions.Section));
 var businessInUse = LicenseService.BusinessFeatures(builder.Configuration, auth.Mode, plugins.Count);
 builder.Services.AddSingleton(sp => new LicenseService(sp.GetRequiredService<Mantenedores.Core.Licensing.IServiceSettings>(),
@@ -149,6 +151,7 @@ if (startPlan.RequiresBusiness.Count > 0)
 app.UseExceptionHandler();
 app.UseSlowRequestLog();
 app.UseHosting(hosting);
+app.UseFrameProtection(embedOrigins);
 app.UseStaticFiles(); // Recursos del frontend compilado (wwwroot). index.html lo sirve MapSpaIndex.
 // Feed OData (P-132): sin credenciales, se pide usuario y contraseña (Básica), que es lo que ofrecen Power BI y Excel.
 app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/odata"), b => b.Use(async (ctx, next) =>

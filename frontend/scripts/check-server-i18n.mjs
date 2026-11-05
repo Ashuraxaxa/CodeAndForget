@@ -17,7 +17,7 @@ const SKIP_FILES = [
   /Mantenedores\.Api\/Mcp\//, // para la IA: los entiende en español y responde en el idioma del usuario
   /Mantenedores\.Api\/Auth\/AuthSetup\.cs$/, // arranque; el scope que falta va al registro
   /Mantenedores\.Api\/Auth\/AccessTokenAuth\.cs$/, // el motivo del 401 va al registro, no a la respuesta
-  /Mantenedores\.Api\/Infrastructure\/(ProviderPlugins|SharedCache|HostingSetup|HealthChecks|SpaIndex|Telemetry\w*)\.cs$/,
+  /Mantenedores\.Api\/Infrastructure\/(ProviderPlugins|SharedCache|HostingSetup|HealthChecks|SpaIndex|EmbedSetup|Telemetry\w*)\.cs$/,
   /Mantenedores\.Api\/Notifications\//, // el correo se traduce en el servidor (Notifications:Language)
   /Mantenedores\.Api\/Endpoints\/AuditLabels\.cs$/, // encabezados de la exportación: los traduce el servidor
   /Mantenedores\.Api\/Infrastructure\/ServerText\.cs$/,

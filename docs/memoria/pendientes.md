@@ -11,6 +11,19 @@ El detalle de cada bloque y su criterio de "listo" está en [../siguientes-pasos
 
 ---
 
+## E. Embeber (plan en [../embeber.md](../embeber.md), D-113)
+
+| ID | Pendiente | Prio | Estado |
+|---|---|---|---|
+| P-134 | Etapa 1 · Base y forma A: `frame-ancestors` con `Embed:AllowedOrigins`, rutas `/embed` sin menú, login en el iframe (ventana emergente con OIDC), tema e idioma por parámetro, alto por `postMessage`, sello en Pro y bloqueo en Gratis | 🔴 | ✅ 2026-11-05 |
+| P-135 | Etapa 2 · Aplicaciones registradas y tokens firmados: migración 010, Seguridad → Aplicaciones, canje, sesión limitada, auditoría `app:` y tope de 3 en Pro | 🔴 | ⏳ |
+| P-136 | Etapa 3 · Filtros fijos por fila en listar, leer, editar, borrar, exportar, combos y dashboards; valor fijo al crear; batería común | 🔴 | ⏳ |
+| P-137 | Etapa 4 · Dashboards públicos por enlace secreto, con interruptor del administrador y límite por IP | 🟡 | ⏳ |
+| P-138 | Etapa 5 · `embed.js`, eventos y renovación del token; página de prueba en `samples/` | 🟡 | ⏳ |
+| P-139 | Etapa 6 · Ejemplos para firmar en C#, Node y Python; README, landing y planes | 🟡 | ⏳ |
+
+---
+
 ## D. Dashboards dinámicos (plan en [../dashboards.md](../dashboards.md), preguntas Q-012 a Q-015)
 
 | ID | Pendiente | Prio | Estado |

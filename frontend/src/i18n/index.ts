@@ -143,10 +143,10 @@ export interface I18n {
 
 export const I18nContext = createContext<I18n>({ locale: current, setLocale: () => {}, t })
 
-/** Cambia el idioma vigente y lo recuerda entre visitas (lo usa el proveedor). */
-export function setCurrentLocale(l: Locale) {
+/** Cambia el idioma vigente y lo recuerda entre visitas (lo usa el proveedor). Con remember = false, solo esta página. */
+export function setCurrentLocale(l: Locale, remember = true) {
   current = l
-  try { localStorage.setItem(STORAGE_KEY, l) } catch { /* no se recuerda entre visitas */ }
+  if (remember) try { localStorage.setItem(STORAGE_KEY, l) } catch { /* no se recuerda entre visitas */ }
 }
 
 /** El idioma vigente al cargar la página. */

@@ -615,4 +615,8 @@ export const en: Messages = {
   '{who}, {when}': '{who}, {when}',
   '¿Borrar el token "{name}"? Lo que lo use dejará de tener acceso.': 'Delete the token "{name}"? Whatever uses it will lose access.',
   'Último uso': 'Last used',
+  // Embeber (P-134)
+  'Embeber dashboards y mantenedores en otras aplicaciones': "Embedding dashboards and screens in other applications",
+  'Embeber dashboards y mantenedores en otras aplicaciones está disponible desde el plan Pro.': "Embedding dashboards and screens in other applications is available from the Pro plan.",
+  'Esta página no se puede embeber. Se embeben dashboards y mantenedores.': "This page can’t be embedded. Dashboards and table screens can.",
 }

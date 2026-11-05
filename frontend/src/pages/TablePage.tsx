@@ -7,6 +7,7 @@ import { LABEL_SUFFIX, SIZE_SUFFIX, VERSION_FIELD, helpTextOf, labelOf, type Col
 import { FIXED_PREFIX, RETURN_PARAM, displayValue, keyQuery } from '../lib/format'
 import { useDebounce } from '../lib/useDebounce'
 import { useCan } from '../lib/useMe'
+import { isEmbed } from '../lib/embed'
 import { useTableLabels } from '../lib/useTableLabels'
 import { TreeView } from '../components/TreeView'
 import { useT } from '../i18n'
@@ -48,7 +49,8 @@ export function Grid({ conn, meta, fixed, returnTo }: {
   const t = useT()
   const qc = useQueryClient()
   const navigate = useNavigate()
-  const canConfigure = useCan('ConfigureTables')
+  // Embebido no se configura: el ajuste de la tabla es para la app completa.
+  const canConfigure = useCan('ConfigureTables') && !isEmbed
   const [params, setParams] = useSearchParams()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)

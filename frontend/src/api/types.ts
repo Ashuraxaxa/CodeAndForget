@@ -524,7 +524,7 @@ export interface PlanInfo {
   freeTables: string[]
   freeConnection?: string | null
   needsTableSelection: boolean
-  features: Record<'profiles' | 'allFormats' | 'importUpsert' | 'notifications' | 'actions' | 'copySettings' | 'ai' | 'sso' | 'infrastructure', boolean>
+  features: Record<'profiles' | 'allFormats' | 'importUpsert' | 'notifications' | 'actions' | 'copySettings' | 'ai' | 'sso' | 'embed' | 'infrastructure', boolean>
 }
 
 export interface FreeTableCandidate { schema: string; name: string; kind: string; label?: string | null; selected: boolean; foreignKeys: number }

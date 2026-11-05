@@ -789,3 +789,12 @@ tr.pickable:hover td { background: var(--hover); }
 /* Pantalla ancha: el dashboard y el formulario de un registro no se estiran más allá de lo que se lee cómodo. */
 .dashboard-page, .dashboards-page { max-width: 1760px; margin-inline: auto; width: 100%; }
 .record-page > form.card { max-width: 1440px; }
+
+/* ---------- Páginas embebidas (P-134): sin barra superior y con el alto del contenido ---------- */
+html[data-embed] { --topbar-h: 0px; }
+html[data-embed] body { background: var(--bg); }
+/* El iframe toma el alto del contenido: nada se mide contra la ventana, o crecería sin fin. */
+html[data-embed] .table-wrap { max-height: none; }
+html[data-embed] .login { min-height: 0; padding: 32px 16px; }
+html[data-embed] .login-tools { display: none; }
+.embed .app-footer { padding: 4px 16px 12px; }

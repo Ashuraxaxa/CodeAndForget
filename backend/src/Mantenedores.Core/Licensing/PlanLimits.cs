@@ -19,6 +19,8 @@ public enum Feature
     Ai,
     /// <summary>Inicio de sesión con proveedor de identidad (modo Jwt / OIDC).</summary>
     Sso,
+    /// <summary>Embeber dashboards y mantenedores en otras aplicaciones (D-113).</summary>
+    Embed,
     /// <summary>Varias instancias, metadata en PostgreSQL o SQL Server, Redis, plugins y OpenTelemetry.</summary>
     Infrastructure
 }

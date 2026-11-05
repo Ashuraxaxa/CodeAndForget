@@ -4,6 +4,20 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · Embeber: plan y etapa 1 (P-134)
+- **Plan:** el dueño aprobó tres formas (con sesión, con token firmado y dashboards públicos), los planes (Gratis no, Pro con 3 apps y sello, Empresa sin tope ni marca), que los externos no cuentan como usuarios, y los filtros por fila (D-113, `docs/embeber.md`).
+- **Hallazgo:** la app no enviaba ninguna cabecera contra el clickjacking; cualquier sitio podía meterla en un iframe. Ahora fuera de `/embed` solo se deja embeber por sí misma.
+- **Etapa 1:**
+  - `/embed/dashboards/{id}` y `/embed/c/{conexión}/t/{esquema}/{tabla}`, sin menú y con el router bajo `/embed`, para que los enlaces no salgan del iframe;
+  - login dentro del iframe, en una ventana emergente con OIDC;
+  - `?tema=` e `?idioma=` sin guardarse;
+  - alto por `postMessage`;
+  - sello en Pro y aviso en Gratis.
+- **Pruebas:**
+  - cabeceras por plan y orígenes, y validación de orígenes;
+  - en vivo con una intranet de ejemplo en otro puerto: el dashboard y el mantenedor cargan, y `/seguridad` queda bloqueada por el navegador.
+- **Aprendido:** Chrome no redibuja un iframe de otro sitio fuera de la pantalla; el alto se avisa cuando entra a la vista.
+
 ## 2026-11-05 · README y landing al día
 - **README (español e inglés):** filas nuevas de Dashboards y de Power BI y Excel; la IA también arma dashboards privados; topes de dashboards en Planes; captura del dashboard en día y noche (`docs/img/dashboard-*.png`); `dashboards.md` y `powerbi.md` en la tabla de documentos.
 - **Landing:** tres funciones nuevas (dashboards, Power BI y Excel, instalación con un comando), topes de dashboards en los tres planes y el texto de IA corregido ("nunca guarda nada" ya no era cierto). Revisada en 1440 y 390 px, sin desbordes.

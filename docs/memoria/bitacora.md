@@ -4,6 +4,11 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · Perfiles que solo ven las tablas agregadas (P-126)
+- El dueño pidió que, por defecto, un perfil no vea todas las tablas y solo las agregadas. Ya se podía (conexión sin operaciones), pero no era evidente.
+- Ahora cada conexión del perfil tiene un selector "Solo las tablas agregadas" / "Todas las tablas", y una conexión nueva parte en la primera (D-110). No cambia el formato guardado.
+- También se explicó cómo emitir y activar una licencia (Plan → Activar licencia, o `License__Key`).
+
 ## 2026-11-04 · Imagen Docker oficial (P-123)
 - Workflow **Publicar versión**: con una etiqueta `vX.Y.Z` corre pruebas y sube la imagen a `ghcr.io/ashuraxaxa/celdo` para amd64 y arm64 (D-109). Docker Hub queda opcional.
 - El Dockerfile compila en la plataforma nativa y publica para la de destino; estampa la versión.

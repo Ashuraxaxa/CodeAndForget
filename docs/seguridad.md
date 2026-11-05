@@ -64,6 +64,12 @@ Ejemplo: ver y exportar todo `demo`, editar solo `ventas.producto` y sin tocar s
 }
 ```
 
+En el editor, cada conexión del perfil tiene un selector (D-110):
+
+- **Solo las tablas agregadas** (lo que trae una conexión nueva): la conexión no da nada por sí misma; el perfil ve
+  únicamente las tablas que se agreguen, cada una con sus operaciones. Se guarda como `"operations": []`.
+- **Todas las tablas:** las operaciones marcadas valen para todas, y una tabla agregada usa las suyas.
+
 Se aplica **en el servidor**. La UI solo esconde lo que no se puede hacer:
 
 - las tablas que no ve no salen en el menú, ni en "Referenciada por", ni como pestañas o selectores N:M;

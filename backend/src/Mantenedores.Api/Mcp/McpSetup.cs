@@ -26,7 +26,9 @@ public static class McpSetup
         "Flujo sugerido: list_connections → list_tables → get_table → suggest_settings (reglas sin IA) → sample_rows si la conexión lo " +
         "permite → preview_settings hasta que no haya errores → propose_settings con un motivo claro. No puede guardar ajustes: " +
         "sus propuestas quedan pendientes hasta que una persona las acepte en Configurar. Revise list_proposals para no repetirlas. " +
-        "Un ajuste reemplaza al actual de la tabla entero: parta siempre de currentSettings.";
+        "Un ajuste reemplaza al actual de la tabla entero: parta siempre de currentSettings. " +
+        "Dashboards: pruebe cada tarjeta con preview_widget y cree el dashboard con create_dashboard; queda privado del usuario, " +
+        "que lo revisa y decide si lo comparte. Mire list_dashboards para no pasar el tope del plan.";
 
     public static void AddMantenedoresMcp(this IServiceCollection services, McpOptions o, RateLimitOptions limits)
     {

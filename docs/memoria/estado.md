@@ -23,6 +23,7 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 | `feature/dashboards-ver` | PR #60 fusionado: menú, lista y página con 6 tipos de tarjeta (P-129). |
 | `feature/dashboards-editor` | PR #61 fusionado: editor de tarjetas con vista previa y compartir (P-130). |
 | `feature/powerbi-odata` | PR #64: Power BI y Excel por un feed OData de solo lectura (P-132, D-112). |
+| `feature/dashboards-extras` | PR #63 fusionado: dashboards, etapa 5: mapa, refresco, CSV, ir a la grilla e IA (P-131). |
 | `fix/busqueda-sin-tildes` | PR #62 fusionado: combos y filtro de FK sin distinguir tildes (P-109). |
 
 ## Qué funciona hoy

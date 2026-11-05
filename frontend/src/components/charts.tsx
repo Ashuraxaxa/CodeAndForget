@@ -1,7 +1,8 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { AggregateRow, DateBucket } from '../api/types'
 import { useT } from '../i18n'
 import { axisLabel, formatNumber, keyLabel, lang } from '../lib/chartFormat'
+import { loadCountries, type Bbox, type Country } from '../lib/worldMap'
 
 /**
  * Gráficos de las tarjetas de dashboard (P-129, D-111), en SVG propio. Colores: variables --series-1…8 (paleta
@@ -52,7 +53,7 @@ export function NumberTile({ value, caption }: { value: unknown; caption?: strin
 
 // ---------- Barras (horizontales: las etiquetas se leen enteras, también en el teléfono) ----------
 
-export function BarChart({ rows, bucket }: { rows: AggregateRow[]; bucket?: DateBucket | null }) {
+export function BarChart({ rows, bucket, onPick }: { rows: AggregateRow[]; bucket?: DateBucket | null; onPick?: (r: AggregateRow) => void }) {
   const t = useT()
   const tip = useTip()
   const max = Math.max(0, ...rows.map(r => num(r.value)))
@@ -62,7 +63,8 @@ export function BarChart({ rows, bucket }: { rows: AggregateRow[]; bucket?: Date
         const label = keyLabel(t, r.key, r.label, bucket)
         const pct = max > 0 ? Math.max(0, num(r.value)) / max * 100 : 0
         return (
-          <div key={i} className="bar-row" role="listitem" tabIndex={0}
+          <div key={i} className={`bar-row ${onPick ? 'pickable' : ''}`} role="listitem" tabIndex={0}
+            onClick={onPick ? () => onPick(r) : undefined} onKeyDown={onPick ? e => { if (e.key === 'Enter') onPick(r) } : undefined}
             onPointerMove={e => tip.show(e, <><b>{label}</b><span>{formatNumber(r.value)}</span></>)}
             onPointerLeave={tip.hide} onBlur={tip.hide}
             onFocus={e => tip.show(e, <><b>{label}</b><span>{formatNumber(r.value)}</span></>, e.currentTarget.getBoundingClientRect())}>
@@ -152,11 +154,11 @@ export function LineChart({ rows, bucket }: { rows: AggregateRow[]; bucket?: Dat
 
 // ---------- Dona (hasta 8 porciones; el resto se junta en "Otros") ----------
 
-export function DonutChart({ rows, bucket }: { rows: AggregateRow[]; bucket?: DateBucket | null }) {
+export function DonutChart({ rows, bucket, onPick }: { rows: AggregateRow[]; bucket?: DateBucket | null; onPick?: (r: AggregateRow) => void }) {
   const t = useT()
   const tip = useTip()
   const sorted = [...rows].sort((a, b) => num(b.value) - num(a.value))
-  const top = sorted.slice(0, sorted.length > 8 ? 7 : 8).map(r => ({ label: keyLabel(t, r.key, r.label, bucket), value: Math.max(0, num(r.value)) }))
+  const top: { label: string; value: number; row?: AggregateRow }[] = sorted.slice(0, sorted.length > 8 ? 7 : 8).map(r => ({ label: keyLabel(t, r.key, r.label, bucket), value: Math.max(0, num(r.value)), row: r }))
   if (sorted.length > 8) top.push({ label: t('Otros'), value: sorted.slice(7).reduce((s, r) => s + Math.max(0, num(r.value)), 0) })
   const total = top.reduce((s, x) => s + x.value, 0)
   const r = 70, inner = 46, c = 80
@@ -178,7 +180,8 @@ export function DonutChart({ rows, bucket }: { rows: AggregateRow[]; bucket?: Da
     <div className="chart chart-donut">
       <svg viewBox="0 0 160 160" width="160" height="160" role="img" aria-label={t('Gráfico de dona')}>
         {arcs.map((a, i) => (
-          <path key={i} d={a.d} style={{ fill: a.color }} className="chart-slice" fillRule="evenodd"
+          <path key={i} d={a.d} style={{ fill: a.color, cursor: onPick && a.row ? 'pointer' : undefined }} className="chart-slice" fillRule="evenodd"
+            onClick={onPick && a.row ? () => onPick(a.row!) : undefined}
             onPointerMove={e => tip.show(e, <><b>{a.label}</b><span>{formatNumber(a.value)} · {pct(a.value)}</span></>)}
             onPointerLeave={tip.hide} />
         ))}
@@ -197,7 +200,7 @@ export function DonutChart({ rows, bucket }: { rows: AggregateRow[]; bucket?: Da
 
 // ---------- Top N (tabla con la posición) ----------
 
-export function TopTable({ rows, bucket, groupLabel, valueLabel }: { rows: AggregateRow[]; bucket?: DateBucket | null; groupLabel: string; valueLabel: string }) {
+export function TopTable({ rows, bucket, groupLabel, valueLabel, onPick }: { rows: AggregateRow[]; bucket?: DateBucket | null; groupLabel: string; valueLabel: string; onPick?: (r: AggregateRow) => void }) {
   const t = useT()
   return (
     <div className="chart chart-table">
@@ -205,7 +208,7 @@ export function TopTable({ rows, bucket, groupLabel, valueLabel }: { rows: Aggre
         <thead><tr><th>#</th><th>{groupLabel}</th><th className="num">{valueLabel}</th></tr></thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i}><td className="muted">{i + 1}</td><td>{keyLabel(t, r.key, r.label, bucket)}</td><td className="num">{formatNumber(r.value)}</td></tr>
+            <tr key={i} className={onPick ? 'pickable' : undefined} onClick={onPick ? () => onPick(r) : undefined}><td className="muted">{i + 1}</td><td>{keyLabel(t, r.key, r.label, bucket)}</td><td className="num">{formatNumber(r.value)}</td></tr>
           ))}
         </tbody>
       </table>
@@ -237,6 +240,72 @@ export function PivotTable({ rows, bucket, bucket2 }: { rows: AggregateRow[]; bu
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+// ---------- Mapa (P-131): puntos por latitud y longitud sobre los contornos de los países, sin servicios externos ----------
+
+export function MapChart({ rows }: { rows: AggregateRow[] }) {
+  const t = useT()
+  const [ref, width] = useWidth<HTMLDivElement>()
+  const tip = useTip()
+  const [countries, setCountries] = useState<Country[] | null>(null)
+  useEffect(() => { let on = true; loadCountries(lang()).then(c => { if (on) setCountries(c) }).catch(() => { if (on) setCountries([]) }); return () => { on = false } }, [])
+  const pts = rows
+    .map(r => ({ lat: num(r.key), lon: num(r.key2), v: Math.max(0, num(r.value)), label: r.label ?? r.label2 }))
+    .filter(p => Math.abs(p.lat) <= 90 && Math.abs(p.lon) <= 180 && !(p.lat === 0 && p.lon === 0))
+  const h = 340, pad = 12
+  if (pts.length === 0) return <p className="muted small">{t('No hay latitudes y longitudes válidas.')}</p>
+
+  // Encuadre: los puntos con margen (al menos 2°, para ver dónde quedan) y la escala de longitud corregida por la
+  // latitud media (proyección equirectangular), así el país no se ve ancho ni angosto. El encuadre llena la tarjeta.
+  const latC = (Math.min(...pts.map(p => p.lat)) + Math.max(...pts.map(p => p.lat))) / 2
+  const lonC = (Math.min(...pts.map(p => p.lon)) + Math.max(...pts.map(p => p.lon))) / 2
+  const kx = Math.cos((latC * Math.PI) / 180)
+  const spanLat = Math.max(2, (Math.max(...pts.map(p => p.lat)) - Math.min(...pts.map(p => p.lat))) * 1.25)
+  const spanLon = Math.max(2, (Math.max(...pts.map(p => p.lon)) - Math.min(...pts.map(p => p.lon))) * 1.25)
+  const w = Math.max(1, width - pad * 2), hh = h - pad * 2
+  const scale = Math.min(w / (spanLon * kx), hh / spanLat)
+  const x = (lon: number) => pad + w / 2 + (lon - lonC) * kx * scale
+  const y = (lat: number) => pad + hh / 2 - (lat - latC) * scale
+  const view = { minLon: lonC - width / 2 / (kx * scale), maxLon: lonC + width / 2 / (kx * scale), minLat: latC - h / 2 / scale, maxLat: latC + h / 2 / scale }
+  // Por polígono, no por país: Francia, Kiribati o Fiyi tienen islas en todo el mundo, y un recuadro por país los
+  // traería a cualquier mapa. Un polígono que cruza el meridiano 180 (más de 180° de ancho) se deja fuera.
+  const inView = (b: Bbox) => b[2] >= view.minLon && b[0] <= view.maxLon && b[3] >= view.minLat && b[1] <= view.maxLat && b[2] - b[0] <= 180
+  const visible = (countries ?? []).map(c => ({ ...c, rings: c.rings.filter(r => inView(r.bbox)) })).filter(c => c.rings.length > 0)
+  const path = (c: Country) => c.rings.map(r => 'M' + r.points.map(([lo, la]) => `${x(lo).toFixed(1)},${y(la).toFixed(1)}`).join('L') + 'Z').join('')
+  // Nombre de los países que se ven en buena parte, en el centro de lo que se ve de su polígono mayor.
+  const viewArea = (view.maxLon - view.minLon) * (view.maxLat - view.minLat)
+  const names = visible.map(c => {
+    const big = c.rings.reduce((m, r) => ((r.bbox[2] - r.bbox[0]) * (r.bbox[3] - r.bbox[1]) > (m.bbox[2] - m.bbox[0]) * (m.bbox[3] - m.bbox[1]) ? r : m))
+    const a = Math.max(big.bbox[0], view.minLon), b = Math.min(big.bbox[2], view.maxLon), d = Math.max(big.bbox[1], view.minLat), e = Math.min(big.bbox[3], view.maxLat)
+    return { name: c.name, x: x((a + b) / 2), y: y((d + e) / 2), share: ((b - a) * (e - d)) / viewArea }
+  }).filter(n => n.share > 0.06 && n.name)
+
+  // Tamaño por el resultado; si todos valen lo mismo, un tamaño mediano.
+  const vmax = Math.max(...pts.map(p => p.v), 1), vmin = Math.min(...pts.map(p => p.v))
+  const r = (v: number) => vmax === vmin ? 7 : 4 + Math.sqrt(v / vmax) * 11
+  const fmt = (v: number) => new Intl.NumberFormat(lang(), { maximumFractionDigits: 4 }).format(v)
+  return (
+    <div className="chart chart-map" ref={ref}>
+      {width > 0 && (
+        <svg width={width} height={h} role="img" aria-label={t('Mapa de puntos')}>
+          <defs><clipPath id="map-clip"><rect x={0} y={0} width={width} height={h} rx={6} /></clipPath></defs>
+          <g clipPath="url(#map-clip)">
+            <rect x={0} y={0} width={width} height={h} className="chart-map-sea" />
+            {visible.map(c => <path key={c.id || c.name} d={path(c)} className="chart-map-land" fillRule="evenodd" />)}
+            {names.map(n => <text key={n.name} x={n.x} y={n.y} className="chart-map-name" textAnchor="middle">{n.name}</text>)}
+            {[...pts].sort((a, b) => b.v - a.v).map((p, i) => (
+              <circle key={i} cx={x(p.lon)} cy={y(p.lat)} r={r(p.v)} className="chart-map-dot" style={{ fill: 'var(--series-1)' }}
+                onPointerMove={e => tip.show(e, <><b>{p.label ?? `${fmt(p.lat)}, ${fmt(p.lon)}`}</b><span>{formatNumber(p.v)}</span></>)}
+                onPointerLeave={tip.hide} />
+            ))}
+          </g>
+        </svg>
+      )}
+      {countries == null && <p className="muted small">{t('Cargando el mapa…')}</p>}
+      {tip.node}
     </div>
   )
 }

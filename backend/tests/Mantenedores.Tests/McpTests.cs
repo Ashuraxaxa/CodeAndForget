@@ -81,8 +81,8 @@ public sealed class McpTests : IDisposable
 
         var tools = (await Rpc(ia, "tools/list")).Body.GetProperty("result").GetProperty("tools").EnumerateArray()
             .Select(t => t.GetProperty("name").GetString()).Order().ToList();
-        Assert.Equal(["get_table", "list_connections", "list_proposals", "list_tables", "preview_settings", "propose_settings",
-            "sample_rows", "suggest_settings"], tools);
+        Assert.Equal(["create_dashboard", "get_table", "list_connections", "list_dashboards", "list_proposals", "list_tables",
+            "preview_settings", "preview_widget", "propose_settings", "sample_rows", "suggest_settings"], tools);
 
         var (_, list) = await Call(ia, "list_connections", new { });
         var result = list.GetProperty("result");

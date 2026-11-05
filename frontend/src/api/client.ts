@@ -195,6 +195,7 @@ export const api = {
   createDashboard: (input: DashboardInput) => request<DashboardView>('POST', 'api/dashboards', input),
   updateDashboard: (id: string, input: DashboardInput) => request<DashboardView>('PUT', `api/dashboards/${enc(id)}`, input),
   deleteDashboard: (id: string) => request<void>('DELETE', `api/dashboards/${enc(id)}`),
+  dashboardProfiles: () => request<{ id: string; name: string }[]>('GET', 'api/dashboards/profiles'),
   widgetData: (id: string, widget: string, from?: string, to?: string) =>
     request<AggregateResult>('POST', `api/dashboards/${enc(id)}/widgets/${enc(widget)}/data`, { from, to }),
   previewWidget: (widget: DashboardWidget, from?: string, to?: string) =>

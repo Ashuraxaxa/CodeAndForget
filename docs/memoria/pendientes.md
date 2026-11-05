@@ -18,7 +18,7 @@ El detalle de cada bloque y su criterio de "listo" está en [../siguientes-pasos
 | P-127 | Etapa 1 · Consultas de resumen: `BuildAggregate` (contar, distintos, suma, promedio, mín., máx.; agrupar por columna, FK o fecha) con la fecha en cada dialecto; pruebas en los 4 motores | 🔴 | ✅ 2026-11-05 |
 | P-128 | Etapa 2 · Guardar y permisos: migración 009, API, permisos Ver/Crear/Editar/Borrar en el perfil, compartir con perfiles y topes del plan | 🔴 | ✅ 2026-11-05 |
 | P-129 | Etapa 3 · Ver: menú, lista y página del dashboard con 5 tipos de tarjeta en SVG, filtro de fechas, día/noche y móvil | 🔴 | ✅ 2026-11-05 |
-| P-130 | Etapa 4 · Editar: editor de tarjetas con vista previa, tamaños, orden arrastrando y compartir | 🔴 | ⏳ |
+| P-130 | Etapa 4 · Editar: editor de tarjetas con vista previa, tamaños, orden arrastrando y compartir | 🔴 | ✅ 2026-11-05 |
 | P-131 | Etapa 5 · Extras: refresco automático, CSV por tarjeta, clic que abre la grilla filtrada e IA que propone dashboards | 🟡 | ⏳ |
 
 ## C. Comercial: Celdo (D-103, D-104)

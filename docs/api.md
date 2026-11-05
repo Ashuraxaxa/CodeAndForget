@@ -38,6 +38,7 @@ Los errores siguen el formato *Problem Details* (`application/problem+json`); la
 | GET / PUT / DELETE | `/api/dashboards/{id}` | Ver, editar (`{ name, description, widgets, shares }`; `shares` solo lo cambian el dueño o un administrador) y borrar |
 | POST | `/api/dashboards` | Crear: requiere *Crear* dashboards en el perfil y lugar en el plan (1 / 5 / sin tope por instalación) |
 | POST | `/api/dashboards/{id}/widgets/{widget}/data` | Datos de una tarjeta `{ from?, to? }`, con los permisos de quien mira |
+| GET | `/api/dashboards/profiles` | Perfiles (id y nombre) para compartir, a quien puede crear o editar dashboards aunque no administre la seguridad |
 | POST | `/api/dashboards/preview` | Datos de una tarjeta sin guardar `{ widget, from?, to? }`, para el editor |
 | POST | `/api/mcp` | Servidor MCP (Streamable HTTP, sin estado) con `Mcp:Enabled=true`. Permiso `ConfigureTables`. Ver [mcp.md](mcp.md) |
 | GET | `/api/data/{conn}/{schema}/{table}` | Lista. `?page=1&pageSize=25&sort=nombre,-precio&q=texto&f.categoria_id=2`. `f.` = contiene (textos) o igual; `e.` = igual exacto, también en textos (`e.pedido_id=5`) |

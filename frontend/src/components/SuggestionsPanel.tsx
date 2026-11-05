@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { Suggestion, TableOverride } from '../api/types'
 import { useT } from '../i18n'
+import { ErrorText } from './ErrorText'
 
 /**
  * Sugerencias de ajustes sin IA (P-112, D-099): relaciones por nombre, filtros de combos, columnas técnicas y correos.
@@ -40,7 +41,7 @@ export function SuggestionsPanel({ conn, schema, table, onApply, onClose }: {
       </div>
       <p className="muted small">{t('Detectadas por los nombres y tipos de las columnas, sin mirar datos. Revise antes de guardar.')}</p>
       {query.isLoading && <p className="muted with-icon"><span className="spinner sm" />{t('Buscando sugerencias…')}</p>}
-      {query.error && <div className="alert">{(query.error as Error).message}</div>}
+      {query.error && <div className="alert"><ErrorText error={query.error} /></div>}
       {query.data && list.length === 0 && <p className="muted">{t('No hay sugerencias para esta tabla.')}</p>}
       {list.length > 0 && (
         <>

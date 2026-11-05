@@ -6,6 +6,7 @@ import { api } from '../api/client'
 import { labelOf } from '../api/types'
 import { SchemaChangesBanner } from '../components/SchemaChangesBanner'
 import { useT } from '../i18n'
+import { ErrorText } from '../components/ErrorText'
 
 /** Barra lateral con las tablas descubiertas de la conexión + área de trabajo. */
 export function ConnectionLayout() {
@@ -53,7 +54,7 @@ export function ConnectionLayout() {
           </button>
         </div>
         {isLoading && <p className="muted pad">{t('Leyendo esquema…')}</p>}
-        {error && <div className="alert pad">{(error as Error).message}</div>}
+        {error && <div className="alert pad"><ErrorText error={error} /></div>}
         {data && <p className="muted small pad">{t('{n} tablas y vistas', { n: data.tables.filter(tb => !tb.hidden).length })}</p>}
         <nav>
           {groups.map(([group, tables]) => (

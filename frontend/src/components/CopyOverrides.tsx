@@ -5,6 +5,7 @@ import { api } from '../api/client'
 import type { Connection, OverrideCopyItem, OverrideCopyStatus } from '../api/types'
 import { translateServer, useT } from '../i18n'
 import { SearchSelect } from './Combo'
+import { ErrorText } from './ErrorText'
 
 const PARTS = ['relations', 'table', 'columns', 'actions', 'notify'] as const
 
@@ -130,7 +131,7 @@ export function CopyOverridesPanel({ target, connections, onClose, onDone }: {
             </div>
           )}
 
-          {preview.error && <div className="alert">{(preview.error as Error).message}</div>}
+          {preview.error && <div className="alert"><ErrorText error={preview.error} /></div>}
           {preview.isFetching && <p className="muted with-icon"><span className="spinner sm" />{t('Revisando el destino…')}</p>}
           {preview.data && items.length === 0 && <p className="muted">{t('La conexión de origen no tiene ajustes.')}</p>}
           {items.length > 0 && (
@@ -158,7 +159,7 @@ export function CopyOverridesPanel({ target, connections, onClose, onDone }: {
             </div>
           )}
 
-          {apply.error && <div className="alert">{(apply.error as Error).message}</div>}
+          {apply.error && <div className="alert"><ErrorText error={apply.error} /></div>}
           <div className="actions">
             <button type="button" className="primary" disabled={!from || chosen.length + (skip.size ? 0 : removed.length) === 0 || apply.isPending || preview.isFetching}
               onClick={() => apply.mutate()}>

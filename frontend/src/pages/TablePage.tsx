@@ -13,6 +13,8 @@ import { useT } from '../i18n'
 import { StoredImage } from '../components/ImagePreview'
 import { Pager } from '../components/Pager'
 import { SearchSelect } from '../components/Combo'
+import { ErrorText } from '../components/ErrorText'
+import { alertError } from '../lib/planError'
 
 const PAGE_SIZES = [10, 25, 50, 100]
 /** Formatos de exportación (D-057). */
@@ -27,7 +29,7 @@ export function TablePage() {
   const t = useT()
 
   if (meta.isLoading) return <p className="muted">{t('Cargando definición…')}</p>
-  if (meta.error) return <div className="alert">{(meta.error as Error).message}</div>
+  if (meta.error) return <div className="alert"><ErrorText error={meta.error} /></div>
   // La key reinicia el estado (filtros, página) al cambiar de tabla.
   return <Grid key={`${conn}/${schema}/${table}`} conn={conn} meta={meta.data!} />
 }
@@ -105,7 +107,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
       if (isConcurrencyError(err)) {
         qc.invalidateQueries({ queryKey: ['rows', conn, meta.schema, meta.name] })
         alert(t('Otra persona cambió este registro mientras lo veía. La lista se actualizó: revíselo y vuelva a intentar.'))
-      } else alert((err as Error).message)
+      } else alertError(err, t, navigate)
     },
   })
 
@@ -125,7 +127,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
       await api.exportTable(conn, meta.schema, meta.name, format,
         { sort: listParams.sort, q: listParams.q, filters: listParams.filters, exact: fixed })
     } catch (e) {
-      alert((e as Error).message)
+      alertError(e, t, navigate)
     } finally {
       setExporting(false)
     }
@@ -217,7 +219,7 @@ export function Grid({ conn, meta, fixed, returnTo }: {
         </div>
       )}
 
-      {rows.error && <div className="alert">{(rows.error as Error).message}</div>}
+      {rows.error && <div className="alert"><ErrorText error={rows.error} /></div>}
 
       <div className={`grid-area ${loading ? 'is-loading' : ''}`} aria-busy={loading}>
       {loading && <div className="grid-loader" role="status"><span className="grid-loader-pill"><span className="spinner" />{t('Cargando…')}</span></div>}

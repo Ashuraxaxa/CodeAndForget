@@ -2,13 +2,15 @@ import { Download } from 'lucide-react'
 import { Pager } from '../components/Pager'
 import { SearchSelect } from '../components/Combo'
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { formatInstant } from '../lib/format'
 import { api } from '../api/client'
 import type { AuditEntry, AuditOperation, TransferFormat } from '../api/types'
 import { useMe } from '../lib/useMe'
 import { useT, type Translate } from '../i18n'
+import { ErrorText } from '../components/ErrorText'
+import { alertError } from '../lib/planError'
 
 const opLabels = (t: Translate): Record<AuditOperation, string> => ({
   Create: t('Alta'), Update: t('Edición'), Delete: t('Baja'), Import: t('Importación'), Links: t('Vínculos N:M'), Action: t('Acción'),
@@ -19,6 +21,7 @@ const PAGE_SIZE = 50
 export function AuditPage() {
   const me = useMe()
   const t = useT()
+  const navigate = useNavigate()
   const OPS = opLabels(t)
   const allowed = me.data?.permissions.includes('ViewAudit') === true
   const [params, setParams] = useSearchParams()
@@ -41,7 +44,7 @@ export function AuditPage() {
   async function exportAs(format: TransferFormat) {
     setExporting(true)
     try { await api.exportAudit(apiParams(), format) }
-    catch (e) { alert((e as Error).message) }
+    catch (e) { alertError(e, t, navigate) }
     finally { setExporting(false) }
   }
 
@@ -94,7 +97,7 @@ export function AuditPage() {
         )}
       </div>
 
-      {audit.error && <div className="alert">{(audit.error as Error).message}</div>}
+      {audit.error && <div className="alert"><ErrorText error={audit.error} /></div>}
 
       <div className="table-wrap">
         <table className="grid audit">

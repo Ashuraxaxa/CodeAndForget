@@ -212,7 +212,7 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks,
     : []
 
   return (
-    <div className="page">
+    <div className="page record-page">
       <div className="page-header">
         <h1>{viewOnly && isEdit ? t('Registro · {table}', { table: labelOf(meta) }) : isEdit ? t('Editar registro · {table}', { table: labelOf(meta) }) : t('Nuevo registro · {table}', { table: labelOf(meta) })}</h1>
         <div className="actions">

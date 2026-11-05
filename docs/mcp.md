@@ -61,6 +61,9 @@ es lo práctico.
 | `preview_settings` | Aplica un ajuste sin guardarlo y devuelve cómo quedaría y sus errores. |
 | `propose_settings` | Deja el ajuste como propuesta pendiente, con su motivo. Antes lo valida como si se guardara a mano. |
 | `list_proposals` | Propuestas pendientes, aceptadas o descartadas, para no repetirlas. |
+| `list_dashboards` | Dashboards que ve el usuario, con el tope del plan (D-111). |
+| `preview_widget` | Calcula una tarjeta de dashboard sin guardarla, con los permisos del usuario. |
+| `create_dashboard` | Crea un dashboard **privado** del usuario con sus tarjetas. No se comparte con nadie: lo revisa y decide él. Respeta el permiso de crear dashboards y el tope del plan. |
 
 Al conectarse, el servidor le explica a la IA el flujo: leer, sugerir, probar y proponer.
 

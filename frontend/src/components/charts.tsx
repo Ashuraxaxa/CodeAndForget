@@ -52,7 +52,7 @@ export function NumberTile({ value, caption }: { value: unknown; caption?: strin
 
 // ---------- Barras (horizontales: las etiquetas se leen enteras, también en el teléfono) ----------
 
-export function BarChart({ rows, bucket }: { rows: AggregateRow[]; bucket?: DateBucket | null }) {
+export function BarChart({ rows, bucket, onPick }: { rows: AggregateRow[]; bucket?: DateBucket | null; onPick?: (r: AggregateRow) => void }) {
   const t = useT()
   const tip = useTip()
   const max = Math.max(0, ...rows.map(r => num(r.value)))
@@ -62,7 +62,8 @@ export function BarChart({ rows, bucket }: { rows: AggregateRow[]; bucket?: Date
         const label = keyLabel(t, r.key, r.label, bucket)
         const pct = max > 0 ? Math.max(0, num(r.value)) / max * 100 : 0
         return (
-          <div key={i} className="bar-row" role="listitem" tabIndex={0}
+          <div key={i} className={`bar-row ${onPick ? 'pickable' : ''}`} role="listitem" tabIndex={0}
+            onClick={onPick ? () => onPick(r) : undefined} onKeyDown={onPick ? e => { if (e.key === 'Enter') onPick(r) } : undefined}
             onPointerMove={e => tip.show(e, <><b>{label}</b><span>{formatNumber(r.value)}</span></>)}
             onPointerLeave={tip.hide} onBlur={tip.hide}
             onFocus={e => tip.show(e, <><b>{label}</b><span>{formatNumber(r.value)}</span></>, e.currentTarget.getBoundingClientRect())}>
@@ -152,11 +153,11 @@ export function LineChart({ rows, bucket }: { rows: AggregateRow[]; bucket?: Dat
 
 // ---------- Dona (hasta 8 porciones; el resto se junta en "Otros") ----------
 
-export function DonutChart({ rows, bucket }: { rows: AggregateRow[]; bucket?: DateBucket | null }) {
+export function DonutChart({ rows, bucket, onPick }: { rows: AggregateRow[]; bucket?: DateBucket | null; onPick?: (r: AggregateRow) => void }) {
   const t = useT()
   const tip = useTip()
   const sorted = [...rows].sort((a, b) => num(b.value) - num(a.value))
-  const top = sorted.slice(0, sorted.length > 8 ? 7 : 8).map(r => ({ label: keyLabel(t, r.key, r.label, bucket), value: Math.max(0, num(r.value)) }))
+  const top: { label: string; value: number; row?: AggregateRow }[] = sorted.slice(0, sorted.length > 8 ? 7 : 8).map(r => ({ label: keyLabel(t, r.key, r.label, bucket), value: Math.max(0, num(r.value)), row: r }))
   if (sorted.length > 8) top.push({ label: t('Otros'), value: sorted.slice(7).reduce((s, r) => s + Math.max(0, num(r.value)), 0) })
   const total = top.reduce((s, x) => s + x.value, 0)
   const r = 70, inner = 46, c = 80
@@ -178,7 +179,8 @@ export function DonutChart({ rows, bucket }: { rows: AggregateRow[]; bucket?: Da
     <div className="chart chart-donut">
       <svg viewBox="0 0 160 160" width="160" height="160" role="img" aria-label={t('Gráfico de dona')}>
         {arcs.map((a, i) => (
-          <path key={i} d={a.d} style={{ fill: a.color }} className="chart-slice" fillRule="evenodd"
+          <path key={i} d={a.d} style={{ fill: a.color, cursor: onPick && a.row ? 'pointer' : undefined }} className="chart-slice" fillRule="evenodd"
+            onClick={onPick && a.row ? () => onPick(a.row!) : undefined}
             onPointerMove={e => tip.show(e, <><b>{a.label}</b><span>{formatNumber(a.value)} · {pct(a.value)}</span></>)}
             onPointerLeave={tip.hide} />
         ))}
@@ -197,7 +199,7 @@ export function DonutChart({ rows, bucket }: { rows: AggregateRow[]; bucket?: Da
 
 // ---------- Top N (tabla con la posición) ----------
 
-export function TopTable({ rows, bucket, groupLabel, valueLabel }: { rows: AggregateRow[]; bucket?: DateBucket | null; groupLabel: string; valueLabel: string }) {
+export function TopTable({ rows, bucket, groupLabel, valueLabel, onPick }: { rows: AggregateRow[]; bucket?: DateBucket | null; groupLabel: string; valueLabel: string; onPick?: (r: AggregateRow) => void }) {
   const t = useT()
   return (
     <div className="chart chart-table">
@@ -205,7 +207,7 @@ export function TopTable({ rows, bucket, groupLabel, valueLabel }: { rows: Aggre
         <thead><tr><th>#</th><th>{groupLabel}</th><th className="num">{valueLabel}</th></tr></thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i}><td className="muted">{i + 1}</td><td>{keyLabel(t, r.key, r.label, bucket)}</td><td className="num">{formatNumber(r.value)}</td></tr>
+            <tr key={i} className={onPick ? 'pickable' : undefined} onClick={onPick ? () => onPick(r) : undefined}><td className="muted">{i + 1}</td><td>{keyLabel(t, r.key, r.label, bucket)}</td><td className="num">{formatNumber(r.value)}</td></tr>
           ))}
         </tbody>
       </table>
@@ -237,6 +239,55 @@ export function PivotTable({ rows, bucket, bucket2 }: { rows: AggregateRow[]; bu
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+// ---------- Mapa (P-131): puntos por latitud y longitud, sobre una cuadrícula propia, sin servicios externos ----------
+
+export function MapChart({ rows }: { rows: AggregateRow[] }) {
+  const t = useT()
+  const [ref, width] = useWidth<HTMLDivElement>()
+  const tip = useTip()
+  const pts = rows
+    .map(r => ({ lat: num(r.key), lon: num(r.key2), v: Math.max(0, num(r.value)), label: r.label ?? r.label2 }))
+    .filter(p => Math.abs(p.lat) <= 90 && Math.abs(p.lon) <= 180 && !(p.lat === 0 && p.lon === 0))
+  const h = 260, pad = 16
+  if (pts.length === 0) return <p className="muted small">{t('No hay latitudes y longitudes válidas.')}</p>
+  // Encuadre: los puntos con un margen, sin deformar (misma escala en x e y, proyección equirectangular).
+  let [minLat, maxLat] = [Math.min(...pts.map(p => p.lat)), Math.max(...pts.map(p => p.lat))]
+  let [minLon, maxLon] = [Math.min(...pts.map(p => p.lon)), Math.max(...pts.map(p => p.lon))]
+  const spanLat = Math.max(maxLat - minLat, 0.02), spanLon = Math.max(maxLon - minLon, 0.02)
+  minLat -= spanLat * 0.1; maxLat += spanLat * 0.1; minLon -= spanLon * 0.1; maxLon += spanLon * 0.1
+  const w = Math.max(0, width - pad * 2)
+  const scale = Math.min(w / (maxLon - minLon), (h - pad * 2) / (maxLat - minLat))
+  const ox = pad + (w - (maxLon - minLon) * scale) / 2, oy = pad + (h - pad * 2 - (maxLat - minLat) * scale) / 2
+  const x = (lon: number) => ox + (lon - minLon) * scale
+  const y = (lat: number) => oy + (maxLat - lat) * scale
+  const vmax = Math.max(...pts.map(p => p.v), 1)
+  const r = (v: number) => 3 + Math.sqrt(v / vmax) * 12
+  // Líneas de latitud y longitud cada "paso" redondo (1, 2, 5, 10…), como referencia.
+  const step = (span: number) => { const raw = span / 4; const p = 10 ** Math.floor(Math.log10(raw)); return [1, 2, 5, 10].map(m => m * p).find(s => s >= raw) ?? raw }
+  const sl = step(maxLat - minLat), so = step(maxLon - minLon)
+  const lats: number[] = [], lons: number[] = []
+  for (let v = Math.ceil(minLat / sl) * sl; v <= maxLat; v += sl) lats.push(v)
+  for (let v = Math.ceil(minLon / so) * so; v <= maxLon; v += so) lons.push(v)
+  const fmt = (v: number) => new Intl.NumberFormat(lang(), { maximumFractionDigits: 4 }).format(v)
+  return (
+    <div className="chart chart-map" ref={ref}>
+      {width > 0 && (
+        <svg width={width} height={h} role="img" aria-label={t('Mapa de puntos')}>
+          <rect x={0} y={0} width={width} height={h} className="chart-map-bg" rx={6} />
+          {lats.map(v => <g key={`a${v}`}><line x1={0} x2={width} y1={y(v)} y2={y(v)} className="chart-grid" /><text x={4} y={y(v) - 3} className="chart-axis">{fmt(v)}°</text></g>)}
+          {lons.map(v => <g key={`o${v}`}><line y1={0} y2={h} x1={x(v)} x2={x(v)} className="chart-grid" /><text x={x(v) + 3} y={h - 4} className="chart-axis">{fmt(v)}°</text></g>)}
+          {[...pts].sort((a, b) => b.v - a.v).map((p, i) => (
+            <circle key={i} cx={x(p.lon)} cy={y(p.lat)} r={r(p.v)} className="chart-map-dot" style={{ fill: 'var(--series-1)' }}
+              onPointerMove={e => tip.show(e, <><b>{p.label ?? `${fmt(p.lat)}, ${fmt(p.lon)}`}</b><span>{formatNumber(p.v)}</span></>)}
+              onPointerLeave={tip.hide} />
+          ))}
+        </svg>
+      )}
+      {tip.node}
     </div>
   )
 }

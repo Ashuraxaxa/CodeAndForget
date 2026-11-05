@@ -124,7 +124,7 @@ function typeLabel(t: Translate, type: WidgetType): string {
 }
 
 /** Agrupaciones que pide cada tipo: Número 0, Tabla dinámica 2, el resto 1. */
-const groupsFor = (type: WidgetType) => type === 'Number' ? 0 : type === 'Pivot' ? 2 : 1
+const groupsFor = (type: WidgetType) => type === 'Number' ? 0 : type === 'Pivot' || type === 'Map' ? 2 : 1
 
 const isNumeric = (c: Column) => (c.type === 'Integer' || c.type === 'Decimal') && !c.isLargeNumber
 const isDate = (c: Column) => c.type === 'Date' || c.type === 'DateTime'
@@ -165,7 +165,7 @@ function WidgetForm({ initial, range, onSave, onCancel }: {
   function setType(type: WidgetType) {
     const n = groupsFor(type)
     const groupBy = Array.from({ length: n }, (_, i) => q.groupBy[i] ?? { column: '' })
-    setW(x => ({ ...x, type, query: { ...x.query, groupBy, order: type === 'Line' || type === 'Pivot' ? 'Key' : x.query.order } }))
+    setW(x => ({ ...x, type, query: { ...x.query, groupBy, order: type === 'Line' || type === 'Pivot' ? 'Key' : x.query.order, limit: type === 'Map' ? Math.max(x.query.limit, 500) : x.query.limit } }))
   }
   function setGroup(i: number, column: string, bucket?: DateBucket | null) {
     const col = columns.find(c => c.name === column)
@@ -199,7 +199,7 @@ function WidgetForm({ initial, range, onSave, onCancel }: {
             <label>{t('Título')}<input value={w.title} onChange={e => setW(x => ({ ...x, title: e.target.value }))} maxLength={100} placeholder={t('Ventas por categoría')} /></label>
             <label>{t('Tipo')}
               <select value={w.type} onChange={e => setType(e.target.value as WidgetType)}>
-                {(['Number', 'Bar', 'Line', 'Pie', 'Top', 'Pivot'] as WidgetType[]).map(x => <option key={x} value={x}>{typeLabel(t, x)}</option>)}
+                {(['Number', 'Bar', 'Line', 'Pie', 'Top', 'Pivot', 'Map'] as WidgetType[]).map(x => <option key={x} value={x}>{typeLabel(t, x)}</option>)}
               </select>
             </label>
             <label>{t('Conexión')}
@@ -235,11 +235,11 @@ function WidgetForm({ initial, range, onSave, onCancel }: {
               const col = columns.find(c => c.name === g.column)
               return (
                 <div key={i} className="grid-2">
-                  <label>{w.type === 'Pivot' ? (i === 0 ? t('Filas') : t('Columnas')) : t('Agrupar por')}
-                    <SearchSelect value={g.column} ariaLabel={t('Agrupar por')} placeholder={`— ${t('columna')} —`}
-                      options={groupable.map(option)} onChange={v => setGroup(i, v)} />
+                  <label>{w.type === 'Map' ? (i === 0 ? t('Latitud') : t('Longitud')) : w.type === 'Pivot' ? (i === 0 ? t('Filas') : t('Columnas')) : t('Agrupar por')}
+                    <SearchSelect value={g.column} ariaLabel={w.type === 'Map' ? (i === 0 ? t('Latitud') : t('Longitud')) : t('Agrupar por')} placeholder={`— ${t('columna')} —`}
+                      options={(w.type === 'Map' ? columns.filter(isNumeric) : groupable).map(option)} onChange={v => setGroup(i, v)} />
                   </label>
-                  {col && isDate(col) && (
+                  {col && isDate(col) && w.type !== 'Map' && (
                     <label>{t('Por')}
                       <select value={g.bucket ?? ''} onChange={e => setGroup(i, g.column, (e.target.value || null) as DateBucket | null)}>
                         <option value="Day">{t('Día')}</option><option value="Week">{t('Semana')}</option><option value="Month">{t('Mes')}</option>

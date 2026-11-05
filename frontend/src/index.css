@@ -762,3 +762,9 @@ a.user-chip:hover { background: var(--hover); color: var(--text); }
 .widget-form-preview .widget { box-shadow: none; }
 @media (max-width: 860px) { .widget-form-body { grid-template-columns: 1fr; } .widget-form-preview { position: static; } }
 @media (max-width: 520px) { .modal { padding: 12px; } .widget-item { flex-wrap: wrap; } .widget-item-name { flex-basis: calc(100% - 30px); } }
+.bar-row.pickable, tr.pickable { cursor: pointer; }
+.bar-row.pickable:hover .bar-fill { filter: brightness(1.1); }
+tr.pickable:hover td { background: var(--hover); }
+.widget-head { grid-template-columns: 1fr auto; align-items: start; }
+.chart-map-bg { fill: var(--surface-2); }
+.chart-map-dot { fill-opacity: 0.7; stroke: var(--surface); stroke-width: 1.5; }

@@ -85,6 +85,7 @@ export function DashboardsPage() {
 // ---------- Un dashboard ----------
 
 const RANGE_KEY = 'celdo.dashboard.range'
+const REFRESH_KEY = 'celdo.dashboard.refresh'
 
 export function DashboardPage() {
   const t = useT()
@@ -97,6 +98,9 @@ export function DashboardPage() {
   const [range, setRange] = useState<RangeId>(() => {
     try { return (localStorage.getItem(RANGE_KEY) as RangeId) || '30d' } catch { return '30d' }
   })
+  // Refresco automático (P-131): para una pantalla a la vista, p. ej. en una sala.
+  const [refresh, setRefresh] = useState<number>(() => { try { return Number(localStorage.getItem(REFRESH_KEY)) || 0 } catch { return 0 } })
+  const pickRefresh = (n: number) => { setRefresh(n); try { localStorage.setItem(REFRESH_KEY, String(n)) } catch { /* sin almacenamiento */ } }
   const pick = (r: RangeId) => { setRange(r); try { localStorage.setItem(RANGE_KEY, r) } catch { /* sin almacenamiento */ } }
 
   if (view.isLoading) return <div className="page"><p className="muted">{t('Cargando…')}</p></div>
@@ -123,6 +127,17 @@ export function DashboardPage() {
         </div>
         <div className="actions">
         {view.data.canEdit && !editing && <button type="button" onClick={() => setEditing(true)}><Pencil size={15} aria-hidden />{t('Editar')}</button>}
+        {d.widgets.length > 0 && !editing && (
+          <label className="dashboard-range">
+            <span className="muted small">{t('Actualizar')}</span>
+            <select value={refresh} onChange={e => pickRefresh(Number(e.target.value))}>
+              <option value={0}>{t('Solo al abrir')}</option>
+              <option value={60}>{t('Cada minuto')}</option>
+              <option value={300}>{t('Cada 5 minutos')}</option>
+              <option value={900}>{t('Cada 15 minutos')}</option>
+            </select>
+          </label>
+        )}
         {usesDates && (
           <label className="dashboard-range">
             <span className="muted small">{t('Período')}</span>
@@ -144,19 +159,20 @@ export function DashboardPage() {
         </div>
       ) : (
         <div className="dashboard-grid">
-          {d.widgets.map(w => <WidgetCard key={w.id} dashboard={d.id} widget={w} range={w.query.dateColumn ? rangeOf(range) : {}} />)}
+          {d.widgets.map(w => <WidgetCard key={w.id} dashboard={d.id} widget={w} range={w.query.dateColumn ? rangeOf(range) : {}} refresh={refresh} />)}
         </div>
       )}
     </div>
   )
 }
 
-function WidgetCard({ dashboard, widget, range }: { dashboard: string; widget: DashboardWidget; range: { from?: string; to?: string } }) {
+function WidgetCard({ dashboard, widget, range, refresh }: { dashboard: string; widget: DashboardWidget; range: { from?: string; to?: string }; refresh: number }) {
   const data = useQuery({
     queryKey: ['dashboard', dashboard, 'widget', widget.id, range.from, range.to],
     queryFn: () => api.widgetData(dashboard, widget.id, range.from, range.to),
-    staleTime: 60_000,
+    staleTime: refresh ? refresh * 1000 - 1000 : 60_000,
+    refetchInterval: refresh ? refresh * 1000 : false,
     retry: false,
   })
-  return <WidgetView widget={widget} data={data.data} isLoading={data.isLoading} error={data.error} />
+  return <WidgetView widget={widget} data={data.data} isLoading={data.isLoading} error={data.error} interactive />
 }

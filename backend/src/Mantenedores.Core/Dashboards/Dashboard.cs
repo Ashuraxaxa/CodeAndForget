@@ -2,7 +2,7 @@ using Mantenedores.Core.Query;
 
 namespace Mantenedores.Core.Dashboards;
 
-/// <summary>Tipo de tarjeta (D-111). Cuántas agrupaciones lleva: Number 0, Pivot 2, Map (etapa 5), el resto 1.</summary>
+/// <summary>Tipo de tarjeta (D-111). Cuántas agrupaciones lleva: Number 0, Pivot y Map 2 (latitud y longitud), el resto 1.</summary>
 public enum WidgetType
 {
     Number,

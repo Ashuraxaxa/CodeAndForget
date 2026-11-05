@@ -25,7 +25,7 @@ public sealed class McpSampleLimiter(PartitionedRateLimiter<HttpContext> limiter
 /// </summary>
 [McpServerToolType]
 public sealed class McpTools(IHttpContextAccessor accessor, SchemaService schemas, CrudService crud, IConnectionStore connections,
-    IProposalStore proposals, Auth.HttpAccessContext access, McpSampleLimiter limiter)
+    IProposalStore proposals, Auth.HttpAccessContext access, McpSampleLimiter limiter, Core.Dashboards.DashboardService dashboards)
 {
     public sealed record ConnectionItem(string Id, string Name, string Engine, IReadOnlyList<string> Schemas, bool AllowSamples);
 
@@ -107,6 +107,32 @@ public sealed class McpTools(IHttpContextAccessor accessor, SchemaService schema
             await schemas.GetDefinitionAsync(connection, ct);
             return await proposals.ListAsync(connection, status, ct);
         });
+
+    // ---------- Dashboards (P-131, D-111) ----------
+
+    [McpServerTool(Name = "list_dashboards", Title = "Dashboards", ReadOnly = true, Idempotent = true),
+     Description("Dashboards que el usuario puede ver, con cuántos lleva la instalación y el tope del plan (limit nulo = sin tope) y de tarjetas por dashboard.")]
+    public Task<Core.Dashboards.DashboardList> ListDashboards(CancellationToken ct) => Run(() => dashboards.ListAsync(ct));
+
+    [McpServerTool(Name = "preview_widget", Title = "Probar una tarjeta", ReadOnly = true, Idempotent = true),
+     Description("Calcula una tarjeta de dashboard sin guardarla, con los permisos del usuario. type: Number (sin groupBy), Bar, Line, Pie o Top " +
+                 "(un groupBy), Pivot (dos) o Map (latitud y longitud). query: function (Count, CountDistinct, Sum, Avg, Min, Max), column, " +
+                 "groupBy [{column, bucket?: Day|Week|Month|Quarter|Year}], order (Key, ValueDesc, ValueAsc), limit, filters, dateColumn. " +
+                 "from y to (AAAA-MM-DD, hasta excluido) solo si hay dateColumn.")]
+    public Task<Mantenedores.Core.Query.AggregateResult> PreviewWidget(
+        [Description("La tarjeta: title, type, size (S, M, L), connection, schema, table y query.")] Core.Dashboards.DashboardWidget widget,
+        [Description("Desde (opcional).")] string? from = null, [Description("Hasta, excluido (opcional).")] string? to = null,
+        CancellationToken ct = default) =>
+        Run(() => dashboards.PreviewAsync(widget, from, to, ct));
+
+    [McpServerTool(Name = "create_dashboard", Title = "Crear un dashboard", Destructive = false),
+     Description("Crea un dashboard PRIVADO del usuario con sus tarjetas (pruébelas antes con preview_widget). No se comparte con nadie: " +
+                 "el usuario lo revisa, lo edita y decide si lo comparte. Respeta el permiso de crear dashboards y el tope del plan.")]
+    public Task<Core.Dashboards.DashboardView> CreateDashboard(
+        [Description("Nombre (máx. 100).")] string name,
+        [Description("Las tarjetas, en el orden en que se ven.")] IReadOnlyList<Core.Dashboards.DashboardWidget> widgets,
+        [Description("Para qué sirve, en una línea (opcional).")] string? description = null, CancellationToken ct = default) =>
+        Run(() => dashboards.CreateAsync(new Core.Dashboards.DashboardInput(name, description, widgets, null), ct));
 
     /// <summary>Los errores del servicio llegan a la IA con su mensaje y sus campos, para que corrija y reintente.</summary>
     private static async Task<T> Run<T>(Func<Task<T>> action)

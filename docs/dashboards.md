@@ -89,7 +89,7 @@ perfil, en una sección nueva "Dashboards". Los administradores tienen todo.
 | **2. Guardar y permisos** | Migración 009, servicio, API, permisos del perfil, compartir y topes del plan. | P-128 |
 | **3. Ver** | Menú "Dashboards", lista y página del dashboard con las 5 tarjetas, filtro de fechas, modo día y noche, y móvil. | P-129 |
 | **4. Editar** | Editor de tarjetas con vista previa, tamaños y orden arrastrando; compartir. | P-130 |
-| **5. Extras** | Mapa, refresco automático, exportar una tarjeta a CSV, clic que abre la grilla filtrada, y que la IA (MCP) proponga dashboards. | P-131 |
+| **5. Extras** ✅ | Mapa, refresco automático, exportar una tarjeta a CSV, clic que abre la grilla filtrada, y que la IA (MCP) proponga dashboards. | P-131 |
 
 **Gráficos:** propios en SVG, sin librería: son tipos simples, quedan con los colores de la marca en los dos
 temas y no suman peso al paquete. Alternativa descartada por ahora: Recharts (~100 KB más).

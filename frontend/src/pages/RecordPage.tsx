@@ -11,7 +11,7 @@ import { ChildTabs } from '../components/ChildTabs'
 import { ManyToManySelect } from '../components/ManyToManySelect'
 import { FileField } from '../components/FileField'
 import { useCan } from '../lib/useMe'
-import { isEmbed } from '../lib/embed'
+import { isEmbed, notifyHost } from '../lib/embed'
 import { useTableLabels } from '../lib/useTableLabels'
 import { ActionResultCard, RecordActions, type ActionRun } from '../components/RecordActions'
 import { useT } from '../i18n'
@@ -190,6 +190,8 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks,
       return saved
     },
     onSuccess: saved => {
+      notifyHost('celdo:saved', { connection: conn, schema: meta.schema, table: meta.name, created: !isEdit,
+        key: saved && meta.hasPrimaryKey ? Object.fromEntries(new URLSearchParams(keyQuery(meta, saved))) : null })
       qc.invalidateQueries({ queryKey: ['rows', conn, meta.schema, meta.name] })
       qc.invalidateQueries({ queryKey: ['lookup', conn, meta.schema, meta.name] })
       qc.invalidateQueries({ queryKey: ['tree', conn, meta.schema, meta.name] })

@@ -20,15 +20,28 @@ export function SuggestionsPanel({ conn, schema, table, onApply, onClose }: {
   const t = useT()
   const query = useQuery({ queryKey: ['suggestions', conn, schema, table], queryFn: () => api.suggestions(conn, schema, table) })
   const [off, setOff] = useState<Set<string>>(new Set())
-  useEffect(() => setOff(new Set()), [query.data])
+  // Columnas técnicas que se dejan a la vista en la grilla: solo se marcan de solo lectura.
+  const [visible, setVisible] = useState<Set<string>>(new Set())
+  useEffect(() => { setOff(new Set()); setVisible(new Set()) }, [query.data])
   const list = query.data ?? []
   const chosen = list.filter(s => !off.has(s.id))
+
+  /** El ajuste de la sugerencia; si es técnica y se deja visible, sin sacarla de la grilla. */
+  const patchOf = (s: Suggestion): TableOverride => {
+    if (s.kind !== 'Technical' || !visible.has(s.id)) return s.patch
+    const columns = Object.fromEntries(Object.entries(s.patch.columns ?? {}).map(([name, c]) => {
+      const rest = { ...c }
+      delete rest.showInGrid
+      return [name, rest]
+    }))
+    return { ...s.patch, columns }
+  }
 
   const text = (s: Suggestion) => {
     switch (s.kind) {
       case 'Relation': return t('Relación: {column} → {table} ({key})', { column: s.column, table: `${s.refSchema}.${s.refTable}`, key: s.refColumn ?? '' })
       case 'LookupFilter': return t('Filtrar el combo de {column} por {local} ({table}.{ref})', { column: s.column, local: s.localColumn ?? '', table: s.refTable ?? '', ref: s.refColumn ?? '' })
-      case 'Technical': return t('{column}: columna técnica, solo lectura y fuera de la grilla', { column: s.column })
+      case 'Technical': return t('{column}: columna técnica', { column: s.column })
       case 'Email': return t('{column}: validar como correo electrónico', { column: s.column })
     }
   }
@@ -61,11 +74,24 @@ export function SuggestionsPanel({ conn, schema, table, onApply, onClose }: {
                     return n
                   })} />
                 {text(s)}
+                {s.kind === 'Technical' && (
+                  <select className="inline-select" value={visible.has(s.id) ? 'visible' : 'hidden'} aria-label={t('Cómo queda {column}', { column: s.column })}
+                    disabled={off.has(s.id)}
+                    onChange={e => setVisible(v => {
+                      const n = new Set(v)
+                      if (e.target.value === 'visible') n.add(s.id)
+                      else n.delete(s.id)
+                      return n
+                    })}>
+                    <option value="hidden">{t('solo lectura y fuera de la grilla')}</option>
+                    <option value="visible">{t('solo lectura, visible en la grilla')}</option>
+                  </select>
+                )}
               </label>
             ))}
           </div>
           <div className="actions">
-            <button type="button" className="primary" disabled={chosen.length === 0} onClick={() => { onApply(chosen.map(s => s.patch)); onClose() }}>
+            <button type="button" className="primary" disabled={chosen.length === 0} onClick={() => { onApply(chosen.map(patchOf)); onClose() }}>
               {t('Aplicar {n} a la edición', { n: chosen.length })}
             </button>
           </div>

@@ -13,6 +13,12 @@ public sealed class HttpAccessContext(IHttpContextAccessor http, SecurityService
 {
     private static readonly object Key = new();
 
+    /// <summary>
+    /// Fija el acceso de esta solicitud: un dashboard público (P-137) corre con los permisos de su dueño, aunque quien
+    /// mira no haya iniciado sesión.
+    /// </summary>
+    public static void Use(HttpContext ctx, UserAccess access) => ctx.Items[Key] = access;
+
     public async ValueTask<UserAccess> CurrentAsync(CancellationToken ct)
     {
         if (http.HttpContext is not { } ctx) return UserAccess.All;

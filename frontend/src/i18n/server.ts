@@ -286,6 +286,10 @@ export const SERVER: [es: string, en: string, ru: string][] = [
   ['motores como plugins (Providers:PluginsDirectory)', 'engines as plugins (Providers:PluginsDirectory)', 'СУБД в виде плагинов (Providers:PluginsDirectory)'],
   ['OpenTelemetry (Telemetry:OtlpEndpoint)', 'OpenTelemetry (Telemetry:OtlpEndpoint)', 'OpenTelemetry (Telemetry:OtlpEndpoint)'],
   // Embeber con tokens firmados (P-135)
+  ["Los dashboards públicos están apagados: un administrador los habilita en Seguridad → Aplicaciones.", "Public dashboards are turned off: an administrator enables them in Security → Applications.", "Публичные дашборды выключены: администратор включает их в разделе Безопасность → Приложения."],
+  ["Este enlace no existe o ya no está publicado.", "This link does not exist or is no longer published.", "Эта ссылка не существует или больше не опубликована."],
+  ["Solo el dueño o un administrador publica el dashboard '{name}'.", "Only the owner or an administrator can publish the dashboard '{name}'.", "Опубликовать дашборд «{name}» может только владелец или администратор."],
+  ["Esta instalación no guarda ajustes del servicio.", "This installation does not store service settings.", "Эта установка не хранит настройки сервиса."],
   ["'filters' debe ser un objeto, p. ej. { \"cliente_id\": 42 }.", "'filters' must be an object, e.g. { \"cliente_id\": 42 }.", "'filters' должен быть объектом, напр. { \"cliente_id\": 42 }."],
   ["El filtro '{name}' debe ser un texto, un número o sí/no.", "The filter '{name}' must be a string, a number or true/false.", "Фильтр «{name}» должен быть строкой, числом или да/нет."],
   ["El filtro '{name}' necesita un nombre y un valor (hasta 200 caracteres).", "The filter '{name}' needs a name and a value (up to 200 characters).", "Фильтру «{name}» нужны имя и значение (до 200 символов)."],

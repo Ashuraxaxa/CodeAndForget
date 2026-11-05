@@ -15,6 +15,11 @@ export function EmbedAppsPanel() {
   const t = useT()
   const qc = useQueryClient()
   const apps = useQuery({ queryKey: ['embed-apps'], queryFn: api.embedApps })
+  const settings = useQuery({ queryKey: ['embed-settings'], queryFn: api.embedSettings })
+  const setPublic = useMutation({
+    mutationFn: (on: boolean) => api.setEmbedSettings({ publicDashboards: on }),
+    onSuccess: s => qc.setQueryData(['embed-settings'], s),
+  })
   const profiles = useQuery({ queryKey: ['profiles'], queryFn: api.profiles })
   const [editing, setEditing] = useState<EmbedApp | 'new' | null>(null)
   const [secret, setSecret] = useState<{ app: EmbedApp; secret: string } | null>(null)
@@ -36,6 +41,12 @@ export function EmbedAppsPanel() {
         {t('Para embeber dashboards y mantenedores en otra aplicación, para usuarios que no tienen cuenta en Celdo. El servidor de esa aplicación firma un token corto con su clave; Celdo nunca da más que el perfil elegido.')}
         {' '}<a href="https://github.com/Ashuraxaxa/CodeAndForget/blob/main/docs/embeber.md" target="_blank" rel="noopener">{t('Cómo firmar el token')}</a>
       </p>
+      <label className="check public-toggle">
+        <input type="checkbox" checked={settings.data?.publicDashboards === true} disabled={!settings.data || setPublic.isPending}
+          onChange={e => setPublic.mutate(e.target.checked)} />
+        <span><strong>{t('Permitir dashboards públicos')}</strong>{' · '}<span className="muted">{t('El dueño de un dashboard puede crear un enlace que cualquiera mira sin login. Al apagarlo, ningún enlace responde.')}</span></span>
+      </label>
+      {setPublic.error && <div className="alert"><ErrorText error={setPublic.error} /></div>}
       {error && <div className="alert"><ErrorText error={error} /></div>}
       {secret && <SecretCard app={secret.app} secret={secret.secret} onClose={() => setSecret(null)} />}
 

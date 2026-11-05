@@ -46,10 +46,15 @@ public static partial class EmbedSetup
     }
 
     /// <summary>Valor de <c>frame-ancestors</c> para una ruta: con los sitios permitidos solo bajo /embed y con el plan.</summary>
-    public static string FrameAncestors(PathString path, IReadOnlyList<string> origins, bool planAllows) =>
-        path.StartsWithSegments(EmbedPath) && planAllows && origins.Count > 0
+    public static string FrameAncestors(PathString path, IReadOnlyList<string> origins, bool planAllows, bool publicDashboards = false) =>
+        // Un dashboard público (P-137) es de solo lectura y para cualquiera: se deja embeber en cualquier sitio.
+        path.StartsWithSegments(PublicPath) && planAllows && publicDashboards ? "frame-ancestors *"
+        : path.StartsWithSegments(EmbedPath) && planAllows && origins.Count > 0
             ? "frame-ancestors 'self' " + string.Join(' ', origins)
             : "frame-ancestors 'self'";
+
+    /// <summary>Páginas de los dashboards públicos.</summary>
+    public const string PublicPath = "/embed/p";
 
     /// <summary>Los sitios son los de <c>Embed:AllowedOrigins</c> más los de las aplicaciones registradas en uso (P-135).</summary>
     public static IApplicationBuilder UseFrameProtection(this IApplicationBuilder app) =>
@@ -57,13 +62,16 @@ public static partial class EmbedSetup
         {
             IReadOnlyList<string> origins = [];
             var planAllows = false;
+            var publicDashboards = false;
             // El plan y los sitios solo se consultan para /embed (los dos están en caché 30 s).
             if (ctx.Request.Path.StartsWithSegments(EmbedPath))
             {
                 planAllows = (await ctx.RequestServices.GetRequiredService<LicenseService>().GetAsync(ctx.RequestAborted)).Limits.Has(Feature.Embed);
-                if (planAllows) origins = await ctx.RequestServices.GetRequiredService<Embed.EmbedAppService>().AllowedOriginsAsync(ctx.RequestAborted);
+                var apps = ctx.RequestServices.GetRequiredService<Embed.EmbedAppService>();
+                if (planAllows) origins = await apps.AllowedOriginsAsync(ctx.RequestAborted);
+                if (planAllows && ctx.Request.Path.StartsWithSegments(PublicPath)) publicDashboards = await apps.PublicDashboardsAsync(ctx.RequestAborted);
             }
-            var policy = FrameAncestors(ctx.Request.Path, origins, planAllows);
+            var policy = FrameAncestors(ctx.Request.Path, origins, planAllows, publicDashboards);
             ctx.Response.OnStarting(() =>
             {
                 var h = ctx.Response.Headers;

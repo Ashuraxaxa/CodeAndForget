@@ -20,7 +20,7 @@ El detalle de cada bloque y su criterio de "listo" está en [../siguientes-pasos
 | P-135 | Etapa 2 · Aplicaciones registradas y tokens firmados: migración 010, Seguridad → Aplicaciones, canje, sesión limitada, auditoría `app:` y tope de 3 en Pro | 🔴 | ✅ 2026-11-05 |
 | P-136 | Etapa 3 · Filtros fijos por fila en listar, leer, editar, borrar, exportar, combos y dashboards; valor fijo al crear; batería común | 🔴 | ✅ 2026-11-05 |
 | P-141 | Al terminar el plan de embeber: revisar todas las pantallas en teléfono, tablet, PC y pantalla ancha (también las nuevas: dashboards, editor, Seguridad → Aplicaciones, plan, auditoría, tokens, embebidas) y dejar la revisión responsive como estándar en `convenciones.md` (pedido del dueño) | 🟡 | ⏳ |
-| P-137 | Etapa 4 · Dashboards públicos por enlace secreto, con interruptor del administrador y límite por IP | 🟡 | ⏳ |
+| P-137 | Etapa 4 · Dashboards públicos por enlace secreto, con interruptor del administrador y límite por IP | 🟡 | ✅ 2026-11-05 |
 | P-138 | Etapa 5 · `embed.js`, eventos y renovación del token; página de prueba en `samples/` | 🟡 | ⏳ |
 | P-139 | Etapa 6 · Ejemplos para firmar en C#, Node y Python; README, landing y planes | 🟡 | ⏳ |
 

@@ -10,7 +10,7 @@ namespace Mantenedores.Api.Endpoints;
 public static class DashboardEndpoints
 {
     public sealed record DashboardSummary(string Id, string Name, string? Description, string Owner, int Widgets,
-        DateTimeOffset UpdatedAt, bool Shared, bool CanEdit, bool CanDelete, bool CanShare, bool Locked);
+        DateTimeOffset UpdatedAt, bool Shared, bool CanEdit, bool CanDelete, bool CanShare, bool Locked, bool IsPublic);
     public sealed record ListResponse(IReadOnlyList<DashboardSummary> Items, bool CanCreate, int Used, int? Limit, int WidgetLimit);
     public sealed record DataRequest(string? From, string? To);
     public sealed record ProfileOption(string Id, string Name);
@@ -58,5 +58,5 @@ public static class DashboardEndpoints
 
     private static DashboardSummary Summary(DashboardView v) => new(
         v.Dashboard.Id, v.Dashboard.Name, v.Dashboard.Description, v.Dashboard.Owner, v.Dashboard.Widgets.Count,
-        v.Dashboard.UpdatedAt, v.Dashboard.Shares.Count > 0, v.CanEdit, v.CanDelete, v.CanShare, v.Locked);
+        v.Dashboard.UpdatedAt, v.Dashboard.Shares.Count > 0, v.CanEdit, v.CanDelete, v.CanShare, v.Locked, v.IsPublic);
 }

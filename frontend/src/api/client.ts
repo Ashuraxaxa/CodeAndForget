@@ -1,7 +1,7 @@
 import type {
   ImportMode, ImportResult, TransferFormat, TreeNode,
   AuditPage, SecurityInfo, SecurityProfile, SecurityUser, ActionResult, Routine,
-  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult, Suggestion, AccessTokenInfo, OverrideProposal, PlanInfo, FreeTables, DataOperation, DashboardList, DashboardView, DashboardInput, AggregateResult, DashboardWidget, EmbedApp, EmbedAppInput, EmbedSession } from './types'
+  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult, Suggestion, AccessTokenInfo, OverrideProposal, PlanInfo, FreeTables, DataOperation, DashboardList, DashboardView, DashboardInput, AggregateResult, DashboardWidget, EmbedApp, EmbedAppInput, EmbedSession, PublicDashboard } from './types'
 import { t, translateServer } from '../i18n'
 
 /** Error de la API con el formato ProblemDetails de ASP.NET. */
@@ -203,6 +203,14 @@ export const api = {
   updateDashboard: (id: string, input: DashboardInput) => request<DashboardView>('PUT', `api/dashboards/${enc(id)}`, input),
   deleteDashboard: (id: string) => request<void>('DELETE', `api/dashboards/${enc(id)}`),
   dashboardProfiles: () => request<{ id: string; name: string }[]>('GET', 'api/dashboards/profiles'),
+  // Dashboards públicos (P-137)
+  embedSettings: () => request<{ publicDashboards: boolean }>('GET', 'api/embed/settings'),
+  setEmbedSettings: (s: { publicDashboards: boolean }) => request<{ publicDashboards: boolean }>('PUT', 'api/embed/settings', s),
+  publishDashboard: (id: string) => request<DashboardView>('POST', `api/dashboards/${enc(id)}/public`),
+  unpublishDashboard: (id: string) => request<DashboardView>('DELETE', `api/dashboards/${enc(id)}/public`),
+  publicDashboard: (token: string) => request<PublicDashboard>('GET', `api/public/dashboards/${enc(token)}`),
+  publicWidgetData: (token: string, widget: string, from?: string, to?: string) =>
+    request<AggregateResult>('POST', `api/public/dashboards/${enc(token)}/widgets/${enc(widget)}/data`, { from, to }),
   widgetData: (id: string, widget: string, from?: string, to?: string) =>
     request<AggregateResult>('POST', `api/dashboards/${enc(id)}/widgets/${enc(widget)}/data`, { from, to }),
   previewWidget: (widget: DashboardWidget, from?: string, to?: string) =>

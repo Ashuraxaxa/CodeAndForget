@@ -654,4 +654,18 @@ export const ru: Messages = {
   "Una por línea: esquema.tabla.filtro = columna": "По одному в строке: схема.таблица.фильтр = столбец",
   "Tablas sin filtro": "Таблицы без фильтра",
   "Una por línea: esquema.tabla. Para catálogos que todos pueden ver.": "По одной в строке: схема.таблица. Для справочников, которые видят все.",
+  // Dashboards públicos (P-137)
+  "Copiar enlace": "Копировать ссылку",
+  "Copiar iframe": "Копировать iframe",
+  "Crear enlace público": "Создать публичную ссылку",
+  "Cualquiera con el enlace mira este dashboard sin iniciar sesión, con tus permisos sobre los datos. Solo puede elegir el período: no edita ni abre las tablas.": "Любой, у кого есть ссылка, видит этот дашборд без входа, с вашими правами на данные. Можно только выбрать период: нельзя редактировать или открывать таблицы.",
+  "Cualquiera con el enlace puede mirarlo": "Его может посмотреть любой, у кого есть ссылка",
+  "El dueño de un dashboard puede crear un enlace que cualquiera mira sin login. Al apagarlo, ningún enlace responde.": "Владелец дашборда может создать ссылку, которую любой откроет без входа. Если выключить, ни одна ссылка не работает.",
+  "Enlace público": "Публичная ссылка",
+  "Los dashboards públicos están apagados: un administrador los habilita en Seguridad → Aplicaciones.": "Публичные дашборды выключены: администратор включает их в разделе Безопасность → Приложения.",
+  "Nuevo enlace": "Новая ссылка",
+  "Permitir dashboards públicos": "Разрешить публичные дашборды",
+  "Público": "Публичный",
+  "Quitar enlace": "Удалить ссылку",
+  "¿Crear un enlace nuevo? El actual deja de funcionar.": "Создать новую ссылку? Текущая перестанет работать.",
 }

@@ -139,15 +139,24 @@ function celdoToken(kid, secret, sub, res, perm = ['view']) {
   toma el valor sola, aunque se mande otro; tampoco se puede mover un registro a otro valor al editar.
 - **Un valor que no calza** con el tipo de la columna (texto en una columna numérica) no abre la tabla.
 
-## 7. Forma C: dashboard público
+## 7. Forma C: dashboard público ✅
 
-- **Quién lo activa:** el administrador habilita los dashboards públicos en Seguridad (apagado por defecto). Luego, el
-  dueño de un dashboard crea su enlace.
-- **El enlace:** es secreto (32 bytes al azar) y se puede regenerar o borrar.
-- **Permisos:** las tarjetas corren con los permisos del dueño. Quien mira solo puede cambiar el período de fechas;
-  no puede exportar, editar ni abrir la grilla.
-- **Filtros fijos:** se pueden poner en el enlace (los de la sección 6).
-- **Carga en la base:** límite de uso por IP y la caché de 60 s de las tarjetas.
+- **Quién lo activa:** el administrador marca "Permitir dashboards públicos" en Seguridad → Aplicaciones (apagado por
+  defecto, desde Pro). Luego, el dueño de un dashboard (o un administrador) toca **Enlace público → Crear enlace
+  público** y copia el enlace o el `<iframe>`.
+- **El enlace:** `/embed/p/{token}`, con un secreto de 32 bytes al azar. **Nuevo enlace** invalida el anterior,
+  **Quitar enlace** lo cierra, y apagar el interruptor cierra todos. Solo quien comparte ve el enlace; los demás ven la
+  marca "Público".
+- **Permisos:** las tarjetas corren con los permisos del dueño. En modo Local se usan sus roles actuales y, si se
+  desactiva al dueño, el enlace deja de responder. En modo Jwt se usan los roles que tenía al crearlo, como los tokens
+  de acceso.
+- **Quien mira:** solo elige el período. No edita, no abre la grilla ni ve quién es el dueño.
+- **Se embebe en cualquier sitio** (`frame-ancestors *`): es de solo lectura y no tiene sesión.
+- **Carga en la base:** cada tarjeta se guarda 60 s por enlace, período y versión del dashboard, y rige el límite de uso
+  por IP.
+- **Plan:** en Pro sale el sello "Hecho con Celdo"; en Empresa, sin marca.
+- **Sin filtros fijos por ahora:** un enlace público muestra lo que ve su dueño. Para mostrar solo una parte, se arma un
+  dashboard con los filtros en sus tarjetas, o se usa la forma B.
 
 ## 8. `embed.js`
 
@@ -172,6 +181,6 @@ Un script opcional para la app anfitriona:
 | **1. Base y forma A** ✅ | Cabecera `frame-ancestors`, `Embed:AllowedOrigins`, rutas `/embed` sin menú, login en el iframe (ventana emergente con OIDC), tema e idioma por parámetro, alto por `postMessage`, sello en Pro, bloqueo en Gratis | P-134 |
 | **2. Aplicaciones y tokens** ✅ | Migración 010, Seguridad → Aplicaciones, canje del token, sesión limitada a `res` y `perm`, auditoría `app:`, tope de 3 en Pro | P-135 |
 | **3. Filtros por fila** ✅ | Filtro fijo en listar, leer, editar, borrar, exportar, combos y dashboards; valor fijo al crear; batería común en los 4 motores | P-136 |
-| **4. Dashboards públicos** | Enlace secreto, interruptor del administrador, permisos del dueño, límite por IP | P-137 |
+| **4. Dashboards públicos** ✅ | Enlace secreto, interruptor del administrador, permisos del dueño, límite por IP | P-137 |
 | **5. `embed.js` y eventos** | Script, eventos, renovación del token, página de prueba en `samples/` | P-138 |
 | **6. Documentación y venta** | Ejemplos para firmar en C#, Node y Python, README, landing y planes | P-139 |

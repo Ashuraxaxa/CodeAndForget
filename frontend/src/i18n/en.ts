@@ -654,4 +654,18 @@ export const en: Messages = {
   "Una por línea: esquema.tabla.filtro = columna": "One per line: schema.table.filter = column",
   "Tablas sin filtro": "Tables without filter",
   "Una por línea: esquema.tabla. Para catálogos que todos pueden ver.": "One per line: schema.table. For catalogs everyone can see.",
+  // Dashboards públicos (P-137)
+  "Copiar enlace": "Copy link",
+  "Copiar iframe": "Copy iframe",
+  "Crear enlace público": "Create public link",
+  "Cualquiera con el enlace mira este dashboard sin iniciar sesión, con tus permisos sobre los datos. Solo puede elegir el período: no edita ni abre las tablas.": "Anyone with the link sees this dashboard without signing in, with your permissions on the data. They can only pick the period: they can't edit or open the tables.",
+  "Cualquiera con el enlace puede mirarlo": "Anyone with the link can see it",
+  "El dueño de un dashboard puede crear un enlace que cualquiera mira sin login. Al apagarlo, ningún enlace responde.": "A dashboard owner can create a link anyone can view without signing in. When turned off, no link works.",
+  "Enlace público": "Public link",
+  "Los dashboards públicos están apagados: un administrador los habilita en Seguridad → Aplicaciones.": "Public dashboards are turned off: an administrator enables them in Security → Applications.",
+  "Nuevo enlace": "New link",
+  "Permitir dashboards públicos": "Allow public dashboards",
+  "Público": "Public",
+  "Quitar enlace": "Remove link",
+  "¿Crear un enlace nuevo? El actual deja de funcionar.": "Create a new link? The current one stops working.",
 }

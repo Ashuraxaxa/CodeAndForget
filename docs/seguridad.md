@@ -105,6 +105,7 @@ los ajustes de los mantenedores exige `ConfigureTables`.
 - **Fuera de `/embed`:** la app solo se deja embeber por sí misma (`Content-Security-Policy: frame-ancestors 'self'` y `X-Frame-Options: SAMEORIGIN`). Así otra página no puede ponerla en un iframe invisible para que el usuario haga clics sin saberlo.
 - **Las páginas `/embed`:** se dejan embeber solo por los sitios de `Embed:AllowedOrigins` y desde el plan Pro.
 - **Permisos:** dentro del iframe, cada usuario tiene los mismos que en la app. Detalle en [embeber.md](embeber.md).
+- **Dashboards públicos:** apagados por defecto. Con el interruptor de Seguridad → Aplicaciones, el dueño publica un enlace secreto que corre con sus permisos, solo para mirar.
 - **Aplicaciones (Seguridad → Aplicaciones):** para usuarios sin cuenta. La app anfitriona firma un token corto con su clave. La sesión queda recortada al perfil de la aplicación y a lo que dice el token, sin permisos de la app, y en la auditoría figura como `app:{aplicación}/{usuario}`.
 
 ## Usuarios propios (modo `Local`)

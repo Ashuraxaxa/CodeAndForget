@@ -8,7 +8,8 @@ namespace Mantenedores.Core.Dashboards;
 
 /// <summary>Un dashboard tal como lo ve un usuario: qué puede hacer con él y si el plan lo deja usar.</summary>
 /// <param name="Locked">Pasa el tope del plan (se bajó de plan): se lista, pero no se abre ni se edita hasta subir.</param>
-public sealed record DashboardView(Dashboard Dashboard, bool CanEdit, bool CanDelete, bool CanShare, bool Locked);
+/// <param name="IsPublic">Tiene enlace público (P-137). El token solo va dentro de <c>Dashboard</c> para quien comparte.</param>
+public sealed record DashboardView(Dashboard Dashboard, bool CanEdit, bool CanDelete, bool CanShare, bool Locked, bool IsPublic = false);
 
 /// <summary>La lista de dashboards de un usuario y si puede crear otro.</summary>
 public sealed record DashboardList(IReadOnlyList<DashboardView> Items, bool CanCreate, int Used, int? Limit, int WidgetLimit);
@@ -103,6 +104,51 @@ public sealed class DashboardService(IDashboardStore store, SchemaService schema
         await store.DeleteAsync(id, ct);
     }
 
+    // ---------- Enlace público (P-137, D-116) ----------
+
+    /// <summary>
+    /// Crea (o renueva) el enlace público, o lo quita con <paramref name="enable"/> = false. Solo quien comparte (dueño o
+    /// administrador). Renovar invalida el enlace anterior. <paramref name="ownerRoles"/>: los roles del dueño, para el modo Jwt.
+    /// </summary>
+    public async Task<DashboardView> SetPublicAsync(string id, bool enable, IReadOnlyList<string> ownerRoles, CancellationToken ct)
+    {
+        var (access, current, view) = await LoadAsync(id, ct);
+        if (!view.CanShare) throw new ForbiddenException($"Solo el dueño o un administrador publica el dashboard '{current.Name}'.");
+        if (view.Locked && enable) throw Locked(await LimitsAsync(ct));
+        var link = enable
+            ? new DashboardPublicLink(Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))
+                .TrimEnd('=').Replace('+', '-').Replace('/', '_'), DateTimeOffset.UtcNow, access.Username ?? "",
+                string.Equals(access.Username, current.Owner, StringComparison.OrdinalIgnoreCase) ? ownerRoles : current.Public?.Roles ?? [])
+            : null;
+        var dashboard = current with { Public = link, UpdatedAt = DateTimeOffset.UtcNow, UpdatedBy = access.Username };
+        await store.SaveAsync(dashboard, ct);
+        return View(access, dashboard, null);
+    }
+
+    /// <summary>El dashboard de un enlace público, si existe y el plan lo deja usar. Sin permisos: lo llama la API anónima.</summary>
+    public async Task<Dashboard?> FindPublicAsync(string token, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(token)) return null;
+        var all = await store.ListAsync(ct);
+        var d = all.FirstOrDefault(x => x.Public is { } p &&
+            System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                System.Text.Encoding.UTF8.GetBytes(p.Token), System.Text.Encoding.UTF8.GetBytes(token)));
+        if (d is null) return null;
+        var unlocked = Unlocked(all, await LimitsAsync(ct));
+        return unlocked is not null && !unlocked.Contains(d.Id) ? null : d;
+    }
+
+    /// <summary>
+    /// Datos de una tarjeta de un dashboard público, con los permisos de quien se fijó en la solicitud (el dueño). Quien
+    /// mira solo elige el período.
+    /// </summary>
+    public Task<AggregateResult> PublicWidgetDataAsync(Dashboard dashboard, string widgetId, string? from, string? to, CancellationToken ct)
+    {
+        var widget = dashboard.Widgets.FirstOrDefault(w => w.Id == widgetId)
+                     ?? throw new NotFoundException($"La tarjeta '{widgetId}' no existe en el dashboard.");
+        return DataAsync(widget, from, to, ct);
+    }
+
     /// <summary>Datos de una tarjeta guardada, con el rango de fechas del dashboard y los permisos de quien mira.</summary>
     public async Task<AggregateResult> WidgetDataAsync(string id, string widgetId, string? from, string? to, CancellationToken ct)
     {
@@ -159,11 +205,13 @@ public sealed class DashboardService(IDashboardStore store, SchemaService schema
         var owner = IsOwner(a, d) || a.IsAdmin;
         var sharedForEdit = d.Shares.Any(s => s.CanEdit && a.ProfileIds.Contains(s.Profile));
         var ops = a.Dashboards;
-        return new DashboardView(d,
+        // El enlace público es un secreto: solo lo ve quien comparte (el dueño o el administrador).
+        return new DashboardView(owner ? d : d with { Public = null },
             CanEdit: ops.HasFlag(Security.DataOperation.Update) && (owner || sharedForEdit),
             CanDelete: ops.HasFlag(Security.DataOperation.Delete) && (owner || sharedForEdit),
             CanShare: owner,
-            Locked: unlocked is not null && !unlocked.Contains(d.Id));
+            Locked: unlocked is not null && !unlocked.Contains(d.Id),
+            IsPublic: d.Public is not null);
     }
 
     private static PlanLimitException Locked(PlanLimits limits) =>

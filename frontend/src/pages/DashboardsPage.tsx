@@ -1,4 +1,4 @@
-import { ArrowLeft, LayoutDashboard, Lock, Pencil, Plus, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, Check, Copy, Globe, LayoutDashboard, Lock, Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { DashboardEditor } from './DashboardEditor'
@@ -10,7 +10,7 @@ import { WidgetView } from '../components/WidgetView'
 import { formatInstant } from '../lib/format'
 import { useT } from '../i18n'
 import { rangeOf, type RangeId } from '../lib/dashboardRange'
-import { isEmbed } from '../lib/embed'
+import { appBase, isEmbed } from '../lib/embed'
 
 /** Lista de dashboards (P-129, D-111): los propios y los compartidos con sus perfiles. */
 export function DashboardsPage() {
@@ -67,6 +67,7 @@ export function DashboardsPage() {
             </Link>
             <div className="dashboard-card-tags">
               {d.shared && <span className="badge" title={t('Compartido con perfiles')}><Users size={13} aria-hidden />{t('Compartido')}</span>}
+              {d.isPublic && <span className="badge" title={t('Cualquiera con el enlace puede mirarlo')}><Globe size={13} aria-hidden />{t('Público')}</span>}
               {d.locked && <span className="badge full" title={t('Supera el tope de tu plan: vuelve al subir de plan.')}><Lock size={13} aria-hidden />{t('Requiere otro plan')}</span>}
               {d.canDelete && (
                 <button type="button" className="icon-button danger-text" title={t('Borrar')} aria-label={t('Borrar {name}', { name: d.name })}
@@ -93,6 +94,8 @@ export function DashboardPage() {
   const { id = '' } = useParams()
   const view = useQuery({ queryKey: ['dashboard', id], queryFn: () => api.dashboard(id) })
   const plan = useQuery({ queryKey: ['plan'], queryFn: api.plan, staleTime: 60_000 })
+  const settings = useQuery({ queryKey: ['embed-settings'], queryFn: api.embedSettings, staleTime: 60_000, enabled: !isEmbed })
+  const [sharing, setSharing] = useState(false)
   const [params, setParams] = useSearchParams()
   // Embebido solo se mira: se edita en la app.
   const canEdit = view.data?.canEdit === true && !isEmbed
@@ -130,6 +133,9 @@ export function DashboardPage() {
         </div>
         <div className="actions">
         {canEdit && !editing && <button type="button" onClick={() => setEditing(true)}><Pencil size={15} aria-hidden />{t('Editar')}</button>}
+        {view.data.canShare && !editing && !isEmbed && (settings.data?.publicDashboards || view.data.isPublic) && (
+          <button type="button" className={view.data.isPublic ? 'active' : ''} onClick={() => setSharing(s => !s)}><Globe size={15} aria-hidden />{t('Enlace público')}</button>
+        )}
         {d.widgets.length > 0 && !editing && (
           <label className="dashboard-range">
             <span className="muted small">{t('Actualizar')}</span>
@@ -152,6 +158,8 @@ export function DashboardPage() {
         </div>
       </div>
 
+      {sharing && !editing && <PublicLinkCard id={d.id} token={d.public?.token ?? null} enabled={settings.data?.publicDashboards === true} />}
+
       {editing && <DashboardEditor view={view.data} widgetLimit={plan.data?.limits.widgets} range={range} onDone={() => setEditing(false)} />}
 
       {editing ? null : d.widgets.length === 0 ? (
@@ -165,6 +173,41 @@ export function DashboardPage() {
           {d.widgets.map(w => <WidgetCard key={w.id} dashboard={d.id} widget={w} range={w.query.dateColumn ? rangeOf(range) : {}} refresh={refresh} />)}
         </div>
       )}
+    </div>
+  )
+}
+
+/** Enlace público del dashboard (P-137): crearlo, copiarlo, renovarlo o quitarlo. Solo el dueño o un administrador. */
+function PublicLinkCard({ id, token, enabled }: { id: string; token: string | null; enabled: boolean }) {
+  const t = useT()
+  const qc = useQueryClient()
+  const [copied, setCopied] = useState<string | null>(null)
+  const done = () => { qc.invalidateQueries({ queryKey: ['dashboard', id] }); qc.invalidateQueries({ queryKey: ['dashboards'] }) }
+  const publish = useMutation({ mutationFn: () => api.publishDashboard(id), onSuccess: done })
+  const remove = useMutation({ mutationFn: () => api.unpublishDashboard(id), onSuccess: done })
+  const url = token ? new URL(`${appBase}/embed/p/${token}`, location.origin).href : null
+  const iframe = url ? `<iframe src="${url}" style="width:100%;height:900px;border:0" loading="lazy"></iframe>` : null
+  const copy = (text: string) => { navigator.clipboard?.writeText(text); setCopied(text) }
+  return (
+    <div className="card public-link">
+      <p className="muted small">{t('Cualquiera con el enlace mira este dashboard sin iniciar sesión, con tus permisos sobre los datos. Solo puede elegir el período: no edita ni abre las tablas.')}</p>
+      {!enabled && <div className="alert">{t('Los dashboards públicos están apagados: un administrador los habilita en Seguridad → Aplicaciones.')}</div>}
+      {url && iframe ? (
+        <>
+          <div className="row"><code className="token-secret">{url}</code>
+            <button type="button" onClick={() => copy(url)}>{copied === url ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}{t('Copiar enlace')}</button></div>
+          <div className="row"><code className="token-secret">{iframe}</code>
+            <button type="button" onClick={() => copy(iframe)}>{copied === iframe ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}{t('Copiar iframe')}</button></div>
+          <div className="actions">
+            <button type="button" disabled={publish.isPending || !enabled}
+              onClick={() => { if (confirm(t('¿Crear un enlace nuevo? El actual deja de funcionar.'))) publish.mutate() }}>{t('Nuevo enlace')}</button>
+            <button type="button" className="danger" disabled={remove.isPending} onClick={() => remove.mutate()}>{t('Quitar enlace')}</button>
+          </div>
+        </>
+      ) : (
+        <div className="actions"><button type="button" className="primary" disabled={publish.isPending || !enabled} onClick={() => publish.mutate()}><Globe size={15} aria-hidden />{t('Crear enlace público')}</button></div>
+      )}
+      {(publish.error || remove.error) && <div className="alert"><ErrorText error={publish.error ?? remove.error} /></div>}
     </div>
   )
 }

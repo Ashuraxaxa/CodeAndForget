@@ -33,6 +33,7 @@ Los errores siguen el formato *Problem Details* (`application/problem+json`); la
 | PUT / DELETE | `/api/license` | Pega `{ key }` o quita la licencia guardada. Permiso `ManageSecurity` |
 | POST | `/api/license/trial` | Empieza la prueba Pro de 30 días (una vez). Permiso `ManageSecurity` |
 | GET / POST | `/api/license/tables` | Gratis: tablas de la conexión para elegir; POST `{ tables: ["esquema.tabla"] }` las suma (fijas, hasta 15). Permiso `ManageSecurity` |
+| GET | `/odata/{conn}/`, `/odata/{conn}/$metadata`, `/odata/{conn}/{tabla}` | Feed OData v4 de solo lectura para Power BI y Excel ([powerbi.md](powerbi.md), D-112). Token de acceso como contraseña de Básica o `Bearer`. `$top`, `$skip`, `$select`, `$orderby` |
 | GET | `/api/tokens/mcp` | Si el servidor MCP está activo y su ruta, para mostrar cómo conectarse |
 | GET | `/api/dashboards` | Dashboards que ve el usuario, con lo que puede hacer en cada uno (`canEdit`, `canDelete`, `canShare`, `locked`), y si puede crear otro según su perfil y el plan (D-111) |
 | GET / PUT / DELETE | `/api/dashboards/{id}` | Ver, editar (`{ name, description, widgets, shares }`; `shares` solo lo cambian el dueño o un administrador) y borrar |

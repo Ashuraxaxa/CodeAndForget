@@ -49,7 +49,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
             where = where.Length == 0 ? $" WHERE {after}" : $"{where} AND {after}";
             page = 1;
         }
-        var offset = p.Add((long)(page - 1) * pageSize);
+        var offset = p.Add(request.Skip is { } skip ? Math.Max(0, skip) : (long)(page - 1) * pageSize);
         var limit = p.Add((long)pageSize);
 
         var sql = $"SELECT {select} FROM {from}{joins}{where} ORDER BY {orderBy} {dialect.Paging(offset, limit)}";
@@ -516,20 +516,8 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         var renames = new Dictionary<string, string>();
         var i = 0;
 
-        // Primero las FK de una columna: si una compuesta pone su etiqueta en la misma columna, manda la simple.
-        var labeled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var fk in table.ForeignKeys.OrderBy(f => f.Columns.Count))
+        foreach (var (fk, target, display) in LabeledForeignKeys(schema, table))
         {
-            var target = schema.FindTable(fk.RefSchema, fk.RefTable);
-            var display = target?.DisplayColumn is { } d ? target.FindColumn(d) : null;
-            // Si la columna a mostrar es parte de la clave, la etiqueta no aporta nada.
-            // Tampoco si alguna columna local está oculta: la etiqueta revelaría su valor.
-            if (target is null || display is null || !display.IsSelectable ||
-                fk.Columns.Any(c => table.FindColumn(c) is not { IsSelectable: true }) ||
-                fk.RefColumns.Contains(display.Name, StringComparer.OrdinalIgnoreCase) ||
-                !labeled.Add(fk.LabelColumn))
-                continue;
-
             var join = $"j{i}";
             var alias = LabelAlias(i++);
             var on = string.Join(" AND ", fk.Columns.Select((c, n) => $"{join}.{dialect.Quote(fk.RefColumns[n])} = {Base}.{dialect.Quote(c)}"));
@@ -547,6 +535,30 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         }
 
         return (string.Join(", ", parts), string.Concat(joins), renames);
+    }
+
+    /// <summary>
+    /// Las FK cuyo texto viaja en las filas (<c>columna__label</c>, D-007): la grilla y el feed OData (P-132) usan la
+    /// misma regla. Primero las de una columna: si una compuesta pone su etiqueta en la misma columna, manda la simple.
+    /// </summary>
+    public static IReadOnlyList<(ForeignKeyInfo Fk, TableInfo Target, ColumnInfo Display)> LabeledForeignKeys(DatabaseSchema schema, TableInfo table)
+    {
+        var result = new List<(ForeignKeyInfo, TableInfo, ColumnInfo)>();
+        var labeled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var fk in table.ForeignKeys.OrderBy(f => f.Columns.Count))
+        {
+            var target = schema.FindTable(fk.RefSchema, fk.RefTable);
+            var display = target?.DisplayColumn is { } d ? target.FindColumn(d) : null;
+            // Si la columna a mostrar es parte de la clave, la etiqueta no aporta nada.
+            // Tampoco si alguna columna local está oculta: la etiqueta revelaría su valor.
+            if (target is null || display is null || !display.IsSelectable ||
+                fk.Columns.Any(c => table.FindColumn(c) is not { IsSelectable: true }) ||
+                fk.RefColumns.Contains(display.Name, StringComparer.OrdinalIgnoreCase) ||
+                !labeled.Add(fk.LabelColumn))
+                continue;
+            result.Add((fk, target, display));
+        }
+        return result;
     }
 
     /// <summary>Columna del SELECT; si el dialecto la transforma (p. ej. CAST), se le pone alias para conservar el nombre.</summary>

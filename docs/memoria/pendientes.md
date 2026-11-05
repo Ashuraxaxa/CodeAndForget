@@ -15,6 +15,7 @@ El detalle de cada bloque y su criterio de "listo" está en [../siguientes-pasos
 
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
+| P-132 | Power BI y Excel: feed OData v4 de solo lectura por conexión, con el token como contraseña (D-112) | 🟡 | ✅ 2026-11-05 |
 | P-127 | Etapa 1 · Consultas de resumen: `BuildAggregate` (contar, distintos, suma, promedio, mín., máx.; agrupar por columna, FK o fecha) con la fecha en cada dialecto; pruebas en los 4 motores | 🔴 | ✅ 2026-11-05 |
 | P-128 | Etapa 2 · Guardar y permisos: migración 009, API, permisos Ver/Crear/Editar/Borrar en el perfil, compartir con perfiles y topes del plan | 🔴 | ✅ 2026-11-05 |
 | P-129 | Etapa 3 · Ver: menú, lista y página del dashboard con 5 tipos de tarjeta en SVG, filtro de fechas, día/noche y móvil | 🔴 | ✅ 2026-11-05 |

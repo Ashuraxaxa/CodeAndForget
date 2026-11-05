@@ -4,6 +4,17 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · Power BI y Excel por OData (P-132)
+- El dueño eligió OData para conectar Power BI.
+- **Feed:** `/odata/{conexión}`, con documento de servicio, `$metadata` y una entidad por tabla exportable, incluidos los textos de las FK. Páginas de 5.000 filas con `@odata.nextLink`.
+- **Opciones:** `$top`, `$skip`, `$select` y `$orderby`; `$filter` y las demás responden 501, para que Power BI filtre en su lado.
+- **Autenticación:** el token de acceso como contraseña de Básica; sin credenciales, 401 que pide Básica.
+- **Interfaz:** la página de tokens explica los pasos y muestra la URL de cada conexión. En desarrollo, Vite reenvía `/odata`.
+- **Pruebas:**
+  - en vivo, el servicio, `$metadata`, el feed con `$select` y `$orderby`, y el 501 de `$filter`;
+  - prueba de API (401 que pide Básica, el token como contraseña, 501);
+  - `FeedAsync` en los 4 motores.
+
 ## 2026-11-05 · Dashboards, etapa 5: extras (P-131)
 - **Mapa:** agrupa por latitud y longitud (columnas numéricas). El tamaño de cada punto es el resultado.
   - Dibuja los puntos sobre los contornos de los países, sin mosaicos externos (D-022), con los datos de Natural Earth 1:50m (dominio público, `world-atlas`).

@@ -1112,6 +1112,21 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **Compartir con usuarios sueltos:** los perfiles ya agrupan a las personas.
   - **Una librería de gráficos (Recharts):** suma unos 100 KB y no sigue la paleta sola.
 
+### D-112 · Power BI y Excel por un feed OData de solo lectura
+- **Estado:** Vigente · 2026-11-05 (P-132). Pedido del dueño: "alguna conexión con Power BI"; eligió la opción OData.
+- **Qué:**
+  - **Ruta:** `/odata/{conexión}`, con OData v4: documento de servicio, `$metadata` y una entidad por tabla que el usuario puede **exportar**.
+  - **Contenido:** las columnas visibles más los textos de las FK, en páginas de 5.000 filas con `@odata.nextLink`.
+  - **Opciones:** `$top`, `$skip`, `$select` y `$orderby`. Las demás (`$filter`, `$expand`, `$count`…) responden 501, nunca se ignoran.
+  - **Autenticación:** con el token de acceso como contraseña de Básica (usuario cualquiera), que es lo que ofrecen Power BI y Excel; también `Bearer`. Sin credenciales, 401 con `WWW-Authenticate: Basic`.
+  - **Plan:** Pro, como "exportar en todos los formatos" (`Feature.AllFormats`).
+  - La regla de qué FK traen texto pasó a `QueryBuilder.LabeledForeignKeys`, la misma para la grilla y el feed.
+- **Descartado:**
+  - **Conector propio de Power BI (.mez):** hay que firmarlo e instalarlo en cada equipo; OData ya viene en Power BI y en Excel.
+  - **Exportar a un archivo o a una base intermedia:** los datos se copiarían y quedarían desactualizados; el feed lee al momento con los permisos del usuario.
+  - **Soportar `$filter`:** es un lenguaje de expresiones completo, y uno a medias devolvería datos equivocados. Power BI filtra en su lado.
+  - **Ignorar las opciones no soportadas:** Power BI creería que filtró en el servidor y mostraría datos de más.
+
 ---
 
 ## Propuestas (aún no decididas)

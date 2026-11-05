@@ -150,6 +150,17 @@ app.UseExceptionHandler();
 app.UseSlowRequestLog();
 app.UseHosting(hosting);
 app.UseStaticFiles(); // Recursos del frontend compilado (wwwroot). index.html lo sirve MapSpaIndex.
+// Feed OData (P-132): sin credenciales, se pide usuario y contraseña (Básica), que es lo que ofrecen Power BI y Excel.
+app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/odata"), b => b.Use(async (ctx, next) =>
+{
+    ctx.Response.OnStarting(() =>
+    {
+        if (ctx.Response.StatusCode == StatusCodes.Status401Unauthorized)
+            ctx.Response.Headers.WWWAuthenticate = "Basic realm=\"Celdo\", charset=\"UTF-8\"";
+        return Task.CompletedTask;
+    });
+    await next();
+}));
 app.UseAuthentication();
 app.UseMiddleware<PlanGateMiddleware>();
 app.UseRateLimiter(); // después de autenticar: el límite es por usuario
@@ -164,6 +175,7 @@ app.MapSecurity();
 app.MapTokens();
 app.MapAudit();
 app.MapDashboards();
+app.MapOData();
 app.MapMantenedoresMcp(mcp);
 app.MapLicense();
 // Una ruta /api desconocida es 404; cualquier otra ruta la resuelve el router del frontend.

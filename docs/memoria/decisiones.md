@@ -1086,6 +1086,17 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **Compilar ARM con QEMU:** varias veces más lento y sin necesidad.
 - **Pendiente del dueño:** la primera vez, dejar pública la imagen en GitHub (Packages → celdo → Package settings).
 
+### D-110 · En un perfil, una conexión nueva da acceso solo a las tablas agregadas
+- **Estado:** Vigente · 2026-11-05 (P-126). Pedido del dueño: "quitar por defecto la visualización en todas las tablas y solo permitir las agregadas".
+- **Qué:**
+  - Cada conexión del perfil tiene un selector: **Solo las tablas agregadas** o **Todas las tablas**.
+  - Una conexión nueva parte en "Solo las tablas agregadas", es decir, sin operaciones propias (`"operations": []`). Antes partía con *Ver* en todas.
+  - El editor avisa cuando la conexión todavía no da ninguna tabla.
+  - El formato guardado no cambia (ya existía la conexión sin operaciones), así que los perfiles existentes siguen igual: los que no tienen operaciones en la conexión se muestran como "Solo las tablas agregadas".
+- **Descartado:**
+  - **Un interruptor global en Seguridad:** el alcance depende de cada conexión del perfil; un ajuste aparte se contradiría con lo que muestra cada conexión.
+  - **Cambiar el formato** (un campo `scope`): no hace falta, `operations` vacío ya significa eso.
+
 ---
 
 ## Propuestas (aún no decididas)

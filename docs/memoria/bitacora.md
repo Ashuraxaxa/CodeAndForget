@@ -4,6 +4,11 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · Perfiles que solo ven las tablas agregadas (P-126)
+- El dueño pidió que, por defecto, un perfil no vea todas las tablas y solo las agregadas. Ya se podía (conexión sin operaciones), pero no era evidente.
+- Ahora cada conexión del perfil tiene un selector "Solo las tablas agregadas" / "Todas las tablas", y una conexión nueva parte en la primera (D-110). No cambia el formato guardado.
+- También se explicó cómo emitir y activar una licencia (Plan → Activar licencia, o `License__Key`).
+
 ## 2026-11-04 · Botón "Ver planes" en los errores de plan (P-122)
 - `ErrorText` muestra el mensaje de error y, si es del plan (403 `mantenedores:plan`), un botón "Ver planes" hacia la página Plan. Reemplaza al texto en todos los avisos de error de la interfaz.
 - Los errores que salen en una ventana del navegador (exportar, borrar, acciones, exportar la auditoría) ofrecen abrir Plan.

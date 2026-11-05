@@ -116,11 +116,13 @@ function Profiles({ adminRoles, permissions }: { adminRoles: string[]; permissio
 /** Estado editable: listas en vez de diccionarios, para conservar el orden mientras se edita. */
 interface ColumnDraft { name: string; operations: DataOperation[] }
 interface TableDraft { key: string; operations: DataOperation[]; columns: ColumnDraft[] }
-interface ConnectionDraft { conn: string; operations: DataOperation[]; tables: TableDraft[] }
+/** scope "only": la conexión no da nada por sí misma; solo valen las tablas agregadas (sin operaciones propias). */
+interface ConnectionDraft { conn: string; scope: 'all' | 'only'; operations: DataOperation[]; tables: TableDraft[] }
 
 const toDraft = (p: SecurityProfile): ConnectionDraft[] =>
   Object.entries(p.connections).map(([conn, r]) => ({
     conn,
+    scope: r.operations.length === 0 ? 'only' : 'all',
     operations: r.operations,
     tables: Object.entries(r.tables).map(([key, t]) => ({
       key, operations: t.operations,
@@ -130,7 +132,7 @@ const toDraft = (p: SecurityProfile): ConnectionDraft[] =>
 
 const fromDraft = (rules: ConnectionDraft[]): SecurityProfile['connections'] =>
   Object.fromEntries(rules.filter(r => r.conn.trim()).map(r => [r.conn.trim(), {
-    operations: r.operations,
+    operations: r.scope === 'only' ? [] : r.operations,
     tables: Object.fromEntries(r.tables.filter(t => t.key.trim()).map(t => [t.key.trim(), {
       operations: t.operations,
       columns: Object.fromEntries(t.columns.filter(c => c.name.trim()).map(c => [c.name.trim(), { operations: c.operations }])),
@@ -227,14 +229,14 @@ function ProfileForm({ initial, copy = false, permissions, onClose }: {
       <div>
         <span className="field-label">{t('Datos')}</span>
         <p className="hint">
-          {t('Lo que se marca en una conexión vale para todas sus tablas. Si agrega una tabla, sus operaciones reemplazan a las de la conexión; y lo mismo una columna respecto de su tabla (una columna sin "Ver" queda oculta).')}
+          {t('Por conexión, elija si el perfil ve solo las tablas que agregue o todas. Las operaciones de una tabla agregada reemplazan a las de la conexión, y las de una columna a las de su tabla (una columna sin "Ver" queda oculta).')}
         </p>
         {rules.map((r, i) => (
           <ConnectionRuleEditor key={i} rule={r} connections={(connections.data ?? []).map(c => ({ id: c.id, name: c.name }))}
             used={used} onChange={v => setRule(i, v)} onRemove={() => setRules(s => s.filter((_, j) => j !== i))} />
         ))}
         {errors.connections && <span className="field-error">{errors.connections}</span>}
-        <button type="button" onClick={() => setRules(s => [...s, { conn: used.has('*') ? '' : '*', operations: ['view'], tables: [] }])}>
+        <button type="button" onClick={() => setRules(s => [...s, { conn: used.has('*') ? '' : '*', scope: 'only', operations: [], tables: [] }])}>
           <Plus size={14} aria-hidden />{t('Conexión')}
         </button>
       </div>
@@ -294,15 +296,30 @@ function ConnectionRuleEditor({ rule, connections, used, onChange, onRemove }: {
             ...connections.map(c => ({ value: c.id, label: c.name, hint: c.id, disabled: used.has(c.id) && rule.conn !== c.id })),
             ...(rule.conn && rule.conn !== '*' && !connections.some(c => c.id === rule.conn) ? [{ value: rule.conn, label: rule.conn }] : []),
           ]} />
-        <OpChecks ops={TABLE_OPS} value={rule.operations} onChange={operations => onChange({ operations })} />
+        <select value={rule.scope} aria-label={t('Tablas')}
+          onChange={e => {
+            const scope = e.target.value as ConnectionDraft['scope']
+            onChange({ scope, operations: scope === 'all' && rule.operations.length === 0 ? ['view'] : rule.operations })
+          }}>
+          <option value="only">{t('Solo las tablas agregadas')}</option>
+          <option value="all">{t('Todas las tablas')}</option>
+        </select>
+        {rule.scope === 'all' && <OpChecks ops={TABLE_OPS} value={rule.operations} onChange={operations => onChange({ operations })} />}
         <button type="button" className="link danger" onClick={onRemove}>{t('Quitar')}</button>
       </div>
+      <p className="hint">
+        {rule.scope === 'only'
+          ? rule.tables.length === 0
+            ? t('Todavía no ve ninguna tabla de esta conexión: agregue las que podrá usar.')
+            : t('Solo ve las tablas agregadas, con las operaciones de cada una.')
+          : t('Ve todas las tablas con estas operaciones; una tabla agregada usa las suyas.')}
+      </p>
       {rule.tables.map((x, i) => (
         <TableRuleEditor key={i} conn={owner.get(x.key.trim()) ?? rule.conn} tableKeys={tableKeys} rule={x} onChange={v => setTable(i, v)}
           onRemove={() => onChange({ tables: rule.tables.filter((_, j) => j !== i) })} />
       ))}
       <button type="button" className="link" onClick={() => onChange({ tables: [...rule.tables, { key: '', operations: ['view'], columns: [] }] })}>
-        <Plus size={14} aria-hidden />{t('Tabla con permisos propios')}
+        <Plus size={14} aria-hidden />{rule.scope === 'only' ? t('Agregar tabla') : t('Tabla con permisos propios')}
       </button>
     </div>
   )

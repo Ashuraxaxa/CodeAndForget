@@ -19,7 +19,8 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 | `feature/avisos-plan` | PR #56 fusionado: botón "Ver planes" en los errores de plan (P-122). |
 | `feature/perfil-solo-tablas` | PR #57 fusionado: perfiles con "Solo las tablas agregadas" por defecto (P-126, D-110). |
 | `feature/dashboards` | PR #58 fusionado: plan y etapa 1, consultas de resumen (P-127, D-111). |
-| `feature/dashboards-guardar` | Dashboards, etapa 2: guardar, permisos, compartir y topes (P-128). |
+| `feature/dashboards-guardar` | PR #59 fusionado: guardar, permisos, compartir y topes (P-128). |
+| `feature/dashboards-ver` | Dashboards, etapa 3: menú, lista y página con 6 tipos de tarjeta (P-129). |
 
 ## Qué funciona hoy
 

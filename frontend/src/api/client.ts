@@ -1,7 +1,7 @@
 import type {
   ImportMode, ImportResult, TransferFormat, TreeNode,
   AuditPage, SecurityInfo, SecurityProfile, SecurityUser, ActionResult, Routine,
-  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult, Suggestion, AccessTokenInfo, OverrideProposal, PlanInfo, FreeTables, DataOperation } from './types'
+  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult, Suggestion, AccessTokenInfo, OverrideProposal, PlanInfo, FreeTables, DataOperation, DashboardList, DashboardView, DashboardInput, AggregateResult, DashboardWidget } from './types'
 import { t, translateServer } from '../i18n'
 
 /** Error de la API con el formato ProblemDetails de ASP.NET. */
@@ -189,6 +189,16 @@ export const api = {
   deleteToken: (id: string) => request<void>('DELETE', `api/tokens/${enc(id)}`),
   mcpInfo: () => request<{ enabled: boolean; path: string }>('GET', 'api/tokens/mcp'),
   plan: () => request<PlanInfo>('GET', 'api/license'),
+  // Dashboards (D-111)
+  dashboards: () => request<DashboardList>('GET', 'api/dashboards'),
+  dashboard: (id: string) => request<DashboardView>('GET', `api/dashboards/${enc(id)}`),
+  createDashboard: (input: DashboardInput) => request<DashboardView>('POST', 'api/dashboards', input),
+  updateDashboard: (id: string, input: DashboardInput) => request<DashboardView>('PUT', `api/dashboards/${enc(id)}`, input),
+  deleteDashboard: (id: string) => request<void>('DELETE', `api/dashboards/${enc(id)}`),
+  widgetData: (id: string, widget: string, from?: string, to?: string) =>
+    request<AggregateResult>('POST', `api/dashboards/${enc(id)}/widgets/${enc(widget)}/data`, { from, to }),
+  previewWidget: (widget: DashboardWidget, from?: string, to?: string) =>
+    request<AggregateResult>('POST', 'api/dashboards/preview', { widget, from, to }),
   setLicense: (key: string) => request<PlanInfo>('PUT', 'api/license', { key }),
   removeLicense: () => request<PlanInfo>('DELETE', 'api/license'),
   startTrial: () => request<PlanInfo>('POST', 'api/license/trial'),

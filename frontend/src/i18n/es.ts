@@ -10,6 +10,7 @@ export const es: Messages = {
   '{n} cambios': { one: '{n} cambio', other: '{n} cambios' },
   '{n} tablas y vistas': { one: '{n} tabla o vista', other: '{n} tablas y vistas' },
   'Conexión correcta: {n} tablas/vistas encontradas.': { one: 'Conexión correcta: {n} tabla/vista encontrada.', other: 'Conexión correcta: {n} tablas/vistas encontradas.' },
+  '{n} tarjetas': { one: '{n} tarjeta', other: '{n} tarjetas' },
   '{n} filas': { one: '{n} fila', other: '{n} filas' },
   '{n} válidas': { one: '{n} válida', other: '{n} válidas' },
   '{n} nuevas': { one: '{n} nueva', other: '{n} nuevas' },

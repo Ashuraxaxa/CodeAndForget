@@ -1,5 +1,5 @@
 import { BrowserRouter, Link, Navigate, NavLink, Outlet, Route, Routes } from 'react-router-dom'
-import { BadgeCheck, History, LogOut, ShieldCheck } from 'lucide-react'
+import { BadgeCheck, History, LayoutDashboard, LogOut, ShieldCheck } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from './api/client'
 import { Brand, CeldoMark } from './components/Brand'
@@ -15,6 +15,7 @@ import { SecurityPage } from './pages/SecurityPage'
 import { AuditPage } from './pages/AuditPage'
 import { TokensPage } from './pages/TokensPage'
 import { PlanPage } from './pages/PlanPage'
+import { DashboardPage, DashboardsPage } from './pages/DashboardsPage'
 import { planLabel } from './lib/plan'
 import { translateServer } from './i18n'
 import { useCan, useMe } from './lib/useMe'
@@ -26,7 +27,9 @@ function AdminLinks() {
   const t = useT()
   const canAudit = useCan('ViewAudit')
   const canSecure = useCan('ManageSecurity')
+  const canDashboards = useMe().data?.dashboards?.includes('view') === true
   return <>
+    {canDashboards && <NavLink to="/dashboards" className="topnav-link"><LayoutDashboard size={16} aria-hidden />{t('Dashboards')}</NavLink>}
     {canAudit && <NavLink to="/auditoria" className="topnav-link"><History size={16} aria-hidden />{t('Auditoría')}</NavLink>}
     {canSecure && <NavLink to="/seguridad" className="topnav-link"><ShieldCheck size={16} aria-hidden />{t('Seguridad')}</NavLink>}
   </>
@@ -125,6 +128,8 @@ export default function App() {
             <Route path="auditoria" element={<AuditPage />} />
             <Route path="tokens" element={<TokensPage />} />
             <Route path="plan" element={<PlanPage />} />
+            <Route path="dashboards" element={<DashboardsPage />} />
+            <Route path="dashboards/:id" element={<DashboardPage />} />
             <Route path="c/:conn" element={<ConnectionLayout />}>
               <Route index element={<PickTable />} />
               <Route path="t/:schema/:table" element={<TablePage />} />

@@ -362,6 +362,11 @@ a.chip:hover { border-color: var(--primary); background: var(--primary-soft); }
   .topbar-tools { gap: 6px; }
   .user-chip { display: none; }
   .lang { max-width: 84px; }
+  /* El menú pasa a una segunda fila y el plan queda como ícono: así la barra cabe en 360 px. */
+  .topbar { flex-wrap: wrap; height: auto; min-height: var(--topbar-h); padding-block: 6px; row-gap: 4px; }
+  .topbar-tools { margin-left: auto; }
+  .topnav { order: 3; flex-basis: 100%; overflow-x: auto; }
+  .topbar .plan-chip { font-size: 0; gap: 0; padding: 0 8px; }
   .segmented button { width: 26px; }
 }
 
@@ -674,3 +679,65 @@ a.user-chip:hover { background: var(--hover); color: var(--text); }
 .free-table-list li.fixed { background: var(--surface-2); }
 .free-table-list .name { font-weight: 500; }
 .confirm-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--warn-bg); color: var(--warn-text); }
+
+/* ---------- Dashboards (P-129, D-111) ---------- */
+/* Paleta categórica validada (orden fijo) para los dos temas; el texto nunca usa estos colores. */
+:root {
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
+  --series-5: #e87ba4; --series-6: #008300; --series-7: #6250d6; --series-8: #e34948;
+}
+:root[data-theme='dark'] {
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+  --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+}
+.dashboard-new { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; }
+.dashboard-new label { flex: 1 1 260px; display: grid; gap: 6px; font-weight: 600; }
+.dashboard-new input { width: 100%; }
+.dashboard-new .alert { flex-basis: 100%; }
+.dashboard-list { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.dashboard-card { display: flex; justify-content: space-between; gap: 10px; padding: 14px 16px; }
+.dashboard-card.locked { opacity: 0.75; }
+.dashboard-card-main { display: grid; gap: 4px; color: inherit; text-decoration: none; min-width: 0; }
+.dashboard-card-main:hover strong { text-decoration: underline; }
+.dashboard-card-tags { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.dashboard-card-tags .badge { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.dashboard-range { display: grid; gap: 4px; }
+.empty-dashboard { display: grid; justify-items: center; gap: 6px; padding: 32px 16px; text-align: center; color: var(--muted); }
+.dashboard-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.widget { grid-column: span 6; display: grid; align-content: start; gap: 10px; padding: 14px 16px; min-width: 0; }
+.widget-s { grid-column: span 3; }
+.widget-l { grid-column: span 12; }
+@media (max-width: 1000px) { .widget-s { grid-column: span 6; } .widget-m { grid-column: span 12; } }
+@media (max-width: 640px) { .widget, .widget-s, .widget-m, .widget-l { grid-column: span 12; } }
+.widget-head { display: grid; gap: 2px; }
+.widget-head h2 { margin: 0; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.widget-error { font-size: 0.9rem; color: var(--err-text); }
+.chart { position: relative; min-width: 0; }
+.chart-skeleton { height: 120px; border-radius: var(--radius-sm); background: var(--surface-2); }
+.chart-number { display: grid; gap: 2px; }
+.chart-number-value { font-size: 2.2rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.chart-bars { display: grid; gap: 6px; }
+.bar-row { display: grid; grid-template-columns: minmax(80px, 34%) 1fr auto; align-items: center; gap: 8px; border-radius: 4px; }
+.bar-row:focus-visible { outline: 2px solid var(--focus); }
+.bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.88rem; }
+.bar-track { height: 14px; }
+.bar-fill { display: block; height: 100%; min-width: 2px; background: var(--series-1); border-radius: 0 4px 4px 0; }
+.bar-value { font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chart-grid { stroke: var(--border); stroke-width: 1; }
+.chart-axis { fill: var(--muted); font-size: 11px; }
+.chart-line-path { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart-crosshair { stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart-dot { stroke: var(--surface); stroke-width: 2; }
+.chart-donut { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.chart-slice { stroke: var(--surface); stroke-width: 2; }
+.chart-donut-total { fill: var(--text); font-size: 18px; font-weight: 700; }
+.chart-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; flex: 1 1 160px; min-width: 0; font-size: 0.88rem; }
+.chart-legend li { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 8px; }
+.chart-legend i { width: 10px; height: 10px; border-radius: 3px; }
+.legend-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legend-value { color: var(--muted); font-variant-numeric: tabular-nums; }
+.chart-table { overflow-x: auto; }
+.chart-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.chart-tip { position: absolute; z-index: 5; pointer-events: none; display: grid; gap: 2px; padding: 6px 8px; min-width: 120px; max-width: 220px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow); font-size: 0.82rem; }
+.chart-tip span { color: var(--muted); font-variant-numeric: tabular-nums; }

@@ -126,6 +126,7 @@ export const SERVER: [es: string, en: string, ru: string][] = [
   ['Su plan permite {n} tarjetas por dashboard.', 'Your plan allows {n} cards per dashboard.', 'Ваш тариф допускает {n} карточек на дашборд.'],
   ['hay tarjetas con el mismo id', 'there are cards with the same id', 'есть карточки с одинаковым id'],
   ['máx. {n} caracteres', 'max. {n} characters', 'не более {n} символов'],
+  ['el mapa necesita la latitud y la longitud', 'the map needs the latitude and longitude', 'для карты нужны широта и долгота'],
   ['el mapa llega en una próxima versión', 'the map comes in a future version', 'карта появится в следующей версии'],
   ['un número no se agrupa', 'a number is not grouped', 'число не группируется'],
   ['la tabla dinámica necesita dos agrupaciones', 'the pivot table needs two groupings', 'сводной таблице нужны две группировки'],

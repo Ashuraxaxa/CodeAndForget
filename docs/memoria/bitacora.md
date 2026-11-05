@@ -4,6 +4,18 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · Dashboards, etapa 5: extras (P-131)
+- **Mapa:** agrupa por latitud y longitud (columnas numéricas). El tamaño de cada punto es el resultado.
+  - Dibuja los puntos sobre los contornos de los países, sin mosaicos externos (D-022), con los datos de Natural Earth 1:50m (dominio público, `world-atlas`).
+  - Los nombres de los países van en español, inglés y ruso (`i18n-iso-countries`, generados una vez en `lib/countryNames.json`).
+  - Esos datos se descargan solo si el dashboard tiene un mapa.
+  - Pedido del dueño: "no se ve el mapa del Perú, solo los puntos".
+  - Se filtra por polígono, no por país, porque Francia, Kiribati o Fiyi tienen islas en todo el mundo.
+- **Refresco automático:** solo al abrir, o cada 1, 5 o 15 minutos; queda recordado en el navegador.
+- **CSV por tarjeta:** separador ";" y BOM, para que Excel lo abra bien.
+- **Ir a la grilla:** un clic en una barra, una porción o una fila del top N abre la grilla con los filtros de la tarjeta y ese grupo (`f.columna=valor`).
+- **MCP:** `list_dashboards`, `preview_widget` y `create_dashboard`. El dashboard queda privado del usuario, que decide si lo comparte.
+
 ## 2026-11-05 · Combos sin tildes (P-109)
 - El dueño pidió la etapa 5 de los dashboards y P-109, y al final algo de Power BI o tratamiento de datos.
 - **P-109:** `ISqlDialect.ContainsIgnoringAccents` se usa en los combos y en el filtro por texto de la FK, no en la búsqueda general, que puede usar índices.

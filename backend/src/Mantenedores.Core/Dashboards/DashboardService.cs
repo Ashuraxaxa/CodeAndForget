@@ -226,15 +226,18 @@ public sealed class DashboardService(IDashboardStore store, SchemaService schema
         var ok = w.Type switch
         {
             WidgetType.Number => groups == 0,
-            WidgetType.Pivot => groups == 2,
-            WidgetType.Map => throw new ValidationException("type", "el mapa llega en una próxima versión"),
+            WidgetType.Pivot or WidgetType.Map => groups == 2,
             _ => groups == 1
         };
+        // Mapa (P-131): agrupa por latitud y longitud; cada grupo es un punto y su resultado, el tamaño.
+        if (ok && w.Type == WidgetType.Map && w.Query.GroupBy.Any(g => g.Bucket is not null))
+            throw new ValidationException("groupBy", "el mapa necesita la latitud y la longitud");
         if (!ok)
             throw new ValidationException("groupBy", w.Type switch
             {
                 WidgetType.Number => "un número no se agrupa",
                 WidgetType.Pivot => "la tabla dinámica necesita dos agrupaciones",
+                WidgetType.Map => "el mapa necesita la latitud y la longitud",
                 _ => "esta tarjeta necesita una agrupación"
             });
     }

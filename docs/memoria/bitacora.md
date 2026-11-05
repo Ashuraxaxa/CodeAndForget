@@ -4,6 +4,11 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · Plan de dashboards dinámicos
+- El dueño pidió dashboards que arma el usuario, con tope por plan (Gratis 1, Pro 5, Empresa sin tope) y permisos para crear, ver, editar y borrar.
+- Plan en `docs/dashboards.md`: 5 tipos de tarjeta, permisos por perfil más compartir por dashboard, topes por instalación, migración 009 y 5 etapas (P-127 a P-131).
+- Preguntas para el dueño: Q-012 a Q-015.
+
 ## 2026-11-05 · Perfiles que solo ven las tablas agregadas (P-126)
 - El dueño pidió que, por defecto, un perfil no vea todas las tablas y solo las agregadas. Ya se podía (conexión sin operaciones), pero no era evidente.
 - Ahora cada conexión del perfil tiene un selector "Solo las tablas agregadas" / "Todas las tablas", y una conexión nueva parte en la primera (D-110). No cambia el formato guardado.

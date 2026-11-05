@@ -19,7 +19,8 @@ public static partial class SecurityEndpoints
 
     /// <summary>Perfil a guardar; el id va en la ruta.</summary>
     public sealed record ProfileRequest(string? Name, string? Description, IReadOnlyList<string>? Roles, IReadOnlyList<string>? Users,
-        IReadOnlyList<string>? AppPermissions, IReadOnlyDictionary<string, ConnectionRule>? Connections);
+        IReadOnlyList<string>? AppPermissions, IReadOnlyDictionary<string, ConnectionRule>? Connections,
+        IReadOnlyList<string>? Dashboards = null);
 
     /// <summary>Lo que la pantalla necesita para armar un perfil.</summary>
     public sealed record SecurityInfo(AuthMode Mode, IReadOnlyList<string> AppPermissions, IReadOnlyList<string> Operations,
@@ -164,17 +165,19 @@ public static partial class SecurityEndpoints
             Roles = Clean(body.Roles),
             Users = Clean(body.Users).Select(u => u.ToLowerInvariant()).Distinct().ToList(),
             AppPermissions = appPermissions.Distinct().ToList(),
+            // Dashboards (P-128, D-111): ver, crear, editar y borrar.
+            Dashboards = Ops(body.Dashboards, "dashboards", DataOperation.View | DataOperation.Create | DataOperation.Update | DataOperation.Delete, "dashboards"),
             Connections = connections
         };
     }
 
-    private static IReadOnlyList<string> Ops(IReadOnlyList<string>? names, string where, DataOperation allowed)
+    private static IReadOnlyList<string> Ops(IReadOnlyList<string>? names, string where, DataOperation allowed, string field = "connections")
     {
         var result = new List<string>();
         foreach (var n in names ?? [])
         {
             if (!DataOperations.Names.TryGetValue(n.Trim(), out var op) || !allowed.HasFlag(op))
-                throw new ValidationException("connections",
+                throw new ValidationException(field,
                     $"operación '{n}' no válida en {where}. Válidas: {string.Join(", ", DataOperations.ToNames(allowed))}");
             result.Add(DataOperations.ToNames(op)[0]);
         }

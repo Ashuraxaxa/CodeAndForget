@@ -231,6 +231,46 @@ public sealed class MetadataStoreTests : IDisposable
     [Theory]
     [InlineData("Sqlite")]
     [InlineData("File")]
+    public async Task Los_dashboards_se_guardan_con_sus_tarjetas(string provider)
+    {
+        await using var sp = Services(_root, ("Metadata:Provider", provider));
+        await sp.InitializeMetadataAsync(_root);
+        var store = sp.GetRequiredService<Mantenedores.Core.Dashboards.IDashboardStore>();
+        var d = new Mantenedores.Core.Dashboards.Dashboard
+        {
+            Id = "d1", Name = "Ventas", Owner = "ana", CreatedAt = DateTimeOffset.Parse("2026-11-05T10:00:00Z"),
+            Shares = [new("ventas", CanEdit: true)],
+            Widgets =
+            [
+                new()
+                {
+                    Id = "w1", Type = Mantenedores.Core.Dashboards.WidgetType.Pivot, Connection = "demo", Schema = "ventas", Table = "producto",
+                    Query = new Mantenedores.Core.Query.AggregateRequest
+                    {
+                        Function = Mantenedores.Core.Query.AggregateFunction.Avg, Column = "precio",
+                        GroupBy = [new("creado_en", Mantenedores.Core.Query.DateBucket.Week), new("categoria_id")]
+                    }
+                }
+            ]
+        };
+        await store.SaveAsync(d, default);
+        await store.SaveAsync(d with { Name = "Ventas del mes" }, default);
+
+        var back = Assert.Single(await store.ListAsync(default));
+        Assert.Equal("Ventas del mes", back.Name);
+        Assert.Equal(d.CreatedAt, back.CreatedAt);
+        Assert.Equal(d.Shares, back.Shares);
+        var w = Assert.Single(back.Widgets);
+        Assert.Equal(Mantenedores.Core.Dashboards.WidgetType.Pivot, w.Type);
+        Assert.Equal(Mantenedores.Core.Query.DateBucket.Week, w.Query.GroupBy[0].Bucket);
+        Assert.Equal("categoria_id", w.Query.GroupBy[1].Column);
+        Assert.True(await store.DeleteAsync("d1", default));
+        Assert.Null(await store.GetAsync("d1", default));
+    }
+
+    [Theory]
+    [InlineData("Sqlite")]
+    [InlineData("File")]
     public async Task La_foto_del_esquema_se_guarda_y_reemplaza(string provider)
     {
         await using var sp = Services(_root, ("Metadata:Provider", provider));

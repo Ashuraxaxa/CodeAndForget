@@ -87,6 +87,19 @@ Cambiar los vínculos N:M de un registro cuenta como editar ese registro (D-067)
 Tampoco se revelan nombres de lo oculto: el aviso de cambios del esquema solo muestra lo que el usuario ve, y leer
 los ajustes de los mantenedores exige `ConfigureTables`.
 
+## Dashboards (D-111)
+
+- **En el perfil:** Ver, Crear, Editar y Borrar dashboards. Sin perfiles (seguridad abierta) y para los administradores, todo.
+- **Dueño:** quien crea un dashboard lo ve, edita, comparte y borra siempre. Es privado hasta que lo comparte.
+- **Compartir:** solo con perfiles, con "puede ver" o "puede editar".
+  - Para ver uno ajeno hace falta *Ver* en el perfil y que esté compartido con uno de sus perfiles.
+  - Para editarlo o borrarlo hace falta además *Editar* o *Borrar* y que esté compartido con "puede editar".
+  - Solo el dueño (o un administrador) cambia con quién se comparte.
+- **Datos:** cada tarjeta se calcula con los permisos de **quien mira**: si no ve la tabla o una columna, esa tarjeta
+  falla para él sin mostrar datos. Uno que no puede ver responde 404, sin revelar su nombre.
+- **Tope por plan:** 1 / 5 / sin tope dashboards por instalación y 6 / 20 / 50 tarjetas por dashboard. Al bajar de
+  plan quedan en uso los más antiguos; los demás se listan bloqueados y vuelven al subir.
+
 ## Usuarios propios (modo `Local`)
 
 - Se crean en **Seguridad → Usuarios**, con contraseña de al menos 8 caracteres, guardada como hash PBKDF2 en la metadata.

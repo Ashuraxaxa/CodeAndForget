@@ -225,6 +225,8 @@ export const ru: Messages = {
   'Ve todas las tablas con estas operaciones; una tabla agregada usa las suyas.': 'Видит все таблицы с этими операциями; добавленная таблица использует свои.',
   'Ver planes': 'Посмотреть планы',
   '¿Quieres ver los planes?': 'Посмотреть тарифные планы?',
+  'Dashboards': 'Дашборды',
+  'Para ver uno ajeno, además tiene que estar compartido con este perfil; para editarlo o borrarlo, compartido con "puede editar".': 'Чтобы видеть чужой, он должен быть открыт для этого профиля; чтобы изменять или удалять — открыт с правом «может изменять».',
   'Nuevo registro · {table}': 'Новая запись · {table}',
   'Historial': 'История',
   'Volver': 'Назад',

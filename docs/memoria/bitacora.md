@@ -4,6 +4,17 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · Dashboards, etapa 2: guardar, permisos y topes (P-128)
+- **Guardado:** migración 009 (`mnt_dashboard`, con tarjetas y compartir en un documento JSON) y almacenes SQL y de archivo.
+- **`DashboardService`:**
+  - permisos del perfil (Ver, Crear, Editar y Borrar dashboards), dueño y compartir con perfiles ("puede ver" o "puede editar");
+  - topes del plan por instalación y de tarjetas;
+  - al bajar de plan, los más nuevos quedan bloqueados, sin borrarse.
+- **Tarjetas:** cada una se valida al guardar contra el esquema de quien guarda, y sus datos salen con los permisos de quien mira.
+- **API:** `/api/dashboards` (lista, ver, crear, editar, borrar, datos de una tarjeta y vista previa). `/api/auth/me` dice qué puede hacer con los dashboards, y los límites del plan traen `dashboards` y `widgets`.
+- **Editor de perfiles:** sección "Dashboards" con las cuatro casillas.
+- **Entorno:** Docker volvió a caerse en el contenedor y la base de demo se recreó.
+
 ## 2026-11-05 · Plan de dashboards dinámicos
 - El dueño pidió dashboards que arma el usuario, con tope por plan (Gratis 1, Pro 5, Empresa sin tope) y permisos para crear, ver, editar y borrar.
 - Plan en `docs/dashboards.md`: 5 tipos de tarjeta, permisos por perfil más compartir por dashboard, topes por instalación, migración 009 y 5 etapas (P-127 a P-131).

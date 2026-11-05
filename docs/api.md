@@ -34,6 +34,11 @@ Los errores siguen el formato *Problem Details* (`application/problem+json`); la
 | POST | `/api/license/trial` | Empieza la prueba Pro de 30 días (una vez). Permiso `ManageSecurity` |
 | GET / POST | `/api/license/tables` | Gratis: tablas de la conexión para elegir; POST `{ tables: ["esquema.tabla"] }` las suma (fijas, hasta 15). Permiso `ManageSecurity` |
 | GET | `/api/tokens/mcp` | Si el servidor MCP está activo y su ruta, para mostrar cómo conectarse |
+| GET | `/api/dashboards` | Dashboards que ve el usuario, con lo que puede hacer en cada uno (`canEdit`, `canDelete`, `canShare`, `locked`), y si puede crear otro según su perfil y el plan (D-111) |
+| GET / PUT / DELETE | `/api/dashboards/{id}` | Ver, editar (`{ name, description, widgets, shares }`; `shares` solo lo cambian el dueño o un administrador) y borrar |
+| POST | `/api/dashboards` | Crear: requiere *Crear* dashboards en el perfil y lugar en el plan (1 / 5 / sin tope por instalación) |
+| POST | `/api/dashboards/{id}/widgets/{widget}/data` | Datos de una tarjeta `{ from?, to? }`, con los permisos de quien mira |
+| POST | `/api/dashboards/preview` | Datos de una tarjeta sin guardar `{ widget, from?, to? }`, para el editor |
 | POST | `/api/mcp` | Servidor MCP (Streamable HTTP, sin estado) con `Mcp:Enabled=true`. Permiso `ConfigureTables`. Ver [mcp.md](mcp.md) |
 | GET | `/api/data/{conn}/{schema}/{table}` | Lista. `?page=1&pageSize=25&sort=nombre,-precio&q=texto&f.categoria_id=2`. `f.` = contiene (textos) o igual; `e.` = igual exacto, también en textos (`e.pedido_id=5`) |
 | GET | `/api/data/{conn}/{schema}/{table}/row?{pk}=…` | Un registro. PK compuesta: `?PedidoId=1&Linea=2` |

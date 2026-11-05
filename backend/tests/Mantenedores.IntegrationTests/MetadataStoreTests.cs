@@ -100,6 +100,25 @@ public abstract class MetadataStoreContractTests<TFixture>(TFixture db) : IClass
     }
 
     [Fact]
+    public async Task Guarda_dashboards_con_sus_tarjetas()
+    {
+        // P-128: migración 009, en cada motor de metadata.
+        var database = Database();
+        await new MetadataMigrator(database).MigrateAsync();
+        var store = new SqlDashboardStore(database);
+        var id = Guid.NewGuid().ToString("N");
+        var d = DashboardSamples.One(id);
+        await store.SaveAsync(d, default);
+        await store.SaveAsync(d with { Name = "Ventas 2" }, default); // la segunda vez actualiza
+        var back = await store.GetAsync(id, default);
+        DashboardSamples.AssertSame(d with { Name = "Ventas 2" }, back);
+        Assert.Contains(await store.ListAsync(default), x => x.Id == id);
+        Assert.True(await store.DeleteAsync(id, default));
+        Assert.Null(await store.GetAsync(id, default));
+        Assert.False(await store.DeleteAsync(id, default));
+    }
+
+    [Fact]
     public async Task Migra_guarda_y_comparte_llaves_entre_instancias()
     {
         var database = Database();

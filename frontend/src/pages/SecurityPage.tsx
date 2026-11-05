@@ -14,6 +14,7 @@ const opLabels = (t: Translate): Record<DataOperation, string> => ({
 })
 const TABLE_OPS: DataOperation[] = ['view', 'create', 'update', 'delete', 'export', 'import', 'execute']
 const COLUMN_OPS: DataOperation[] = ['view', 'update']
+const DASHBOARD_OPS: DataOperation[] = ['view', 'create', 'update', 'delete']
 
 const permissionLabels = (t: Translate): Record<string, string> => ({
   ConfigureTables: t('Configurar tablas'),
@@ -155,12 +156,13 @@ function ProfileForm({ initial, copy = false, permissions, onClose }: {
   const [roles, setRoles] = useState((initial?.roles ?? []).join(', '))
   const [users, setUsers] = useState((initial?.users ?? []).join(', '))
   const [appPermissions, setAppPermissions] = useState(initial?.appPermissions ?? [])
+  const [dashboards, setDashboards] = useState<DataOperation[]>(initial?.dashboards ?? [])
   const [rules, setRules] = useState<ConnectionDraft[]>(initial ? toDraft(initial) : [])
 
   const save = useMutation({
     mutationFn: () => api.saveProfile({
       id: id.trim().toLowerCase(), name, description: description || null,
-      roles: splitList(roles), users: splitList(users), appPermissions, connections: fromDraft(rules),
+      roles: splitList(roles), users: splitList(users), appPermissions, dashboards, connections: fromDraft(rules),
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['profiles'] })
@@ -224,6 +226,13 @@ function ProfileForm({ initial, copy = false, permissions, onClose }: {
           ))}
         </div>
         {errors.appPermissions && <span className="field-error">{errors.appPermissions}</span>}
+      </div>
+
+      <div>
+        <span className="field-label">{t('Dashboards')}</span>
+        <OpChecks ops={DASHBOARD_OPS} value={dashboards} onChange={setDashboards} />
+        <span className="hint">{t('Para ver uno ajeno, además tiene que estar compartido con este perfil; para editarlo o borrarlo, compartido con "puede editar".')}</span>
+        {errors.dashboards && <span className="field-error">{errors.dashboards}</span>}
       </div>
 
       <div>

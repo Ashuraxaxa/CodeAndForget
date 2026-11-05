@@ -347,7 +347,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
 
         var predicates = (equals ?? new Dictionary<string, string>()).Select(kv => ExactPredicate(table, kv.Key, kv.Value, p)).ToList();
         if (!string.IsNullOrWhiteSpace(search))
-            predicates.Add(dialect.Contains(display, p.Add(LikePattern(search)), IsText(displayCol)));
+            predicates.Add(dialect.ContainsIgnoringAccents(display, p.Add(LikePattern(search)), IsText(displayCol)));
         var where = predicates.Count == 0 ? "" : " WHERE " + string.Join(" AND ", predicates);
 
         // Se ordena por la columna a mostrar solo si el motor puede ordenarla.
@@ -621,7 +621,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         if (LabelTarget(schema, table, col) is not var (fk, target, display)) return null;
         const string alias = "lf";
         return $"{colExpr} IN (SELECT {alias}.{dialect.Quote(fk.RefColumns[0])} FROM {dialect.Table(target.Schema, target.Name)} {alias} " +
-               $"WHERE {dialect.Contains($"{alias}.{dialect.Quote(display.Name)}", p.Add(LikePattern(raw)), IsText(display))})";
+               $"WHERE {dialect.ContainsIgnoringAccents($"{alias}.{dialect.Quote(display.Name)}", p.Add(LikePattern(raw)), IsText(display))})";
     }
 
     private static bool CanFilterByLabel(DatabaseSchema schema, TableInfo table, ColumnInfo col) => LabelTarget(schema, table, col) is not null;

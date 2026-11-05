@@ -26,6 +26,13 @@ public sealed class MySqlDialect : ISqlDialect
         $"{(isText ? columnExpr : $"CAST({columnExpr} AS CHAR)")} LIKE {param} ESCAPE '{QueryBuilder.LikeEscape}'";
 
     /// <summary>
+    /// Sin tildes (P-109): utf8mb4_unicode_ci existe en MySQL 8 y en MariaDB 10.6 (utf8mb4_0900_ai_ci, solo en MySQL).
+    /// CONVERT primero, por si la columna está en otro juego de caracteres (latin1…).
+    /// </summary>
+    public string ContainsIgnoringAccents(string columnExpr, string param, bool isText = false) =>
+        $"CONVERT({columnExpr} USING utf8mb4) COLLATE utf8mb4_unicode_ci LIKE {param} ESCAPE '{QueryBuilder.LikeEscape}'";
+
+    /// <summary>
     /// Números grandes: sin CAST, MySQL compararía texto contra DECIMAL como DOUBLE y perdería precisión.
     /// </summary>
     /// <summary>Espaciales desde WKT (P-090), sin sistema de referencia (SRID 0, el de una columna sin SRID).</summary>

@@ -446,6 +446,23 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         _ => throw new InvalidOperationException($"Fecha inesperada: {value?.GetType().Name}")
     };
 
+    [Theory]
+    [InlineData("lact")]
+    [InlineData("LACTEOS")]
+    [InlineData("Lácteos")]
+    public async Task Combo_y_filtro_de_fk_no_distinguen_tildes(string search)
+    {
+        // P-109: "lact" encuentra "Lácteos" en los 4 motores, sin depender de la intercalación de la columna.
+        var items = await Db.Crud.LookupAsync(Conn, Schema, N("categoria"), search, 20, default);
+        Assert.Equal("Lácteos", Assert.Single(items).Label);
+
+        var list = await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest
+        {
+            Filters = new Dictionary<string, string> { [N("categoria_id")] = search, [N("codigo")] = "-00" }
+        }, default);
+        Assert.Equal("LAC-001", Assert.Single(list.Rows)[N("codigo")]);
+    }
+
     [Fact]
     public async Task Feed_para_power_bi_pagina_trae_textos_y_exige_exportar()
     {

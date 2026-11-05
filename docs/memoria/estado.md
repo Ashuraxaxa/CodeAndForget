@@ -22,7 +22,8 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 | `feature/dashboards-guardar` | PR #59 fusionado: guardar, permisos, compartir y topes (P-128). |
 | `feature/dashboards-ver` | PR #60 fusionado: menú, lista y página con 6 tipos de tarjeta (P-129). |
 | `feature/dashboards-editor` | PR #61 fusionado: editor de tarjetas con vista previa y compartir (P-130). |
-| `feature/powerbi-odata` | Power BI y Excel por un feed OData de solo lectura (P-132, D-112). |
+| `feature/powerbi-odata` | PR #64: Power BI y Excel por un feed OData de solo lectura (P-132, D-112). |
+| `fix/busqueda-sin-tildes` | PR #62 fusionado: combos y filtro de FK sin distinguir tildes (P-109). |
 
 ## Qué funciona hoy
 

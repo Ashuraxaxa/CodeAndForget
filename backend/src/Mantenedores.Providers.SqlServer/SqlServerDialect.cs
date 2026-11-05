@@ -89,4 +89,21 @@ public sealed partial class SqlServerDialect : ISqlDialect
             _ => t
         };
     }
+
+    /// <summary>
+    /// Sin DATETRUNC (es de 2022, D-035): DATEFROMPARTS para mes, trimestre y año; la semana cuenta días desde el lunes
+    /// 1900-01-01, sin depender de SET DATEFIRST. Con zona horaria, en UTC (P-127).
+    /// </summary>
+    public string DateTrunc(ColumnInfo column, string columnExpr, DateBucket bucket)
+    {
+        var e = column.HasTimeZone ? $"SWITCHOFFSET({columnExpr}, '+00:00')" : columnExpr;
+        return bucket switch
+        {
+            DateBucket.Day => $"CAST({e} AS date)",
+            DateBucket.Week => $"DATEADD(day, DATEDIFF(day, CAST('19000101' AS date), CAST({e} AS date)) / 7 * 7, CAST('19000101' AS date))",
+            DateBucket.Month => $"DATEFROMPARTS(YEAR({e}), MONTH({e}), 1)",
+            DateBucket.Quarter => $"DATEFROMPARTS(YEAR({e}), (DATEPART(quarter, {e}) - 1) * 3 + 1, 1)",
+            _ => $"DATEFROMPARTS(YEAR({e}), 1, 1)"
+        };
+    }
 }

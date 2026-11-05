@@ -82,6 +82,14 @@ public interface ISqlDialect
     string CappedCount(string fromWhere, string limitParam) =>
         $"SELECT COUNT(*) FROM (SELECT 1 AS x FROM {fromWhere} LIMIT {limitParam}) c";
 
+    /// <summary>
+    /// Fecha (tipo date) del inicio del período de <paramref name="columnExpr"/> (P-127, D-111): día, semana que empieza
+    /// el lunes, mes, trimestre o año. Sin parámetros, para que el GROUP BY repita la misma expresión. Una fecha con zona
+    /// horaria se agrupa en UTC. Solo funciones de las versiones mínimas (D-035).
+    /// </summary>
+    string DateTrunc(ColumnInfo column, string columnExpr, Query.DateBucket bucket) =>
+        throw new NotSupportedException("Este motor no agrupa por fecha.");
+
     /// <summary>Expresión que devuelve el último id autogenerado en la sesión (MySQL: LAST_INSERT_ID()). Null si no aplica.</summary>
     string? LastInsertIdExpression => null;
 }

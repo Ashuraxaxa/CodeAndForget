@@ -237,6 +237,125 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         Assert.Equal(1L, Convert.ToInt64(item.Value));
     }
 
+    // ---------- Resúmenes para dashboards (P-127, D-111) ----------
+
+    /// <summary>Solo los 4 productos del ejemplo: los códigos de prueba (T-…) no traen "-00".</summary>
+    private static Dictionary<string, string> SampleProducts(Func<string, string> n) => new() { [n("codigo")] = "-00" };
+
+    [Fact]
+    public async Task Resumen_cuenta_suma_y_promedia_por_fk_con_su_texto()
+    {
+        var filters = SampleProducts(N);
+        var count = await Db.Crud.AggregateAsync(Conn, Schema, N("producto"), new AggregateRequest
+        {
+            GroupBy = [new AggregateGroup(N("categoria_id"))], Filters = filters
+        }, default);
+        Assert.False(count.Truncated);
+        Assert.Equal([(1L, "Bebidas", 2L), (2L, "Snacks", 1L), (3L, "Lácteos", 1L)],
+            count.Rows.Select(r => (Convert.ToInt64(r.Key), r.Label, Convert.ToInt64(r.Value))));
+
+        var total = await Db.Crud.AggregateAsync(Conn, Schema, N("producto"), new AggregateRequest
+        {
+            Function = AggregateFunction.Sum, Column = N("precio"), Filters = filters
+        }, default);
+        Assert.Equal(5160m, Convert.ToDecimal(Assert.Single(total.Rows).Value));
+
+        // Top 1 por promedio: Snacks (1490) le gana a Bebidas (1290) y a Lácteos (1090). Hay más grupos: viene truncado.
+        var top = await Db.Crud.AggregateAsync(Conn, Schema, N("producto"), new AggregateRequest
+        {
+            Function = AggregateFunction.Avg, Column = N("precio"), GroupBy = [new AggregateGroup(N("categoria_id"))],
+            Order = AggregateOrder.ValueDesc, Limit = 1, Filters = filters
+        }, default);
+        Assert.True(top.Truncated);
+        var best = Assert.Single(top.Rows);
+        Assert.Equal("Snacks", best.Label);
+        Assert.Equal(1490m, Math.Round(Convert.ToDecimal(best.Value), 2));
+    }
+
+    [Theory]
+    [InlineData(DateBucket.Day)]
+    [InlineData(DateBucket.Week)]
+    [InlineData(DateBucket.Month)]
+    [InlineData(DateBucket.Quarter)]
+    [InlineData(DateBucket.Year)]
+    public async Task Resumen_agrupa_por_fecha_en_cada_motor(DateBucket bucket)
+    {
+        var filters = SampleProducts(N);
+        var list = await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { Filters = filters, PageSize = 1 }, default);
+        var created = AsUtcDate(list.Rows[0][N("creado_en")]);
+        var expected = bucket switch
+        {
+            DateBucket.Day => created,
+            DateBucket.Week => created.AddDays(-(((int)created.DayOfWeek + 6) % 7)),
+            DateBucket.Month => new DateTime(created.Year, created.Month, 1),
+            DateBucket.Quarter => new DateTime(created.Year, (created.Month - 1) / 3 * 3 + 1, 1),
+            _ => new DateTime(created.Year, 1, 1)
+        };
+
+        var result = await Db.Crud.AggregateAsync(Conn, Schema, N("producto"), new AggregateRequest
+        {
+            GroupBy = [new AggregateGroup(N("creado_en"), bucket)], Filters = filters,
+            DateColumn = N("creado_en"), From = created.AddYears(-1).ToString("yyyy-MM-dd"), To = created.AddYears(1).ToString("yyyy-MM-dd")
+        }, default);
+
+        // Los 4 se insertaron juntos: un solo período, que empieza donde corresponde.
+        var row = Assert.Single(result.Rows);
+        Assert.Equal(expected, AsUtcDate(row.Key));
+        Assert.Equal(4L, Convert.ToInt64(row.Value));
+    }
+
+    [Fact]
+    public async Task Resumen_arma_la_tabla_dinamica_y_respeta_el_perfil()
+    {
+        var pivot = await Db.Crud.AggregateAsync(Conn, Schema, N("producto"), new AggregateRequest
+        {
+            Function = AggregateFunction.Max, Column = N("precio"), Filters = SampleProducts(N),
+            GroupBy = [new AggregateGroup(N("creado_en"), DateBucket.Year), new AggregateGroup(N("categoria_id"))]
+        }, default);
+        Assert.Equal(["Bebidas", "Snacks", "Lácteos"], pivot.Rows.Select(r => r.Label2));
+        Assert.Equal(1890m, Convert.ToDecimal(pivot.Rows[0].Value));
+
+        // Con un perfil que no ve Precio, no se puede sumar; y una tabla que no ve no existe.
+        var profile = new SecurityProfile
+        {
+            Id = "p", Name = "Lectura", Users = ["ana"],
+            Connections = new Dictionary<string, ConnectionRule>
+            {
+                [Conn] = new()
+                {
+                    Tables = new Dictionary<string, TableRule>
+                    {
+                        [$"{Schema}.{N("producto")}"] = new() { Operations = ["view"], Columns = new Dictionary<string, ColumnRule> { [N("precio")] = new() } }
+                    }
+                }
+            }
+        };
+        Db.Access.Current = UserAccess.For("ana", [], isAdmin: false, [profile]);
+        try
+        {
+            await Assert.ThrowsAsync<ValidationException>(() => Db.Crud.AggregateAsync(Conn, Schema, N("producto"),
+                new AggregateRequest { Function = AggregateFunction.Sum, Column = N("precio") }, default));
+            await Assert.ThrowsAsync<NotFoundException>(() => Db.Crud.AggregateAsync(Conn, Schema, N("cliente"), new AggregateRequest(), default));
+            // Agrupar por la FK sigue trayendo el texto de Categoría, aunque no la vea (D-107).
+            var byCategory = await Db.Crud.AggregateAsync(Conn, Schema, N("producto"), new AggregateRequest
+            {
+                GroupBy = [new AggregateGroup(N("categoria_id"))], Filters = SampleProducts(N)
+            }, default);
+            Assert.Equal("Bebidas", byCategory.Rows[0].Label);
+        }
+        finally { Db.Access.Current = UserAccess.All; }
+    }
+
+    /// <summary>La fecha (sin hora) en UTC de lo que devuelve cada motor: DateTime, DateTimeOffset o DateOnly.</summary>
+    private static DateTime AsUtcDate(object? value) => value switch
+    {
+        DateTimeOffset o => o.UtcDateTime.Date,
+        DateTime d => (d.Kind == DateTimeKind.Local ? d.ToUniversalTime() : d).Date,
+        DateOnly d => d.ToDateTime(TimeOnly.MinValue),
+        string s => DateTimeOffset.Parse(s, System.Globalization.CultureInfo.InvariantCulture).UtcDateTime.Date,
+        _ => throw new InvalidOperationException($"Fecha inesperada: {value?.GetType().Name}")
+    };
+
     // ---------- Escritura ----------
 
     // ---------- FK de varias columnas (P-030) ----------

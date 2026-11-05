@@ -1,6 +1,6 @@
 # Dashboards dinámicos (plan)
 
-**Estado:** propuesta · 2026-11-05 · P-127 a P-131. Pedido del dueño: dashboards que arma el usuario, con tope por
+**Estado:** aprobado · 2026-11-05 · D-111 · P-127 a P-131. Pedido del dueño: dashboards que arma el usuario, con tope por
 plan (Gratis 1, Pro 5, Empresa sin tope) y permisos para crear, ver, editar y borrar.
 
 ## 1. Qué es un dashboard
@@ -15,6 +15,8 @@ programar: se elige tabla, qué contar o sumar, cómo agrupar y el tipo de gráf
 | **Líneas** | Pedidos por semana | + agrupar por fecha (día, semana, mes, año) |
 | **Torta / dona** | Clientes por región | + agrupar por columna, máx. 8 porciones y "Otros" |
 | **Tabla top N** | 10 productos más vendidos | + orden y límite (máx. 50) |
+| **Tabla dinámica** | Ventas por categoría (filas) y mes (columnas) | + dos agrupaciones; máx. 500 celdas |
+| **Mapa** | Clientes por ubicación | columna espacial (WKT, D-079) o latitud y longitud; puntos sobre un fondo propio |
 
 - **Métricas:** contar filas, contar distintos, suma, promedio, mínimo y máximo de una columna numérica.
 - **Filtros por tarjeta:** los mismos de la grilla (igualdad, contiene, rango). Además, un filtro de fechas del
@@ -87,14 +89,16 @@ perfil, en una sección nueva "Dashboards". Los administradores tienen todo.
 | **2. Guardar y permisos** | Migración 009, servicio, API, permisos del perfil, compartir y topes del plan. | P-128 |
 | **3. Ver** | Menú "Dashboards", lista y página del dashboard con las 5 tarjetas, filtro de fechas, modo día y noche, y móvil. | P-129 |
 | **4. Editar** | Editor de tarjetas con vista previa, tamaños y orden arrastrando; compartir. | P-130 |
-| **5. Extras** | Refresco automático, exportar una tarjeta a CSV, clic que abre la grilla filtrada, y que la IA (MCP) proponga dashboards. | P-131 |
+| **5. Extras** | Mapa, refresco automático, exportar una tarjeta a CSV, clic que abre la grilla filtrada, y que la IA (MCP) proponga dashboards. | P-131 |
 
-**Gráficos:** propios en SVG, sin librería: son cinco tipos simples, quedan con los colores de la marca en los dos
+**Gráficos:** propios en SVG, sin librería: son tipos simples, quedan con los colores de la marca en los dos
 temas y no suman peso al paquete. Alternativa descartada por ahora: Recharts (~100 KB más).
 
-## 8. Preguntas para el dueño
+## 8. Respuestas del dueño (2026-11-05, D-111)
 
-1. ¿El tope (1 / 5 / sin tope) es **por instalación** o **por usuario**? Se propone por instalación.
-2. ¿Compartir con **perfiles** basta, o también con usuarios sueltos?
-3. ¿Los topes de **tarjetas por dashboard** (6 / 20 / 50) le parecen bien?
-4. ¿Alguna tarjeta más para la primera versión (por ejemplo, mapa o tabla dinámica)?
+1. El tope de dashboards es **por instalación**.
+2. Se comparte **solo con perfiles**.
+3. Topes de tarjetas: 6 / 20 / 50.
+4. Se suman la **tabla dinámica** (etapas 3 y 4) y el **mapa** (etapa 5).
+   - El mapa no depende de un servicio externo (D-022): por defecto dibuja los puntos sobre un contorno propio en SVG.
+   - Un servidor de mosaicos (OpenStreetMap u otro) es opcional, por configuración.

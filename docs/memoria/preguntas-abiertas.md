@@ -9,16 +9,4 @@ como `D-xxx` en [decisiones.md](decisiones.md) y se borran de aquí.
 
 Q-009, Q-010 y Q-011 se respondieron el 2026-10-30 → D-105.
 
-## Dashboards (plan en [../dashboards.md](../dashboards.md))
-
-### Q-012 · ¿El tope de dashboards es por instalación o por usuario?
-Gratis 1, Pro 5, Empresa sin tope. Se propone **por instalación**, como conexiones y usuarios.
-
-### Q-013 · ¿Se comparte con perfiles, o también con usuarios sueltos?
-Se propone solo con perfiles (privado por defecto), con "puede ver" o "puede editar".
-
-### Q-014 · ¿Tope de tarjetas por dashboard?
-Se propone 6 en Gratis, 20 en Pro y 50 en Empresa.
-
-### Q-015 · ¿Otras tarjetas en la primera versión?
-Se proponen número, barras, líneas, torta y tabla top N. Fuera por ahora: mapa y tabla dinámica.
+Q-012 a Q-015 (dashboards) se respondieron el 2026-11-05 → D-111.

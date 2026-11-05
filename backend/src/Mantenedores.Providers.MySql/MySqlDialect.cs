@@ -59,4 +59,14 @@ public sealed class MySqlDialect : ISqlDialect
         $"INSERT INTO {table} ({string.Join(", ", columns)}) VALUES ({string.Join(", ", values)})";
 
     public string? LastInsertIdExpression => "LAST_INSERT_ID()";
+
+    /// <summary>Con DATE, WEEKDAY (lunes = 0) y MAKEDATE; sin DATE_FORMAT, para no depender de cadenas (P-127).</summary>
+    public string DateTrunc(ColumnInfo column, string columnExpr, DateBucket bucket) => bucket switch
+    {
+        DateBucket.Day => $"DATE({columnExpr})",
+        DateBucket.Week => $"DATE_SUB(DATE({columnExpr}), INTERVAL WEEKDAY({columnExpr}) DAY)",
+        DateBucket.Month => $"DATE_SUB(DATE({columnExpr}), INTERVAL DAYOFMONTH({columnExpr}) - 1 DAY)",
+        DateBucket.Quarter => $"DATE_ADD(MAKEDATE(YEAR({columnExpr}), 1), INTERVAL QUARTER({columnExpr}) - 1 QUARTER)",
+        _ => $"MAKEDATE(YEAR({columnExpr}), 1)"
+    };
 }

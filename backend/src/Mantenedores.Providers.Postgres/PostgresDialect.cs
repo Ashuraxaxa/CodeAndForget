@@ -70,4 +70,19 @@ public sealed class PostgresDialect : ISqlDialect
             ? $"INSERT INTO {table} DEFAULT VALUES RETURNING {returning}"
             : $"INSERT INTO {table} ({string.Join(", ", columns)}) VALUES ({string.Join(", ", values)}) RETURNING {returning}";
     }
+
+    /// <summary>date_trunc ('week' empieza el lunes); con zona horaria, en UTC (P-127).</summary>
+    public string DateTrunc(ColumnInfo column, string columnExpr, DateBucket bucket)
+    {
+        var e = column.HasTimeZone ? $"({columnExpr} AT TIME ZONE 'UTC')" : columnExpr;
+        var unit = bucket switch
+        {
+            DateBucket.Day => "day",
+            DateBucket.Week => "week",
+            DateBucket.Month => "month",
+            DateBucket.Quarter => "quarter",
+            _ => "year"
+        };
+        return $"CAST(date_trunc('{unit}', {e}) AS date)";
+    }
 }

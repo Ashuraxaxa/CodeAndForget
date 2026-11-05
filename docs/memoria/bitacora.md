@@ -4,6 +4,16 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · Revisión responsiva (P-133)
+- **Barrido automático:** 14 pantallas en 8 anchos (360, 390, 768, 1024, 1280, 1440, 1920 y 2560), buscando desborde horizontal y mirando las capturas.
+- **Tablet vertical (761 a 900 px):** la barra superior se pasaba 186 px en todas las pantallas. Ahora el menú y el plan quedan como íconos y se oculta el nombre del usuario.
+- **Pantalla ancha:**
+  - el dashboard y su lista tienen un ancho máximo de 1760 px, centrados;
+  - el formulario de un registro, uno de 1440 px;
+  - las etiquetas de las barras llegan a 240 px como máximo y la leyenda de la dona a 380 px, así quedan junto a sus valores.
+- **Tabla dinámica:** la última fila tenía el borde cortado.
+- Teléfono, tablet horizontal y PC estaban bien.
+
 ## 2026-11-05 · Power BI y Excel por OData (P-132)
 - El dueño eligió OData para conectar Power BI.
 - **Feed:** `/odata/{conexión}`, con documento de servicio, `$metadata` y una entidad por tabla exportable, incluidos los textos de las FK. Páginas de 5.000 filas con `@odata.nextLink`.

@@ -15,6 +15,7 @@ El detalle de cada bloque y su criterio de "listo" está en [../siguientes-pasos
 
 | ID | Pendiente | Prio | Estado |
 |---|---|---|---|
+| P-133 | Revisión responsiva en teléfono, tablet, PC y pantalla ancha: barra superior en tablet vertical y anchos máximos en pantalla ancha | 🟡 | ✅ 2026-11-05 |
 | P-132 | Power BI y Excel: feed OData v4 de solo lectura por conexión, con el token como contraseña (D-112) | 🟡 | ✅ 2026-11-05 |
 | P-127 | Etapa 1 · Consultas de resumen: `BuildAggregate` (contar, distintos, suma, promedio, mín., máx.; agrupar por columna, FK o fecha) con la fecha en cada dialecto; pruebas en los 4 motores | 🔴 | ✅ 2026-11-05 |
 | P-128 | Etapa 2 · Guardar y permisos: migración 009, API, permisos Ver/Crear/Editar/Borrar en el perfil, compartir con perfiles y topes del plan | 🔴 | ✅ 2026-11-05 |

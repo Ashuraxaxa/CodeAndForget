@@ -528,7 +528,10 @@ export const ru: Messages = {
   'Relación: {column} → {table} ({key})': 'Связь: {column} → {table} ({key})',
   'Sugerencias': 'Предложения',
   'Sugerir ajustes': 'Предложить настройки',
-  '{column}: columna técnica, solo lectura y fuera de la grilla': '{column}: служебный столбец, только чтение и не в таблице',
+  '{column}: columna técnica': '{column}: служебный столбец',
+  'solo lectura y fuera de la grilla': 'только чтение и не в таблице',
+  'solo lectura, visible en la grilla': 'только чтение, видно в таблице',
+  'Cómo queda {column}': 'Как настроить {column}',
   '{column}: validar como correo electrónico': '{column}: проверять как адрес электронной почты',
   // Tokens de acceso y propuestas de la IA (P-113)
   'Aún no tienes tokens.': 'У вас пока нет токенов.',

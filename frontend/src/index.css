@@ -798,5 +798,9 @@ html[data-embed] .table-wrap { max-height: none; }
 html[data-embed] .login { min-height: 0; padding: 32px 16px; }
 html[data-embed] .login-tools { display: none; }
 .embed .app-footer { padding: 4px 16px 12px; }
+/* Filtros por fila de una aplicación que embebe (P-136) */
+.embed-rows { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; }
+.embed-rows summary { cursor: pointer; font-weight: 600; }
+.embed-rows[open] summary { margin-bottom: 6px; }
 /* Selector dentro de una línea de casillas (sugerencias técnicas, P-112) */
 .inline-select { width: auto; padding: 2px 6px; font-size: 0.85rem; }

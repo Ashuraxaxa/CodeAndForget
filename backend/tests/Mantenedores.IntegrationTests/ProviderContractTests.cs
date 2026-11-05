@@ -347,6 +347,64 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
         finally { Db.Access.Current = UserAccess.All; }
     }
 
+    // ---------- Filtro fijo por fila de una página embebida (P-136, D-115) ----------
+
+    [Fact]
+    public async Task El_filtro_fijo_por_fila_limita_leer_cambiar_borrar_y_crear()
+    {
+        var all = (await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { PageSize = 200 }, default)).Rows;
+        var mine = all.Where(r => Convert.ToInt64(r[N("categoria_id")]) == 1).ToList();
+        var other = all.First(r => Convert.ToInt64(r[N("categoria_id")]) != 1);
+        var otherKey = Key((N("id"), other[N("id")]!));
+        var profile = new SecurityProfile
+        {
+            Id = "portal", Name = "Portal",
+            Connections = new Dictionary<string, ConnectionRule> { [Conn] = new() { Operations = ["view", "create", "update", "delete"] } }
+        };
+        Db.Access.Current = UserAccess.Embedded("app:Portal/juan", profile, new EmbedScope("a1",
+            DataOperation.View | DataOperation.Create | DataOperation.Update | DataOperation.Delete,
+            new HashSet<string> { EmbedScope.TableKey(Conn, Schema, N("producto")), EmbedScope.TableKey(Conn, Schema, N("cliente")) },
+            new HashSet<string>())
+        {
+            Filters = new Dictionary<string, string> { [N("categoria_id")] = "1" }
+        });
+        object? createdId = null;
+        try
+        {
+            // Leer: solo las filas del alcance, también en el total, la búsqueda y los resúmenes.
+            var list = await Db.Crud.ListAsync(Conn, Schema, N("producto"), new ListRequest { PageSize = 200 }, default);
+            Assert.Equal(mine.Count, list.Total);
+            Assert.All(list.Rows, r => Assert.Equal(1L, Convert.ToInt64(r[N("categoria_id")])));
+            var count = await Db.Crud.AggregateAsync(Conn, Schema, N("producto"), new AggregateRequest(), default);
+            Assert.Equal(mine.Count, Convert.ToInt64(count.Rows[0].Value));
+            await Assert.ThrowsAsync<NotFoundException>(() => Db.Crud.GetAsync(Conn, Schema, N("producto"), otherKey, default));
+
+            // Cambiar o borrar una fila de otro alcance: no existe.
+            await Assert.ThrowsAsync<NotFoundException>(() => Db.Crud.UpdateAsync(Conn, Schema, N("producto"), otherKey,
+                Body((N("nombre"), "Ajena")), default));
+            await Assert.ThrowsAsync<NotFoundException>(() => Db.Crud.DeleteAsync(Conn, Schema, N("producto"), otherKey, default));
+
+            // Crear: el valor fijo se pone solo, aunque se mande otro; y no se puede mover la fila a otro alcance.
+            var created = await Db.Crud.CreateAsync(Conn, Schema, N("producto"), Body(
+                (N("codigo"), UniqueCode()), (N("nombre"), "Del portal"), (N("categoria_id"), 2), (N("precio"), 10)), default);
+            createdId = created[N("id")];
+            Assert.Equal(1L, Convert.ToInt64(created[N("categoria_id")]));
+            var moved = await Db.Crud.UpdateAsync(Conn, Schema, N("producto"), Key((N("id"), createdId!)),
+                Body((N("nombre"), "Del portal 2"), (N("categoria_id"), 2)), default);
+            Assert.Equal(1L, Convert.ToInt64(moved[N("categoria_id")]));
+
+            // El combo de la FK fija solo ofrece su valor; una tabla sin la columna del filtro no se abre.
+            var options = await Db.Crud.LookupAsync(Conn, Schema, N("categoria"), null, 50, default);
+            Assert.Equal([1L], options.Select(o => Convert.ToInt64(o.Value)));
+            await Assert.ThrowsAsync<NotFoundException>(() => Db.Crud.ListAsync(Conn, Schema, N("cliente"), new ListRequest(), default));
+        }
+        finally
+        {
+            Db.Access.Current = UserAccess.All;
+            if (createdId is not null) await Db.Crud.DeleteAsync(Conn, Schema, N("producto"), Key((N("id"), createdId)), default);
+        }
+    }
+
     // ---------- Dashboards (P-128, D-111) ----------
 
     private DashboardWidget CategoryBars(string title = "Por categoría") => new()

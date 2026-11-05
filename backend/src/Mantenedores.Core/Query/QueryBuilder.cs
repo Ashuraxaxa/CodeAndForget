@@ -240,11 +240,20 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         var p = new ParamBag(dialect.ParameterPrefix);
         var cols = new List<string>();
         var exprs = new List<string>();
+        // El filtro fijo por fila (P-136) pone su valor, venga lo que venga: no se crean filas de otro alcance.
+        var fixedCols = table.Columns.Where(c => c.FixedValue is not null).ToList();
+        if (fixedCols.Count > 0)
+        {
+            var merged = values.Where(v => !fixedCols.Any(f => string.Equals(f.Name, v.Key, StringComparison.OrdinalIgnoreCase)))
+                .ToDictionary(v => v.Key, v => v.Value, StringComparer.OrdinalIgnoreCase);
+            foreach (var f in fixedCols) merged[f.Name] = f.FixedValue;
+            values = merged;
+        }
 
         foreach (var (name, value) in values)
         {
             var col = RequireColumn(table, name);
-            if (col.IsReadOnly) continue;
+            if (col.IsReadOnly && col.FixedValue is null) continue;
             // Un nulo en una columna con default se omite para que la BD aplique su valor.
             if (value is null && col.HasDefault) continue;
             cols.Add(dialect.Quote(col.Name));
@@ -345,7 +354,8 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         var displayCol = (table.DisplayColumn is { } d ? table.FindColumn(d) : null) ?? keyCols[^1];
         var display = $"{Base}.{dialect.Quote(displayCol.Name)}";
 
-        var predicates = (equals ?? new Dictionary<string, string>()).Select(kv => ExactPredicate(table, kv.Key, kv.Value, p)).ToList();
+        var predicates = FixedPredicates(table, p, $"{Base}.").Concat(
+            (equals ?? new Dictionary<string, string>()).Select(kv => ExactPredicate(table, kv.Key, kv.Value, p))).ToList();
         if (!string.IsNullOrWhiteSpace(search))
             predicates.Add(dialect.ContainsIgnoringAccents(display, p.Add(LikePattern(search)), IsText(displayCol)));
         var where = predicates.Count == 0 ? "" : " WHERE " + string.Join(" AND ", predicates);
@@ -378,6 +388,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
             return e.Value is null ? $"{expr} IS NULL" : $"{expr} = {dialect.ParameterFor(col, p.Add(e.Value))}";
         }).ToList();
         if (predicates.Count == 0) throw new ArgumentException("Hace falta al menos una condición.", nameof(equals));
+        predicates.AddRange(FixedPredicates(table, p, $"{Base}."));
         var sql = $"SELECT COUNT(*) FROM {dialect.Table(table.Schema, table.Name)} {Base} WHERE {string.Join(" AND ", predicates)}";
         return new SqlQuery(sql, p.Snapshot());
     }
@@ -409,9 +420,10 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         var p = new ParamBag(dialect.ParameterPrefix);
         var keyExpr = $"{Base}.{dialect.Quote(key.Name)}";
         var list = string.Join(", ", values.Select(p.Add));
+        var scope = string.Concat(FixedPredicates(table, p, $"{Base}.").Select(f => " AND " + f));
         var sql = $"SELECT {dialect.SelectExpression(key, keyExpr)} AS {dialect.Quote("value")}, " +
                   $"{dialect.SelectExpression(displayCol, $"{Base}.{dialect.Quote(displayCol.Name)}")} AS {dialect.Quote("label")} " +
-                  $"FROM {dialect.Table(table.Schema, table.Name)} {Base} WHERE {keyExpr} IN ({list})";
+                  $"FROM {dialect.Table(table.Schema, table.Name)} {Base} WHERE {keyExpr} IN ({list}){scope}";
         return new SqlQuery(sql, p.Snapshot());
     }
 
@@ -452,10 +464,13 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         var t = dialect.Table(table.Schema, table.Name);
         string Col(string alias, ColumnInfo c) => $"{alias}.{dialect.Quote(c.Name)}";
 
+        // Con filtro fijo (P-136), un padre o un hijo de otro alcance no cuenta: es como si no existiera.
+        string Scope(string alias) => string.Concat(FixedPredicates(table, p, $"{alias}.").Select(f => " AND " + f));
         var where = parent is null
-            ? $"{Col(Base, parentCol)} IS NULL OR NOT EXISTS (SELECT 1 FROM {t} p WHERE {Col("p", pkCol)} = {Col(Base, parentCol)})"
+            ? $"{Col(Base, parentCol)} IS NULL OR NOT EXISTS (SELECT 1 FROM {t} p WHERE {Col("p", pkCol)} = {Col(Base, parentCol)}{Scope("p")})"
             : $"{Col(Base, parentCol)} = {dialect.ParameterFor(parentCol, p.Add(parent))}";
-        var hasChildren = $"CASE WHEN EXISTS (SELECT 1 FROM {t} c WHERE {Col("c", parentCol)} = {Col(Base, pkCol)}) THEN 1 ELSE 0 END";
+        if (table.HasRowFilter) where = $"({where}){Scope(Base)}";
+        var hasChildren = $"CASE WHEN EXISTS (SELECT 1 FROM {t} c WHERE {Col("c", parentCol)} = {Col(Base, pkCol)}{Scope("c")}) THEN 1 ELSE 0 END";
         var orderBy = displayCol.IsSortable ? Col(Base, displayCol) : Col(Base, pkCol);
         var offset = p.Add(0L);
         var limit = p.Add((long)Math.Clamp(take, 1, 1000));
@@ -571,7 +586,7 @@ public sealed class QueryBuilder(ISqlDialect dialect)
 
     private string BuildWhere(DatabaseSchema schema, TableInfo table, ListRequest request, ParamBag p)
     {
-        var predicates = new List<string>();
+        var predicates = new List<string>(FixedPredicates(table, p, $"{Base}."));
 
         foreach (var (name, raw) in request.Filters)
         {
@@ -660,10 +675,19 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         return parts.Count > 0 ? string.Join(", ", parts) : "(SELECT NULL)";
     }
 
+    /// <summary>
+    /// Las condiciones del filtro fijo por fila (P-136, D-115): <c>columna = valor</c> por cada columna con valor fijo.
+    /// Van en toda consulta que lee, cambia o borra filas de la tabla; la columna sale del catálogo y el valor es parámetro.
+    /// </summary>
+    private IEnumerable<string> FixedPredicates(TableInfo table, ParamBag p, string prefix) =>
+        table.Columns.Where(c => c.FixedValue is not null)
+            .Select(c => $"{prefix}{dialect.Quote(c.Name)} = {dialect.ParameterFor(c, p.Add(c.FixedValue))}").ToList();
+
+    /// <summary>La clave de la fila, más el filtro fijo: una fila de otro alcance no se encuentra.</summary>
     private string KeyPredicate(TableInfo table, IReadOnlyDictionary<string, object?> key, ParamBag p, string prefix)
     {
         RequireKey(table);
-        var parts = new List<string>();
+        var parts = new List<string>(FixedPredicates(table, p, prefix));
         foreach (var k in table.PrimaryKey)
         {
             var entry = key.FirstOrDefault(e => string.Equals(e.Key, k, StringComparison.OrdinalIgnoreCase));

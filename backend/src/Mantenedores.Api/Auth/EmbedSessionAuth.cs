@@ -18,6 +18,7 @@ public sealed class EmbedSessionHandler(IOptionsMonitor<AuthenticationSchemeOpti
     public const string AppClaim = "emb_app";
     public const string ProfileClaim = "emb_profile";
     public const string ScopeClaim = "emb_scope";
+    public const string RowsClaim = "emb_rows";
 
     public static bool HasToken(HttpRequest r) =>
         r.Headers.Authorization.ToString().StartsWith("Bearer " + EmbedAppService.SessionPrefix, StringComparison.Ordinal);
@@ -35,6 +36,8 @@ public sealed class EmbedSessionHandler(IOptionsMonitor<AuthenticationSchemeOpti
         identity.AddClaim(new Claim(AppClaim, s.App.Id));
         identity.AddClaim(new Claim(ProfileClaim, s.App.ProfileId));
         identity.AddClaim(new Claim(ScopeClaim, EmbedAppService.SerializePayload(s.Payload)));
+        // Cómo se aplican los filtros: de la configuración actual de la aplicación, así un cambio vale ya.
+        identity.AddClaim(new Claim(RowsClaim, EmbedAppService.SerializeRows(s.App)));
         return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName));
     }
 }

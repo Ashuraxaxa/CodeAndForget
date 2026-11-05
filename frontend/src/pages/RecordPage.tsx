@@ -54,8 +54,13 @@ export function RecordPage({ mode }: { mode: 'new' | 'edit' }) {
   const reload = () => { row.refetch().then(() => setReloads(n => n + 1)) }
   return (
     <RecordForm key={`${location.search}#${reloads}`} conn={conn} onReload={reload} actionRun={actionRun} setActionRun={setActionRun} meta={meta.data!} row={mode === 'edit' ? row.data! : null}
-      recordKey={key} fixed={fixed} returnTo={returnTo} initialLinks={initialLinks} />
+      recordKey={key} fixed={{ ...fixedByScope(meta.data!), ...fixed }} returnTo={returnTo} initialLinks={initialLinks} />
   )
+}
+
+/** Valores fijos del filtro por fila (P-136): en una página embebida, el registro nuevo ya los trae y no se cambian. */
+function fixedByScope(meta: TableMeta): Record<string, string> {
+  return Object.fromEntries(meta.columns.filter(c => c.fixedValue != null).map(c => [c.name, String(c.fixedValue)]))
 }
 
 function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks, onReload, actionRun, setActionRun }: {

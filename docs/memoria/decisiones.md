@@ -1159,6 +1159,21 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **Exigir las tablas de las tarjetas en `res`:** obligaría a la otra app a conocer cada tabla del dashboard; el perfil de la aplicación ya es el límite.
   - **Mostrar cualquier dashboard de `res` sin compartirlo:** expondría dashboards privados con solo conocer su id.
 
+### D-115 · Filtros fijos por fila en la columna
+- **Estado:** Vigente · 2026-11-05 (P-136, amplía D-113 y D-114).
+- **Qué:**
+  - **Dónde vive el filtro:** `ColumnInfo.FixedValue`. `UserAccess.Restrict` lo pone en cada tabla de una sesión embebida con `filters`, y la columna queda de solo lectura.
+  - **Consultas:** `QueryBuilder` agrega `columna = @valor` en un solo lugar para cada lectura y escritura: el WHERE de listas, conteos y resúmenes, y `KeyPredicate` (leer, editar, borrar, bloquear, existentes, archivo). También en combos, árboles, etiquetas y conteos de filtros de combos.
+  - **Alta:** `BuildInsert` pone el valor fijo, venga lo que venga.
+  - **Totales:** con filtro, el listado nunca usa la estimación ni el total de la tabla.
+  - **Acciones y N:M:** verifican primero que la fila esté en el alcance.
+  - **Tablas:** una tabla sin la columna del filtro no se abre, salvo que la aplicación la marque "sin filtro". Hay alias por tabla (`esquema.tabla.filtro = columna`).
+  - **Tablas de etiquetas (D-107):** se filtran por la columna si la tienen, y por su clave si una FK fija apunta a ellas, así el combo de clientes no lista a los demás.
+- **Descartado:**
+  - **Filtrar en cada endpoint:** hay más de 15 caminos; uno olvidado filtraría datos. En la columna, todo lo que arma SQL lo ve.
+  - **Abrir las tablas sin la columna por defecto:** expondría datos de otros clientes ante un error de configuración.
+  - **Vistas o seguridad por filas del motor (RLS):** no existen en todos los motores ni en las versiones mínimas (D-035), y exigirían permisos en la base.
+
 ---
 
 ## Propuestas (aún no decididas)

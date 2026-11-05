@@ -647,4 +647,11 @@ export const en: Messages = {
   "Clave de \"{name}\": cópiala ahora, no se vuelve a mostrar.": "Key for \"{name}\": copy it now, it won’t be shown again.",
   "Guárdala en el servidor de la aplicación, nunca en el navegador. Firma con HS256, kid = {id}, y vence en 1 hora como máximo.": "Keep it on the application’s server, never in the browser. Sign with HS256, kid = {id}, expiring in 1 hour at most.",
   "Aplicaciones": "Applications",
+  // Filtros por fila (P-136)
+  "Filtros por fila": "Row filters",
+  "Si el token trae filtros, p. ej. { \"cliente_id\": 42 }, cada tabla con esa columna muestra y edita solo esas filas, y al crear se pone el valor solo. Una tabla sin la columna no se abre, salvo que esté abajo como \"sin filtro\".": "If the token carries filters, e.g. { \"cliente_id\": 42 }, every table with that column shows and edits only those rows, and new records get the value automatically. A table without the column does not open, unless it is listed below as \"without filter\".",
+  "Otra columna para un filtro": "Another column for a filter",
+  "Una por línea: esquema.tabla.filtro = columna": "One per line: schema.table.filter = column",
+  "Tablas sin filtro": "Tables without filter",
+  "Una por línea: esquema.tabla. Para catálogos que todos pueden ver.": "One per line: schema.table. For catalogs everyone can see.",
 }

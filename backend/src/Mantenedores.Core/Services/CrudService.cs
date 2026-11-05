@@ -90,7 +90,9 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
 
         var estimate = await EstimateAsync(ctx, info, ct);
         var large = options.EstimateCountAbove > 0 && estimate >= options.EstimateCountAbove;
-        var heavy = large && options.MaxConcurrentHeavyQueries > 0 && (!QueryBuilder.IsUnfiltered(request) || request.Sort.Count > 0);
+        // Con filtro fijo por fila (P-136) el listado nunca es "sin filtro": ni la estimación ni el total de la tabla.
+        var unfiltered = QueryBuilder.IsUnfiltered(request) && !info.HasRowFilter;
+        var heavy = large && options.MaxConcurrentHeavyQueries > 0 && (!unfiltered || request.Sort.Count > 0);
         var gate = heavy ? _heavy.GetOrAdd(ctx.Definition.Id, _ => new SemaphoreSlim(options.MaxConcurrentHeavyQueries)) : null;
         if (gate is not null && !await gate.WaitAsync(TimeSpan.FromSeconds(Math.Max(1, options.HeavyQueueSeconds)), ct))
             throw new BusyException($"Hay muchas búsquedas en curso en {info.FullName}, que es una tabla grande. Intente de nuevo en unos segundos o afine los filtros.");
@@ -108,7 +110,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
                 return new PagedResult(rows, (long)(page - 1) * pageSize + rows.Count, page, pageSize);
 
             if (!large) return new PagedResult(rows, await db.ExecuteScalarAsync<long>(Command(count, ct)), page, pageSize);
-            if (QueryBuilder.IsUnfiltered(request)) return new PagedResult(rows, estimate!.Value, page, pageSize, TotalIsEstimate: true);
+            if (unfiltered) return new PagedResult(rows, estimate!.Value, page, pageSize, TotalIsEstimate: true);
             if (options.FilteredCountCap <= 0)
                 return new PagedResult(rows, await db.ExecuteScalarAsync<long>(Command(count, ct)), page, pageSize);
             var found = await db.ExecuteScalarAsync<long>(Command(qb.BuildCappedCount(ctx.LabelSchema, info, request, options.FilteredCountCap), ct));
@@ -399,7 +401,8 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
 
         var keyValues = ParseKey(info, key);
         IReadOnlyDictionary<string, ActionParameter> given = action.Parameters ?? new Dictionary<string, ActionParameter>();
-        IDictionary<string, object?>? row = null;
+        // Con filtro fijo por fila (P-136), la acción solo corre sobre una fila del alcance.
+        IDictionary<string, object?>? row = info.HasRowFilter ? await GetByKeyAsync(ctx, info, keyValues, ct) : null;
         var values = new List<object?>();
         var errors = new Dictionary<string, string>();
         foreach (var p in routine.Parameters)
@@ -461,7 +464,7 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
     /// </summary>
     private static void RequireWritableRequired(TableInfo info)
     {
-        var blocked = info.Columns.Where(c => c.BlocksInsert).ToList();
+        var blocked = info.Columns.Where(c => c.BlocksInsert).ToList(); // una columna con valor fijo (P-136) no bloquea: se pone sola
         if (blocked.Count > 0)
             throw new ValidationException(blocked.ToDictionary(c => c.Name,
                 _ => "es obligatoria y usted no puede escribirla: pida permiso de Editar en esta columna para crear registros"));
@@ -556,7 +559,10 @@ public sealed partial class CrudService(SchemaService schemas, CrudOptions optio
         var bridge = ctx.Schema.FindTable(link.BridgeSchema, link.BridgeTable)!;
         var target = ctx.Schema.FindTable(link.TargetSchema, link.TargetTable)!;
         // La columna local del puente apunta a la PK (de una columna) de esta tabla.
-        var localValue = ParseKey(owner, key)[owner.PrimaryKey[0]];
+        var ownerKey = ParseKey(owner, key);
+        // Con filtro fijo por fila (P-136), solo los vínculos de una fila del alcance.
+        if (owner.HasRowFilter) await GetByKeyAsync(ctx, owner, ownerKey, ct);
+        var localValue = ownerKey[owner.PrimaryKey[0]];
         return (ctx, owner, link, bridge, target, localValue);
     }
 

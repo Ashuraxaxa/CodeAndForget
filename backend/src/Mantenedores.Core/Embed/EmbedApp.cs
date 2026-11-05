@@ -13,6 +13,13 @@ public sealed record EmbedApp
     /// <summary>Perfil con el máximo de permisos que dan sus tokens.</summary>
     public required string ProfileId { get; init; }
     public bool Enabled { get; init; } = true;
+    /// <summary>
+    /// Filtros por fila (P-136): otra columna para un filtro en una tabla, "esquema.tabla.filtro" → columna
+    /// (p. ej. "ventas.pedido.cliente_id" → "id_cliente").
+    /// </summary>
+    public IReadOnlyDictionary<string, string> FilterColumns { get; init; } = new Dictionary<string, string>();
+    /// <summary>Tablas ("esquema.tabla") que se abren sin filtro aunque no tengan la columna (catálogos como categoría).</summary>
+    public IReadOnlyList<string> Unfiltered { get; init; } = [];
     /// <summary>Clave para firmar los tokens (HS256), cifrada con las llaves de la app. Nunca sale en claro después de crearla.</summary>
     public required string ProtectedSecret { get; init; }
     /// <summary>Cuándo se creó o rotó la clave: las sesiones abiertas con una clave anterior dejan de valer.</summary>

@@ -127,10 +127,17 @@ public sealed class UserAccess
     {
         if (Unrestricted) return schema;
         var tables = new List<TableInfo>();
-        foreach (var t in schema.Tables)
+        foreach (var t0 in schema.Tables)
         {
-            var ops = Table(connectionId, t.Schema, t.Name);
+            var ops = Table(connectionId, t0.Schema, t0.Name);
             if (!ops.HasFlag(DataOperation.View)) continue;
+            // Embebida con filtros fijos (P-136): la tabla lleva sus valores fijos; sin la columna del filtro, no se abre.
+            var t = t0;
+            if (Embed is { HasFilters: true } e)
+            {
+                if (e.WithRowFilter(t0, block: true) is not { } scoped) continue;
+                t = scoped;
+            }
             var writesTable = (ops & (DataOperation.Create | DataOperation.Update)) != 0;
             var columns = t.Columns.Select(c =>
             {
@@ -158,6 +165,28 @@ public sealed class UserAccess
         return schema with { Tables = tables, OverrideWarnings = [] };
     }
 
+    /// <summary>
+    /// Las tablas que no ve, para textos de FK y combos (D-107), con el filtro fijo de una sesión embebida (P-136): la que
+    /// tiene la columna del filtro se filtra por ella, y la que apunta una FK con valor fijo (p. ej. cliente, desde
+    /// pedido.cliente_id = 42) se filtra por su clave. Así un combo no lista datos de otro alcance.
+    /// </summary>
+    public IEnumerable<TableInfo> ScopeLabelTables(IReadOnlyList<TableInfo> visible, IEnumerable<TableInfo> others)
+    {
+        if (Embed is not { HasFilters: true } e) return others;
+        return others.Select(o =>
+        {
+            var scoped = e.WithRowFilter(o, block: false) ?? o;
+            foreach (var v in visible)
+                foreach (var fk in v.ForeignKeys.Where(f => f.Columns.Count == 1 &&
+                             string.Equals(f.RefSchema, o.Schema, StringComparison.OrdinalIgnoreCase) &&
+                             string.Equals(f.RefTable, o.Name, StringComparison.OrdinalIgnoreCase)))
+                    if (v.FindColumn(fk.Columns[0]) is { FixedValue: { } value } && fk.RefColumns.Count == 1)
+                        scoped = scoped with { Columns = scoped.Columns.Select(c =>
+                            string.Equals(c.Name, fk.RefColumns[0], StringComparison.OrdinalIgnoreCase) ? c with { FixedValue = value, ForcedReadOnly = true } : c).ToList() };
+            return scoped;
+        }).ToList();
+    }
+
     /// <summary>Obligatoria al crear según la base: no acepta nulos, no tiene default y la base no la genera.</summary>
     public static bool IsRequired(ColumnInfo c) =>
         !c.IsNullable && !c.HasDefault && !c.IsIdentity && !c.IsComputed && !c.IsRowVersion;
@@ -175,6 +204,39 @@ public sealed class UserAccess
 /// </summary>
 public sealed record EmbedScope(string AppId, DataOperation Operations, IReadOnlySet<string> Tables, IReadOnlySet<string> Dashboards)
 {
+    /// <summary>Filtros fijos por fila del token (P-136): nombre del filtro → valor, como texto invariante.</summary>
+    public IReadOnlyDictionary<string, string> Filters { get; init; } = new Dictionary<string, string>();
+
+    /// <summary>Otra columna para un filtro en una tabla: "esquema.tabla.filtro" (minúsculas) → columna.</summary>
+    public IReadOnlyDictionary<string, string> FilterColumns { get; init; } = new Dictionary<string, string>();
+
+    /// <summary>Tablas que se abren sin el filtro aunque no tengan su columna (catálogos): "esquema.tabla" en minúsculas.</summary>
+    public IReadOnlySet<string> Unfiltered { get; init; } = new HashSet<string>();
+
+    public bool HasFilters => Filters.Count > 0;
+
+    /// <summary>
+    /// La tabla con sus columnas de filtro fijas y de solo lectura. Sin ninguna columna del filtro (o con un valor que no
+    /// calza con su tipo): null si <paramref name="block"/> y la tabla no es de las "sin filtro"; si no, la tabla tal cual.
+    /// </summary>
+    public TableInfo? WithRowFilter(TableInfo t, bool block)
+    {
+        var fixedValues = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (name, raw) in Filters)
+        {
+            var columnName = FilterColumns.TryGetValue($"{t.Schema}.{t.Name}.{name}".ToLowerInvariant(), out var alias) ? alias : name;
+            if (t.FindColumn(columnName) is not { } col) continue;
+            try { fixedValues[col.Name] = Query.ValueConverter.FromString(col, raw); }
+            catch (Errors.ValidationException) { return block ? null : t; } // un valor que no calza no abre nada
+        }
+        if (fixedValues.Count == 0)
+            return !block || Unfiltered.Contains($"{t.Schema}.{t.Name}".ToLowerInvariant()) ? t : null;
+        return t with
+        {
+            Columns = t.Columns.Select(c => fixedValues.TryGetValue(c.Name, out var v) ? c with { FixedValue = v, ForcedReadOnly = true } : c).ToList()
+        };
+    }
+
     public static string TableKey(string connectionId, string schema, string table) =>
         $"{connectionId}\u001f{schema}\u001f{table}".ToLowerInvariant();
 

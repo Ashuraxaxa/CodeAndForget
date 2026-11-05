@@ -143,7 +143,11 @@ public sealed class EmbedAppTests : IDisposable
         Assert.Equal(HttpStatusCode.BadRequest, (await Exchange(Sign(id, secret, Claims()))).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await Exchange(Sign(id, secret, Claims("tabla:x")))).StatusCode);
         var withFilters = Claims("table:demo/ventas/producto");
-        withFilters["filters"] = new Dictionary<string, object> { ["cliente_id"] = 42 };
+        withFilters["filters"] = new Dictionary<string, object> { ["cliente_id"] = 42, ["region"] = "norte" };
+        Assert.Equal(HttpStatusCode.OK, (await Exchange(Sign(id, secret, withFilters))).StatusCode);
+        withFilters["filters"] = new Dictionary<string, object> { ["cliente_id"] = new[] { 1, 2 } }; // una lista no es un valor fijo
+        Assert.Equal(HttpStatusCode.BadRequest, (await Exchange(Sign(id, secret, withFilters))).StatusCode);
+        withFilters["filters"] = "cliente_id=42";
         Assert.Equal(HttpStatusCode.BadRequest, (await Exchange(Sign(id, secret, withFilters))).StatusCode);
         var badPerm = Claims("table:demo/ventas/producto");
         badPerm["perm"] = new[] { "admin" };
@@ -262,6 +266,40 @@ public sealed class EmbedAppTests : IDisposable
             new HashSet<string> { EmbedScope.TableKey("demo", "ventas", "producto") }, new HashSet<string>()));
         Assert.False(sinPerfil.IsOpen);
         Assert.Equal(DataOperation.None, sinPerfil.Table("demo", "ventas", "producto"));
+    }
+
+    private static Mantenedores.Core.Schema.TableInfo TableWith(string name, params string[] columns) => new()
+    {
+        Schema = "ventas", Name = name, PrimaryKey = ["id"],
+        Columns = [new() { Name = "id", NativeType = "int4", Type = Mantenedores.Core.Schema.LogicalType.Integer, IsPrimaryKey = true },
+            .. columns.Select(c => new Mantenedores.Core.Schema.ColumnInfo { Name = c, NativeType = "int4", Type = Mantenedores.Core.Schema.LogicalType.Integer })]
+    };
+
+    [Fact]
+    public void El_filtro_fijo_se_aplica_por_columna_alias_o_tabla_sin_filtro()
+    {
+        var scope = new EmbedScope("a1", DataOperation.View, new HashSet<string>(), new HashSet<string>())
+        {
+            Filters = new Dictionary<string, string> { ["cliente_id"] = "42" },
+            FilterColumns = new Dictionary<string, string> { ["ventas.factura.cliente_id"] = "id_cliente" },
+            Unfiltered = new HashSet<string> { "ventas.categoria" }
+        };
+        var pedido = scope.WithRowFilter(TableWith("pedido", "cliente_id", "total"), block: true)!;
+        Assert.Equal(42L, Convert.ToInt64(pedido.FindColumn("cliente_id")!.FixedValue));
+        Assert.True(pedido.FindColumn("cliente_id")!.ForcedReadOnly);
+        Assert.Null(pedido.FindColumn("total")!.FixedValue);
+        Assert.True(pedido.HasRowFilter);
+
+        // Otra columna por alias; sin la columna, la tabla no se abre salvo que sea "sin filtro".
+        Assert.Equal(42L, Convert.ToInt64(scope.WithRowFilter(TableWith("factura", "id_cliente"), block: true)!.FindColumn("id_cliente")!.FixedValue));
+        Assert.Null(scope.WithRowFilter(TableWith("producto", "precio"), block: true));
+        Assert.False(scope.WithRowFilter(TableWith("categoria", "nombre"), block: true)!.HasRowFilter);
+        // Para textos de FK y combos (tablas que no ve) no se bloquea.
+        Assert.NotNull(scope.WithRowFilter(TableWith("producto", "precio"), block: false));
+
+        // Un valor que no calza con el tipo de la columna no abre nada.
+        var wrong = scope with { Filters = new Dictionary<string, string> { ["cliente_id"] = "no-es-numero" } };
+        Assert.Null(wrong.WithRowFilter(TableWith("pedido", "cliente_id"), block: true));
     }
 
     public void Dispose()

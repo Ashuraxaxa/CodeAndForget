@@ -102,6 +102,8 @@ export interface Column {
   order: number
   forcedReadOnly: boolean
   forcedRequired: boolean
+  /** Filtro fijo por fila de una página embebida (P-136): el valor que toma al crear, de solo lectura. */
+  fixedValue?: string | number | boolean | null
   /** textarea, email, url, color, money, password */
   widget: string | null
   pattern: string | null
@@ -493,9 +495,17 @@ export interface EmbedApp {
   secretSetAt: string
   createdBy: string
   createdAt: string
+  filterColumns: Record<string, string>
+  unfiltered: string[]
 }
 
-export interface EmbedAppInput { name?: string; origins?: string[]; profileId?: string; enabled?: boolean }
+export interface EmbedAppInput {
+  name?: string; origins?: string[]; profileId?: string; enabled?: boolean
+  /** Filtros por fila (P-136): "esquema.tabla.filtro" → columna. */
+  filterColumns?: Record<string, string>
+  /** Tablas "esquema.tabla" que se abren sin filtro (catálogos). */
+  unfiltered?: string[]
+}
 
 /** Sesión de una página embebida, canjeada por el token firmado de la app anfitriona. */
 export interface EmbedSession { token: string; expiresAt: string; app: string; user: string }

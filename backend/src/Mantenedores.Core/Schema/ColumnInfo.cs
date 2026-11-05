@@ -56,6 +56,12 @@ public sealed record ColumnInfo
     /// <summary>Solo lectura por ajuste.</summary>
     public bool ForcedReadOnly { get; init; }
 
+    /// <summary>
+    /// Filtro fijo por fila (P-136, D-115): en una página embebida, solo se ven y se tocan las filas con este valor, y al
+    /// crear se pone solo. La columna queda de solo lectura. Nulo = sin filtro.
+    /// </summary>
+    public object? FixedValue { get; init; }
+
     /// <summary>Obligatoria por ajuste: además de no aceptar nulos, un texto vacío cuenta como faltante.</summary>
     public bool ForcedRequired { get; init; }
 
@@ -108,5 +114,5 @@ public sealed record ColumnInfo
     /// para este usuario (por su perfil o por ajuste). La UI lo avisa y la API rechaza el alta nombrándola.
     /// </summary>
     public bool BlocksInsert => !IsNullable && !HasDefault && !IsIdentity && !IsComputed && !IsRowVersion
-                                && (ForcedReadOnly || (Hidden && !IsPrimaryKey));
+                                && FixedValue is null && (ForcedReadOnly || (Hidden && !IsPrimaryKey));
 }

@@ -286,6 +286,12 @@ export const SERVER: [es: string, en: string, ru: string][] = [
   ['motores como plugins (Providers:PluginsDirectory)', 'engines as plugins (Providers:PluginsDirectory)', 'СУБД в виде плагинов (Providers:PluginsDirectory)'],
   ['OpenTelemetry (Telemetry:OtlpEndpoint)', 'OpenTelemetry (Telemetry:OtlpEndpoint)', 'OpenTelemetry (Telemetry:OtlpEndpoint)'],
   // Embeber con tokens firmados (P-135)
+  ["'filters' debe ser un objeto, p. ej. { \"cliente_id\": 42 }.", "'filters' must be an object, e.g. { \"cliente_id\": 42 }.", "'filters' должен быть объектом, напр. { \"cliente_id\": 42 }."],
+  ["El filtro '{name}' debe ser un texto, un número o sí/no.", "The filter '{name}' must be a string, a number or true/false.", "Фильтр «{name}» должен быть строкой, числом или да/нет."],
+  ["El filtro '{name}' necesita un nombre y un valor (hasta 200 caracteres).", "The filter '{name}' needs a name and a value (up to 200 characters).", "Фильтру «{name}» нужны имя и значение (до 200 символов)."],
+  ["Hasta {n} filtros por token.", "Up to {n} filters per token.", "Не более {n} фильтров на токен."],
+  ["'{key}' no es válido. Use esquema.tabla.filtro = columna, p. ej. ventas.pedido.cliente_id = id_cliente.", "'{key}' is not valid. Use schema.table.filter = column, e.g. ventas.pedido.cliente_id = id_cliente.", "'{key}' недопустимо. Используйте схема.таблица.фильтр = столбец, напр. ventas.pedido.cliente_id = id_cliente."],
+  ["'{raw}' no es válido. Use esquema.tabla, p. ej. ventas.categoria.", "'{raw}' is not valid. Use schema.table, e.g. ventas.categoria.", "'{raw}' недопустимо. Используйте схема.таблица, напр. ventas.categoria."],
   ["La sesión embebida venció o ya no es válida.", "The embedded session expired or is no longer valid.", "Встроенный сеанс истёк или больше не действителен."],
   ["El plan {plan} permite {n} aplicaciones que embeben. Pase a Empresa para sumar más.", "The {plan} plan allows {n} embedding applications. Move to Business to add more.", "Тариф {plan} допускает встраивающих приложений: {n}. Перейдите на Business, чтобы добавить ещё."],
   ["La aplicación '{id}' no existe.", "The application '{id}' does not exist.", "Приложение «{id}» не существует."],

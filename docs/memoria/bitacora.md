@@ -23,6 +23,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
   - `EmbedAppTests`: canje, rutas prohibidas, firma, vencimiento, kid, validaciones, rotación, desactivar, dashboards y topes;
   - en vivo: la app se registró desde la pantalla, un "portal" en otro puerto firmó con Node y embebió el dashboard y el mantenedor; la edición quedó en la auditoría como `app:Portal/juan@cliente.com`, y otra tabla, borrar y `/api/connections` se rechazaron.
 
+## 2026-11-05 · Sugerencia técnica de solo lectura (P-140)
+- **Pedido del dueño:** la sugerencia "columna técnica, solo lectura y fuera de la grilla" (p. ej. HostName) debe dejar elegir solo lectura, porque a veces importa verla.
+- **Cambio:** cada sugerencia técnica tiene un selector: "solo lectura y fuera de la grilla" (como antes) o "solo lectura, visible en la grilla". El servidor sigue sugiriendo lo mismo; el panel quita `showInGrid` del ajuste si se elige verla.
+- **Pruebas:** en vivo con una columna `host_name`; el borrador queda con "Solo lectura" y "En la grilla" marcadas.
+- La etapa 2 de embeber sigue en `feature/embeber-apps`, sin subir.
+
 ## 2026-11-05 · Embeber: plan y etapa 1 (P-134)
 - **Plan:** el dueño aprobó tres formas (con sesión, con token firmado y dashboards públicos), los planes (Gratis no, Pro con 3 apps y sello, Empresa sin tope ni marca), que los externos no cuentan como usuarios, y los filtros por fila (D-113, `docs/embeber.md`).
 - **Hallazgo:** la app no enviaba ninguna cabecera contra el clickjacking; cualquier sitio podía meterla en un iframe. Ahora fuera de `/embed` solo se deja embeber por sí misma.

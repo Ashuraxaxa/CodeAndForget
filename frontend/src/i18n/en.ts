@@ -528,7 +528,10 @@ export const en: Messages = {
   'Relación: {column} → {table} ({key})': 'Relation: {column} → {table} ({key})',
   'Sugerencias': 'Suggestions',
   'Sugerir ajustes': 'Suggest settings',
-  '{column}: columna técnica, solo lectura y fuera de la grilla': '{column}: technical column, read-only and out of the grid',
+  '{column}: columna técnica': '{column}: technical column',
+  'solo lectura y fuera de la grilla': 'read-only and out of the grid',
+  'solo lectura, visible en la grilla': 'read-only, shown in the grid',
+  'Cómo queda {column}': 'How {column} is set',
   '{column}: validar como correo electrónico': '{column}: validate as an email address',
   // Tokens de acceso y propuestas de la IA (P-113)
   'Aún no tienes tokens.': 'You have no tokens yet.',

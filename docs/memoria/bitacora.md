@@ -4,6 +4,14 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · Embeber, etapa 4: dashboards públicos (P-137)
+- **Interruptor** "Permitir dashboards públicos" en Seguridad → Aplicaciones (apagado; desde Pro).
+- **En el dashboard,** "Enlace público": crear, copiar el enlace o el iframe, renovar y quitar. Solo el dueño o un administrador lo ve.
+- **`/embed/p/{token}`:** sin login, con los permisos del dueño (D-116); solo el período. 60 s de caché por tarjeta, `frame-ancestors *` y el sello en Pro.
+- **Pruebas:**
+  - `PublicDashboardTests`: apagado por defecto, publicar, abrir sin login, renovar, quitar, interruptor apagado, cabecera del iframe, el enlace oculto para quien no comparte, dueño desactivado y Gratis;
+  - en vivo: publicado desde la pantalla y abierto sin sesión desde otro sitio, con sus 7 tarjetas en modo noche.
+
 ## 2026-11-05 · Embeber, etapa 3: filtros fijos por fila (P-136)
 - **Token:** `filters` (`{ "cliente_id": 42 }`, hasta 10).
 - **Configuración en Seguridad → Aplicaciones:** otra columna por tabla y tablas sin filtro.

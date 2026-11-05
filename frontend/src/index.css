@@ -804,3 +804,7 @@ html[data-embed] .login-tools { display: none; }
 .embed-rows[open] summary { margin-bottom: 6px; }
 /* Selector dentro de una línea de casillas (sugerencias técnicas, P-112) */
 .inline-select { width: auto; padding: 2px 6px; font-size: 0.85rem; }
+/* Enlace público de un dashboard (P-137) */
+.public-link { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.public-link .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.public-toggle { white-space: normal; align-items: flex-start; margin-bottom: 12px; }

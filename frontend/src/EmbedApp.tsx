@@ -9,6 +9,7 @@ import { TablePage } from './pages/TablePage'
 import { RecordPage } from './pages/RecordPage'
 import { ImportPage } from './pages/ImportPage'
 import { DashboardPage } from './pages/DashboardsPage'
+import { PublicDashboardPage } from './pages/PublicDashboardPage'
 import { appBase, routerBase } from './lib/embed'
 import { useT } from './i18n'
 
@@ -62,6 +63,8 @@ export default function EmbedApp() {
     <AuthProvider>
       <BrowserRouter basename={routerBase}>
         <Routes>
+          {/* Dashboard público (P-137): sin login ni plan propio; el servidor decide si el enlace vale. */}
+          <Route path="p/:token" element={<PublicDashboardPage />} />
           <Route element={<EmbedShell />}>
             <Route path="dashboards/:id" element={<DashboardPage />} />
             <Route path="c/:conn/t/:schema/:table" element={<section className="content"><TablePage /></section>} />

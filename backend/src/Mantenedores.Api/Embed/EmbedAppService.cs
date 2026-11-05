@@ -7,6 +7,7 @@ using Mantenedores.Core.Dashboards;
 using Mantenedores.Core.Embed;
 using Mantenedores.Core.Errors;
 using Mantenedores.Core.Licensing;
+using IServiceSettings = Mantenedores.Core.Licensing.IServiceSettings;
 using Mantenedores.Core.Security;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -47,7 +48,7 @@ public sealed record EmbedRowConfig(IReadOnlyDictionary<string, string> FilterCo
 /// </list>
 /// </summary>
 public sealed class EmbedAppService(IEmbedAppStore store, SecurityService security, IDashboardStore dashboards, LicenseService license,
-    IDataProtectionProvider protection, IReadOnlyList<string> configuredOrigins, TimeProvider? clock = null)
+    IDataProtectionProvider protection, IReadOnlyList<string> configuredOrigins, IServiceSettings? settings = null, TimeProvider? clock = null)
 {
     public const string SessionPrefix = "emb_";
     public const string SecretPrefix = "csk_";
@@ -72,6 +73,28 @@ public sealed class EmbedAppService(IEmbedAppStore store, SecurityService securi
     private readonly IDataProtector _secrets = protection.CreateProtector("Celdo.EmbedApp.Secret");
     private readonly ITimeLimitedDataProtector _sessions = protection.CreateProtector("Celdo.EmbedSession").ToTimeLimitedDataProtector();
     private (DateTimeOffset At, IReadOnlyList<EmbedApp> Apps, int? Limit)? _cache;
+
+    // ---------- Dashboards públicos (P-137) ----------
+
+    private (DateTimeOffset At, bool Value)? _public;
+
+    /// <summary>¿El administrador habilitó los dashboards públicos? Apagado por defecto. En caché 30 s.</summary>
+    public async Task<bool> PublicDashboardsAsync(CancellationToken ct)
+    {
+        var now = _clock.GetUtcNow();
+        if (_public is { } c && now - c.At < Ttl) return c.Value;
+        var value = settings is not null && await settings.GetAsync(Embed.PublicDashboardEndpoints.SettingName, ct) == "true";
+        _public = (now, value);
+        return value;
+    }
+
+    public async Task SetPublicDashboardsAsync(bool enabled, CancellationToken ct)
+    {
+        if (enabled) await license.RequireAsync(Feature.Embed, ct);
+        if (settings is null) throw new OperationNotAllowedException("Esta instalación no guarda ajustes del servicio.");
+        await settings.SetAsync(Embed.PublicDashboardEndpoints.SettingName, enabled ? "true" : null, ct);
+        _public = null;
+    }
 
     // ---------- Administración ----------
 

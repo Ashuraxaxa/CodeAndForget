@@ -56,7 +56,16 @@ public sealed record Dashboard
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
     public string? UpdatedBy { get; init; }
+    /// <summary>Enlace público (P-137): cualquiera con el enlace lo mira, sin login. Nulo = privado.</summary>
+    public DashboardPublicLink? Public { get; init; }
 }
+
+/// <summary>
+/// Enlace público de un dashboard (P-137, D-116). El token es el secreto del enlace (32 bytes al azar); las tarjetas corren
+/// con los permisos del dueño. <see cref="Roles"/> guarda los roles del dueño al crearlo, para el modo Jwt (el proveedor
+/// de identidad no se puede consultar después), como los tokens de acceso.
+/// </summary>
+public sealed record DashboardPublicLink(string Token, DateTimeOffset CreatedAt, string CreatedBy, IReadOnlyList<string> Roles);
 
 public interface IDashboardStore
 {

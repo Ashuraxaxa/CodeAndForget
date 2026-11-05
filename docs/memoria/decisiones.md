@@ -1174,6 +1174,21 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **Abrir las tablas sin la columna por defecto:** expondría datos de otros clientes ante un error de configuración.
   - **Vistas o seguridad por filas del motor (RLS):** no existen en todos los motores ni en las versiones mínimas (D-035), y exigirían permisos en la base.
 
+### D-116 · Dashboards públicos por enlace secreto
+- **Estado:** Vigente · 2026-11-05 (P-137, amplía D-113).
+- **Qué:**
+  - **Activar:** un interruptor del administrador (`embed.public-dashboards` en los ajustes del servicio, apagado) y el enlace del dueño o de un administrador. Se guarda en el dashboard como `Public` (token, fecha, quién y roles).
+  - **El enlace:** `/embed/p/{token}`, con 32 bytes al azar y comparación de tiempo constante. Renovar invalida el anterior.
+  - **Permisos:** las tarjetas corren con los permisos del dueño (`HttpAccessContext.Use`). En modo Local, roles actuales y dueño activo; en modo Jwt, los roles al crearlo.
+  - **Qué responde:** solo nombre, descripción y tarjetas, nunca el dueño ni el enlace. Cualquier motivo para no mostrarlo responde 404.
+  - **Carga:** 60 s de caché por tarjeta y el límite de uso por IP.
+  - **iframe:** `frame-ancestors *` solo para `/embed/p` con el interruptor y el plan.
+- **Descartado:**
+  - **Un perfil propio para los enlaces públicos:** más configuración para algo que el dueño ya ve.
+  - **Guardar solo el hash del token:** el dueño necesita volver a copiar el enlace.
+  - **Filtros fijos en el enlace:** el dueño no tiene un perfil al que recortar si es administrador. Queda la forma B para eso.
+  - **Limitar los sitios del iframe:** un dashboard público es para cualquiera; no hay sesión que robar ni acción que disparar.
+
 ---
 
 ## Propuestas (aún no decididas)

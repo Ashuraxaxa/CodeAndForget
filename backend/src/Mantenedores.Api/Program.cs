@@ -125,7 +125,9 @@ var embedOrigins = EmbedSetup.Validate(builder.Configuration.GetSection(EmbedOpt
 builder.Services.AddSingleton(sp => new Mantenedores.Api.Embed.EmbedAppService(
     sp.GetRequiredService<Mantenedores.Core.Embed.IEmbedAppStore>(), sp.GetRequiredService<Mantenedores.Core.Security.SecurityService>(),
     sp.GetRequiredService<Mantenedores.Core.Dashboards.IDashboardStore>(), sp.GetRequiredService<LicenseService>(),
-    sp.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>(), embedOrigins));
+    sp.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>(), embedOrigins,
+    sp.GetRequiredService<Mantenedores.Core.Licensing.IServiceSettings>()));
+builder.Services.AddMemoryCache();
 builder.Services.Configure<LicenseOptions>(builder.Configuration.GetSection(LicenseOptions.Section));
 var businessInUse = LicenseService.BusinessFeatures(builder.Configuration, auth.Mode, plugins.Count);
 builder.Services.AddSingleton(sp => new LicenseService(sp.GetRequiredService<Mantenedores.Core.Licensing.IServiceSettings>(),
@@ -185,6 +187,7 @@ app.MapTokens();
 app.MapAudit();
 app.MapDashboards();
 app.MapEmbed();
+app.MapPublicDashboards();
 app.MapOData();
 app.MapMantenedoresMcp(mcp);
 app.MapLicense();

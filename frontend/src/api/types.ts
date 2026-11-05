@@ -604,13 +604,18 @@ export interface Dashboard {
   createdAt: string
   updatedAt: string
   updatedBy?: string | null
+  /** Enlace público (P-137): solo llega a quien comparte (dueño o administrador). */
+  public?: { token: string; createdAt: string; createdBy: string } | null
 }
 
-export interface DashboardView { dashboard: Dashboard; canEdit: boolean; canDelete: boolean; canShare: boolean; locked: boolean }
+export interface DashboardView { dashboard: Dashboard; canEdit: boolean; canDelete: boolean; canShare: boolean; locked: boolean; isPublic?: boolean }
+
+/** Un dashboard público tal como lo ve cualquiera con el enlace (P-137). */
+export interface PublicDashboard { name: string; description?: string | null; widgets: DashboardWidget[]; seal: boolean }
 
 export interface DashboardSummary {
   id: string; name: string; description?: string | null; owner: string; widgets: number; updatedAt: string
-  shared: boolean; canEdit: boolean; canDelete: boolean; canShare: boolean; locked: boolean
+  shared: boolean; canEdit: boolean; canDelete: boolean; canShare: boolean; locked: boolean; isPublic?: boolean
 }
 
 export interface DashboardList { items: DashboardSummary[]; canCreate: boolean; used: number; limit?: number | null; widgetLimit: number }

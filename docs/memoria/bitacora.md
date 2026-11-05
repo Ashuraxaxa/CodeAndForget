@@ -4,6 +4,18 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · Embeber, etapa 3: filtros fijos por fila (P-136)
+- **Token:** `filters` (`{ "cliente_id": 42 }`, hasta 10).
+- **Configuración en Seguridad → Aplicaciones:** otra columna por tabla y tablas sin filtro.
+- **Dónde va el filtro (D-115):** en la columna (`FixedValue`). `QueryBuilder` lo agrega en el WHERE de todo y en `KeyPredicate`, y al crear pone el valor.
+- **Tablas:** una tabla sin la columna no se abre. Los combos de una FK fija ofrecen solo su valor.
+- **Pruebas:**
+  - batería común (en PostgreSQL y MySQL aquí; los 4 en la CI): listar, total, resumen, leer, editar, borrar, crear forzado, no mover de alcance, combo y tabla bloqueada;
+  - unitarias: alias, sin filtro, valor que no calza y token con `filters` mal armado;
+  - en vivo: un token con `categoria_id = 1` deja 15 productos de Bebidas, el alta trae la categoría fija y el dashboard calcula con el filtro.
+- **Pedido del dueño:** al terminar el plan, revisión responsive de todas las pantallas como estándar (P-141).
+- **Abierto:** el combo bloqueado del alta muestra el valor (1) y no el texto (Bebidas).
+
 ## 2026-11-05 · Embeber, etapa 2: aplicaciones y tokens firmados (P-135)
 - **Seguridad → Aplicaciones:**
   - nombre, sitios y perfil;

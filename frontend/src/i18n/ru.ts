@@ -644,4 +644,11 @@ export const ru: Messages = {
   "Clave de \"{name}\": cópiala ahora, no se vuelve a mostrar.": "Ключ для «{name}»: скопируйте сейчас, он больше не будет показан.",
   "Guárdala en el servidor de la aplicación, nunca en el navegador. Firma con HS256, kid = {id}, y vence en 1 hora como máximo.": "Храните его на сервере приложения, никогда в браузере. Подписывайте HS256, kid = {id}, срок действия — не больше 1 часа.",
   "Aplicaciones": "Приложения",
+  // Filtros por fila (P-136)
+  "Filtros por fila": "Фильтры по строкам",
+  "Si el token trae filtros, p. ej. { \"cliente_id\": 42 }, cada tabla con esa columna muestra y edita solo esas filas, y al crear se pone el valor solo. Una tabla sin la columna no se abre, salvo que esté abajo como \"sin filtro\".": "Если токен содержит фильтры, напр. { \"cliente_id\": 42 }, каждая таблица с этим столбцом показывает и изменяет только эти строки, а новые записи получают значение автоматически. Таблица без этого столбца не открывается, если она не указана ниже как «без фильтра».",
+  "Otra columna para un filtro": "Другой столбец для фильтра",
+  "Una por línea: esquema.tabla.filtro = columna": "По одному в строке: схема.таблица.фильтр = столбец",
+  "Tablas sin filtro": "Таблицы без фильтра",
+  "Una por línea: esquema.tabla. Para catálogos que todos pueden ver.": "По одной в строке: схема.таблица. Для справочников, которые видят все.",
 }

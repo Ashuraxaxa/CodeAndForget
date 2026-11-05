@@ -26,7 +26,8 @@ public sealed class HttpAccessContext(IHttpContextAccessor http, SecurityService
             Embed.EmbedAppService.DeserializePayload(scope) is { } payload)
         {
             var embedded = Embed.EmbedAppService.AccessFor(user.Identity?.Name ?? "", await security.ProfilesAsync(ct),
-                user.FindFirst(EmbedSessionHandler.ProfileClaim)?.Value ?? "", payload);
+                user.FindFirst(EmbedSessionHandler.ProfileClaim)?.Value ?? "", payload,
+                user.FindFirst(EmbedSessionHandler.RowsClaim)?.Value is { } rows ? Embed.EmbedAppService.DeserializeRows(rows) : null);
             if (ctx is not null) ctx.Items[Key] = embedded;
             return embedded;
         }

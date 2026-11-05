@@ -54,6 +54,10 @@ public sealed record TableInfo
     [System.Text.Json.Serialization.JsonIgnore] // la UI recibe los Can* de abajo
     public Security.DataOperation Access { get; init; } = Security.DataOperation.All;
 
+    /// <summary>Tiene un filtro fijo por fila (P-136): ninguna consulta la recorre entera.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool HasRowFilter => Columns.Any(c => c.FixedValue is not null);
+
     public bool CanCreate => IsEditable && Access.HasFlag(Security.DataOperation.Create);
     public bool CanExecute => Actions.Count > 0 && HasPrimaryKey && Access.HasFlag(Security.DataOperation.Execute);
     public bool CanUpdate => IsEditable && Access.HasFlag(Security.DataOperation.Update);

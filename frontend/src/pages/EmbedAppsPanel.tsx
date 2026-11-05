@@ -102,7 +102,14 @@ function AppForm({ app, profiles, onCancel, onSaved }: {
   const [name, setName] = useState(app?.name ?? '')
   const [origins, setOrigins] = useState((app?.origins ?? []).join('\n'))
   const [profileId, setProfileId] = useState(app?.profileId ?? '')
-  const input = () => ({ name: name.trim(), origins: origins.split(/[\s,]+/).filter(Boolean), profileId })
+  const [columns, setColumns] = useState(Object.entries(app?.filterColumns ?? {}).map(([k, v]) => `${k} = ${v}`).join('\n'))
+  const [unfiltered, setUnfiltered] = useState((app?.unfiltered ?? []).join('\n'))
+  const lines = (s: string) => s.split(/\n/).map(l => l.trim()).filter(Boolean)
+  const input = () => ({
+    name: name.trim(), origins: origins.split(/[\s,]+/).filter(Boolean), profileId,
+    filterColumns: Object.fromEntries(lines(columns).map(l => { const i = l.indexOf('='); return i < 0 ? [l, ''] : [l.slice(0, i).trim(), l.slice(i + 1).trim()] })),
+    unfiltered: lines(unfiltered),
+  })
   const save = useMutation({
     mutationFn: async () => app ? (await api.updateEmbedApp(app.id, input()), null) : api.createEmbedApp(input()),
     onSuccess: onSaved,
@@ -139,6 +146,24 @@ function AppForm({ app, profiles, onCancel, onSaved }: {
         <span className="hint">{t('Uno por línea: esquema y host, sin ruta. Se acepta un comodín al inicio: https://*.empresa.com')}</span>
         {fieldErrors.origins && <span className="field-error">{fieldErrors.origins}</span>}
       </label>
+      <details className="embed-rows" open={!!(columns || unfiltered)}>
+        <summary>{t('Filtros por fila')}</summary>
+        <p className="hint">{t('Si el token trae filtros, p. ej. { "cliente_id": 42 }, cada tabla con esa columna muestra y edita solo esas filas, y al crear se pone el valor solo. Una tabla sin la columna no se abre, salvo que esté abajo como "sin filtro".')}</p>
+        <div className="grid-2">
+          <label>
+            {t('Otra columna para un filtro')}
+            <textarea rows={3} value={columns} onChange={e => setColumns(e.target.value)} placeholder="ventas.factura.cliente_id = id_cliente" />
+            <span className="hint">{t('Una por línea: esquema.tabla.filtro = columna')}</span>
+            {fieldErrors.filterColumns && <span className="field-error">{fieldErrors.filterColumns}</span>}
+          </label>
+          <label>
+            {t('Tablas sin filtro')}
+            <textarea rows={3} value={unfiltered} onChange={e => setUnfiltered(e.target.value)} placeholder="ventas.categoria" />
+            <span className="hint">{t('Una por línea: esquema.tabla. Para catálogos que todos pueden ver.')}</span>
+            {fieldErrors.unfiltered && <span className="field-error">{fieldErrors.unfiltered}</span>}
+          </label>
+        </div>
+      </details>
       {save.error && Object.keys(fieldErrors).length === 0 && <div className="alert"><ErrorText error={save.error} /></div>}
       <div className="actions">
         <button className="primary" disabled={save.isPending}>{app ? t('Guardar') : t('Crear y ver la clave')}</button>

@@ -132,7 +132,10 @@ public sealed class SchemaService(
         if (ReferenceEquals(restricted, schema)) return ctx with { Schema = schema };
         // Las tablas que no ve, solo para el texto de las FK y los combos (D-107). Las que ve, con sus columnas ocultas.
         var seen = restricted.Tables.Select(t => (t.Schema, t.Name)).ToHashSet();
-        var labels = restricted with { Tables = [.. restricted.Tables, .. schema.Tables.Where(t => !seen.Contains((t.Schema, t.Name)))] };
+        var labels = restricted with
+        {
+            Tables = [.. restricted.Tables, .. access.ScopeLabelTables(restricted.Tables, schema.Tables.Where(t => !seen.Contains((t.Schema, t.Name))))]
+        };
         return ctx with { Schema = restricted, Labels = labels };
     }
 

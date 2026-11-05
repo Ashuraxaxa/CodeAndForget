@@ -91,7 +91,7 @@ máximo) con:
 | `name` | Nombre visible (opcional) |
 | `res` | Lo que puede abrir: `dashboard:<id>` o `table:<conexión>/<esquema>/<tabla>` (de 1 a 50) |
 | `perm` | `view` (siempre), `create`, `edit`, `delete`, `export`, `import`, `execute`; se cruza con el perfil de la app |
-| `filters` | Filtros fijos por fila, p. ej. `{ "cliente_id": 42 }` (etapa 3; hasta entonces, un token con `filters` se rechaza) |
+| `filters` | Filtros fijos por fila, p. ej. `{ "cliente_id": 42 }`: hasta 10, con valores de texto, número o sí/no (sección 6) |
 | `exp`, `iat` | Vencimiento y emisión |
 
 - **Uso:** la otra app arma la URL `/embed/...#token=...`. El fragmento no llega a los registros del servidor.
@@ -124,13 +124,20 @@ function celdoToken(kid, secret, sub, res, perm = ['view']) {
   vence, la página lo avisa; la renovación automática llega con `embed.js` (etapa 5).
 - **Plan:** no ocupa lugar de usuario en el plan.
 
-## 6. Filtros fijos por fila
+## 6. Filtros fijos por fila ✅
 
 - **Dónde se aplica:** el filtro `{ "cliente_id": 42 }` va a cada tabla permitida que tenga esa columna. En la
   aplicación se puede indicar otro nombre de columna por tabla (`pedido.id_cliente`).
 - **Seguro por defecto:** una tabla sin la columna **no se abre**, salvo que la aplicación la marque como "sin filtro"
   (p. ej. un catálogo de categorías).
-- **Combos de FK:** los combos de una tabla filtrada también se filtran si la tabla referenciada tiene la columna.
+- **Combos de FK:** los combos de una tabla filtrada también se filtran si la tabla referenciada tiene la columna. Y
+  si la FK es la columna fija (`pedido.cliente_id = 42`), el combo de clientes ofrece solo el 42.
+- **Dónde se configura:** en Seguridad → Aplicaciones → Filtros por fila: "otra columna" (`esquema.tabla.filtro =
+  columna`) y "tablas sin filtro" (`esquema.tabla`).
+- **Qué cubre:** listar, contar, buscar, leer un registro, editar, borrar, exportar, importar, árboles, archivos,
+  acciones, relaciones N:M, combos y las tarjetas de los dashboards. La columna fija queda de solo lectura y al crear
+  toma el valor sola, aunque se mande otro; tampoco se puede mover un registro a otro valor al editar.
+- **Un valor que no calza** con el tipo de la columna (texto en una columna numérica) no abre la tabla.
 
 ## 7. Forma C: dashboard público
 
@@ -164,7 +171,7 @@ Un script opcional para la app anfitriona:
 |---|---|---|
 | **1. Base y forma A** ✅ | Cabecera `frame-ancestors`, `Embed:AllowedOrigins`, rutas `/embed` sin menú, login en el iframe (ventana emergente con OIDC), tema e idioma por parámetro, alto por `postMessage`, sello en Pro, bloqueo en Gratis | P-134 |
 | **2. Aplicaciones y tokens** ✅ | Migración 010, Seguridad → Aplicaciones, canje del token, sesión limitada a `res` y `perm`, auditoría `app:`, tope de 3 en Pro | P-135 |
-| **3. Filtros por fila** | Filtro fijo en listar, leer, editar, borrar, exportar, combos y dashboards; valor fijo al crear; batería común en los 4 motores | P-136 |
+| **3. Filtros por fila** ✅ | Filtro fijo en listar, leer, editar, borrar, exportar, combos y dashboards; valor fijo al crear; batería común en los 4 motores | P-136 |
 | **4. Dashboards públicos** | Enlace secreto, interruptor del administrador, permisos del dueño, límite por IP | P-137 |
 | **5. `embed.js` y eventos** | Script, eventos, renovación del token, página de prueba en `samples/` | P-138 |
 | **6. Documentación y venta** | Ejemplos para firmar en C#, Node y Python, README, landing y planes | P-139 |

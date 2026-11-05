@@ -17,7 +17,8 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 | `fix/obligatorias-siempre-editables` | PR #54 fusionado: quien crea o edita escribe las obligatorias (P-125, D-108). |
 | `feature/imagen-docker` | PR #55 fusionado: imagen Docker oficial en GHCR (P-123, D-109). Falta la primera etiqueta. |
 | `feature/avisos-plan` | PR #56 fusionado: botón "Ver planes" en los errores de plan (P-122). |
-| `feature/perfil-solo-tablas` | PR #57: perfiles con "Solo las tablas agregadas" por defecto (P-126, D-110). |
+| `feature/perfil-solo-tablas` | PR #57 fusionado: perfiles con "Solo las tablas agregadas" por defecto (P-126, D-110). |
+| `feature/dashboards` | Dashboards (D-111): plan y etapa 1, consultas de resumen (P-127). |
 
 ## Qué funciona hoy
 

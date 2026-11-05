@@ -7,4 +7,6 @@ como `D-xxx` en [decisiones.md](decisiones.md) y se borran de aquí.
 
 ---
 
-Por ahora no hay preguntas abiertas. Q-009, Q-010 y Q-011 se respondieron el 2026-10-30 → D-105.
+Q-009, Q-010 y Q-011 se respondieron el 2026-10-30 → D-105.
+
+Q-012 a Q-015 (dashboards) se respondieron el 2026-11-05 → D-111.

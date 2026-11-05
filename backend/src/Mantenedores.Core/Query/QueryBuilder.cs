@@ -85,6 +85,116 @@ public sealed class QueryBuilder(ISqlDialect dialect)
         return new SqlQuery(dialect.CappedCount(from + where, p.Add(cap + 1)), p.Snapshot());
     }
 
+    /// <summary>
+    /// Consulta de resumen de una tarjeta de dashboard (P-127, D-111). Cada grupo trae su clave (g0, g1), el texto de su
+    /// FK si la tiene (g0l, g1l) y el resultado (v). Se piden <c>Limit + 1</c> grupos para saber si había más.
+    /// <paramref name="schema"/> es el de etiquetas (<c>LabelSchema</c>, D-107): una FK hacia una tabla que no se ve
+    /// igual trae su texto.
+    /// </summary>
+    public SqlQuery BuildAggregate(DatabaseSchema schema, TableInfo table, AggregateRequest request)
+    {
+        if (request.GroupBy.Count > 2) throw new ValidationException("groupBy", "se puede agrupar por dos columnas como máximo");
+        var p = new ParamBag(dialect.ParameterPrefix);
+        var where = BuildWhere(schema, table, new ListRequest { Filters = request.Filters, Exact = request.Exact }, p);
+        if (DateRange(table, request, p) is { } range)
+            where = where.Length == 0 ? $" WHERE {range}" : $"{where} AND {range}";
+
+        var from = dialect.Table(table.Schema, table.Name) + " " + Base;
+        var value = $"{AggregateExpression(table, request)} AS {dialect.Quote("v")}";
+        if (request.GroupBy.Count == 0)
+            return new SqlQuery($"SELECT {value} FROM {from}{where}", p.Snapshot());
+
+        var select = new List<string>();
+        var groupBy = new List<string>();
+        var orderKeys = new List<string>();
+        var joins = new List<string>();
+        for (var i = 0; i < request.GroupBy.Count; i++)
+        {
+            var g = request.GroupBy[i];
+            var col = RequireColumn(table, g.Column);
+            if (!col.IsSortable) throw new ValidationException(col.Name, "no se puede agrupar por esta columna");
+            var raw = $"{Base}.{dialect.Quote(col.Name)}";
+            string key;
+            if (g.Bucket is { } bucket)
+            {
+                if (col.Type is not (LogicalType.Date or LogicalType.DateTime))
+                    throw new ValidationException(col.Name, "solo una fecha se agrupa por día, semana, mes, trimestre o año");
+                key = dialect.DateTrunc(col, raw, bucket);
+            }
+            else key = dialect.SelectExpression(col, raw);
+
+            select.Add($"{key} AS {dialect.Quote($"g{i}")}");
+            groupBy.Add(key);
+            orderKeys.Add(dialect.Quote($"g{i}"));
+
+            // Una FK se agrupa por su clave y trae el texto de la tabla referenciada, como la grilla (P-032).
+            if (g.Bucket is null && LabelTarget(schema, table, col) is var (fk, target, display))
+            {
+                var join = $"a{i}";
+                joins.Add($" LEFT JOIN {dialect.Table(target.Schema, target.Name)} {join} ON {join}.{dialect.Quote(fk.RefColumns[0])} = {raw}");
+                var label = $"{join}.{dialect.Quote(display.Name)}";
+                select.Add($"{label} AS {dialect.Quote($"g{i}l")}");
+                groupBy.Add(label);
+            }
+        }
+        select.Add(value);
+
+        var v = dialect.Quote("v");
+        var order = request.Order switch
+        {
+            AggregateOrder.ValueDesc => [$"{v} DESC", .. orderKeys],
+            AggregateOrder.ValueAsc => [$"{v} ASC", .. orderKeys],
+            _ => orderKeys
+        };
+        var limit = Math.Clamp(request.Limit, 1, AggregateRequest.MaxLimit);
+        var paging = dialect.Paging(p.Add(0L), p.Add((long)limit + 1));
+        var sql = $"SELECT {string.Join(", ", select)} FROM {from}{string.Concat(joins)}{where} " +
+                  $"GROUP BY {string.Join(", ", groupBy)} ORDER BY {string.Join(", ", order)} {paging}";
+        return new SqlQuery(sql, p.Snapshot());
+    }
+
+    /// <summary>La métrica: contar filas o distintos, o sumar, promediar, mínimo y máximo de una columna.</summary>
+    private string AggregateExpression(TableInfo table, AggregateRequest request)
+    {
+        if (request.Function == AggregateFunction.Count) return "COUNT(*)";
+        if (string.IsNullOrWhiteSpace(request.Column)) throw new ValidationException("column", "elija la columna a calcular");
+        var col = RequireColumn(table, request.Column);
+        var expr = $"{Base}.{dialect.Quote(col.Name)}";
+        var numeric = col.Type is LogicalType.Integer or LogicalType.Decimal && !col.IsLargeNumber;
+        switch (request.Function)
+        {
+            case AggregateFunction.CountDistinct:
+                if (!col.IsSortable) throw new ValidationException(col.Name, "no se pueden contar los distintos de esta columna");
+                return $"COUNT(DISTINCT {expr})";
+            case AggregateFunction.Sum or AggregateFunction.Avg:
+                if (!numeric || !col.IsSelectable) throw new ValidationException(col.Name, "solo se suma o promedia una columna numérica");
+                // Enteros a DECIMAL: así la suma no desborda un int y el promedio no se trunca (SQL Server).
+                var operand = col.Type == LogicalType.Integer ? $"CAST({expr} AS DECIMAL(28, 6))" : expr;
+                return $"{(request.Function == AggregateFunction.Sum ? "SUM" : "AVG")}({operand})";
+            default:
+                if (!col.IsSortable || col.Type is not (LogicalType.Integer or LogicalType.Decimal or LogicalType.Date or LogicalType.DateTime or LogicalType.Time) || col.IsLargeNumber)
+                    throw new ValidationException(col.Name, "el mínimo y el máximo son de números o fechas");
+                return $"{(request.Function == AggregateFunction.Min ? "MIN" : "MAX")}({expr})";
+        }
+    }
+
+    /// <summary>El rango de fechas del dashboard: desde (incluido) y hasta (excluido).</summary>
+    private string? DateRange(TableInfo table, AggregateRequest request, ParamBag p)
+    {
+        if (string.IsNullOrWhiteSpace(request.DateColumn) || (string.IsNullOrEmpty(request.From) && string.IsNullOrEmpty(request.To)))
+            return null;
+        var col = RequireColumn(table, request.DateColumn);
+        if (!col.IsFilterable || col.Type is not (LogicalType.Date or LogicalType.DateTime))
+            throw new ValidationException(col.Name, "el rango de fechas necesita una columna de fecha");
+        var expr = $"{Base}.{dialect.Quote(col.Name)}";
+        var parts = new List<string>();
+        if (!string.IsNullOrEmpty(request.From))
+            parts.Add($"{expr} >= {dialect.ParameterFor(col, p.Add(ValueConverter.FromString(col, request.From)))}");
+        if (!string.IsNullOrEmpty(request.To))
+            parts.Add($"{expr} < {dialect.ParameterFor(col, p.Add(ValueConverter.FromString(col, request.To)))}");
+        return string.Join(" AND ", parts);
+    }
+
     /// <summary>¿El listado no filtra nada? Solo entonces sirve el total estimado de la tabla.</summary>
     public static bool IsUnfiltered(ListRequest r) =>
         string.IsNullOrWhiteSpace(r.Search) && r.Filters.All(f => string.IsNullOrEmpty(f.Value)) && r.Exact.Count == 0;

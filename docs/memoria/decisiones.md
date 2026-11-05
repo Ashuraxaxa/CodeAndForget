@@ -1097,6 +1097,21 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **Un interruptor global en Seguridad:** el alcance depende de cada conexión del perfil; un ajuste aparte se contradiría con lo que muestra cada conexión.
   - **Cambiar el formato** (un campo `scope`): no hace falta, `operations` vacío ya significa eso.
 
+### D-111 · Dashboards dinámicos
+- **Estado:** Vigente · 2026-11-05 (P-127 a P-131; respuestas Q-012 a Q-015). Plan completo en [../dashboards.md](../dashboards.md).
+- **Qué:**
+  - **Topes:** por instalación, de 1 / 5 / sin tope dashboards y de 6 / 20 / 50 tarjetas por dashboard (Gratis / Pro / Empresa). Al bajar de plan no se borra nada.
+  - **Permisos:** del perfil (Ver, Crear, Editar y Borrar dashboards) más el dueño de cada dashboard. Se comparte **solo con perfiles**, con "puede ver" o "puede editar".
+  - **Datos:** cada tarjeta usa los permisos de quien mira (D-067) y las tablas del plan (D-106).
+  - **Tarjetas:** número, barras, líneas, torta, top N y tabla dinámica. El mapa va en la etapa 5, sin servicio externo por defecto.
+  - **Consultas:** `QueryBuilder.BuildAggregate`; la agrupación por fecha va en el dialecto (`ISqlDialect.DateBucket`), sin funciones posteriores a las versiones mínimas (D-035).
+  - **Gráficos:** propios en SVG.
+- **Descartado:**
+  - **SQL libre en las tarjetas:** rompe D-004 y los permisos por columna.
+  - **Tope por usuario:** no calza con cómo se cuentan conexiones y usuarios.
+  - **Compartir con usuarios sueltos:** los perfiles ya agrupan a las personas.
+  - **Una librería de gráficos (Recharts):** suma unos 100 KB y no sigue la paleta sola.
+
 ---
 
 ## Propuestas (aún no decididas)

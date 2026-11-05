@@ -1,3 +1,4 @@
+using Mantenedores.Core.Dashboards;
 using Mantenedores.Core.Licensing;
 using System.Security.Cryptography.X509Certificates;
 using Mantenedores.Core.Audit;
@@ -45,6 +46,7 @@ public static class MetadataSetup
             services.AddSingleton<IAuditStore>(new FileAuditStore(Path.Combine(dataDirectory, "audit.jsonl")));
             services.AddSingleton<IAccessTokenStore>(new FileAccessTokenStore(Path.Combine(dataDirectory, "tokens.json")));
             services.AddSingleton<IProposalStore>(new FileProposalStore(Path.Combine(dataDirectory, "proposals.json")));
+            services.AddSingleton<IDashboardStore>(new FileDashboardStore(Path.Combine(dataDirectory, "dashboards.json")));
             services.AddSingleton<IServiceSettings>(new FileServiceSettings(Path.Combine(dataDirectory, "settings.json")));
             return;
         }
@@ -58,6 +60,7 @@ public static class MetadataSetup
         services.AddSingleton<IAuditStore, SqlAuditStore>();
         services.AddSingleton<IAccessTokenStore, SqlAccessTokenStore>();
         services.AddSingleton<IProposalStore, SqlProposalStore>();
+        services.AddSingleton<IDashboardStore, SqlDashboardStore>();
         services.AddSingleton<IServiceSettings, SqlServiceSettings>();
         // Con metadata compartida, las instancias se avisan los cambios de ajustes, esquema y seguridad (D-077).
         services.AddSingleton<IChangeStampStore, SqlChangeStampStore>();

@@ -42,7 +42,7 @@ public sealed class MetadataStoreTests : IDisposable
         var first = await new MetadataMigrator(db).MigrateAsync();
         var second = await new MetadataMigrator(db).MigrateAsync();
 
-        Assert.Equal(["001_conexiones", "002_overrides", "003_schema_snapshot", "004_security", "005_audit", "006_change_stamp", "007_tokens_propuestas", "008_ajustes_servicio"], first);
+        Assert.Equal(["001_conexiones", "002_overrides", "003_schema_snapshot", "004_security", "005_audit", "006_change_stamp", "007_tokens_propuestas", "008_ajustes_servicio", "009_dashboards"], first);
         Assert.Empty(second);
         Assert.True(File.Exists(Path.Combine(_root, "mantenedores.db")));
     }
@@ -226,6 +226,46 @@ public sealed class MetadataStoreTests : IDisposable
         await store.DeleteAllAsync("ventas", default);
         Assert.Empty(await store.ListAsync("ventas", default));
         Assert.Single(await store.ListAsync("otra", default)); // las otras conexiones no se tocan
+    }
+
+    [Theory]
+    [InlineData("Sqlite")]
+    [InlineData("File")]
+    public async Task Los_dashboards_se_guardan_con_sus_tarjetas(string provider)
+    {
+        await using var sp = Services(_root, ("Metadata:Provider", provider));
+        await sp.InitializeMetadataAsync(_root);
+        var store = sp.GetRequiredService<Mantenedores.Core.Dashboards.IDashboardStore>();
+        var d = new Mantenedores.Core.Dashboards.Dashboard
+        {
+            Id = "d1", Name = "Ventas", Owner = "ana", CreatedAt = DateTimeOffset.Parse("2026-11-05T10:00:00Z"),
+            Shares = [new("ventas", CanEdit: true)],
+            Widgets =
+            [
+                new()
+                {
+                    Id = "w1", Type = Mantenedores.Core.Dashboards.WidgetType.Pivot, Connection = "demo", Schema = "ventas", Table = "producto",
+                    Query = new Mantenedores.Core.Query.AggregateRequest
+                    {
+                        Function = Mantenedores.Core.Query.AggregateFunction.Avg, Column = "precio",
+                        GroupBy = [new("creado_en", Mantenedores.Core.Query.DateBucket.Week), new("categoria_id")]
+                    }
+                }
+            ]
+        };
+        await store.SaveAsync(d, default);
+        await store.SaveAsync(d with { Name = "Ventas del mes" }, default);
+
+        var back = Assert.Single(await store.ListAsync(default));
+        Assert.Equal("Ventas del mes", back.Name);
+        Assert.Equal(d.CreatedAt, back.CreatedAt);
+        Assert.Equal(d.Shares, back.Shares);
+        var w = Assert.Single(back.Widgets);
+        Assert.Equal(Mantenedores.Core.Dashboards.WidgetType.Pivot, w.Type);
+        Assert.Equal(Mantenedores.Core.Query.DateBucket.Week, w.Query.GroupBy[0].Bucket);
+        Assert.Equal("categoria_id", w.Query.GroupBy[1].Column);
+        Assert.True(await store.DeleteAsync("d1", default));
+        Assert.Null(await store.GetAsync("d1", default));
     }
 
     [Theory]

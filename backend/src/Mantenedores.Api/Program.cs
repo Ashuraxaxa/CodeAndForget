@@ -104,6 +104,7 @@ builder.Services.AddSingleton(sp => new SmtpChangeNotifier(notifications, sp.Get
 builder.Services.AddSingleton<IChangeNotifier>(sp => sp.GetRequiredService<SmtpChangeNotifier>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SmtpChangeNotifier>());
 builder.Services.AddSingleton<CrudService>();
+builder.Services.AddSingleton<Mantenedores.Core.Dashboards.DashboardService>();
 builder.Services.AddSingleton<OverrideCopier>();
 
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -162,6 +163,7 @@ app.MapData();
 app.MapSecurity();
 app.MapTokens();
 app.MapAudit();
+app.MapDashboards();
 app.MapMantenedoresMcp(mcp);
 app.MapLicense();
 // Una ruta /api desconocida es 404; cualquier otra ruta la resuelve el router del frontend.

@@ -5,9 +5,9 @@ using Mantenedores.Core.Security;
 namespace Mantenedores.Metadata;
 
 /// <summary>Lista guardada en un archivo JSON (modo File, una sola instancia): para tokens y propuestas.</summary>
-internal sealed class JsonListFile<T>(string path)
+internal sealed class JsonListFile<T>(string path, JsonSerializerOptions? options = null)
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    private readonly JsonSerializerOptions Json = new(options ?? new JsonSerializerOptions(JsonSerializerDefaults.Web)) { WriteIndented = true };
     private readonly SemaphoreSlim _lock = new(1, 1);
 
     public async Task<List<T>> ReadAsync(CancellationToken ct)

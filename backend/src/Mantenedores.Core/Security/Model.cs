@@ -56,6 +56,9 @@ public sealed record SecurityProfile
     /// <summary>Permisos de la app: ConfigureTables, ManageConnections, ManageSecurity (D-053, D-066).</summary>
     public IReadOnlyList<string> AppPermissions { get; init; } = [];
 
+    /// <summary>Qué puede hacer con los dashboards (P-128, D-111): "view", "create", "update", "delete".</summary>
+    public IReadOnlyList<string> Dashboards { get; init; } = [];
+
     /// <summary>Permisos sobre los datos, por id de conexión ("*" = todas).</summary>
     public IReadOnlyDictionary<string, ConnectionRule> Connections { get; init; } = new Dictionary<string, ConnectionRule>();
 }

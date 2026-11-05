@@ -390,6 +390,8 @@ export interface SecurityProfile {
   roles: string[]
   users: string[]
   appPermissions: string[]
+  /** Dashboards (P-128): view, create, update, delete. */
+  dashboards?: DataOperation[]
   /** Por id de conexión; "*" = todas. */
   connections: Record<string, ConnectionRule>
 }
@@ -516,7 +518,7 @@ export interface PlanInfo {
   licenseError?: string | null
   trialEndsAt?: string | null
   trialAvailable: boolean
-  limits: { plan: PlanName; users?: number | null; connections?: number | null; tables?: number | null; auditDays?: number | null }
+  limits: { plan: PlanName; users?: number | null; connections?: number | null; tables?: number | null; auditDays?: number | null; dashboards?: number | null; widgets?: number }
   usage: { users: number; connections: number; tables: number }
   requiresBusiness: string[]
   freeTables: string[]

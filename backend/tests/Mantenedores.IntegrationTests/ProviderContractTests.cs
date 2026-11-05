@@ -1,3 +1,4 @@
+using Mantenedores.Core.Dashboards;
 using Mantenedores.Core.Licensing;
 using System.Text.Json;
 using Mantenedores.Core.Errors;
@@ -342,6 +343,95 @@ public abstract class ProviderContractTests<TFixture>(TFixture db) : IClassFixtu
                 GroupBy = [new AggregateGroup(N("categoria_id"))], Filters = SampleProducts(N)
             }, default);
             Assert.Equal("Bebidas", byCategory.Rows[0].Label);
+        }
+        finally { Db.Access.Current = UserAccess.All; }
+    }
+
+    // ---------- Dashboards (P-128, D-111) ----------
+
+    private DashboardWidget CategoryBars(string title = "Por categoría") => new()
+    {
+        Title = title, Type = WidgetType.Bar, Connection = Conn, Schema = Schema, Table = N("producto"),
+        Query = new AggregateRequest { GroupBy = [new AggregateGroup(N("categoria_id"))], Filters = SampleProducts(N) }
+    };
+
+    private static SecurityProfile DashboardProfile(string id, string user, string[] dashboards, string conn, string table) => new()
+    {
+        Id = id, Name = id, Users = [user], Dashboards = dashboards,
+        Connections = new Dictionary<string, ConnectionRule>
+        {
+            [conn] = new() { Tables = new Dictionary<string, TableRule> { [table] = new() { Operations = ["view"] } } }
+        }
+    };
+
+    [Fact]
+    public async Task Dashboards_respetan_permisos_compartir_y_topes()
+    {
+        var store = new InMemoryDashboardStore();
+        var free = new DashboardService(store, Db.Schemas, Db.Crud, new FixedPlan(new PlanAccess(null, null, Plan.Free)));
+        var business = new DashboardService(store, Db.Schemas, Db.Crud, new FixedPlan(PlanAccess.All));
+        var producto = $"{Schema}.{N("producto")}";
+        var ana = DashboardProfile("a", "ana", ["view", "create", "update", "delete"], Conn, producto);
+        var luis = DashboardProfile("v", "luis", ["view", "update"], Conn, producto);
+        UserAccess As(string user) => UserAccess.For(user, [], isAdmin: false, [ana, luis]);
+        try
+        {
+            Db.Access.Current = As("ana");
+            // Una tarjeta mal armada no se guarda y dice cuál es.
+            var bad = await Assert.ThrowsAsync<ValidationException>(() => free.CreateAsync(new DashboardInput("Malo", null,
+                [CategoryBars() with { Type = WidgetType.Number }], null), default));
+            Assert.Contains("widgets[0].groupBy", bad.Errors.Keys);
+
+            var mine = await free.CreateAsync(new DashboardInput("  Ventas  ", null, [CategoryBars()], null), default);
+            Assert.Equal("Ventas", mine.Dashboard.Name);
+            Assert.True(mine.CanEdit && mine.CanDelete && mine.CanShare);
+            var widget = Assert.Single(mine.Dashboard.Widgets);
+            Assert.False(string.IsNullOrEmpty(widget.Id));
+            var data = await free.WidgetDataAsync(mine.Dashboard.Id, widget.Id, null, null, default);
+            Assert.Equal("Bebidas", data.Rows[0].Label);
+
+            // Gratis: un dashboard por instalación, y hasta 6 tarjetas.
+            await Assert.ThrowsAsync<PlanLimitException>(() => free.CreateAsync(new DashboardInput("Otro", null, [], null), default));
+            await Assert.ThrowsAsync<PlanLimitException>(() => free.UpdateAsync(mine.Dashboard.Id,
+                new DashboardInput("Ventas", null, Enumerable.Range(0, 7).Select(i => CategoryBars($"t{i}")).ToList(), null), default));
+
+            // Privado: Luis no lo ve ni sabe que existe.
+            Db.Access.Current = As("luis");
+            Assert.Empty((await free.ListAsync(default)).Items);
+            await Assert.ThrowsAsync<NotFoundException>(() => free.GetAsync(mine.Dashboard.Id, default));
+
+            // Compartido con su perfil, solo para ver: lo abre con sus permisos, pero no lo edita ni lo comparte.
+            Db.Access.Current = As("ana");
+            await free.UpdateAsync(mine.Dashboard.Id, new DashboardInput("Ventas", null, [CategoryBars()], [new DashboardShare("v")]), default);
+            Db.Access.Current = As("luis");
+            var shared = Assert.Single((await free.ListAsync(default)).Items);
+            Assert.False(shared.CanEdit || shared.CanDelete || shared.CanShare);
+            Assert.Equal("Bebidas", (await free.WidgetDataAsync(mine.Dashboard.Id, shared.Dashboard.Widgets[0].Id, null, null, default)).Rows[0].Label);
+            await Assert.ThrowsAsync<ForbiddenException>(() => free.UpdateAsync(mine.Dashboard.Id, new DashboardInput("Mío", null, [], null), default));
+            await Assert.ThrowsAsync<ForbiddenException>(() => free.CreateAsync(new DashboardInput("Mío", null, [], null), default));
+
+            // Con "puede editar" lo edita, pero no cambia con quién se comparte; borrar le falta en su perfil.
+            Db.Access.Current = As("ana");
+            await free.UpdateAsync(mine.Dashboard.Id, new DashboardInput("Ventas", null, [CategoryBars()], [new DashboardShare("v", CanEdit: true)]), default);
+            Db.Access.Current = As("luis");
+            var edited = await free.UpdateAsync(mine.Dashboard.Id, new DashboardInput("Ventas de Luis", null, [CategoryBars()], []), default);
+            Assert.Equal("Ventas de Luis", edited.Dashboard.Name);
+            Assert.Single(edited.Dashboard.Shares);
+            await Assert.ThrowsAsync<ForbiddenException>(() => free.DeleteAsync(mine.Dashboard.Id, default));
+
+            // Al bajar de plan no se borra nada: el más nuevo queda bloqueado hasta volver a subir.
+            Db.Access.Current = As("ana");
+            var second = await business.CreateAsync(new DashboardInput("Segundo", null, [], null), default);
+            var list = await free.ListAsync(default);
+            Assert.Equal(2, list.Used);
+            Assert.True(list.Items.Single(i => i.Dashboard.Id == second.Dashboard.Id).Locked);
+            Assert.False(list.Items.Single(i => i.Dashboard.Id == mine.Dashboard.Id).Locked);
+            await Assert.ThrowsAsync<PlanLimitException>(() => free.GetAsync(second.Dashboard.Id, default));
+            Assert.False((await business.GetAsync(second.Dashboard.Id, default)).Locked);
+
+            await free.DeleteAsync(second.Dashboard.Id, default);
+            await free.DeleteAsync(mine.Dashboard.Id, default);
+            Assert.Empty(await store.ListAsync(default));
         }
         finally { Db.Access.Current = UserAccess.All; }
     }

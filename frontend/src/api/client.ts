@@ -1,8 +1,7 @@
 import type {
   ImportMode, ImportResult, TransferFormat, TreeNode,
   AuditPage, SecurityInfo, SecurityProfile, SecurityUser, ActionResult, Routine,
-  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult, Suggestion, AccessTokenInfo, OverrideProposal, PlanInfo, FreeTables,
-} from './types'
+  Connection, ConnectionInput, LookupItem, OverridePreview, PagedResult, Row, SchemaDiff, SchemaSummary, TableMeta, TableOverride, EngineInfo, OverrideCopyRequest, OverrideCopyResult, Suggestion, AccessTokenInfo, OverrideProposal, PlanInfo, FreeTables, DataOperation } from './types'
 import { t, translateServer } from '../i18n'
 
 /** Error de la API con el formato ProblemDetails de ASP.NET. */
@@ -157,6 +156,8 @@ export const api = {
     /** No hay perfiles: todos ven y editan todos los datos (D-062). */
     securityOpen: boolean
     profiles: string[]
+    /** Qué puede hacer con los dashboards (P-128): view, create, update, delete. */
+    dashboards?: DataOperation[]
   }>('GET', 'api/auth/me'),
   login: (username: string, password: string) =>
     request<{ token: string; expiresAt: string; username: string }>('POST', 'api/auth/login', { username, password }),

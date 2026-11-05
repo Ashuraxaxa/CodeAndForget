@@ -225,6 +225,8 @@ export const en: Messages = {
   'Ve todas las tablas con estas operaciones; una tabla agregada usa las suyas.': 'It sees all tables with these operations; an added table uses its own.',
   'Ver planes': 'See plans',
   '¿Quieres ver los planes?': 'Do you want to see the plans?',
+  'Dashboards': 'Dashboards',
+  'Para ver uno ajeno, además tiene que estar compartido con este perfil; para editarlo o borrarlo, compartido con "puede editar".': 'To see someone else\'s, it must also be shared with this profile; to edit or delete it, shared with "can edit".',
   'Nuevo registro · {table}': 'New record · {table}',
   'Historial': 'History',
   'Volver': 'Back',

@@ -17,9 +17,10 @@ public static class AuthEndpoints
     /// <summary>
     /// <c>Permissions</c>: lo que puede hacer el usuario (D-053), para que la UI muestre u oculte acciones.
     /// <c>SecurityOpen</c>: no hay perfiles, así que cualquiera ve y edita todos los datos (D-062).
+    /// <c>Dashboards</c>: qué puede hacer con los dashboards (view, create, update, delete; P-128).
     /// </summary>
     public sealed record MeResponse(string? Name, IReadOnlyList<string> Roles, bool IsAdmin, IReadOnlyList<string> Permissions,
-        bool SecurityOpen, IReadOnlyList<string> Profiles);
+        bool SecurityOpen, IReadOnlyList<string> Profiles, IReadOnlyList<string>? Dashboards = null);
 
     public static void MapAuth(this IEndpointRouteBuilder app)
     {
@@ -56,7 +57,8 @@ public static class AuthEndpoints
             var roles = Permissions.Roles(user);
             var mine = await access.ForAsync(user, http, ct);
             return new MeResponse(user.Identity?.Name, roles, ClaimsMapper.IsAdmin(roles, options.Value.AdminRoles),
-                await access.PermissionsAsync(user, http, ct), mine.IsOpen, mine.ProfileNames);
+                await access.PermissionsAsync(user, http, ct), mine.IsOpen, mine.ProfileNames,
+                Core.Security.DataOperations.ToNames(mine.Dashboards));
         }).RequireAuthorization();
     }
 }

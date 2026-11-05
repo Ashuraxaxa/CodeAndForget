@@ -63,8 +63,9 @@ perfil, en una sección nueva "Dashboards". Los administradores tienen todo.
 
 ## 5. Cómo se guarda
 
-- Migración **009** en SQLite, PostgreSQL y SQL Server: `mnt_dashboard` (id, nombre, dueño, definición JSON, fechas)
-  y `mnt_dashboard_share` (dashboard, perfil, puede editar).
+- Migración **009** en SQLite, PostgreSQL y SQL Server: `mnt_dashboard` (id, nombre, dueño, definición JSON y fechas).
+  Con quién se comparte va dentro de la definición, junto a las tarjetas: son pocos dashboards y se filtran en memoria.
+  En modo archivo, `dashboards.json`.
 - La definición JSON tiene las tarjetas: tipo, conexión, tabla, métrica, agrupación, filtros, tamaño y orden. Se
   valida al guardar contra el esquema (tabla y columnas existen, la métrica cabe en el tipo de columna).
 - Si una tabla o columna cambia o desaparece, la tarjeta muestra el aviso en vez de fallar (como los ajustes sin
@@ -76,8 +77,7 @@ perfil, en una sección nueva "Dashboards". Los administradores tienen todo.
 |---|---|---|
 | GET | `/api/dashboards` | Los que puede ver, con su estado de plan |
 | POST | `/api/dashboards` | Crear (permiso y tope) |
-| GET / PUT / DELETE | `/api/dashboards/{id}` | Ver, editar, borrar |
-| PUT | `/api/dashboards/{id}/shares` | Compartir |
+| GET / PUT / DELETE | `/api/dashboards/{id}` | Ver, editar (con `shares`, solo el dueño o un administrador) y borrar |
 | POST | `/api/dashboards/{id}/widgets/{w}/data` | Datos de una tarjeta, con el filtro de fechas |
 | POST | `/api/dashboards/preview` | Datos de una tarjeta mientras se edita, sin guardar |
 

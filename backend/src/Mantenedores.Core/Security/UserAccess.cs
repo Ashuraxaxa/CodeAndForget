@@ -14,9 +14,10 @@ public sealed class UserAccess
 {
     private readonly IReadOnlyList<SecurityProfile> _profiles;
 
-    private UserAccess(bool unrestricted, IReadOnlyList<SecurityProfile> profiles, bool open, string? username = null)
+    private UserAccess(bool unrestricted, IReadOnlyList<SecurityProfile> profiles, bool open, string? username = null, bool admin = false)
     {
         Username = username;
+        IsAdmin = admin;
         Unrestricted = unrestricted;
         _profiles = profiles;
         IsOpen = open;
@@ -28,24 +29,39 @@ public sealed class UserAccess
     /// <summary>Sin restricciones de datos (administrador o seguridad abierta).</summary>
     public bool Unrestricted { get; }
 
+    /// <summary>Administrador (<c>Auth:AdminRoles</c>): ve y administra todos los dashboards, también los privados.</summary>
+    public bool IsAdmin { get; }
+
     /// <summary>No hay ningún perfil definido: la seguridad de datos está abierta.</summary>
     public bool IsOpen { get; }
 
     public IReadOnlyList<string> ProfileNames => _profiles.Select(p => p.Name).ToList();
 
-    public static readonly UserAccess All = new(true, [], open: true);
+    public static readonly UserAccess All = new(true, [], open: true, admin: true);
 
     /// <param name="allProfiles">Todos los perfiles de la app.</param>
     public static UserAccess For(string? username, IEnumerable<string> roles, bool isAdmin, IReadOnlyList<SecurityProfile> allProfiles)
     {
-        if (allProfiles.Count == 0) return new UserAccess(true, [], open: true, username);
+        if (allProfiles.Count == 0) return new UserAccess(true, [], open: true, username, isAdmin);
         var roleSet = roles.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var mine = allProfiles.Where(p =>
                 p.Roles.Any(roleSet.Contains) ||
                 (username is not null && p.Users.Contains(username, StringComparer.OrdinalIgnoreCase)))
             .ToList();
-        return new UserAccess(isAdmin, mine, open: false, username);
+        return new UserAccess(isAdmin, mine, open: false, username, isAdmin);
     }
+
+    /// <summary>Ids de sus perfiles: un dashboard compartido con uno de ellos se le muestra (D-111).</summary>
+    public IReadOnlySet<string> ProfileIds => _profiles.Select(p => p.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Qué puede hacer con los dashboards (P-128): sin restricciones (administrador o sin perfiles), todo; si no, la
+    /// unión de sus perfiles. Solo cuentan View, Create, Update y Delete.
+    /// </summary>
+    public DataOperation Dashboards => Unrestricted
+        ? DataOperation.View | DataOperation.Create | DataOperation.Update | DataOperation.Delete
+        : _profiles.Aggregate(DataOperation.None, (acc, p) => acc | DataOperations.Parse(p.Dashboards))
+          & (DataOperation.View | DataOperation.Create | DataOperation.Update | DataOperation.Delete);
 
     /// <summary>Permisos de la app que dan sus perfiles (se suman a los de los roles de la configuración).</summary>
     public IReadOnlyCollection<string> AppPermissions =>

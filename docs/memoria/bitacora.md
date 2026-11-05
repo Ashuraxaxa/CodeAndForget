@@ -4,6 +4,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · Dashboards, etapa 4: editor (P-130)
+- "Editar" en el dashboard (y al crearlo se abre ya en edición): nombre, descripción, tarjetas, tamaño, orden (arrastrando o con flechas) y compartir con perfiles ("puede ver" o "puede editar").
+- **Formulario de tarjeta:** conexión, tabla, tipo, cálculo, agrupaciones (con período si es fecha), orden, tope, filtros y la fecha del período del dashboard.
+- **Vista previa:** se pide medio segundo después del último cambio; la tarjeta se ve igual que en el dashboard (`WidgetView`).
+- **API:** `GET /api/dashboards/profiles` para elegir perfiles sin tener que administrar la seguridad.
+
 ## 2026-11-05 · Dashboards, etapa 3: ver (P-129)
 - **Pantallas:** menú "Dashboards" (solo con *Ver* en el perfil), lista para crear por nombre y borrar, y página del dashboard con el período (7, 30 o 90 días, este mes, este año o todo).
 - **Tarjetas:** número, barras horizontales, líneas, dona, top N y tabla dinámica, en SVG propio con tooltip.

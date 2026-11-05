@@ -13,6 +13,7 @@ public static class DashboardEndpoints
         DateTimeOffset UpdatedAt, bool Shared, bool CanEdit, bool CanDelete, bool CanShare, bool Locked);
     public sealed record ListResponse(IReadOnlyList<DashboardSummary> Items, bool CanCreate, int Used, int? Limit, int WidgetLimit);
     public sealed record DataRequest(string? From, string? To);
+    public sealed record ProfileOption(string Id, string Name);
     public sealed record PreviewRequest(DashboardWidget Widget, string? From, string? To);
 
     public static void MapDashboards(this IEndpointRouteBuilder app)
@@ -23,6 +24,16 @@ public static class DashboardEndpoints
         {
             var list = await dashboards.ListAsync(ct);
             return new ListResponse(list.Items.Select(Summary).ToList(), list.CanCreate, list.Used, list.Limit, list.WidgetLimit);
+        });
+
+        // Para compartir (D-111): solo id y nombre de los perfiles, a quien puede crear o editar dashboards, aunque no
+        // administre la seguridad.
+        group.MapGet("/profiles", async (Mantenedores.Core.Services.SchemaService schemas, Mantenedores.Core.Security.ISecurityStore security, CancellationToken ct) =>
+        {
+            var access = await schemas.AccessAsync(ct);
+            if ((access.Dashboards & (Mantenedores.Core.Security.DataOperation.Create | Mantenedores.Core.Security.DataOperation.Update)) == 0)
+                throw new Mantenedores.Core.Errors.ForbiddenException("No tiene permiso para crear ni editar dashboards.");
+            return (await security.ListProfilesAsync(ct)).OrderBy(p => p.Name).Select(p => new ProfileOption(p.Id, p.Name));
         });
 
         group.MapGet("/{id}", (string id, DashboardService dashboards, CancellationToken ct) => dashboards.GetAsync(id, ct));

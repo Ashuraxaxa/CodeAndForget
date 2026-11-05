@@ -1,14 +1,15 @@
-import { ArrowLeft, LayoutDashboard, Lock, Plus, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, LayoutDashboard, Lock, Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { DashboardEditor } from './DashboardEditor'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { DashboardWidget } from '../api/types'
 import { ErrorText } from '../components/ErrorText'
-import { BarChart, DonutChart, LineChart, NumberTile, PivotTable, TopTable } from '../components/charts'
+import { WidgetView } from '../components/WidgetView'
 import { formatInstant } from '../lib/format'
 import { useT } from '../i18n'
-import { metricLabel } from '../lib/chartFormat'
+import { rangeOf, type RangeId } from '../lib/dashboardRange'
 
 /** Lista de dashboards (P-129, D-111): los propios y los compartidos con sus perfiles. */
 export function DashboardsPage() {
@@ -19,7 +20,7 @@ export function DashboardsPage() {
   const [name, setName] = useState('')
   const create = useMutation({
     mutationFn: () => api.createDashboard({ name: name.trim() }),
-    onSuccess: v => { qc.invalidateQueries({ queryKey: ['dashboards'] }); navigate(`/dashboards/${v.dashboard.id}`) },
+    onSuccess: v => { qc.invalidateQueries({ queryKey: ['dashboards'] }); navigate(`/dashboards/${v.dashboard.id}?editar=1`) },
   })
   const remove = useMutation({ mutationFn: api.deleteDashboard, onSuccess: () => qc.invalidateQueries({ queryKey: ['dashboards'] }) })
 
@@ -83,26 +84,16 @@ export function DashboardsPage() {
 
 // ---------- Un dashboard ----------
 
-type RangeId = 'all' | '7d' | '30d' | '90d' | 'month' | 'year'
-
-/** Desde (incluido) y hasta (excluido), como fechas locales AAAA-MM-DD. */
-function rangeOf(id: RangeId): { from?: string; to?: string } {
-  if (id === 'all') return {}
-  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  const today = new Date()
-  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-  const from = id === 'month' ? new Date(today.getFullYear(), today.getMonth(), 1)
-    : id === 'year' ? new Date(today.getFullYear(), 0, 1)
-    : new Date(today.getFullYear(), today.getMonth(), today.getDate() - (id === '7d' ? 6 : id === '30d' ? 29 : 89))
-  return { from: iso(from), to: iso(tomorrow) }
-}
-
 const RANGE_KEY = 'celdo.dashboard.range'
 
 export function DashboardPage() {
   const t = useT()
   const { id = '' } = useParams()
   const view = useQuery({ queryKey: ['dashboard', id], queryFn: () => api.dashboard(id) })
+  const plan = useQuery({ queryKey: ['plan'], queryFn: api.plan, staleTime: 60_000 })
+  const [params, setParams] = useSearchParams()
+  const editing = params.get('editar') === '1' && view.data?.canEdit === true
+  const setEditing = (on: boolean) => setParams(p => { const n = new URLSearchParams(p); if (on) n.set('editar', '1'); else n.delete('editar'); return n }, { replace: true })
   const [range, setRange] = useState<RangeId>(() => {
     try { return (localStorage.getItem(RANGE_KEY) as RangeId) || '30d' } catch { return '30d' }
   })
@@ -130,6 +121,8 @@ export function DashboardPage() {
           <h1>{d.name}</h1>
           {d.description && <p className="muted">{d.description}</p>}
         </div>
+        <div className="actions">
+        {view.data.canEdit && !editing && <button type="button" onClick={() => setEditing(true)}><Pencil size={15} aria-hidden />{t('Editar')}</button>}
         {usesDates && (
           <label className="dashboard-range">
             <span className="muted small">{t('Período')}</span>
@@ -138,13 +131,16 @@ export function DashboardPage() {
             </select>
           </label>
         )}
+        </div>
       </div>
 
-      {d.widgets.length === 0 ? (
+      {editing && <DashboardEditor view={view.data} widgetLimit={plan.data?.limits.widgets} range={range} onDone={() => setEditing(false)} />}
+
+      {editing ? null : d.widgets.length === 0 ? (
         <div className="card empty-dashboard">
           <LayoutDashboard size={28} aria-hidden />
           <p>{t('Este dashboard todavía no tiene tarjetas.')}</p>
-          <p className="muted small">{t('El editor de tarjetas llega en la próxima versión.')}</p>
+          {view.data.canEdit && <button type="button" onClick={() => setEditing(true)}><Plus size={15} aria-hidden />{t('Agregar tarjeta')}</button>}
         </div>
       ) : (
         <div className="dashboard-grid">
@@ -156,39 +152,11 @@ export function DashboardPage() {
 }
 
 function WidgetCard({ dashboard, widget, range }: { dashboard: string; widget: DashboardWidget; range: { from?: string; to?: string } }) {
-  const t = useT()
   const data = useQuery({
     queryKey: ['dashboard', dashboard, 'widget', widget.id, range.from, range.to],
     queryFn: () => api.widgetData(dashboard, widget.id, range.from, range.to),
     staleTime: 60_000,
     retry: false,
   })
-  const bucket = widget.query.groupBy[0]?.bucket
-  const metric = metricLabel(t, widget)
-  const rows = data.data?.rows ?? []
-
-  let body: React.ReactNode = null
-  if (data.isLoading) body = <div className="chart-skeleton" aria-busy="true" />
-  else if (data.error) body = <div className="widget-error"><ErrorText error={data.error} /></div>
-  else if (widget.type !== 'Number' && rows.length === 0) body = <p className="muted small">{t('Sin datos en este período.')}</p>
-  else switch (widget.type) {
-    case 'Number': body = <NumberTile value={rows[0]?.value} caption={metric} />; break
-    case 'Bar': body = <BarChart rows={rows} bucket={bucket} />; break
-    case 'Line': body = <LineChart rows={rows} bucket={bucket} />; break
-    case 'Pie': body = <DonutChart rows={rows} bucket={bucket} />; break
-    case 'Top': body = <TopTable rows={rows} bucket={bucket} groupLabel={widget.query.groupBy[0]?.column ?? ''} valueLabel={metric} />; break
-    case 'Pivot': body = <PivotTable rows={rows} bucket={bucket} bucket2={widget.query.groupBy[1]?.bucket} />; break
-    default: body = <p className="muted small">{t('Este tipo de tarjeta llega en una próxima versión.')}</p>
-  }
-
-  return (
-    <section className={`card widget widget-${widget.size.toLowerCase()}`}>
-      <header className="widget-head">
-        <h2 title={widget.title}>{widget.title || metric}</h2>
-        {widget.type !== 'Number' && <span className="muted small">{metric}</span>}
-      </header>
-      {body}
-      {data.data?.truncated && widget.type !== 'Top' && <p className="muted small">{t('Se muestran los primeros {n} grupos.', { n: rows.length })}</p>}
-    </section>
-  )
+  return <WidgetView widget={widget} data={data.data} isLoading={data.isLoading} error={data.error} />
 }

@@ -741,3 +741,24 @@ a.user-chip:hover { background: var(--hover); color: var(--text); }
 .chart-tip { position: absolute; z-index: 5; pointer-events: none; display: grid; gap: 2px; padding: 6px 8px; min-width: 120px; max-width: 220px;
   background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow); font-size: 0.82rem; }
 .chart-tip span { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- Editor de dashboards (P-130) ---------- */
+.dashboard-editor { display: grid; gap: 14px; margin-top: 14px; }
+.editor-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.editor-head h2 { margin: 0; font-size: 1.05rem; }
+.widget-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+.widget-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+.widget-item.dragging { opacity: 0.5; }
+.widget-item-name { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.widget-item-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.widget-item select { width: auto; }
+.share-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+.share-list strong { flex: 1; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / 0.45); }
+.modal { width: min(1100px, 100%); max-height: calc(100vh - 32px); overflow: auto; padding: 16px 18px; box-shadow: var(--shadow-lg); }
+.widget-form-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 18px; align-items: start; }
+.widget-form-fields { display: grid; gap: 10px; }
+.widget-form-preview { position: sticky; top: 0; display: grid; gap: 8px; }
+.widget-form-preview .widget { box-shadow: none; }
+@media (max-width: 860px) { .widget-form-body { grid-template-columns: 1fr; } .widget-form-preview { position: static; } }
+@media (max-width: 520px) { .modal { padding: 12px; } .widget-item { flex-wrap: wrap; } .widget-item-name { flex-basis: calc(100% - 30px); } }

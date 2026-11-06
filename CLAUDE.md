@@ -34,6 +34,7 @@ cd backend && dotnet test tests/Mantenedores.IntegrationTests            # bater
 cd backend && dotnet run --project src/Mantenedores.Api   # API en :5080 (admin / admin en Development)
 cd frontend && npm install && npm run dev            # UI en :5173 (proxy /api → :5080)
 cd frontend && npm run lint && npm run build
+cd frontend && npm run responsive                  # con la app corriendo: todas las pantallas en 7 anchos (convenciones.md)
 docker compose up --build                            # app + bases de ejemplo en :8080
 ```
 

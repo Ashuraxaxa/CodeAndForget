@@ -4,6 +4,13 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-06 · Revisión responsive de todas las pantallas (P-141)
+- **Recorrido:** 24 pantallas en 7 tamaños (360 a 2560 px), con capturas. No había desbordes de página; los problemas eran de forma:
+  - **Tablet vertical (768):** el menú de tablas (264 px fijos) dejaba la grilla, el registro y Configurar en unos 500 px. Ahora pasa a desplegable desde 900 px.
+  - **Pantalla ancha (2560):** Seguridad, Auditoría, Tokens, Plan y Conexiones se estiraban con el contenido a la izquierda. Ahora se centran con `--page-max` (1600 px); los dashboards, con 1760 px.
+  - **Teléfono:** los filtros de Auditoría van uno por línea y el enlace público queda a todo el ancho.
+- **Estándar (D-118):** sección "Responsive" en `convenciones.md` y `npm run responsive` (`frontend/scripts/responsive-check.cjs`): 19 pantallas × 7 tamaños, sin desbordes.
+
 ## 2026-11-06 · Embeber, etapa 6: documentación y venta (P-139)
 - **`docs/embeber.md`:** ejemplos para firmar en Node, Python y C# sin librerías. Los tres canjearon un token contra la API real (200) y un token alterado dio 401.
 - **README (español e inglés):** fila "Embeber en tus apps" y el documento en la tabla.

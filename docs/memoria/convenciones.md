@@ -39,8 +39,21 @@
 - TypeScript estricto. Los tipos de `src/api/types.ts` reflejan los modelos de la API: si cambia la API, se actualizan.
 - Datos del servidor con TanStack Query. Claves de caché: `['meta', conn, schema, table]`, `['rows', ...]`, `['lookup', ...]`.
 - `localStorage` solo para el token, siempre dentro de `try/catch`.
-- Debe funcionar en pantallas de teléfono (≥ 360 px).
+- Debe funcionar de 360 a 2560 px de ancho: ver "Responsive" abajo.
 - Antes de hacer push: `npm run lint` y `npm run build` sin errores.
+
+## Responsive (estándar, P-141, D-118)
+
+Toda pantalla nueva o cambiada se revisa en **teléfono, tablet, PC y pantalla ancha** antes del PR:
+
+- **Tamaños:** 360, 390, 768, 1024, 1366, 1920 y 2560 px de ancho. `cd frontend && npm run responsive` los recorre, avisa los desbordes y deja capturas; las capturas se miran, no solo el resultado.
+- **Cortes de ancho** (no inventar otros sin motivo):
+  - **2560:** pantalla ancha. Las páginas de primer nivel se centran con `--page-max` (1600 px) y los dashboards con 1760 px; el formulario de un registro, 1440 px.
+  - **900 o menos (tablet vertical):** el menú de tablas pasa a desplegable ("Tablas").
+  - **760 o menos (teléfono):** la barra superior se compacta, las búsquedas y acciones ocupan todo el ancho y el paginador se resume.
+  - **520 o menos (teléfono chico):** la navegación pasa a íconos y los filtros van uno por línea.
+- **Nada desborda a lo ancho de la página.** Una tabla ancha se desplaza dentro de `.table-wrap`, nunca la página entera.
+- **Toques de al menos 40 px:** los botones de solo ícono no se achican en teléfono.
 
 ## Git y PR (ver D-019)
 

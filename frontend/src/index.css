@@ -341,15 +341,19 @@ a.chip:hover { border-color: var(--primary); background: var(--primary-soft); }
 }
 .fk-options button:hover { background: var(--hover); }
 
-/* Teléfono: la barra de tablas pasa a ser un menú desplegable */
-@media (max-width: 760px) {
-  .topbar { gap: 10px; padding: 0 12px; }
-  .user-name { display: none; }
-  .topnav { gap: 0; }
+/* Tablet vertical y teléfono (P-141): la barra de tablas pasa a ser un menú desplegable, así la grilla y el
+   formulario usan todo el ancho en vez de quedar en 500 px al lado de un menú de 264 px. */
+@media (max-width: 900px) {
   .workspace { grid-template-columns: 1fr; }
   .sidebar { display: none; position: static; max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
   .workspace.menu-open .sidebar { display: block; }
   .menu-toggle { display: inline-flex; }
+}
+/* Teléfono */
+@media (max-width: 760px) {
+  .topbar { gap: 10px; padding: 0 12px; }
+  .user-name { display: none; }
+  .topnav { gap: 0; }
   .search { width: 100%; }
   .page { padding: 16px; }
   .page-header > .actions { width: 100%; }
@@ -808,3 +812,20 @@ html[data-embed] .login-tools { display: none; }
 .public-link { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
 .public-link .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .public-toggle { white-space: normal; align-items: flex-start; margin-bottom: 12px; }
+
+/* ---------- Anchos estándar (P-141, convenciones.md) ----------
+   Una página de primer nivel (Conexiones, Seguridad, Auditoría, Tokens, Plan, Dashboards) nunca se estira más allá de
+   --page-max: en pantalla ancha queda centrada. Las de una conexión (grilla, registro, configurar) usan el ancho que
+   deja el menú de tablas; el formulario de un registro tiene su propio tope. */
+:root { --page-max: 1600px; }
+.app > .page { max-width: var(--page-max); margin-inline: auto; width: 100%; }
+/* Los dashboards aprovechan más ancho: las tarjetas se leen mejor en una pantalla grande. */
+.app > .page.dashboard-page, .app > .page.dashboards-page { max-width: 1760px; }
+@media (max-width: 520px) {
+  /* Filtros de la auditoría: uno por línea, a todo el ancho. */
+  .audit-filters > input, .audit-filters > select, .audit-filters > label { flex: 1 1 100%; }
+}
+@media (max-width: 640px) {
+  /* Enlace público: el enlace y el iframe a todo el ancho, con su botón debajo. */
+  .public-link .row > code { flex: 1 1 100%; }
+}

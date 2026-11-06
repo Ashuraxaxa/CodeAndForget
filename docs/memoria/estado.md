@@ -27,7 +27,8 @@ Fase 1 (MVP) terminada y fusionada en `main`. Principio rector: **se adapta a cu
 | `feature/dashboards-extras` | PR #63 fusionado: dashboards, etapa 5: mapa, refresco, CSV, ir a la grilla e IA (P-131). |
 | `fix/busqueda-sin-tildes` | PR #62 fusionado: combos y filtro de FK sin distinguir tildes (P-109). |
 | `docs/readme-landing` | PR #66 fusionado: README (español e inglés) y landing con dashboards, Power BI y Excel, y la imagen Docker; captura del dashboard. |
-| `docs/embeber` | Embeber, etapa 6: ejemplos para firmar en C#, Node y Python, README, landing y planes (P-139). Cierra el plan. |
+| `fix/responsive-todo` | Revisión responsive de todas las pantallas como estándar: `--page-max`, menú de tablas desplegable en tablet y `npm run responsive` (P-141, D-118). |
+| `docs/embeber` | PR #73 fusionado: embeber, etapa 6: ejemplos para firmar en C#, Node y Python, README, landing y planes (P-139). Cierra el plan. |
 | `feature/embed-js` | PR #72 fusionado: embeber, etapa 5: `embed.js`, eventos y renovación del token, portal de ejemplo (P-138, D-117). |
 | `feature/dashboards-publicos` | PR #71 fusionado: embeber, etapa 4: dashboards públicos por enlace secreto (P-137, D-116). |
 | `feature/embeber-filtros` | PR #70 fusionado: embeber, etapa 3: filtros fijos por fila (P-136, D-115). |

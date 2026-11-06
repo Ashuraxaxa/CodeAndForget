@@ -1200,6 +1200,15 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **Una librería npm o un Web Component con estilos propios:** hay que mantener versiones; un script sirve para cualquier tecnología.
   - **Renovar con un refresh token en el navegador:** la clave quedaría en el cliente. La renovación vuelve al servidor de la anfitriona.
 
+### D-118 · Revisión responsive como estándar
+- **Estado:** Vigente · 2026-11-06 (P-141). Pedido del dueño: revisar todas las interfaces en teléfono, tablet, PC y pantalla ancha y dejarlo como estándar.
+- **Qué:**
+  - **Reglas:** cortes fijos en 2560, 900, 760 y 520 px, y `--page-max` (1600 px) para las páginas de primer nivel. Están en `convenciones.md`.
+  - **Revisión:** `npm run responsive` recorre 19 pantallas en 7 tamaños, falla si algo desborda y deja capturas para mirarlas.
+- **Descartado:**
+  - **Comparar capturas píxel a píxel en la CI:** frágil ante fuentes y datos de prueba que cambian. El desborde se mide y la apariencia la mira una persona.
+  - **Un ancho máximo para todo:** la grilla de una tabla necesita todo el ancho que haya.
+
 ---
 
 ## Propuestas (aún no decididas)

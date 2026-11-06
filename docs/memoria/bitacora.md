@@ -4,6 +4,12 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-06 · Texto del combo con valor fijo (P-142)
+- **Problema:** al crear un registro con una FK fija (filtro por fila de una página embebida, o pestaña hija), el combo bloqueado mostraba el valor y no el texto.
+- **Arreglo:** el formulario busca el texto en la tabla referenciada (`lookup` por su clave) y lo muestra. Con filtro por fila, esa tabla ya viene recortada al valor fijo (D-115).
+- **En vivo:** el alta embebida con `categoria_id = 1` muestra "Bebidas". En la pestaña hija de un pedido sale "1", que es lo correcto: `pedido` no tiene columna a mostrar.
+- **v1.2.0** publicada por el dueño (embeber completo y responsive).
+
 ## 2026-11-06 · Revisión responsive de todas las pantallas (P-141)
 - **Recorrido:** 24 pantallas en 7 tamaños (360 a 2560 px), con capturas. No había desbordes de página; los problemas eran de forma:
   - **Tablet vertical (768):** el menú de tablas (264 px fijos) dejaba la grilla, el registro y Configurar en unos 500 px. Ahora pasa a desplegable desde 900 px.

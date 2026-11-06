@@ -1,6 +1,6 @@
-# Embeber dashboards y mantenedores (plan)
+# Embeber dashboards y mantenedores
 
-**Estado:** aprobado · 2026-11-05 · D-113 · P-134 a P-139. Pedido del dueño: poner los dashboards y los mantenedores de
+**Estado:** hecho · 2026-11-06 · D-113 a D-117 · P-134 a P-139. Desde el plan Pro. Pedido del dueño: poner los dashboards y los mantenedores de
 Celdo dentro de otras aplicaciones (intranets, portales de clientes, sistemas propios).
 
 ## 1. Tres formas
@@ -99,19 +99,71 @@ máximo) con:
 - **Revocar el acceso:** se desactiva la aplicación o se rota su clave. Las sesiones abiertas se cortan; con varias
   instancias, en hasta 30 s.
 
-**Ejemplo para firmar (Node, sin librerías):**
+**Firmar el token.** Siempre en el servidor de la otra app, nunca en el navegador: la clave da acceso a todo lo que
+permite el perfil de la aplicación. Ninguno de estos ejemplos necesita librerías; cualquier librería de JWT con
+HS256 sirve igual. La clave se usa tal cual (sus bytes UTF-8).
+
+Node:
 
 ```js
 const crypto = require('crypto')
 const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url')
-function celdoToken(kid, secret, sub, res, perm = ['view']) {
+function celdoToken(kid, secret, sub, res, perm = ['view'], filters) {
   const now = Math.floor(Date.now() / 1000)
   const head = b64({ alg: 'HS256', typ: 'JWT', kid })
-  const body = b64({ sub, res, perm, iat: now, exp: now + 600 })
+  const body = b64({ sub, res, perm, filters, iat: now, exp: now + 600 })
   return `${head}.${body}.${crypto.createHmac('sha256', secret).update(`${head}.${body}`).digest('base64url')}`
 }
-// <iframe src="https://celdo.miempresa.com/embed/dashboards/ID#token=...">
 ```
+
+Python:
+
+```python
+import base64, hashlib, hmac, json, time
+
+def _b64(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+def celdo_token(kid: str, secret: str, sub: str, res: list, perm=("view",), filters=None, minutes=10) -> str:
+    """JWT HS256 para Celdo, solo con la biblioteca estándar de Python."""
+    now = int(time.time())
+    head = _b64(json.dumps({"alg": "HS256", "typ": "JWT", "kid": kid}).encode())
+    claims = {"sub": sub, "res": res, "perm": list(perm), "iat": now, "exp": now + minutes * 60}
+    if filters:
+        claims["filters"] = filters
+    body = _b64(json.dumps(claims).encode())
+    sig = hmac.new(secret.encode(), f"{head}.{body}".encode(), hashlib.sha256).digest()
+    return f"{head}.{body}.{_b64(sig)}"
+```
+
+C# (.NET 8 o más):
+
+```csharp
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+
+static class CeldoToken
+{
+    /// <summary>JWT HS256 para Celdo, sin paquetes: solo .NET.</summary>
+    public static string Create(string kid, string secret, string sub, string[] res, string[]? perm = null,
+        Dictionary<string, object>? filters = null, int minutes = 10)
+    {
+        static string B64(byte[] b) => Convert.ToBase64String(b).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var head = B64(JsonSerializer.SerializeToUtf8Bytes(new { alg = "HS256", typ = "JWT", kid }));
+        var claims = new Dictionary<string, object> { ["sub"] = sub, ["res"] = res, ["perm"] = perm ?? ["view"], ["iat"] = now, ["exp"] = now + minutes * 60 };
+        if (filters is not null) claims["filters"] = filters;
+        var body = B64(JsonSerializer.SerializeToUtf8Bytes(claims));
+        var sig = HMACSHA256.HashData(Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes($"{head}.{body}"));
+        return $"{head}.{body}.{B64(sig)}";
+    }
+}
+```
+
+Uso: `celdoToken(kid, secret, "ana@cliente.com", ["table:demo/ventas/producto"], ["view", "edit"], { cliente_id: 42 })`,
+y luego `<iframe src="https://celdo.miempresa.com/embed/c/demo/t/ventas/producto#token=…">` o `embed.js` con
+`getToken` (sección 8).
 
 **Qué puede hacer la sesión:**
 
@@ -121,7 +173,7 @@ function celdoToken(kid, secret, sub, res, perm = ['view']) {
   Se miran, no se editan.
 - **Prohibido:** no tiene permisos de la app. Administrar, auditar, tokens, OData y MCP responden 403.
 - **Sin login:** el token se canjea en `POST /api/embed/session` por una sesión propia (`emb_…`) que vence con él. Si
-  vence, la página lo avisa; la renovación automática llega con `embed.js` (etapa 5).
+  vence, la página lo avisa; con `embed.js` se renueva sola (sección 8).
 - **Plan:** no ocupa lugar de usuario en el plan.
 
 ## 6. Filtros fijos por fila ✅
@@ -211,4 +263,4 @@ node samples/embed/server.js     # http://localhost:8090, con el sitio http://lo
 | **3. Filtros por fila** ✅ | Filtro fijo en listar, leer, editar, borrar, exportar, combos y dashboards; valor fijo al crear; batería común en los 4 motores | P-136 |
 | **4. Dashboards públicos** ✅ | Enlace secreto, interruptor del administrador, permisos del dueño, límite por IP | P-137 |
 | **5. `embed.js` y eventos** ✅ | Script, eventos, renovación del token, página de prueba en `samples/` | P-138 |
-| **6. Documentación y venta** | Ejemplos para firmar en C#, Node y Python, README, landing y planes | P-139 |
+| **6. Documentación y venta** ✅ | Ejemplos para firmar en C#, Node y Python, README, landing y planes | P-139 |

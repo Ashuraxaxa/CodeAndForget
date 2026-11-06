@@ -16,6 +16,7 @@ valida sin internet, así sirve también en redes cerradas (P-116, D-104, D-106)
 | Exportar e importar Excel, JSON y XML; importar actualizando | — (solo CSV, insertando) | ✓ | ✓ |
 | Avisos por correo, botones con procedimientos, copiar ajustes | — | ✓ | ✓ |
 | IA por MCP y tokens de acceso | — | ✓ | ✓ |
+| Embeber en otras apps: con sesión, aplicaciones con token firmado y dashboards públicos ([embeber.md](embeber.md)) | — | ✓, hasta 3 aplicaciones, con el sello "Hecho con Celdo" | ✓, sin tope ni marca |
 | Login con proveedor de identidad (`Auth:Mode=Jwt`) | — | — | ✓ |
 | Metadata en PostgreSQL o SQL Server, llaves en la base, Redis, plugins, OpenTelemetry | — | — | ✓ |
 

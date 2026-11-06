@@ -4,6 +4,13 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-06 · Embeber, etapa 6: documentación y venta (P-139)
+- **`docs/embeber.md`:** ejemplos para firmar en Node, Python y C# sin librerías. Los tres canjearon un token contra la API real (200) y un token alterado dio 401.
+- **README (español e inglés):** fila "Embeber en tus apps" y el documento en la tabla.
+- **`licencias.md`:** la fila de embeber por plan.
+- **Landing:** tres funciones nuevas (dentro de tus apps, cada cliente ve lo suyo, dashboards públicos) y una línea de embeber en Pro y en Empresa. Revisada en 1440 y 390 px.
+- **Plan de embeber terminado** (P-134 a P-139). Sigue P-141: la revisión responsive de todas las pantallas como estándar.
+
 ## 2026-11-05 · Embeber, etapa 5: embed.js y eventos (P-138)
 - **`/embed.js`:** `Celdo.embed(destino, { url, token | getToken, tema, idioma, onEvent })`. Ajusta el alto, pide y renueva el token, y acepta mensajes solo de su iframe y su origen (D-117).
 - **Eventos de la página:** `celdo:ready`, `saved`, `deleted`, `click` (las tarjetas embebidas avisan el grupo en vez de abrir la grilla), `token-expiring` (2 minutos antes) y `session-expired`. Recibe `celdo:token` del `parent` y lo canjea sin recargar.

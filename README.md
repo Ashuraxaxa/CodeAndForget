@@ -42,6 +42,7 @@ Todo lo demás se ajusta desde la interfaz, sin tocar código ni reiniciar.
 | ⚙️ **Ajustes sin código** | Nombres visibles por idioma, columnas ocultas u obligatorias, orden, controles, FK y PK virtuales, y botones que llaman a procedimientos almacenados. [ajustes.md](docs/ajustes.md) |
 | 🗂️ **Tipos especiales** | JSON, enums, arreglos, archivos con vista previa de imágenes, datos geográficos en WKT (PostGIS incluido) y números de más de 28 dígitos. |
 | 📊 **Dashboards** | Tarjetas de número, barras, líneas, dona, top N, tabla dinámica y mapa, armadas sin programar. Filtro de fechas, refresco automático, CSV por tarjeta, clic que abre la grilla filtrada y compartir con perfiles. [dashboards.md](docs/dashboards.md) |
+| 🪟 **Embeber en tus apps** | Dashboards y mantenedores dentro de una intranet o un portal de clientes: con la sesión del usuario, con un token firmado por tu servidor (cada cliente ve solo sus filas) o como dashboard público. `embed.js` ajusta el alto, avisa eventos y renueva el token. [embeber.md](docs/embeber.md) |
 | 📈 **Power BI y Excel** | Cada conexión se publica como fuente OData de solo lectura, con los permisos de quien crea el token y los textos de las FK. [powerbi.md](docs/powerbi.md) |
 | 📤 **Exportar e importar** | CSV, Excel, JSON y XML del listado filtrado; importación con vista previa, errores por fila y actualización por clave. |
 | 🔐 **Seguridad** | Login local o cualquier proveedor OIDC (Keycloak, Duende, Entra ID…). Perfiles con permisos por conexión, tabla, columna y acción. [seguridad.md](docs/seguridad.md) |
@@ -49,7 +50,7 @@ Todo lo demás se ajusta desde la interfaz, sin tocar código ni reiniciar.
 | 🕵️ **Auditoría** | Quién cambió qué y cuándo, con historial por registro y exportación. Edición simultánea sin pisar cambios ajenos. |
 | 🌐 **Idiomas y tema** | Interfaz en español, inglés y ruso, con fechas y números en el formato de cada uno. Modo día, noche o el del sistema. |
 | 🚀 **Listo para producción** | Health checks, OpenTelemetry, límites de uso, tablas de millones de filas, varias instancias (Redis opcional) y motores extra como plugins. |
-| 💳 **Planes** | Gratis para siempre (2 usuarios, 1 conexión, 15 tablas y 1 dashboard), Pro (5 dashboards) y Empresa (sin tope) con una licencia que se valida sin internet. [licencias.md](docs/licencias.md) |
+| 💳 **Planes** | Gratis para siempre (2 usuarios, 1 conexión, 15 tablas y 1 dashboard), Pro (5 dashboards, embeber con 3 aplicaciones) y Empresa (sin tope) con una licencia que se valida sin internet. [licencias.md](docs/licencias.md) |
 
 <details>
 <summary>Más capturas: dashboard y formulario con maestro-detalle</summary>
@@ -203,6 +204,7 @@ docs/                                    Documentación y memoria del proyecto
 | [licencias.md](docs/licencias.md) | Planes Gratis, Pro y Empresa, activar y emitir licencias |
 | [dashboards.md](docs/dashboards.md) | Dashboards: tarjetas, permisos, compartir y topes por plan |
 | [powerbi.md](docs/powerbi.md) | Conectar Power BI o Excel por OData |
+| [embeber.md](docs/embeber.md) | Embeber dashboards y mantenedores en otras apps: tokens firmados, filtros por fila, dashboards públicos y `embed.js` |
 | [mcp.md](docs/mcp.md) | Conectar una IA por MCP para que revise el esquema, proponga ajustes y arme dashboards |
 | [comercial/](docs/comercial/plan-comercial.md) | Celdo: plan comercial, manual de marca y landing (`landing/`) |
 | [api.md](docs/api.md) | Rutas de la API |

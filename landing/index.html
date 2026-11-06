@@ -431,6 +431,21 @@ footer a { color: var(--muted); text-decoration: none; } footer a:hover { color:
           <h3 data-i="feat.f9t">Se instala con un comando</h3>
           <p data-i="feat.f9">Imagen Docker oficial para Intel/AMD y ARM, o en IIS, servicio de Windows, systemd y Kubernetes. Sin servicios en la nube obligatorios.</p>
         </div>
+        <div class="feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="6" y="8" width="12" height="8" rx="1"/></svg>
+          <h3 data-i="feat.f10t">Dentro de tus apps</h3>
+          <p data-i="feat.f10">Pon un dashboard o un mantenedor en tu intranet o tu portal con un iframe o embed.js. Se ajusta al alto y te avisa cada registro guardado.</p>
+        </div>
+        <div class="feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5Z"/><rect x="4" y="10" width="16" height="12" rx="2"/></svg>
+          <h3 data-i="feat.f11t">Cada cliente ve lo suyo</h3>
+          <p data-i="feat.f11">Tu servidor firma un token corto: Celdo muestra y edita solo las filas de ese cliente, sin cuentas nuevas ni datos copiados.</p>
+        </div>
+        <div class="feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+          <h3 data-i="feat.f12t">Dashboards públicos</h3>
+          <p data-i="feat.f12">Comparte un dashboard con un enlace secreto, sin login. Lo quitas o lo renuevas cuando quieras.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -539,6 +554,7 @@ footer a { color: var(--muted); text-decoration: none; } footer a:hover { color:
             <li data-i="plan.pro.5">Avisos por correo y botones con procedimientos</li>
             <li data-i="plan.pro.6">IA por MCP y copia de ajustes entre bases</li>
             <li data-i="plan.pro.8">5 dashboards de hasta 20 tarjetas, compartidos por perfil</li>
+            <li data-i="plan.pro.9">Embeber en tus apps: 3 aplicaciones y dashboards públicos</li>
             <li data-i="plan.pro.7">Soporte por correo en 2 días hábiles</li>
           </ul>
           <a class="btn primary" id="cta-pro" href="#empezar" data-i="plan.pro.cta">Probar 30 días gratis</a>
@@ -554,6 +570,7 @@ footer a { color: var(--muted); text-decoration: none; } footer a:hover { color:
             <li data-i="plan.ent.3">Alta disponibilidad con varias instancias</li>
             <li data-i="plan.ent.4">Motores propios como plugins</li>
             <li data-i="plan.ent.7">Dashboards sin tope, de hasta 50 tarjetas</li>
+            <li data-i="plan.ent.8">Embeber sin tope y sin la marca Celdo</li>
             <li data-i="plan.ent.5">SLA: 4 horas hábiles en incidentes críticos</li>
             <li data-i="plan.ent.6">Implementación y capacitación incluidas</li>
           </ul>
@@ -663,6 +680,9 @@ const EN = {
   'feat.f7t': 'Dashboards without code', 'feat.f7': 'Numbers, bars, lines, donut, pivot table and map over your tables. Date filter, auto-refresh and sharing with profiles, with the permissions of whoever is looking.',
   'feat.f8t': 'Power BI and Excel', 'feat.f8': 'Each connection is a read-only OData feed. Power BI and Excel read it directly, with the user’s permissions and the label of every foreign key.',
   'feat.f9t': 'Installs with one command', 'feat.f9': 'Official Docker image for Intel/AMD and ARM, or on IIS, a Windows service, systemd and Kubernetes. No mandatory cloud services.',
+  'feat.f10t': 'Inside your apps', 'feat.f10': 'Put a dashboard or a table screen in your intranet or portal with an iframe or embed.js. It sizes itself and tells you about every saved record.',
+  'feat.f11t': 'Each customer sees their own', 'feat.f11': 'Your server signs a short token: Celdo shows and edits only that customer’s rows, with no new accounts and no copied data.',
+  'feat.f12t': 'Public dashboards', 'feat.f12': 'Share a dashboard with a secret link, no login. Remove or renew it whenever you want.',
   'who.eyebrow': 'Who it’s for', 'who.title': 'For people who own the data and don’t have time to build screens.',
   'who.w1t': 'IT and support', 'who.w1': 'Delegate data fixes with permissions per table, column and action. You stop running scripts; the audit log answers who made each change.',
   'who.w1q': '“We cut our data-fix tickets in half.”',
@@ -694,12 +714,12 @@ const EN = {
   'price.perMonth': '/ month per installation', 'plan.pro.yearNote': 'USD 490 per year.', 'plan.pro.monthNote': 'Billed monthly.',
   'plan.pro.1': 'Up to 25 users, unlimited connections', 'plan.pro.2': 'Profiles and permissions per table, column and action',
   'plan.pro.3': '1-year audit log, with export', 'plan.pro.4': 'Excel, JSON and XML; import with updates',
-  'plan.pro.5': 'Email alerts and stored-procedure buttons', 'plan.pro.6': 'AI through MCP and copying settings between databases', 'plan.pro.8': '5 dashboards of up to 20 cards, shared by profile',
+  'plan.pro.5': 'Email alerts and stored-procedure buttons', 'plan.pro.6': 'AI through MCP and copying settings between databases', 'plan.pro.8': '5 dashboards of up to 20 cards, shared by profile', 'plan.pro.9': 'Embed in your apps: 3 applications and public dashboards',
   'plan.pro.7': 'Email support within 2 business days', 'plan.pro.cta': 'Try it free for 30 days',
   'plan.ent': 'Business', 'plan.ent.for': 'For several departments and critical production.',
   'price.from': 'from', 'price.perMonthShort': '/ month', 'plan.ent.note': 'Billed yearly.',
   'plan.ent.1': 'Unlimited users and installations', 'plan.ent.2': 'SSO with Entra ID, Keycloak, Okta or OIDC',
-  'plan.ent.3': 'High availability with several instances', 'plan.ent.4': 'Your own engines as plugins', 'plan.ent.7': 'Unlimited dashboards of up to 50 cards',
+  'plan.ent.3': 'High availability with several instances', 'plan.ent.4': 'Your own engines as plugins', 'plan.ent.7': 'Unlimited dashboards of up to 50 cards', 'plan.ent.8': 'Unlimited embedding without the Celdo brand',
   'plan.ent.5': 'SLA: 4 business hours for critical incidents', 'plan.ent.6': 'Onboarding and training included',
   'plan.ent.cta': 'Talk to sales',
   'price.foot': 'Prices in US dollars, before taxes. 50% off for nonprofits and education. More than 25 users on Pro? Add 25 more for USD 29 a month.',

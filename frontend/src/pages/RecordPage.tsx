@@ -1,5 +1,5 @@
 import { ArrowLeft, History } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError, isConcurrencyError } from '../api/client'
@@ -109,6 +109,25 @@ function RecordForm({ conn, meta, row, recordKey, fixed, returnTo, initialLinks,
   const [labels, setLabels] = useState<Record<string, string | null>>(() =>
     Object.fromEntries(fields.map(c => [c.name, (row?.[c.name + LABEL_SUFFIX] as string | null) ?? null])))
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Un alta con una FK fija (pestaña hija, o filtro por fila de una página embebida, P-136) solo trae el valor: se busca
+  // su texto en la tabla referenciada, así el combo bloqueado muestra "Bebidas" y no "1".
+  useEffect(() => {
+    if (isEdit) return
+    let alive = true
+    for (const fk of meta.foreignKeys) {
+      const col = fk.columns[0]
+      if (fk.columns.length !== 1 || !(col in fixed) || fixed[col] === '' || labels[col]) continue
+      api.lookup(conn, fk.refSchema, fk.refTable, '', { [fk.refColumns[0]]: fixed[col] })
+        .then(items => {
+          const text = items.find(i => String(i.value) === String(fixed[col]))?.label ?? items[0]?.label
+          if (alive && text) setLabels(s => (s[col] ? s : { ...s, [col]: text }))
+        })
+        .catch(() => { /* sin texto: el combo muestra el valor */ })
+    }
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Combos filtrados por otra columna (P-110): AreaID solo ofrece áreas de la EmpresaID elegida.
   const fieldName = (name: string) => { const f = meta.columns.find(x => x.name === name); return f ? labelOf(f) : name }

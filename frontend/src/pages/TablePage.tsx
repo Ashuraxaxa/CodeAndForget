@@ -7,7 +7,7 @@ import { LABEL_SUFFIX, SIZE_SUFFIX, VERSION_FIELD, helpTextOf, labelOf, type Col
 import { FIXED_PREFIX, RETURN_PARAM, displayValue, keyQuery } from '../lib/format'
 import { useDebounce } from '../lib/useDebounce'
 import { useCan } from '../lib/useMe'
-import { isEmbed } from '../lib/embed'
+import { isEmbed, notifyHost } from '../lib/embed'
 import { useTableLabels } from '../lib/useTableLabels'
 import { TreeView } from '../components/TreeView'
 import { useT } from '../i18n'
@@ -103,7 +103,10 @@ export function Grid({ conn, meta, fixed, returnTo }: {
 
   const remove = useMutation({
     mutationFn: (row: Row) => api.remove(conn, meta.schema, meta.name, keyQuery(meta, row), row[VERSION_FIELD]),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['rows', conn, meta.schema, meta.name] }),
+    onSuccess: (_, row) => {
+      notifyHost('celdo:deleted', { connection: conn, schema: meta.schema, table: meta.name, key: Object.fromEntries(new URLSearchParams(keyQuery(meta, row))) })
+      qc.invalidateQueries({ queryKey: ['rows', conn, meta.schema, meta.name] })
+    },
     onError: err => {
       // Otra persona lo cambió (D-069): se recarga la grilla para que decida con los datos al día.
       if (isConcurrencyError(err)) {

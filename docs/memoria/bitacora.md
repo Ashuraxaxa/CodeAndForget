@@ -4,6 +4,13 @@ Una entrada por sesión, la más reciente arriba. Breve: qué se hizo, qué se d
 
 ---
 
+## 2026-11-05 · Embeber, etapa 5: embed.js y eventos (P-138)
+- **`/embed.js`:** `Celdo.embed(destino, { url, token | getToken, tema, idioma, onEvent })`. Ajusta el alto, pide y renueva el token, y acepta mensajes solo de su iframe y su origen (D-117).
+- **Eventos de la página:** `celdo:ready`, `saved`, `deleted`, `click` (las tarjetas embebidas avisan el grupo en vez de abrir la grilla), `token-expiring` (2 minutos antes) y `session-expired`. Recibe `celdo:token` del `parent` y lo canjea sin recargar.
+- **`samples/embed/server.js`:** portal en Node, sin dependencias, que firma el token en el servidor.
+- **En vivo:** dashboard y mantenedor con `categoria_id = 1`. Funcionaron el alto automático, el clic en Bebidas, guardar un registro y la renovación del token (cambió la sesión sin recargar).
+- **Aprendido:** en el ejemplo, una línea que empieza con `[` sin `;` antes se unió a la anterior: el script del portal lleva `;`.
+
 ## 2026-11-05 · Embeber, etapa 4: dashboards públicos (P-137)
 - **Interruptor** "Permitir dashboards públicos" en Seguridad → Aplicaciones (apagado; desde Pro).
 - **En el dashboard,** "Enlace público": crear, copiar el enlace o el iframe, renovar y quitar. Solo el dueño o un administrador lo ve.

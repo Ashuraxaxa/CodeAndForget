@@ -1,4 +1,5 @@
 import { Download } from 'lucide-react'
+import { isEmbed, notifyHost } from '../lib/embed'
 import { useNavigate } from 'react-router-dom'
 import type { AggregateResult, AggregateRow, DashboardWidget } from '../api/types'
 import { useT, type Translate } from '../i18n'
@@ -19,9 +20,12 @@ export function WidgetView({ widget, data, isLoading, error, interactive = false
   const metric = metricLabel(t, widget)
   const rows = data?.rows ?? []
   // Solo se filtra la grilla por un grupo que es una columna tal cual (no un período de fechas).
+  // Embebida (P-138), el clic en un grupo se avisa a la app anfitriona en vez de abrir la grilla.
   const drill = interactive && widget.query.groupBy.length === 1 && !bucket
     ? (r: AggregateRow) => navigate(gridUrl(widget, r))
-    : undefined
+    : isEmbed && widget.query.groupBy.length > 0
+      ? (r: AggregateRow) => notifyHost('celdo:click', { widget: widget.id, title: widget.title, key: r.key, label: r.label, value: r.value })
+      : undefined
 
   let body: React.ReactNode = null
   if (isLoading) body = <div className="chart-skeleton" aria-busy="true" />

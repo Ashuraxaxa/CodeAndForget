@@ -46,6 +46,17 @@ export function startEmbed() {
   document.documentElement.dataset.embed = ''
   applyParams()
   reportHeight()
+  notifyHost('celdo:ready', { path: location.pathname.slice(routerBase.length) || '/' })
+}
+
+/**
+ * Avisa a la app anfitriona lo que pasa en la página embebida (P-138): celdo:ready, celdo:saved, celdo:deleted,
+ * celdo:click, celdo:token-expiring y celdo:session-expired. Solo pueden embeber los sitios permitidos (frame-ancestors),
+ * así que el mensaje va a quien embebe; nunca lleva datos que la página no muestre.
+ */
+export function notifyHost(type: string, detail: Record<string, unknown> = {}) {
+  if (!isEmbed || window.parent === window) return
+  try { window.parent.postMessage({ ...detail, type }, '*') } catch { /* sin anfitrión */ }
 }
 
 /**

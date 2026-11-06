@@ -1189,6 +1189,17 @@ Estado: `Vigente`, `Temporal` (se reemplazará en una fase futura) o `Reemplazad
   - **Filtros fijos en el enlace:** el dueño no tiene un perfil al que recortar si es administrador. Queda la forma B para eso.
   - **Limitar los sitios del iframe:** un dashboard público es para cualquiera; no hay sesión que robar ni acción que disparar.
 
+### D-117 · embed.js y eventos por postMessage
+- **Estado:** Vigente · 2026-11-05 (P-138).
+- **Qué:**
+  - **`/embed.js`:** vanilla y sin dependencias, en `frontend/public`. Arma el iframe, ajusta el alto, pide el token a `getToken` y lo renueva.
+  - **Mensajes de la página a la anfitriona:** con `postMessage(…, '*')`. Solo los sitios permitidos pueden embeberla (`frame-ancestors`), y los mensajes nunca llevan más que lo que la página muestra.
+  - **Mensajes de la anfitriona a la página:** solo `celdo:token`, y solo si vienen de `window.parent`. Se canjea como cualquier token: firma, vencimiento y aplicación.
+  - **Seguridad de `embed.js`:** acepta mensajes solo de su iframe y de su origen.
+- **Descartado:**
+  - **Una librería npm o un Web Component con estilos propios:** hay que mantener versiones; un script sirve para cualquier tecnología.
+  - **Renovar con un refresh token en el navegador:** la clave quedaría en el cliente. La renovación vuelve al servidor de la anfitriona.
+
 ---
 
 ## Propuestas (aún no decididas)

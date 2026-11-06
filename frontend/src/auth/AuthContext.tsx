@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { UserManager, type User } from 'oidc-client-ts'
 import { t } from '../i18n'
-import { inFrame, signedToken } from '../lib/embed'
+import { inFrame, notifyHost, signedToken } from '../lib/embed'
 import type { EmbedSession } from '../api/types'
 import { api, setTokenProvider, setUnauthorizedHandler, tokenStore, type AuthConfig } from '../api/client'
 
@@ -113,6 +113,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [manager, setUser])
 
+  // Renovación (P-138): 2 minutos antes de vencer, se pide a la app anfitriona un token nuevo (celdo:token-expiring).
+  // embed.js lo firma con getToken y lo envía como celdo:token; se canjea sin recargar la página.
+  useEffect(() => {
+    if (!embed) return
+    const wait = Math.max(5_000, Date.parse(embed.expiresAt) - Date.now() - 120_000)
+    const timer = setTimeout(() => notifyHost('celdo:token-expiring', { expiresAt: embed.expiresAt }), wait)
+    return () => clearTimeout(timer)
+  }, [embed])
+  useEffect(() => {
+    if (!embedRef.current && !signedToken) return
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== window.parent || e.data?.type !== 'celdo:token' || typeof e.data.token !== 'string') return
+      api.embedSession(e.data.token)
+        .then(s => { embedRef.current = s; storeEmbed(s); setEmbed(s); setEmbedError(null) })
+        .catch(err => setEmbedError((err as Error).message))
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
+
   const logout = useCallback(() => {
     // Sesión embebida: la otra app tiene que volver a firmar un token; no hay login propio que mostrar.
     if (embedRef.current) {
@@ -120,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       storeEmbed(null)
       setEmbed(null)
       setEmbedError(t('La sesión de esta página venció. Vuelve a cargar la página.'))
+      notifyHost('celdo:session-expired')
       return
     }
     tokenStore.set(null)

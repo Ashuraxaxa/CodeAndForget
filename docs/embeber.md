@@ -158,21 +158,49 @@ function celdoToken(kid, secret, sub, res, perm = ['view']) {
 - **Sin filtros fijos por ahora:** un enlace público muestra lo que ve su dueño. Para mostrar solo una parte, se arma un
   dashboard con los filtros en sus tarjetas, o se usa la forma B.
 
-## 8. `embed.js`
+## 8. `embed.js` ✅
 
-Un script opcional para la app anfitriona:
+Es un script opcional, sin dependencias, que Celdo publica en `/embed.js`:
 
 ```html
 <div id="ventas"></div>
 <script src="https://celdo.miempresa.com/embed.js"></script>
 <script>
-  Celdo.embed('#ventas', { url: '/embed/dashboards/abc', token: tokenDelServidor, tema: 'sistema',
-    onEvent: e => console.log(e) })   // registro guardado, clic en una barra, token por vencer
+  Celdo.embed('#ventas', {
+    url: '/embed/dashboards/ID',                       // o /embed/c/{conexión}/t/{esquema}/{tabla}, o /embed/p/{enlace}
+    getToken: () => fetch('/celdo-token').then(r => r.text()),   // su servidor firma el token (forma B)
+    tema: 'sistema', idioma: 'es',
+    onEvent: e => console.log(e.type, e)
+  })
 </script>
 ```
 
-- **Qué hace:** arma el iframe, ajusta el alto y renueva el token cuando Celdo avisa que va a vencer.
-- **Eventos:** `celdo:saved`, `celdo:deleted`, `celdo:click`, `celdo:token-expiring`.
+- **Qué hace:** arma el iframe, ajusta su alto y pide el token a `getToken` al abrir. Lo vuelve a pedir antes de que
+  venza y lo envía sin recargar la página.
+- **Qué devuelve:** `{ iframe, setToken(token), destroy() }`.
+- **Seguridad:** solo acepta mensajes de ese iframe y de su origen.
+
+| Evento | Cuándo | Datos |
+|---|---|---|
+| `celdo:ready` | La página cargó | `path` |
+| `celdo:resize` | Cambió el alto | `height` |
+| `celdo:saved` | Se guardó un registro | `connection`, `schema`, `table`, `key`, `created` |
+| `celdo:deleted` | Se borró un registro | `connection`, `schema`, `table`, `key` |
+| `celdo:click` | Clic en una barra, porción o fila de una tarjeta | `widget`, `title`, `key`, `label`, `value` |
+| `celdo:token-expiring` | Faltan 2 minutos para que venza la sesión | `expiresAt` |
+| `celdo:session-expired` | La sesión venció | — |
+
+Sin `embed.js`, los mismos eventos llegan con `postMessage` y el token nuevo se envía como
+`{ type: "celdo:token", token }` al iframe.
+
+**Ejemplo para probar:** `samples/embed/server.js` es un portal en Node 18+, sin dependencias. Firma el token en el
+servidor y embebe lo que diga `CELDO_RES`:
+
+```bash
+CELDO_KID=<id de la aplicación> CELDO_SECRET=<clave> \
+CELDO_RES=dashboard:<id>,table:demo/ventas/producto CELDO_PERM=view,edit CELDO_FILTERS='{"categoria_id":1}' \
+node samples/embed/server.js     # http://localhost:8090, con el sitio http://localhost:8090 en la aplicación
+```
 
 ## 9. Por etapas (un PR cada una)
 
@@ -182,5 +210,5 @@ Un script opcional para la app anfitriona:
 | **2. Aplicaciones y tokens** ✅ | Migración 010, Seguridad → Aplicaciones, canje del token, sesión limitada a `res` y `perm`, auditoría `app:`, tope de 3 en Pro | P-135 |
 | **3. Filtros por fila** ✅ | Filtro fijo en listar, leer, editar, borrar, exportar, combos y dashboards; valor fijo al crear; batería común en los 4 motores | P-136 |
 | **4. Dashboards públicos** ✅ | Enlace secreto, interruptor del administrador, permisos del dueño, límite por IP | P-137 |
-| **5. `embed.js` y eventos** | Script, eventos, renovación del token, página de prueba en `samples/` | P-138 |
+| **5. `embed.js` y eventos** ✅ | Script, eventos, renovación del token, página de prueba en `samples/` | P-138 |
 | **6. Documentación y venta** | Ejemplos para firmar en C#, Node y Python, README, landing y planes | P-139 |
